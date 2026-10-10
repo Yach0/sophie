@@ -127,6 +127,8 @@ def track_ai_usage(model: Model, usage: RunUsage) -> None:
         (usage.input_tokens, "request"),
         (usage.output_tokens, "response"),
         (usage.total_tokens, "total"),
+        (usage.cache_read_tokens, "cache_read"),
+        (usage.cache_write_tokens, "cache_write"),
     ):
         if value:
             count_metric(

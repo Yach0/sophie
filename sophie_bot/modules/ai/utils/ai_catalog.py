@@ -89,6 +89,7 @@ class CatalogModel:
     supports_reasoning: bool
     extra_params: dict[str, object] | None
     supports_images: bool = True
+    context_window_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,6 +101,7 @@ class ResolvedRole:
     # to decide whether it may serve a given request without reaching back into the catalog.
     supports_images: bool = True
     priority: int = 0
+    context_window_tokens: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -194,6 +196,7 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
             supports_reasoning=stored_model.supports_reasoning,
             extra_params=stored_model.extra_params,
             supports_images=stored_model.supports_images,
+            context_window_tokens=stored_model.context_window_tokens,
         )
         for role in stored_model.roles:
             key = (role.mode, role.purpose)
@@ -209,6 +212,7 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
                     reasoning_effort=role.reasoning_effort,
                     supports_images=stored_model.supports_images,
                     priority=role.priority,
+                    context_window_tokens=stored_model.context_window_tokens,
                 )
             )
 

@@ -1,19 +1,44 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import asyncio
+from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock
 
 import pytest
+from aiogram import F, Router
+from aiogram.types import Message
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
+from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, DisablingModel, FiltersModel, GlobalSettings, RulesModel
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.communities import CommunityBanModel, CommunityModel, CommunityTask
 from sophie_bot.db.models.federations import FederationBan, FederationTask
+from sophie_bot.middlewares.connections import ConnectionsMiddleware
+from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_cached_messages, get_message_cache_key
+from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from tests.e2e.federations.conftest import create_federation_via_command
-from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
+from tests.e2e.helpers import (
+    create_test_user_and_group,
+    grant_admin,
+    grant_bot_admin,
+    next_message_id,
+    next_user_id,
+    set_feature,
+)
+
+
+@pytest.fixture
+def allow_ai_moderation(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.middlewares.ai_moderator.check_moderator",
+        AsyncMock(return_value=SimpleNamespace(flagged=False)),
+    )
 
 
 @pytest.mark.parametrize("spelling", ["set_rules", "setrules", "set-rules", "SET_RULES"])
@@ -184,6 +209,7 @@ async def test_enable_resolves_legacy_db_key_after_command_rename(test_client: T
     assert await DisablingModel.get_disabled(chat.iid) == []
 
 
+@pytest.mark.usefixtures("allow_ai_moderation")
 @pytest.mark.parametrize("spelling", ["ai_reset", "aireset", "ai-reset", "AI_RESET", "Ai-ReSeT", "a_i-r_e_s_e_t"])
 @pytest.mark.parametrize("with_mention", [False, True])
 async def test_ai_reset_leaves_history_empty(test_client: TestClient, spelling: str, with_mention: bool) -> None:
@@ -207,6 +233,7 @@ async def test_ai_reset_leaves_history_empty(test_client: TestClient, spelling: 
     assert await services.redis.zcard(get_message_cache_key(group.id)) == 0
 
 
+@pytest.mark.usefixtures("allow_ai_moderation")
 @pytest.mark.parametrize(
     "text", ["Discuss /aireset here", "Discuss /ai_reset here", "/aireset@AnotherBot", "/ai_reset@AnotherBot"]
 )
@@ -221,3 +248,115 @@ async def test_reset_text_without_matched_command_is_cached(test_client: TestCli
     await test_client.send_message(text=text, from_user=admin, chat=group)
 
     assert await services.redis.zcard(get_message_cache_key(group.id)) == 1
+    # aiogram rounds framework DateTime values to seconds and can place this update just ahead of the clock.
+    cached = await get_cached_messages(
+        group.id, now=datetime.now(UTC) + timedelta(seconds=1), redis=services.redis,
+    )
+    assert [message.text for message in cached] == [text]
+
+
+@pytest.mark.usefixtures("allow_ai_moderation")
+@pytest.mark.parametrize("legacy_modern_flag", [False, True])
+async def test_ai_reset_clears_native_history_with_legacy_feature_value(
+    test_client: TestClient, legacy_modern_flag: bool
+) -> None:
+    admin, group, _admin_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.support)
+    await set_feature(test_client, "ai_chatbot_modern_context", legacy_modern_flag, chat_tid=group.id)
+    services = test_client.dispatcher.workflow_data["services"]
+    bot_user = await services.bot.me()
+    context = SophieAIToolContext(
+        connection=await ConnectionsMiddleware.get_current_chat_info(group, chat),
+        chat_tid=group.id,
+        chat_iid=chat.iid,
+        user_tid=admin.id,
+        mode=AIMode.support,
+        services=services,
+    )
+    message = Message(
+        message_id=next_message_id(),
+        date=datetime.now(UTC),
+        chat=group,
+        from_user=admin,
+        text="Remember the native conversation",
+    )
+    native = await ModernContext.build(message, context, token_budget=8192, instructions="Be helpful.")
+    session_id = native.session_id
+    await native.finish_run(
+        [
+            ModelRequest(parts=[UserPromptPart(content=native.prompt)], instructions=native.instructions),
+            ModelResponse(parts=[TextPart(content="Native answer")]),
+        ],
+        message.model_copy(
+            update={"message_id": next_message_id(), "from_user": bot_user, "text": "Native answer"}
+        ),
+    )
+    await cache_message(
+        message.text,
+        group.id,
+        admin.id,
+        message.message_id,
+        message.date,
+        admin.full_name,
+        redis=services.redis,
+    )
+    assert await get_cached_messages(group.id, redis=services.redis)
+
+    requests = await test_client.send_command(command="ai_reset", from_user=admin, chat=group)
+
+    assert requests
+    assert await get_cached_messages(group.id, redis=services.redis) == ()
+    fresh = await ModernContext.build(
+        message.model_copy(update={"message_id": next_message_id(), "text": "New conversation"}),
+        context,
+        token_budget=8192,
+        instructions="Be helpful.",
+    )
+    try:
+        assert fresh.session_id != session_id
+        assert fresh.message_history == []
+    finally:
+        await fresh.abort()
+
+
+@pytest.mark.usefixtures("allow_ai_moderation")
+async def test_ai_reset_fences_incoming_message_dispatched_before_reset(
+    test_client: TestClient, extra_router: Any
+) -> None:
+    admin, group, _admin_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.support)
+    sender = test_client.create_user(user_id=next_user_id(), first_name="Sender").user
+    entered = asyncio.Event()
+    release = asyncio.Event()
+    router = Router()
+
+    async def delayed_message(_message: Message) -> None:
+        entered.set()
+        await release.wait()
+
+    router.message.register(delayed_message, F.text == "Input already in flight")
+    extra_router(router)
+    incoming = asyncio.create_task(
+        test_client.send_message(text="Input already in flight", from_user=sender, chat=group)
+    )
+    try:
+        await asyncio.wait_for(entered.wait(), timeout=5)
+        requests = await test_client.send_command(command="ai_reset", from_user=admin, chat=group)
+        assert requests
+    finally:
+        release.set()
+        await incoming
+
+    services = test_client.dispatcher.workflow_data["services"]
+    assert await get_cached_messages(group.id, redis=services.redis) == ()
+    await test_client.send_message(text="Input after reset", from_user=sender, chat=group)
+    cached = await get_cached_messages(
+        group.id, now=datetime.now(UTC) + timedelta(seconds=1), redis=services.redis,
+    )
+    assert [message.text for message in cached] == ["Input after reset"]

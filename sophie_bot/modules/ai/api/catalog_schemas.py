@@ -37,6 +37,7 @@ class ModelResponse(BaseModel):
     api_name: str | None
     supports_reasoning: bool
     supports_images: bool
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
     extra_params: dict[str, object] | None
     roles: list[AIModelRole]
     enabled: bool
@@ -48,6 +49,7 @@ class ModelCreate(BaseModel):
     api_name: str | None = None
     supports_reasoning: bool = True
     supports_images: bool = True
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True
@@ -58,6 +60,7 @@ class ModelUpdate(BaseModel):
     api_name: str | None = None
     supports_reasoning: bool | None = None
     supports_images: bool | None = None
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] | None = None
     enabled: bool | None = None
@@ -101,6 +104,7 @@ class ResolvedCandidate(BaseModel):
     model: str
     priority: int
     supports_images: bool
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
 
 
 class ResolvedModel(BaseModel):
@@ -120,6 +124,7 @@ class ModelExport(BaseModel):
     api_name: str | None = None
     supports_reasoning: bool = True
     supports_images: bool = True
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True

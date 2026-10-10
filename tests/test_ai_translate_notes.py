@@ -21,7 +21,6 @@ def _build_rendered_translation(translation_explanations: str | None) -> str:
         is_autotranslate=False,
         is_voice=False,
         quota_header=None,
-        header_style="simple",
     ).to_rich()
 
 

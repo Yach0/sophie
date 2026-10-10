@@ -21,7 +21,6 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_GENERATING_EMOJI_ID,
     AI_PROGRESS_LINE_EMOJI_IDS,
     ai_credit_header,
-    build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
@@ -32,7 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 
 pytestmark = pytest.mark.usefixtures("db_init")
 
@@ -179,15 +178,15 @@ async def test_media_preparation_stacks_video_voice_and_image_activities(
     )
     streamer.response_message = cast(Message, response_message)
     download = AsyncMock(side_effect=lambda file_id: BytesIO(b"image-bytes"))
-    history = AIMessageHistory(
+    history = OldContext(
         services=cast(Any, SimpleNamespace(bot=SimpleNamespace(download=download), redis=test_redis))
     )
     monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.message_history.transform_video_to_text",
+        "sophie_bot.modules.ai.utils.modern_context.transform_video_to_text",
         AsyncMock(return_value="video speech"),
     )
     monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.message_history.transform_voice_to_text",
+        "sophie_bot.modules.ai.utils.modern_context.transform_voice_to_text",
         AsyncMock(return_value="voice speech"),
     )
     video_message = Message.model_validate(
@@ -461,7 +460,7 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     await streamer.stream("Partial primary answer")
     await streamer.update_retrying(2, 5)
 
-    final_header = build_ai_header("simple", ai_credit_header(50, "fallback-model"))
+    final_header = ai_credit_header(50, "fallback-model")
     final_doc = build_ai_message_doc(
         final_header,
         "Fallback answer",
@@ -524,8 +523,25 @@ async def test_finished_reply_uses_custom_ai_emoji_and_battery_footer(
     assert "<table" not in text
 
 
-def test_simple_header_renders_battery_in_separate_paragraph() -> None:
-    header = build_ai_header("simple", ai_credit_header(50))
+@pytest.mark.asyncio
+async def test_finished_reply_without_quota_keeps_battery_without_percentage(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_response.get_quota_info",
+        AsyncMock(return_value=None),
+    )
+
+    header = await build_chatbot_header(cast(Any, "chat-iid"), redis=test_redis)
+    text = build_ai_message_doc(header, "Hello").to_rich()
+
+    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
+    assert text.endswith("<br><p>🔋</p>")
+    assert "%" not in text
+
+
+def test_ai_header_renders_battery_in_separate_paragraph() -> None:
+    header = ai_credit_header(50)
 
     assert header is not None
     text = build_ai_message_doc(header, "Hello\nSecond line").to_rich()
@@ -535,8 +551,8 @@ def test_simple_header_renders_battery_in_separate_paragraph() -> None:
     assert "<table" not in text
 
 
-def test_simple_header_renders_first_markdown_paragraph_inline() -> None:
-    header = build_ai_header("simple", ai_credit_header(50))
+def test_ai_header_renders_first_markdown_paragraph_inline() -> None:
+    header = ai_credit_header(50)
 
     assert header is not None
     text = build_ai_message_doc(header, ai_markdown_to_doc("Hello *world*.\n\nSecond paragraph.")).to_rich()
@@ -553,7 +569,7 @@ def test_used_tool_categories_render_before_reply_body() -> None:
             ModelResponse(parts=[ToolCallPart(tool_name="tinyfish_search", args={})]),
         ]
     )
-    header = build_ai_header("simple", ai_credit_header(45))
+    header = ai_credit_header(45)
 
     text = build_ai_message_doc(header, "Reply here", tool_labels=labels).to_rich()
 
@@ -576,7 +592,7 @@ def test_memory_help_and_research_tool_titles_omit_custom_emojis() -> None:
             ModelResponse(parts=[ToolCallPart(tool_name="research_topic", args={})]),
         ]
     )
-    doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(80)), "Answer", tool_labels=labels)
+    doc = build_ai_message_doc(ai_credit_header(80), "Answer", tool_labels=labels)
 
     assert all(tool.custom_emoji_id not in doc.to_rich() for tool in labels)
     assert doc.to_md().startswith("✨ (Memory, Help, Research) Answer")
@@ -604,7 +620,7 @@ def test_header_visibility_is_per_tool_and_preserves_visible_search(
         ]
     )
 
-    doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(70)), "Answer", tool_labels=labels)
+    doc = build_ai_message_doc(ai_credit_header(70), "Answer", tool_labels=labels)
     assert doc.to_md().startswith("✨ (Search, Notes) Answer")
     assert "Memory" not in doc.to_rich()
 
@@ -616,7 +632,7 @@ def test_header_visibility_is_per_tool_and_preserves_visible_search(
     hidden_only = used_tool_labels(
         [ModelResponse(parts=[ToolCallPart(tool_name="save_note", args={})])]
     )
-    hidden_doc = build_ai_message_doc(build_ai_header("simple", ai_credit_header(70)), "Answer", tool_labels=hidden_only)
+    hidden_doc = build_ai_message_doc(ai_credit_header(70), "Answer", tool_labels=hidden_only)
     assert hidden_doc.to_md().startswith("✨ Answer")
 
 
@@ -642,8 +658,5 @@ def test_model_name_is_optional_after_battery_percentage() -> None:
     assert model_display_name(_model()) == "GPT 5.5"
 
 
-def test_disabled_header_leaves_only_the_body() -> None:
-    header = build_ai_header("disable", ai_credit_header(50))
-
-    assert header is None
-    assert build_ai_message_doc(header, "Hello").to_html() == "Hello"
+def test_non_ai_message_leaves_only_the_body() -> None:
+    assert build_ai_message_doc(None, "Hello").to_html() == "Hello"

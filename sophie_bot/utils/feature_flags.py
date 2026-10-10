@@ -28,7 +28,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_chatbot_table_max_rows",
     "ai_chatbot_table_card_threshold",
     "ai_translation_model",
-    "ai_translations_header_style",
     "ai_search_provider",
     "ai_chatbot_system_prompt",
     "ai_help_system_prompt",
@@ -38,6 +37,8 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_moderation_reason_model",
     "ai_filter_suggestions_prompt",
     "ai_chatbot",
+    "ai_chatbot_modern_context",
+    "ai_chatbot_modern_context_tokens",
     "ai_chatbot_research_quote",
     "ai_chatbot_streaming_backoff_seconds",
     "ai_chatbot_stream_continuation",
@@ -79,10 +80,8 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_filters",
     "ai_filters_jev",
     "ai_filters_jev_model",
-    "ai_filters_header_style",
     "ai_chat_summaries",
     "ai_chat_summaries_pin",
-    "ai_chat_summaries_header_style",
     "ai_summary_improved_privacy",
     "ai_note_titles",
     "cleannotes",
@@ -124,7 +123,6 @@ FEATURE_FLAGS: Final[tuple[FeatureType, ...]] = get_args(FeatureType)
 FeatureValue: TypeAlias = bool | str | int | float  # noqa: UP040
 FeatureValueKind: TypeAlias = Literal[  # noqa: UP040
     "plain",
-    "ai_header_style",
     "ai_model",
     "service_tier",
     "search_provider",
@@ -159,8 +157,6 @@ def get_allowed_string_values(feature: FeatureType) -> frozenset[str] | None:
         return _SEARCH_PROVIDER_VALUES
     if value_kind == "moderation_provider":
         return _MODERATION_PROVIDER_VALUES
-    if value_kind == "ai_header_style":
-        return _AI_HEADER_STYLE_VALUES
     return None
 
 
@@ -209,7 +205,6 @@ class ChatFeatureOverride(TypedDict):
 
 
 _PLAIN_FEATURE: Final[FeatureValueKind] = "plain"
-_AI_HEADER_STYLE_FEATURE: Final[FeatureValueKind] = "ai_header_style"
 _AI_MODEL_FEATURE: Final[FeatureValueKind] = "ai_model"
 _SERVICE_TIER_FEATURE: Final[FeatureValueKind] = "service_tier"
 _SEARCH_PROVIDER_FEATURE: Final[FeatureValueKind] = "search_provider"
@@ -217,7 +212,6 @@ _MODERATION_PROVIDER_FEATURE: Final[FeatureValueKind] = "moderation_provider"
 SERVICE_TIER_VALUES: Final[frozenset[str]] = frozenset({"none", "auto", "default", "flex", "priority"})
 _SEARCH_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"kagi", "tavily", "tinyfish"})
 _MODERATION_PROVIDER_VALUES: Final[frozenset[str]] = frozenset({"mistral", "openai"})
-_AI_HEADER_STYLE_VALUES: Final[frozenset[str]] = frozenset({"disable", "simple"})
 
 
 def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATURE) -> FeatureDefinition:
@@ -238,10 +232,9 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_table_max_rows": _feature(50),
     "ai_chatbot_table_card_threshold": _feature(8),
     "ai_translation_model": _feature("", _AI_MODEL_FEATURE),
-    "ai_translations_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
-        "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet\nOutput Markdown/plain text only; never output raw HTML or Telegram tg:// links.\nRepresent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
+        "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet\nOutput Markdown/plain text only; never output raw HTML or Telegram tg:// links."
     ),
     "ai_help_system_prompt": _feature(
         "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `sophie_help` tool before describing any command, and read the relevant wiki page with it when a topic needs detail; never invent commands or arguments.\nIf the documentation does not answer a question about how Sophie behaves, use the `sophie_inspect` tool once and explain its answer in your own words.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nRefuse anything that is not about Sophie, however harmless: no general knowledge, no writing, no code, no chit-chat. Say in one sentence that this mode only covers Sophie, and tell them to leave it with the \"Exit AI help\" button below to talk about anything else."
@@ -260,6 +253,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
         "You generate Sophie Bot filter handler suggestions.\nReturn 1 to 3 unique suggestions as structured data."
     ),
     "ai_chatbot": _feature(True),
+    "ai_chatbot_modern_context": _feature(False),
+    "ai_chatbot_modern_context_tokens": _feature(16384),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
     # Off restores `Agent.run_stream`, which stops at the first text token and can drop
@@ -310,10 +305,8 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_filters": _feature(True),
     "ai_filters_jev": _feature(False),
     "ai_filters_jev_model": _feature("typesafe/jev-1.13", _AI_MODEL_FEATURE),
-    "ai_filters_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     "ai_chat_summaries": _feature(True),
     "ai_chat_summaries_pin": _feature(False),
-    "ai_chat_summaries_header_style": _feature("simple", _AI_HEADER_STYLE_FEATURE),
     # Sends the summary transcript with positional references and pseudonymous speakers instead of
     # real Telegram message IDs, usernames, and absolute timestamps.
     "ai_summary_improved_privacy": _feature(False),

@@ -12,12 +12,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.constants import FILTERS_MAX_TRIGGERS, FILTERS_SILENT_MODE_DELETE_DELAY_SECONDS
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.ai.utils.ai_header import (
-    AIHeaderStyle,
-    build_ai_header,
-    build_ai_message_doc,
-    get_ai_header_style,
-)
+from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.filters.utils_.handle_action import (
     get_effective_filter_actions,
@@ -124,12 +119,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         return them instead of text, so they only contribute their IDs and stay out of the doc.
         """
         sent_message_ids: list[int] = []
-        header_style: AIHeaderStyle = (
-            await get_ai_header_style("filters", message.chat.id, redis=services.redis) if ai_matched else "disable"
-        )
-        header = None
-        if ai_matched:
-            header = build_ai_header(header_style)
+        header = "🔋" if ai_matched else None
 
         body = Doc()
 

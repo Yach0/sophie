@@ -8,9 +8,9 @@ from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
+from sophie_bot.modules.ai.utils.old_context import OldContext, convert_to_moderation_format
 
 MISTRAL_MODERATION_MODEL: Final[str] = "mistral-moderation-latest"
 
@@ -50,7 +50,7 @@ class MistralModerationProvider:
 
     @staticmethod
     async def classify(
-        history: AIMessageHistory,
+        history: OldContext,
         *,
         redis: Redis,
     ) -> dict[str, float]:

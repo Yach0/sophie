@@ -18,7 +18,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
 from sophie_bot.modules.ai.utils.ai_help_mode import set_help_mode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
-from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
+from sophie_bot.modules.ai.utils.modern_context import build_chatbot_instructions
 from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
@@ -349,8 +349,8 @@ async def test_sophie_help_uses_its_own_system_prompt(
     ) -> object:
         return prompts.get(feature, "")
 
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.get_value", AsyncMock(side_effect=fake_get_value))
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_context.is_enabled", AsyncMock(return_value=False))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.get_value", AsyncMock(side_effect=fake_get_value))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.is_enabled", AsyncMock(return_value=False))
     context = SimpleNamespace(
         chat_tid=-100123,
         chat_iid=PydanticObjectId(),

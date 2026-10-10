@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import AsyncExitStack
 from typing import Any
 
 from aiogram.types import Message
@@ -16,12 +17,13 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import cache_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -33,6 +35,8 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     build_chatbot_header,
     build_reply_doc,
     model_display_name,
+    resolve_reply_mention_index,
+    select_mention_policy,
     truncate_output,
     used_tool_labels,
 )
@@ -43,10 +47,10 @@ from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_tip,
     should_offer_help_mode,
 )
-from sophie_bot.modules.ai.utils.mention_usernames import resolve_mention_index
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
+from sophie_bot.modules.ai.utils.modern_context import ModernContext
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -63,7 +67,7 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
     return False
 
 
-async def _reply_debug_history(message: Message, history: AIMessageHistory) -> None:
+async def _reply_debug_history(message: Message, history: OldContext | ModernContext) -> None:
     await message.reply(
         Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
         disable_web_page_preview=True,
@@ -86,7 +90,11 @@ async def _resolve_model_plan(
     )
     if model is None:
         return plan
-    pinned = AIModelCandidate(model=model, model_name=model.model_name)
+    pinned = AIModelCandidate(
+        model=model,
+        model_name=model.model_name,
+        context_window_tokens=registered_context_window_tokens(model.model_name),
+    )
     return build_model_plan([pinned, *plan.candidates])
 
 
@@ -132,14 +140,18 @@ async def _build_fitting_reply_doc(
     strip_alien_html_tags: bool = False,
     *,
     services: ApplicationServices,
+    mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
+    speaker_names: Sequence[tuple[int, str]] = (),
 ) -> Doc:
     fitted_output_text = output_text
     mention_index = (
-        await resolve_mention_index(
+        await resolve_reply_mention_index(
             chat_tid,
             redis=services.redis,
+            mention_policy=mention_policy,
+            speaker_names=speaker_names,
         )
-        if "@" in output_text
+        if mention_policy != MentionPolicy.OPAQUE and "@" in output_text
         else None
     )
     for _attempt_index in range(8):
@@ -154,6 +166,8 @@ async def _build_fitting_reply_doc(
             redis=services.redis,
             tool_labels=tool_labels,
             strip_alien_html_tags=strip_alien_html_tags,
+            mention_policy=mention_policy,
+            speaker_names=speaker_names,
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
@@ -174,9 +188,12 @@ async def _build_fitting_reply_doc(
         result,
         explicit_debug_mode,
         chat_tid=chat_tid,
+        mention_index=mention_index,
         redis=services.redis,
         tool_labels=tool_labels,
         strip_alien_html_tags=strip_alien_html_tags,
+        mention_policy=mention_policy,
+        speaker_names=speaker_names,
     )
 
 
@@ -221,7 +238,7 @@ async def ai_chatbot_reply(
     if not connection.db_model:
         return None
 
-    async with track_ai_conversation():
+    async with track_ai_conversation(), AsyncExitStack() as cleanup:
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
         model_plan = await _resolve_model_plan(connection, model, mode, services=services)
@@ -250,8 +267,20 @@ async def ai_chatbot_reply(
         history = await prepare_chatbot_history(
             message,
             context,
+            model_plan=model_plan,
             on_activity=(message_streamer.update_processing_activity if message_streamer else None),
         )
+        if isinstance(history, ModernContext):
+            cleanup.push_async_callback(history.abort)
+        mention_policy = select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode)
+        speaker_names = (
+            history.mention_speaker_names
+            if isinstance(history, ModernContext) and mention_policy == MentionPolicy.MODERN_FIRST_NAMES
+            else ()
+        )
+        if message_streamer:
+            message_streamer.mention_policy = mention_policy
+            message_streamer.speaker_names = speaker_names
         # Whatever tool calls history already contains were replayed from a previous
         # answer and must not be stored a second time.
         previous_history = list(history.message_history)
@@ -319,7 +348,11 @@ async def ai_chatbot_reply(
             )
             else None
         )
-        tool_labels = used_tool_labels(result.message_history[len(previous_history) :])
+        tool_labels = used_tool_labels(
+            result.new_messages
+            if isinstance(history, ModernContext)
+            else result.message_history[len(previous_history) :]
+        )
         output_text = truncate_output(header, str(result.output))
         doc = await _build_fitting_reply_doc(
             header,
@@ -331,6 +364,8 @@ async def ai_chatbot_reply(
             services=services,
             tool_labels=tool_labels,
             strip_alien_html_tags=strip_alien_html_tags,
+            mention_policy=mention_policy,
+            speaker_names=speaker_names,
         )
         if await should_offer_help_mode(
             message,
@@ -350,13 +385,12 @@ async def ai_chatbot_reply(
         else:
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
 
-        await cache_message(
-            cut_titlebar(doc.to_md(), tool_labels=tool_labels),
-            message.chat.id,
-            CONFIG.bot_id,
-            final_message.message_id,
-            final_message.date,
-            "Sophie",
+        cached_message = MessageType(
+            text=output_text,
+            user_id=CONFIG.bot_id,
+            message_id=final_message.message_id,
+            created_at=final_message.date,
+            username="Sophie",
             is_bot=True,
             message_thread_id=final_message.message_thread_id,
             handled_by_ai=True,
@@ -366,16 +400,21 @@ async def ai_chatbot_reply(
             reply_to_username=(
                 message.from_user.username or message.from_user.full_name if message.from_user else None
             ),
-            redis=services.redis,
         )
 
-        await remember_chatbot_tool_history(
-            message.chat.id,
-            final_message.message_id,
-            result.message_history,
-            previous_history,
-            redis=services.redis,
-        )
+        if isinstance(history, ModernContext):
+            await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
+        else:
+            async with services.redis.pipeline(transaction=True) as pipe:
+                enqueue_cached_message(pipe, message.chat.id, cached_message)
+                await pipe.execute()
+            await remember_chatbot_tool_history(
+                message.chat.id,
+                final_message.message_id,
+                result.message_history,
+                previous_history,
+                redis=services.redis,
+            )
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
         return final_message

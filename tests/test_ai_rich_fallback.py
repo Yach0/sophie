@@ -8,7 +8,7 @@ from aiogram.exceptions import TelegramBadRequest
 from stfu_tg import Doc
 
 from sophie_bot.modules.ai.handlers.research import ResearchProgressMessage
-from sophie_bot.modules.ai.utils import ai_send, proactive_replies
+from sophie_bot.modules.ai.utils import ai_send
 from sophie_bot.modules.ai.utils.ai_header import AI_GENERATING_EMOJI_ID, AI_PROGRESS_LINE_EMOJI_IDS
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
@@ -198,69 +198,6 @@ async def test_deleted_source_still_gets_thinking_message_and_final_edit(test_re
     assert edit_message_text.await_args.kwargs["rich_message"].html == Doc("answer").to_rich()
 
 
-@pytest.mark.asyncio
-async def test_proactive_answer_uses_shared_rich_sender(monkeypatch: pytest.MonkeyPatch) -> None:
-    target = SimpleNamespace(message_id=7, message_thread_id=None, text="question", username="user", user_id=1)
-    chat = SimpleNamespace(iid="chat", tid=1, type="group", first_name_or_title="Group")
-    doc = Doc("answer")
-    sent = SimpleNamespace(message_id=8, text="answer", date=None, message_thread_id=None)
-    rich_sender = AsyncMock(return_value=sent)
-    model = SimpleNamespace(model_name="model")
-    build_chatbot_header = AsyncMock(return_value=Doc("header"))
-    build_reply_doc = AsyncMock(return_value=doc)
-    monkeypatch.setattr(proactive_replies, "send_ai_rich_message_to_chat", rich_sender)
-    monkeypatch.setattr(
-        proactive_replies,
-        "get_chat_default_model_plan",
-        AsyncMock(return_value=SimpleNamespace(primary=model)),
-    )
-    monkeypatch.setattr(proactive_replies, "resolve_chat_service_tier", AsyncMock(return_value=None))
-    monkeypatch.setattr(
-        proactive_replies,
-        "is_enabled",
-        AsyncMock(side_effect=lambda feature, **_kwargs: feature == "ai_chatbot_strip_alien_html_tags"),
-    )
-    monkeypatch.setattr(
-        proactive_replies,
-        "_build_answer_history",
-        AsyncMock(return_value=SimpleNamespace(prompt=[], message_history=[])),
-    )
-    monkeypatch.setattr(proactive_replies, "build_chatbot_header", build_chatbot_header)
-    monkeypatch.setattr(proactive_replies, "build_reply_doc", build_reply_doc)
-    monkeypatch.setattr(proactive_replies, "cache_message", AsyncMock())
-    run_chatbot = AsyncMock(
-        return_value=SimpleNamespace(
-            served_model=None,
-            usage=None,
-            output="answer",
-            message_history=[],
-        )
-    )
-    monkeypatch.setattr(proactive_replies, "run_chatbot", run_chatbot)
-    services = SimpleNamespace(redis=object(), bot=object())
-
-    await proactive_replies._answer_message(
-        1,
-        chat,
-        target,
-        services=services,
-    )
-
-    assert build_reply_doc.await_args is not None
-    rich_sender.assert_awaited_once_with(
-        1,
-        doc,
-        reply_to_message_id=7,
-        message_thread_id=None,
-        bot=services.bot,
-    )
-    cache_message = proactive_replies.cache_message
-    cache_message.assert_awaited_once()
-    cache_kwargs = cache_message.await_args.kwargs
-    assert cache_message.await_args.args[0] == "answer"
-    assert cache_kwargs["is_bot"] is True
-    assert cache_kwargs["reply_to_message_id"] == 7
-    assert cache_kwargs["reply_to_user_id"] == 1
 
 
 @pytest.mark.asyncio

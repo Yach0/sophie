@@ -76,6 +76,9 @@ class AICatalogModelModel(Document):
     # cannot. Defaults to true so rows written before this field keep serving images as they did —
     # an operator marks a cheap text-only model false to route image turns past it.
     supports_images: bool = True
+    # Authoritative model capacity. Unset rows remain valid for legacy use and migration, but
+    # modern context budgeting requires an explicit registry value.
+    context_window_tokens: int | None = Field(default=None, gt=0, strict=True)
     extra_params: dict[str, object] | None = None
     roles: list[AIModelRole] = Field(default_factory=list)
     enabled: bool = True

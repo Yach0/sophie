@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from beanie import PydanticObjectId
@@ -31,8 +31,8 @@ from sophie_bot.modules.ai.utils.ai_run import (
 )
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.chatbot_context import build_chatbot_instructions
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.modern_context import ModernContext, build_chatbot_instructions
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_value
@@ -68,7 +68,7 @@ class ChatbotRunCallbacks:
 @dataclass(frozen=True, slots=True)
 class ChatbotRunRequest:
     context: SophieAIToolContext
-    history: AIMessageHistory
+    history: OldContext | ModernContext
     model_plan: AIModelPlan
     service_tier: str | None = None
     thread_id: int | None = None
@@ -78,11 +78,25 @@ class ChatbotRunRequest:
     callbacks: ChatbotRunCallbacks = field(default_factory=ChatbotRunCallbacks)
 
 
-def build_chatbot_agent(model: Model, tools: list[Any], mode: AIMode) -> Agent[SophieAIToolContext, str]:
-    agent = Agent(model, name=f"{mode.value}:chat", deps_type=SophieAIToolContext, output_type=str, tools=tools)
+def build_chatbot_agent(
+    model: Model,
+    tools: list[Any],
+    mode: AIMode,
+    *,
+    modern_context: ModernContext | None = None,
+) -> Agent[SophieAIToolContext, str]:
+    agent = Agent(
+        model,
+        name=f"{mode.value}:chat",
+        deps_type=SophieAIToolContext,
+        output_type=str,
+        tools=tools,
+    )
 
     @agent.instructions
     async def add_chatbot_instructions(ctx: RunContext[SophieAIToolContext]) -> str:
+        if modern_context is not None:
+            return modern_context.instructions
         return await build_chatbot_instructions(ctx.deps)
 
     return agent
@@ -121,7 +135,7 @@ async def get_chatbot_tools(
     return tools
 
 
-def _coerce_usage_limit(value: object, default: int | None = None) -> int | None:
+def coerce_usage_limit(value: object, default: int | None = None) -> int | None:
     if value in {None, "", "none", "None", 0, "0"}:
         return default
     if isinstance(value, (int, float, str)):
@@ -132,15 +146,15 @@ def _coerce_usage_limit(value: object, default: int | None = None) -> int | None
 
 async def build_chatbot_usage_limits(context: SophieAIToolContext) -> UsageLimits:
     redis = context.services.redis
-    request_limit = _coerce_usage_limit(
+    request_limit = coerce_usage_limit(
         await get_value("ai_chatbot_request_limit", chat_tid=context.chat_tid, redis=redis),
         _DEFAULT_CHATBOT_REQUEST_LIMIT,
     )
-    tool_calls_limit = _coerce_usage_limit(
+    tool_calls_limit = coerce_usage_limit(
         await get_value("ai_chatbot_tool_calls_limit", chat_tid=context.chat_tid, redis=redis),
         _DEFAULT_CHATBOT_TOOL_CALLS_LIMIT,
     )
-    output_tokens_limit = _coerce_usage_limit(
+    output_tokens_limit = coerce_usage_limit(
         await get_value("ai_chatbot_response_tokens_limit", chat_tid=context.chat_tid, redis=redis)
     )
     return UsageLimits(
@@ -157,6 +171,7 @@ def _build_session_id(chat_iid: PydanticObjectId, thread_id: int | None) -> str:
 async def _build_chatbot_run_config(
     context: SophieAIToolContext,
     model: Model,
+    history: OldContext | ModernContext,
     *,
     thread_id: int | None,
     session_id: str | None,
@@ -165,22 +180,32 @@ async def _build_chatbot_run_config(
 ) -> ChatbotRunConfig:
     tools = CHATBOT_TOOLS if use_base_tools else await get_chatbot_tools(context, get_capabilities(context.mode))
     return ChatbotRunConfig(
-        agent=build_chatbot_agent(model, tools, context.mode),
+        agent=build_chatbot_agent(
+            model, tools, context.mode, modern_context=history if isinstance(history, ModernContext) else None
+        ),
         usage_limits=await build_chatbot_usage_limits(context),
         request_options=AIRequestOptions(
-            user_tracking_id=context.chat_iid,
-            session_id=session_id or _build_session_id(context.chat_iid, thread_id),
+            user_tracking_id=None if isinstance(history, ModernContext) else context.chat_iid,
+            session_id=(
+                history.session_id
+                if isinstance(history, ModernContext)
+                else session_id or _build_session_id(context.chat_iid, thread_id)
+            ),
             service_tier=service_tier,
+            prompt_cache=isinstance(history, ModernContext),
         ),
     )
 
 
 async def run_chatbot(request: ChatbotRunRequest) -> AIAgentResult[str]:
     context = request.context
+    if isinstance(request.history, ModernContext):
+        context = replace(context, speaker_reference_decoder=request.history.restore_speaker_references)
     model = request.model_plan.primary
     run_config = await _build_chatbot_run_config(
         context,
         model,
+        request.history,
         thread_id=request.thread_id,
         session_id=request.session_id,
         service_tier=request.service_tier,

@@ -168,27 +168,27 @@ msgstr "Yhdistettyä chattia ei löytynyt tietokannasta. Olet irrottanut ja pysy
 msgid "You no longer have permission to connect to this chat. You have been disconnected."
 msgstr "Sinulla ei ole enää lupaa liittyä tähän chattiin. Yhteys on katkaistu."
 
-#: sophie_bot/modules/ai/__init__.py:129
+#: sophie_bot/modules/ai/__init__.py:131
 msgid "Sophie AI"
 msgstr "Sophie AI"
 
-#: sophie_bot/modules/ai/__init__.py:131
+#: sophie_bot/modules/ai/__init__.py:133
 msgid "Rainbow sparkles and shininess"
 msgstr "Sateenkaaren kipinöitä ja kiiltoa"
 
-#: sophie_bot/modules/ai/__init__.py:134
+#: sophie_bot/modules/ai/__init__.py:136
 msgid "Sophie supports quite a few ways to use AI features."
 msgstr "Sophie tukee melko muutamia tapoja käyttää AI-toimintoja."
 
-#: sophie_bot/modules/ai/__init__.py:135
+#: sophie_bot/modules/ai/__init__.py:137
 msgid "From a simple chat-bot, to the automatic translator. Have fun."
 msgstr "Yksinkertaisesta chat-botista automaattiseen kääntäjään. Pidä hauskaa."
 
-#: sophie_bot/modules/ai/__init__.py:138
+#: sophie_bot/modules/ai/__init__.py:140
 msgid "Please note that each chat has a limited monthly AI quota."
 msgstr "Huomaa, että jokaisella keskustelulla on rajoitettu kuukausittainen tekoälykiintiö."
 
-#: sophie_bot/modules/ai/__init__.py:139
+#: sophie_bot/modules/ai/__init__.py:141
 msgid "Use /ai_usage to check your remaining quota."
 msgstr "Käytä /ai_usage tarkistaaksesi jäljellä olevan kiintiösi."
 
@@ -213,11 +213,11 @@ msgstr "ei"
 msgid "No wiki page named {page}. Available pages: {available}"
 msgstr "Wiki-sivua nimeltä {page} ei löydy. Saatavilla olevat sivut: {available}"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:53
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:57
 msgid "No modules found."
 msgstr "Moduuleja ei löytynyt."
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:57
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:61
 msgid ""
 "SOPHIE BOT HELP CONTEXT\n"
 "\n"
@@ -261,7 +261,7 @@ msgstr ""
 "  - Poiskytkettävissä: ominaisuuslipun nimi, jota käytetään tämän komennon poistamiseksi käytöstä keskustelussa, jos sellainen on.\n"
 "\n"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:83
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:87
 #: sophie_bot/modules/federations/handlers/info.py:63
 #: sophie_bot/modules/notes/handlers/delete.py:58
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:136
@@ -269,71 +269,71 @@ msgstr ""
 msgid "Name"
 msgstr "Nimi"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:84
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:88
 msgid "Icon"
 msgstr "Kuvake"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:87
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:97
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:91
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:103
 #: sophie_bot/modules/notes/handlers/save.py:89
 msgid "Description"
 msgstr "Kuvaus"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:89
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:93
 msgid "Info"
 msgstr "Tiedot"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:90
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:94
 msgid "Wiki page"
 msgstr "Wiki-sivu"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:100
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:106
 msgid "Arguments"
 msgstr "Argumentit"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:103
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:109
 msgid "This command has no arguments."
 msgstr "Tällä komennolla ei ole argumentteja."
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:104
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:110
 msgid "Can be used only in private chats (PM / DM)"
 msgstr "Voi käyttää vain yksityisissä keskusteluissa (PM / DM)"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:105
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:111
 msgid "Can be used only in groups / supergroups"
 msgstr "Voi käyttää vain ryhmissä / superryhmissä"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:106
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:112
 msgid "Can be used in both private chats and groups"
 msgstr "Voi käyttää sekä yksityisissä keskusteluissa että ryhmissä"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:109
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:115
 msgid "Can be used only by admins"
 msgstr "Voi käyttää vain ylläpitäjät"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:110
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:116
 msgid "Can be used only by OP"
 msgstr "Voi käyttää vain OP"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:111
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:117
 msgid "No special permissions required"
 msgstr "Ei erityisiä oikeuksia vaadita"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:114
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:120
 msgid "Disableable"
 msgstr "Poistettavissa"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:120
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:126
 msgid "Module Information"
 msgstr "Moduulin tiedot"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:123
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:129
 #: sophie_bot/modules/help/utils/format_help.py:87
 #: sophie_bot/modules/locks/handlers/lockable.py:45
 msgid "Commands"
 msgstr "Komennot"
 
-#: sophie_bot/modules/ai/agent_tools/sophie_help.py:125
+#: sophie_bot/modules/ai/agent_tools/sophie_help.py:131
 msgid "No commands in this module."
 msgstr "Tässä moduulissa ei ole komentoja."
 
@@ -376,8 +376,8 @@ msgid "Recommended"
 msgstr "Suositeltu"
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:179
-msgid "Suggests filter handlers from a natural language description"
-msgstr "Ehdottaa suodattimien käsittelijöitä luonnollisen kielen kuvauksesta"
+msgid "Suggests filter handlers from a natural language description."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_addfilter.py:196
 msgid "Describe what the filter should catch"
@@ -405,8 +405,8 @@ msgid "Prompt"
 msgstr "Kehoitus"
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:22
-msgid "Ask Sophie a question"
-msgstr "Kysy Sophielta kysymys"
+msgid "Ask Sophie a question."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/ai_cmd.py:42
 #: sophie_bot/modules/ai/handlers/research.py:85
@@ -458,8 +458,8 @@ msgid "AI Mode"
 msgstr "Tekoälytila"
 
 #: sophie_bot/modules/ai/handlers/aimode.py:80
-msgid "Select what the AI does in this chat"
-msgstr "Valitse, mitä tekoäly tekee tässä keskustelussa"
+msgid "Select what the AI does in this chat."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimode.py:98
 #: sophie_bot/modules/ai/handlers/aimoderator.py:110
@@ -513,12 +513,12 @@ msgid "Press a category to walk it through Off, Low, Medium and High."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:92
-msgid "Tune what the AI moderator detects in this chat"
+msgid "Tune what the AI moderator detects in this chat."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:34
-msgid "Controls AI Auto translator"
-msgstr "Ohjaa tekoälyä automaattisella kääntäjällä"
+msgid "Controls AI Auto translator."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:46
 msgid "?Language code"
@@ -539,180 +539,215 @@ msgid "Language not found."
 msgstr "Kieltä ei löytynyt."
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:26
-msgid "Controls AI chat summaries"
-msgstr "Ohjaa tekoälyn keskustelujen tiivistelmiä"
+msgid "Controls AI chat summaries."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:37
-msgid "Controls automatic pinning of AI chat summaries"
+msgid "Controls automatic pinning of AI chat summaries."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/feature_setting.py:48
-msgid "Controls AI note title generation"
-msgstr "Ohjaa tekoälyn muistiinpanojen otsikoiden luontia"
+msgid "Controls AI note title generation."
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:75
+#: sophie_bot/modules/ai/handlers/op_catalog.py:81
 #, python-brace-format
 msgid "Kinds: {kinds}"
 msgstr "Tyypit: {kinds}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:76
+#: sophie_bot/modules/ai/handlers/op_catalog.py:82
 msgid "Only the given options change; the rest keep their current values."
 msgstr "Vain annetut asetukset muuttuvat; muut säilyttävät nykyiset arvonsa."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:77
+#: sophie_bot/modules/ai/handlers/op_catalog.py:83
 msgid "A key can only be set in a private chat, and that message is deleted right away."
 msgstr "Avaimen voi asettaa vain yksityisviestissä, ja kyseinen viesti poistetaan heti."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:79
-#: sophie_bot/modules/ai/handlers/op_catalog.py:114
+#: sophie_bot/modules/ai/handlers/op_catalog.py:85
+#: sophie_bot/modules/ai/handlers/op_catalog.py:125
 #: sophie_bot/modules/ai/handlers/usage.py:51
 msgid "Usage"
 msgstr "Käyttö"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:91
+#: sophie_bot/modules/ai/handlers/op_catalog.py:98
 #, python-brace-format
 msgid "Roles: {modes} paired with {purposes}, e.g. {example}"
 msgstr "Roolit: {modes} yhdistettyinä {purposes}, esim. {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:97
+#: sophie_bot/modules/ai/handlers/op_catalog.py:104
 #, python-brace-format
 msgid "Drop the mode for purposes that are not per-chat, e.g. {example}"
 msgstr "Ohita tila tarkoituksissa, jotka eivät koske yksittäistä keskustelua, esim. {example}"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:101
+#: sophie_bot/modules/ai/handlers/op_catalog.py:108
 msgid "Several models can share one role: they are tried best-first, ordered by ^priority (lower runs earlier), and the next one takes over when the current one fails or answers with nothing."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:106
+#: sophie_bot/modules/ai/handlers/op_catalog.py:113
 #, python-brace-format
 msgid "A model that cannot be shown an image is skipped for image messages: set {option}."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:110
+#: sophie_bot/modules/ai/handlers/op_catalog.py:117
 #, python-brace-format
 msgid "The upstream name defaults to the model name; set {option} when they differ."
 msgstr "Ylävirran nimi oletuksena on mallin nimi; aseta {option}, kun ne eroavat."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:133
-#: sophie_bot/modules/ai/handlers/op_catalog.py:226
+#: sophie_bot/modules/ai/handlers/op_catalog.py:121
+msgid "Modern context requires a registered context size. Set ^context_window_tokens to the model's actual capacity; omitting it keeps the stored value unchanged."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:129
+msgid "Lists AI providers with masked API keys."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:145
+#: sophie_bot/modules/ai/handlers/op_catalog.py:242
 msgid " (disabled)"
 msgstr " (pois käytöstä)"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:138
+#: sophie_bot/modules/ai/handlers/op_catalog.py:150
 msgid "AI Providers"
 msgstr "Tekoälypalveluntarjoajat"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:151
 msgid "No providers are configured."
 msgstr "Palveluntarjoajia ei ole määritetty."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:139
+#: sophie_bot/modules/ai/handlers/op_catalog.py:151
 msgid "Providers"
 msgstr "Palveluntarjoajat"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:145
-msgid "Create or update an AI provider (private chat only)"
-msgstr "Luo tai päivitä tekoälypalveluntarjoaja (vain yksityisviestissä)"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:157
+msgid "Create or update an AI provider (private chat only)."
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:164
+#: sophie_bot/modules/ai/handlers/op_catalog.py:176
 msgid "Provider name"
 msgstr "Palveluntarjoajan nimi"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:177
+#: sophie_bot/modules/ai/handlers/op_catalog.py:189
 #, python-brace-format
 msgid "No provider named {name}."
 msgstr "Ei palveluntarjoajaa nimeltä {name}."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:180
+#: sophie_bot/modules/ai/handlers/op_catalog.py:192
 #, python-brace-format
 msgid "Provider {name} deleted."
 msgstr "Palveluntarjoaja {name} poistettiin."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:198
+#: sophie_bot/modules/ai/handlers/op_catalog.py:210
 msgid "AI Provider saved"
 msgstr "Tekoälypalveluntarjoaja tallennettu"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:232
+#: sophie_bot/modules/ai/handlers/op_catalog.py:222
+msgid "Lists AI models and their assigned roles."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#, python-brace-format
+msgid "{name} @ {provider}{roles}, context: {context_window_tokens}{disabled}"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:238
+#: sophie_bot/modules/ai/handlers/op_catalog.py:364
+msgid "unset"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:248
 msgid "AI Models"
 msgstr "Tekoälymallit"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
+#: sophie_bot/modules/ai/handlers/op_catalog.py:249
 msgid "No models are configured."
 msgstr "Malleja ei ole määritetty."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:233
-#: sophie_bot/modules/ai/handlers/op_prices.py:48
+#: sophie_bot/modules/ai/handlers/op_catalog.py:249
+#: sophie_bot/modules/ai/handlers/op_prices.py:50
 msgid "Models"
 msgstr "Mallit"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:235
+#: sophie_bot/modules/ai/handlers/op_catalog.py:251
 #, python-brace-format
 msgid "Loaded: {models}, {providers}"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:237
+#: sophie_bot/modules/ai/handlers/op_catalog.py:253
 #, python-brace-format
 msgid "{count} model"
 msgid_plural "{count} models"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:241
+#: sophie_bot/modules/ai/handlers/op_catalog.py:257
 #, python-brace-format
 msgid "{count} provider"
 msgid_plural "{count} providers"
 msgstr[0] ""
 msgstr[1] ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:250
-msgid "Create or update an AI model"
-msgstr "Luo tai päivitä tekoälymalli"
+#: sophie_bot/modules/ai/handlers/op_catalog.py:266
+msgid "Create or update an AI model."
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:272
+#: sophie_bot/modules/ai/handlers/op_catalog.py:289
 msgid "Model name"
 msgstr "Mallin nimi"
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:282
+#: sophie_bot/modules/ai/handlers/op_catalog.py:299
 #, python-brace-format
 msgid "No model named {name}."
 msgstr "Mallia nimeltä {name} ei löytynyt."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:285
+#: sophie_bot/modules/ai/handlers/op_catalog.py:302
 #, python-brace-format
 msgid "Model {name} deleted."
 msgstr "Malli {name} poistettiin."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:292
+#: sophie_bot/modules/ai/handlers/op_catalog.py:309
 msgid "^priority only applies together with ^role."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:297
+#: sophie_bot/modules/ai/handlers/op_catalog.py:313
+msgid "^context_window_tokens must be a positive number."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_catalog.py:318
 msgid "A new model needs ^provider=<name>."
 msgstr "Uusi malli tarvitsee ^provider=<name>."
 
-#: sophie_bot/modules/ai/handlers/op_catalog.py:332
+#: sophie_bot/modules/ai/handlers/op_catalog.py:357
 msgid "AI Model saved"
 msgstr "Tekoälymalli tallennettu"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:46
+#: sophie_bot/modules/ai/handlers/op_catalog.py:359
+#, python-brace-format
+msgid "{name} @ {provider}{roles}, context: {context_window_tokens}"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:48
 msgid "AI Prices"
 msgstr "Tekoälyn hinnat"
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:47
+#: sophie_bot/modules/ai/handlers/op_prices.py:49
 msgid "Prices are shown as approximate USD per 1M input/output tokens."
 msgstr "Hinnat on ilmoitettu arvioituina USD/1M syöttö-/tulostustokenina."
 
-#: sophie_bot/modules/ai/handlers/op_prices.py:48
+#: sophie_bot/modules/ai/handlers/op_prices.py:50
 msgid "The AI catalog is empty."
 msgstr "Tekoälykatalogi on tyhjä."
+
+#: sophie_bot/modules/ai/handlers/op_prices.py:55
+msgid "Lists AI catalog models with approximate input and output token prices."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:21
 msgid "Monthly credit amount"
 msgstr "Kuukausittainen hyvitysmäärä"
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:23
-msgid "Set monthly AI quota for a chat"
-msgstr "Aseta kuukausittainen tekoälykiintiö keskustelulle"
+msgid "Set monthly AI quota for a chat."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:35
 #, python-brace-format
@@ -738,8 +773,8 @@ msgid "New quota for {chat}"
 msgstr "Uusi kiintiö keskustelulle {chat}"
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:59
-msgid "Reset AI quota usage for a chat"
-msgstr "Nollaa tekoälykiintiön käyttö keskustelulle"
+msgid "Reset AI quota usage for a chat."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/op_quota.py:74
 msgid "AI Quota Reset"
@@ -754,54 +789,58 @@ msgstr "Kiintiön käyttö on nollattu tältä ajanjaksolta."
 msgid "New remaining: {remaining}"
 msgstr "Uusi jäljellä: {remaining}"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:38
-#: sophie_bot/modules/ai/handlers/op_stats.py:57
+#: sophie_bot/modules/ai/handlers/op_stats.py:40
+#: sophie_bot/modules/ai/handlers/op_stats.py:59
 msgid "No data"
 msgstr "Ei tietoja"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:64
+#: sophie_bot/modules/ai/handlers/op_stats.py:66
 msgid "Requests today"
 msgstr "Pyynnöt tänään"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:65
+#: sophie_bot/modules/ai/handlers/op_stats.py:67
 msgid "Requests this week"
 msgstr "Pyynnöt tällä viikolla"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:66
+#: sophie_bot/modules/ai/handlers/op_stats.py:68
 msgid "Requests this month"
 msgstr "Pyynnöt tässä kuussa"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:67
+#: sophie_bot/modules/ai/handlers/op_stats.py:69
 msgid "Credits this month"
 msgstr "Hyvitykset tässä kuussa"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:68
+#: sophie_bot/modules/ai/handlers/op_stats.py:70
 msgid "AI usage"
 msgstr "Tehokäyttö"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:70
+#: sophie_bot/modules/ai/handlers/op_stats.py:72
 msgid "Top chats by requests"
 msgstr "Suosituimmat keskustelut pyyntöjen mukaan"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:71
+#: sophie_bot/modules/ai/handlers/op_stats.py:73
 msgid "Top chats by credits"
 msgstr "Suosituimmat keskustelut hyvitysten mukaan"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:72
+#: sophie_bot/modules/ai/handlers/op_stats.py:74
 msgid "Top users by requests"
 msgstr "Suosituimmat käyttäjät pyyntöjen mukaan"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:73
+#: sophie_bot/modules/ai/handlers/op_stats.py:75
 msgid "Top users by credits"
 msgstr "Suosituimmat käyttäjät hyvitysten mukaan"
 
-#: sophie_bot/modules/ai/handlers/op_stats.py:74
+#: sophie_bot/modules/ai/handlers/op_stats.py:76
 msgid "Top features this month"
 msgstr "Suosituimmat ominaisuudet tässä kuussa"
 
+#: sophie_bot/modules/ai/handlers/op_stats.py:84
+msgid "Shows overall AI usage and top chats, users, and features."
+msgstr ""
+
 #: sophie_bot/modules/ai/handlers/pm.py:41
-msgid "Start the AI ChatBot mode"
-msgstr "Käynnistä AI ChatBot -tila"
+msgid "Start the AI ChatBot mode."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/pm.py:58
 #, python-brace-format
@@ -855,23 +894,23 @@ msgid "Research topic"
 msgstr "Tutkimusaihe"
 
 #: sophie_bot/modules/ai/handlers/research.py:67
-msgid "Research a topic using multistage web search and return a summary with sources"
-msgstr "Tutki aihe usean vaiheen verkkohauilla ja palauta yhteenveto lähteineen"
+msgid "Research a topic using multistage web search and return a summary with sources."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/research.py:103
 msgid "Could not complete research"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:20
-msgid "Reset the chat's AI context and AI memory"
-msgstr "Nollaa chat-istunnon tekoälyn konteksti ja muisti"
+#: sophie_bot/modules/ai/handlers/reset_context.py:21
+msgid "Reset the chat's AI context and AI memory."
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/reset_context.py:47
+#: sophie_bot/modules/ai/handlers/reset_context.py:49
 msgid "🔄 AI context and AI memory was successfully reset. AI will now operate in a clean state."
 msgstr "🔄 Tekoälyn konteksti ja muisti on nollattu. Tekoäly toimii nyt puhtaassa tilassa."
 
 #: sophie_bot/modules/ai/handlers/summary_time.py:27
-msgid "Sets the daily AI chat summary generation time in UTC"
+msgid "Sets the daily AI chat summary generation time in UTC."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/summary_time.py:35
@@ -905,8 +944,8 @@ msgstr ""
 #: sophie_bot/modules/locks/handlers/locksticker.py:66
 #: sophie_bot/modules/notes/handlers/delete.py:56
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:37
-#: sophie_bot/modules/op/handlers/set_mode.py:111
-#: sophie_bot/modules/op/handlers/set_mode.py:148
+#: sophie_bot/modules/op/handlers/set_mode.py:113
+#: sophie_bot/modules/op/handlers/set_mode.py:150
 #: sophie_bot/modules/promotes/handlers/demote.py:79
 #: sophie_bot/modules/promotes/handlers/promote.py:156
 #: sophie_bot/modules/restrictions/handlers/base.py:142
@@ -917,39 +956,39 @@ msgstr ""
 msgid "Chat"
 msgstr "Keskustelu"
 
-#: sophie_bot/modules/ai/handlers/translate.py:135
+#: sophie_bot/modules/ai/handlers/translate.py:131
 #, python-brace-format
 msgid "From {from_lang} to {to_lang}"
 msgstr "Kielestä {from_lang} kieleen {to_lang}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:148
+#: sophie_bot/modules/ai/handlers/translate.py:144
 msgid "Translation Notes"
 msgstr "Käännösmuistiinpanoja"
 
-#: sophie_bot/modules/ai/handlers/translate.py:159
+#: sophie_bot/modules/ai/handlers/translate.py:155
 msgid "Text to translate"
 msgstr "Käännettävä teksti"
 
-#: sophie_bot/modules/ai/handlers/translate.py:166
-msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
-msgstr "Kääntää annetun (tai vastatun) tekstin keskustelun valitulle kielelle. Kääntää myös vastatun ääniviestin tekstiksi"
+#: sophie_bot/modules/ai/handlers/translate.py:162
+msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text."
+msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:191
-#: sophie_bot/modules/ai/utils/message_history.py:192
+#: sophie_bot/modules/ai/handlers/translate.py:187
+#: sophie_bot/modules/ai/utils/modern_context.py:211
 msgid "Transcribing voice message..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:214
-#: sophie_bot/modules/ai/handlers/translate.py:217
+#: sophie_bot/modules/ai/handlers/translate.py:210
+#: sophie_bot/modules/ai/handlers/translate.py:213
 msgid "Please provide text to translate."
 msgstr "Anna käännettävä teksti."
 
-#: sophie_bot/modules/ai/handlers/translate.py:234
+#: sophie_bot/modules/ai/handlers/translate.py:230
 #, python-brace-format
 msgid "If applicable, translate the photo to {language_name}"
 msgstr "Jos mahdollista, käännä valokuva kielelle {language_name}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:255
+#: sophie_bot/modules/ai/handlers/translate.py:251
 #, python-brace-format
 msgid ""
 "Translate the following text to {language_name}:\n"
@@ -958,17 +997,17 @@ msgstr ""
 "Käännä seuraava teksti {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:280
+#: sophie_bot/modules/ai/handlers/translate.py:276
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:298
+#: sophie_bot/modules/ai/handlers/translate.py:294
 msgid "Error generating translation"
 msgstr "Virhe käännöksen luomisessa"
 
 #: sophie_bot/modules/ai/handlers/usage.py:19
-msgid "Check AI quota and usage details"
-msgstr "Tarkista tekoälykiintiö ja käyttötiedot"
+msgid "Check AI quota and usage details."
+msgstr ""
 
 #: sophie_bot/modules/ai/handlers/usage.py:32
 msgid "AI quota information is not available yet."
@@ -1079,17 +1118,17 @@ msgstr[1] "Syy"
 msgid "This message will be deleted shortly."
 msgstr ""
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:143
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:138
 #, python-brace-format
 msgid "{time} - {emoji} {title}, {users}"
 msgstr "{time} - {emoji} {title} ja {users}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:166
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:160
 #, python-brace-format
 msgid "Chat history of {today}"
 msgstr "Chat-historia {today}"
 
-#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:232
+#: sophie_bot/modules/ai/schedules/generate_chat_summaries.py:225
 msgid "You summarize Telegram group discussions into structured topic lines."
 msgstr "Yhteenveto Telegram-ryhmäkeskusteluista jäsenneltyinä aihelinjoina."
 
@@ -1097,10 +1136,10 @@ msgstr "Yhteenveto Telegram-ryhmäkeskusteluista jäsenneltyinä aihelinjoina."
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Käyttämällä tekoälyominaisuuksia hyväksyt tietosuojakäytäntömme (/privacy) ja käytetyt kolmannen osapuolen tekoälypalvelut."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:377
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:418
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:444
-#: sophie_bot/modules/ai/utils/research.py:583
+#: sophie_bot/modules/ai/utils/research.py:591
 msgid "Research"
 msgstr "Tutkimus"
 
@@ -1117,7 +1156,7 @@ msgid "Thinking..."
 msgstr "Ajattelen..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:117
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:122
 msgid "Working on it..."
 msgstr "Työstän sitä..."
 
@@ -1375,7 +1414,7 @@ msgstr ""
 #: sophie_bot/modules/help/__init__.py:44
 #: sophie_bot/modules/help/handlers/help_group.py:27
 #: sophie_bot/modules/help/handlers/pm_modules.py:89
-#: sophie_bot/modules/help/handlers/start_group.py:34
+#: sophie_bot/modules/help/handlers/start_group.py:35
 #: sophie_bot/modules/help/handlers/start_pm.py:54
 msgid "Help"
 msgstr "Apua"
@@ -1416,80 +1455,11 @@ msgstr ""
 msgid "Tracing how Sophie works..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_context.py:24
-msgid "Prefer to use tables when comparing items"
-msgstr "Suosi taulukoiden käyttöä kohteiden vertailussa"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:25
-msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
-msgstr "Käytä keskusteluhistoriaa vain kontekstina, mutta vastaa erityisesti uusimpaan kehotukseen."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:26
-msgid "Today is "
-msgstr "Tänään on "
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:27
-msgid "You can use the web search tool to search for information. Include information sources as links."
-msgstr "Voit käyttää verkkohakutyökalua tiedon etsimiseen. Lisää tietolähteet linkkeinä."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:34
-msgid "You can also save important things to the memory."
-msgstr "Voit myös tallentaa tärkeitä asioita muistiin."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:36
-msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
-msgstr "Jos käyttäjä kysyy jotain Sophie‑botin käytöstä, varmista, että suoritat `sophie_help`-työkalun saadaksesi apukontekstin; älä etsi botin tietoja internetistä. Älä käytä työkalua muihin kuin Sophie‑kysymyksiin."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:39
-#, python-brace-format
-msgid "Available Sophie modules: {modules}"
-msgstr "Saatavilla olevat Sophie-moduulit: {modules}"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:44
-msgid "You can use the research tool to research complicated topics instead of plain web search."
-msgstr "Voit käyttää tutkimustyökalua monimutkaisten aiheiden tutkimiseen tavallisen verkkohakuun sijaan."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:47
-msgid "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:53
-#, python-brace-format
-msgid "This conversation is taking place in chat: {chat_name}"
-msgstr "Tämä keskustelu käydään chatissa: {chat_name}"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:66
-#, python-brace-format
-msgid "{title} | users: {users} | excerpt: {excerpt}"
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:68
-#, python-brace-format
-msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
-msgstr "{title} | ensimmäinen viesti #{message_id} | käyttäjät: {users} | ote: {excerpt}"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:80
-msgid "Recent chat summaries"
-msgstr "Viimeaikaiset chat-yhteenvedot"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:89
-#, python-brace-format
-msgid "{notename} | title: {title} | content: {content}"
-msgstr "{notename} | otsikko: {title} | sisältö: {content}"
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:96
-msgid "Related chat notes with content."
-msgstr "Liittyvät chattimuistiinpanot sisällön kanssa."
-
-#: sophie_bot/modules/ai/utils/chatbot_context.py:101
-msgid "You have the following information in your memory"
-msgstr "Sinulla on seuraavat tiedot muistissa"
-
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:110
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:115
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:129
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:134
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -1501,41 +1471,6 @@ msgstr "⚠️ Jos haluat yksityiskohtaisempaa apua, käytä erityistä Sophie�
 #: sophie_bot/modules/ai/utils/help_tip.py:50
 msgid "Sophie help mode"
 msgstr "Sophie-ohjetila"
-
-#: sophie_bot/modules/ai/utils/message_history.py:78
-#: sophie_bot/modules/op/handlers/op_debug.py:162
-msgid "reply to"
-msgstr "vastaa viestiin"
-
-#: sophie_bot/modules/ai/utils/message_history.py:123
-#: sophie_bot/modules/ai/utils/message_history.py:129
-msgid "<No text provided>"
-msgstr "<Ei tekstiä>"
-
-#: sophie_bot/modules/ai/utils/message_history.py:176
-msgid "Processing image..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/message_history.py:180
-msgid "Image is empty"
-msgstr "Kuva on tyhjä"
-
-#: sophie_bot/modules/ai/utils/message_history.py:206
-msgid "Processing video..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/message_history.py:223
-msgid "Transcribing video audio..."
-msgstr ""
-
-#: sophie_bot/modules/ai/utils/message_history.py:230
-#, python-brace-format
-msgid "[Video transcription: {text}]"
-msgstr "[Videon transkriptio: {text}]"
-
-#: sophie_bot/modules/ai/utils/message_history.py:305
-msgid "Recent chat messages (context only — respond solely to the latest message)"
-msgstr "Viimeaikaiset chat-viestit (vain kontekstia varten — vastaa pelkästään viimeisimpään viestiin)"
 
 #: sophie_bot/modules/ai/utils/moderation/categories.py:27
 msgid "🔞 Sexual"
@@ -1609,7 +1544,110 @@ msgstr "Sisältö, joka sisältää tai yrittää saada yksityiskohtaisia tai r�
 msgid "Content that requests, shares, or attempts to elicit personal identifying information such as full names, addresses, phone numbers, social security numbers, or financial account details."
 msgstr "Sisältö, joka pyytää, jakaa tai yrittää saada henkilökohtaisia tunnistetietoja, kuten täydellisiä nimiä, osoitteita, puhelinnumeroita, sosiaaliturvatunnuksia tai taloudellisia tilitietoja."
 
-#: sophie_bot/modules/ai/utils/proactive_replies.py:313
+#: sophie_bot/modules/ai/utils/modern_context.py:87
+#: sophie_bot/modules/op/handlers/op_debug.py:162
+msgid "reply to"
+msgstr "vastaa viestiin"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:96
+msgid "Recent chat messages (context only — respond solely to the latest message)"
+msgstr "Viimeaikaiset chat-viestit (vain kontekstia varten — vastaa pelkästään viimeisimpään viestiin)"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:146
+#: sophie_bot/modules/ai/utils/modern_context.py:148
+msgid "<No text provided>"
+msgstr "<Ei tekstiä>"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:195
+msgid "Processing image..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:199
+msgid "Image is empty"
+msgstr "Kuva on tyhjä"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:224
+msgid "Processing video..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:241
+msgid "Transcribing video audio..."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:248
+#, python-brace-format
+msgid "[Video transcription: {text}]"
+msgstr "[Videon transkriptio: {text}]"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:519
+#: sophie_bot/modules/ai/utils/modern_context.py:1018
+msgid "Prefer to use tables when comparing items"
+msgstr "Suosi taulukoiden käyttöä kohteiden vertailussa"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:520
+#: sophie_bot/modules/ai/utils/modern_context.py:1019
+msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
+msgstr "Käytä keskusteluhistoriaa vain kontekstina, mutta vastaa erityisesti uusimpaan kehotukseen."
+
+#: sophie_bot/modules/ai/utils/modern_context.py:521
+#: sophie_bot/modules/ai/utils/modern_context.py:1021
+msgid "You can use the web search tool to search for information. Include information sources as links."
+msgstr "Voit käyttää verkkohakutyökalua tiedon etsimiseen. Lisää tietolähteet linkkeinä."
+
+#: sophie_bot/modules/ai/utils/modern_context.py:522
+#: sophie_bot/modules/ai/utils/modern_context.py:1028
+msgid "You can also save important things to the memory."
+msgstr "Voit myös tallentaa tärkeitä asioita muistiin."
+
+#: sophie_bot/modules/ai/utils/modern_context.py:524
+#: sophie_bot/modules/ai/utils/modern_context.py:1030
+msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
+msgstr "Jos käyttäjä kysyy jotain Sophie‑botin käytöstä, varmista, että suoritat `sophie_help`-työkalun saadaksesi apukontekstin; älä etsi botin tietoja internetistä. Älä käytä työkalua muihin kuin Sophie‑kysymyksiin."
+
+#: sophie_bot/modules/ai/utils/modern_context.py:526
+#: sophie_bot/modules/ai/utils/modern_context.py:1032
+#, python-brace-format
+msgid "Available Sophie modules: {modules}"
+msgstr "Saatavilla olevat Sophie-moduulit: {modules}"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:527
+#: sophie_bot/modules/ai/utils/modern_context.py:1034
+msgid "You can use the research tool to research complicated topics instead of plain web search."
+msgstr "Voit käyttää tutkimustyökalua monimutkaisten aiheiden tutkimiseen tavallisen verkkohakuun sijaan."
+
+#: sophie_bot/modules/ai/utils/modern_context.py:529
+#: sophie_bot/modules/ai/utils/modern_context.py:1036
+msgid "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1020
+msgid "Today is "
+msgstr "Tänään on "
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1041
+#, python-brace-format
+msgid "This conversation is taking place in chat: {chat_name}"
+msgstr "Tämä keskustelu käydään chatissa: {chat_name}"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1049
+#, python-brace-format
+msgid "{title} | users: {users} | excerpt: {excerpt}"
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1051
+#, python-brace-format
+msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
+msgstr "{title} | ensimmäinen viesti #{message_id} | käyttäjät: {users} | ote: {excerpt}"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1063
+msgid "Recent chat summaries"
+msgstr "Viimeaikaiset chat-yhteenvedot"
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1086
+msgid "Represent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
+msgstr ""
+
+#: sophie_bot/modules/ai/utils/modern_context.py:1156
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "Liityt aktiivisesti Telegram-ryhmäkeskusteluun. Pidä vastaus ajankohtaisena, rennonpuoleisena ja erittäin lyhyenä: 1–2 lyhyttä lausetta. Älä sisällytä pitkiä selityksiä, luetteloita tai työkalumaisia yksityiskohtia, ellei kohdeviesti nimenomaisesti pyydä niitä. Jos aihe on siirtynyt eteenpäin tai vastaus tuntuisi pakotetulta, pidä viesti minimissä sen sijaan, että yrittäisit kattaa kaiken."
 
@@ -1677,23 +1715,23 @@ msgstr "Tutkimukseen tarvitaan tallennettu keskustelukonteksti."
 msgid "I could not find enough search results to research this topic."
 msgstr "En löytänyt tarpeeksi hakutuloksia tämän aiheen tutkimiseen."
 
-#: sophie_bot/modules/ai/utils/research.py:551
+#: sophie_bot/modules/ai/utils/research.py:559
 msgid "No snippet available."
 msgstr "Katkelmaa ei saatavilla."
 
-#: sophie_bot/modules/ai/utils/research.py:573
+#: sophie_bot/modules/ai/utils/research.py:581
 msgid "Sources"
 msgstr "Lähteet"
 
-#: sophie_bot/modules/ai/utils/research.py:587
+#: sophie_bot/modules/ai/utils/research.py:595
 msgid "No sources."
 msgstr "Ei lähteitä."
 
-#: sophie_bot/modules/ai/utils/research.py:594
+#: sophie_bot/modules/ai/utils/research.py:602
 msgid "Original request"
 msgstr "Alkuperäinen pyyntö"
 
-#: sophie_bot/modules/ai/utils/research.py:595
+#: sophie_bot/modules/ai/utils/research.py:603
 msgid "Research model"
 msgstr "Tutkimusmalli"
 
@@ -1713,17 +1751,21 @@ msgstr ""
 msgid "Failed to download video file"
 msgstr "Videon lataus epäonnistui"
 
-#: sophie_bot/modules/antiflood/action_config.py:31
+#: sophie_bot/modules/antiflood/action_config.py:32
 msgid "Antiflood Action Configuration"
 msgstr "Antiflood-toiminnon määrittäminen"
 
-#: sophie_bot/modules/antiflood/action_config.py:32
+#: sophie_bot/modules/antiflood/action_config.py:33
 msgid "Antiflood action configured successfully!"
 msgstr "Antiflood-toiminto onnistuneesti määritetty!"
 
+#: sophie_bot/modules/antiflood/action_config.py:39
+msgid "Configures actions triggered by antiflood protection."
+msgstr ""
+
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:20
-msgid "Shows antiflood protection settings"
-msgstr "Näyttää antiflood-suojausasetukset"
+msgid "Shows antiflood protection settings."
+msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:24
 #: sophie_bot/modules/greetings/handlers/status_overall.py:20
@@ -1797,8 +1839,8 @@ msgstr[0] "Toiminto"
 msgstr[1] "Toiminnot"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:18
-msgid "Set the message count threshold for antiflood protection"
-msgstr "Aseta viestien määrän kynnys antiflood-suojaukselle"
+msgid "Set the message count threshold for antiflood protection."
+msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_set_count.py:33
 msgid "Number of messages allowed in 30 seconds"
@@ -1826,8 +1868,8 @@ msgstr[0] ""
 msgstr[1] ""
 
 #: sophie_bot/modules/antiflood/handlers/enable_antiflood.py:14
-msgid "Enable or disable antiflood protection"
-msgstr "Ota antiflood-suojaus käyttöön tai poista se käytöstä"
+msgid "Enable or disable antiflood protection."
+msgstr ""
 
 #: sophie_bot/modules/antiflood/handlers/enable_antiflood.py:19
 msgid "📈 Antiflood"
@@ -1880,7 +1922,7 @@ msgstr "Käyttäjä on rajoitettu tulvan vuoksi."
 #: sophie_bot/modules/restrictions/handlers/base.py:70
 #: sophie_bot/modules/restrictions/handlers/base.py:143
 #: sophie_bot/modules/restrictions/services/silent.py:46
-#: sophie_bot/modules/users/handlers/id.py:22
+#: sophie_bot/modules/users/handlers/id.py:23
 #: sophie_bot/modules/users/handlers/info.py:22
 #: sophie_bot/modules/warns/handlers/callback.py:96
 #: sophie_bot/modules/warns/handlers/warn.py:47
@@ -1907,15 +1949,15 @@ msgstr "Antiflood"
 msgid "Protect your chat from message flooding"
 msgstr "Suojaa chatti viestien tulvilta"
 
-#: sophie_bot/modules/communities/__init__.py:39
+#: sophie_bot/modules/communities/__init__.py:40
 msgid "Communities"
 msgstr "Yhteisöt"
 
-#: sophie_bot/modules/communities/__init__.py:41
+#: sophie_bot/modules/communities/__init__.py:42
 msgid "Manage bans across Telegram communities"
 msgstr "Hallitse estoja Telegram-yhteisöissä"
 
-#: sophie_bot/modules/communities/__init__.py:43
+#: sophie_bot/modules/communities/__init__.py:44
 msgid "Communities let you ban a user from every chat of a Telegram community Sophie is in with a single command, and keep the ban enforced for users who post or join later."
 msgstr "Yhteisöt antavat sinun estää käyttäjän kaikista Telegram‑yhteisön keskusteluista yhdellä komennolla ja pitää eston voimassa myös käyttäjille, jotka postaavat tai liittyvät myöhemmin."
 
@@ -1978,6 +2020,10 @@ msgstr "Määritä käyttäjä tai vastaa käyttäjän viestiin."
 msgid "Could not resolve the command user. Please try again."
 msgstr "Komentokäyttäjää ei voitu tunnistaa. Yritä uudelleen."
 
+#: sophie_bot/modules/communities/handlers/cban.py:162
+msgid "Silently ban a user from the whole community. Deletes related messages after 10 seconds."
+msgstr ""
+
 #: sophie_bot/modules/communities/handlers/uncban.py:30
 msgid "Unban a user from the whole community."
 msgstr "Poista käyttäjän esto koko yhteisöstä."
@@ -2025,7 +2071,7 @@ msgstr "🌐 Käyttäjä estetty yhteisöstä"
 #: sophie_bot/modules/federations/utils/ban_docs.py:193
 #: sophie_bot/modules/locks/handlers/locksticker.py:53
 #: sophie_bot/modules/notes/handlers/list.py:83
-#: sophie_bot/modules/op/handlers/set_mode.py:106
+#: sophie_bot/modules/op/handlers/set_mode.py:108
 #: sophie_bot/modules/troubleshooters/handlers/instance.py:36
 #: sophie_bot/modules/warns/handlers/warns_group.py:40
 msgid "Unknown"
@@ -2316,25 +2362,29 @@ msgstr "Komento {cmd} ei ole pois käytöstä."
 msgid "Command enabled"
 msgstr "Komento käytössä"
 
-#: sophie_bot/modules/disabling/handlers/enable_all.py:32
+#: sophie_bot/modules/disabling/handlers/enable_all.py:20
+msgid "Enables all disabled commands in the chat after confirmation."
+msgstr ""
+
+#: sophie_bot/modules/disabling/handlers/enable_all.py:35
 msgid "✅ Enable all"
 msgstr "✅ Ota kaikki käyttöön"
 
-#: sophie_bot/modules/disabling/handlers/enable_all.py:36
+#: sophie_bot/modules/disabling/handlers/enable_all.py:39
 #: sophie_bot/modules/notes/handlers/delete_all.py:43
 msgid "🚫 Cancel"
 msgstr "🚫 Peruuta"
 
-#: sophie_bot/modules/disabling/handlers/enable_all.py:42
+#: sophie_bot/modules/disabling/handlers/enable_all.py:45
 #, python-brace-format
 msgid "Do you want to enable all commands in the {chat_name}?"
 msgstr "Haluatko ottaa kaikki komennot käyttöön {chat_name}?"
 
-#: sophie_bot/modules/disabling/handlers/enable_all.py:61
+#: sophie_bot/modules/disabling/handlers/enable_all.py:64
 msgid "Only the initiator can confirm disabling all commands"
 msgstr "Vain aloittaja voi vahvistaa kaikkien komentojen poiston"
 
-#: sophie_bot/modules/disabling/handlers/enable_all.py:70
+#: sophie_bot/modules/disabling/handlers/enable_all.py:73
 #, python-brace-format
 msgid "✅ All the commands ({removed_count}) have been enabled in the {chat_name}"
 msgstr "✅ Kaikki komennot ({removed_count}) on otettu käyttöön {chat_name}"
@@ -2603,15 +2653,15 @@ msgstr "Virheet vaalivat innovaatiota,"
 msgid "Softly whispering."
 msgstr "Hiljaa kuiskaten."
 
-#: sophie_bot/modules/federations/__init__.py:103
+#: sophie_bot/modules/federations/__init__.py:104
 msgid "Federations"
 msgstr "Liitot"
 
-#: sophie_bot/modules/federations/__init__.py:105
+#: sophie_bot/modules/federations/__init__.py:106
 msgid "Manage federations across multiple chats"
 msgstr "Hallitse liittoja useiden chatien välillä"
 
-#: sophie_bot/modules/federations/__init__.py:107
+#: sophie_bot/modules/federations/__init__.py:108
 msgid "Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions."
 msgstr "Liitot mahdollistavat useiden keskustelujen hallinnan ryhmänä. Voit kieltää käyttäjiä kaikissa liiton keskusteluissa, tilata muita liittoja ja hallita käyttöoikeuksia."
 
@@ -2654,8 +2704,8 @@ msgid "⏱ Please wait {seconds} seconds before using this command again."
 msgstr "⏱ Odota {seconds} sekuntia ennen kuin käytät tätä komentoa uudelleen."
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:21
-msgid "Accept federation ownership transfer"
-msgstr "Hyväksy liiton omistajuuden siirto"
+msgid "Accept federation ownership transfer."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/accept_transfer.py:33
 msgid "Federation ID to accept transfer for"
@@ -2706,8 +2756,8 @@ msgid "Federation ID: {fed_id}"
 msgstr "Liiton ID: {fed_id}"
 
 #: sophie_bot/modules/federations/handlers/admins.py:17
-msgid "List all admins of a federation"
-msgstr "Listaa kaikki liiton ylläpitäjät"
+msgid "List all admins of a federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/admins.py:33
 msgid "You don't have permission to view this federation's admins."
@@ -2758,8 +2808,8 @@ msgid "No additional admins."
 msgstr "Ei ylimääräisiä ylläpitäjiä."
 
 #: sophie_bot/modules/federations/handlers/ban.py:36
-msgid "Ban a user from the federation"
-msgstr "Estä käyttäjä liittosta"
+msgid "Ban a user from the federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/ban.py:85
 msgid "You don't have permission to ban users in this federation."
@@ -2769,9 +2819,13 @@ msgstr "Sinulla ei ole oikeutta estää käyttäjiä tässä liittossa."
 msgid "Multiple anonymous admins share this title. Use a unique title to run this command."
 msgstr "Usealla anonyymillä ylläpitäjällä on sama titteli. Käytä yksilöllistä titteliä suorittaaksesi tämän komennon."
 
+#: sophie_bot/modules/federations/handlers/ban.py:239
+msgid "Ban a user from the federation. Deletes related messages after 10 seconds."
+msgstr ""
+
 #: sophie_bot/modules/federations/handlers/banlist.py:23
-msgid "Show list of banned users in federation"
-msgstr "Näytä estettyjen käyttäjien lista liittossa"
+msgid "Show list of banned users in federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/banlist.py:45
 msgid "You don't have permission to view ban lists in this federation."
@@ -2860,8 +2914,8 @@ msgid "Only federation admins can perform this action."
 msgstr "Vain liiton ylläpitäjät voivat suorittaa tämän toimenpiteen."
 
 #: sophie_bot/modules/federations/handlers/chats.py:23
-msgid "List all chats in a federation"
-msgstr "Listaa kaikki chatit liitossa"
+msgid "List all chats in a federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:33
 msgid "Federation ID to list chats for (optional)"
@@ -2925,8 +2979,8 @@ msgid "This chat is not in any federation."
 msgstr "Tämä chat ei ole missään liittossa."
 
 #: sophie_bot/modules/federations/handlers/create.py:24
-msgid "Create a new federation"
-msgstr "Luo uusi liitto"
+msgid "Create a new federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/create.py:34
 msgid "Federation name"
@@ -2974,8 +3028,8 @@ msgid "❌ Cancel"
 msgstr "❌ Peruuta"
 
 #: sophie_bot/modules/federations/handlers/delete.py:43
-msgid "Delete a federation (owner only)"
-msgstr "Poista federaatio (vain omistaja)"
+msgid "Delete a federation (owner only)."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/delete.py:62
 msgid "🏛 Delete Federation?"
@@ -3017,8 +3071,8 @@ msgid "Federation deleted"
 msgstr "Federaatio poistettu"
 
 #: sophie_bot/modules/federations/handlers/demote.py:17
-msgid "Demote a user from federation admin"
-msgstr "Alenna käyttäjä liiton ylläpitäjästä"
+msgid "Demote a user from federation admin."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/demote.py:20
 msgid "Only the federation owner can demote users."
@@ -3052,8 +3106,8 @@ msgid "{user} is not an admin of this federation."
 msgstr "{user} ei ole ylläpitäjä tässä liitossa."
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:22
-msgid "Check federation bans for a user"
-msgstr "Tarkista liiton estot käyttäjälle"
+msgid "Check federation bans for a user."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:37
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:43
@@ -3090,8 +3144,8 @@ msgid "To see the full list of your federation bans, run /fcheck in Sophie's DM.
 msgstr "Nähdäksesi täyden luettelon liittosi estoista, suorita /fcheck Sophien yksityisviesteissä."
 
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:28
-msgid "Check federation bans"
-msgstr "Tarkista liiton estot"
+msgid "Check federation bans."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/fcheck_pm.py:44
 msgid "'full' to show all bans"
@@ -3111,8 +3165,8 @@ msgid "🏛 Federation Ban Check Export"
 msgstr "🏛 Liiton estojen tarkistusvienti"
 
 #: sophie_bot/modules/federations/handlers/import_banlist.py:21
-msgid "Import federation ban list from CSV file"
-msgstr "Tuo liiton estolista CSV-tiedostosta"
+msgid "Import federation ban list from CSV file."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/import_banlist.py:42
 msgid "Please upload a CSV file with the command or reply to a message containing a CSV file."
@@ -3135,8 +3189,8 @@ msgid "This might take a while."
 msgstr "Tämä voi viedä hetken."
 
 #: sophie_bot/modules/federations/handlers/info.py:25
-msgid "Get information about a federation"
-msgstr "Hae tietoja liittosta"
+msgid "Get information about a federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/info.py:62
 msgid "🏛 Federation Information"
@@ -3175,8 +3229,8 @@ msgid "{cmd}"
 msgstr "{cmd}"
 
 #: sophie_bot/modules/federations/handlers/join.py:21
-msgid "Join a chat to a federation"
-msgstr "Liitä chat liittoon"
+msgid "Join a chat to a federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/join.py:34
 msgid "Federation ID to join"
@@ -3209,8 +3263,8 @@ msgid "🏛 Chat '{chat_title}' has been added to federation by {user}."
 msgstr "🏛 Chat '{chat_title}' on lisätty liittoon käyttäjän {user} toimesta."
 
 #: sophie_bot/modules/federations/handlers/leave.py:17
-msgid "Leave a federation"
-msgstr "Jätä liitto"
+msgid "Leave a federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/leave.py:46
 msgid "Unable to leave the federation right now. Please try again."
@@ -3231,8 +3285,8 @@ msgid "🏛 Chat '{chat_title}' has left federation by {user}."
 msgstr "🏛 Keskustelu '{chat_title}' on jättänyt liiton käyttäjän {user} toimesta."
 
 #: sophie_bot/modules/federations/handlers/logs.py:18
-msgid "Sets the Federation logs channel"
-msgstr "Aseta liiton lokit kanava"
+msgid "Sets the Federation logs channel."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/logs.py:38
 #: sophie_bot/modules/federations/handlers/logs.py:114
@@ -3274,8 +3328,8 @@ msgid "🏛 Federation '{name}' log channel has been set to this chat."
 msgstr "🏛 Liiton '{name}' lokikanava on asetettu tähän keskusteluun."
 
 #: sophie_bot/modules/federations/handlers/logs.py:94
-msgid "Removes the Federation logs channel"
-msgstr "Poista liiton lokit kanava"
+msgid "Removes the Federation logs channel."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/logs.py:129
 msgid "Only the federation owner can remove the log channel."
@@ -3300,8 +3354,8 @@ msgid "Log channel has been removed for federation '{name}'."
 msgstr "Lokikanava on poistettu liitolle '{name}'."
 
 #: sophie_bot/modules/federations/handlers/promote.py:17
-msgid "Promote a user to federation admin"
-msgstr "Ylennä käyttäjä liiton ylläpitäjäksi"
+msgid "Promote a user to federation admin."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/promote.py:20
 msgid "Only the federation owner can promote users."
@@ -3336,8 +3390,8 @@ msgid "User not found in database."
 msgstr "Käyttäjää ei löydy tietokannasta."
 
 #: sophie_bot/modules/federations/handlers/rename.py:21
-msgid "Rename a federation (owner only)"
-msgstr "Nimeä liitto uudelleen (vain omistaja)"
+msgid "Rename a federation (owner only)."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/rename.py:33
 msgid "New federation name"
@@ -3368,8 +3422,8 @@ msgid "New name"
 msgstr "Uusi nimi"
 
 #: sophie_bot/modules/federations/handlers/subscribe.py:19
-msgid "Subscribe federation to another federation"
-msgstr "Tilaa liitto toiseen liittoon"
+msgid "Subscribe federation to another federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/subscribe.py:29
 msgid "Federation ID to subscribe to"
@@ -3399,8 +3453,8 @@ msgid "🏛 Federation '{fed_name}' ({fed_id}) subscribed to '{target_fed_name}'
 msgstr "🏛 Liitto '{fed_name}' ({fed_id}) tilannut '{target_fed_name}' ({target_fed_id})"
 
 #: sophie_bot/modules/federations/handlers/subscribe.py:89
-msgid "Unsubscribe federation from another federation"
-msgstr "Peruuta liiton tilaaminen toisesta liitosta"
+msgid "Unsubscribe federation from another federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/subscribe.py:99
 msgid "Federation ID to unsubscribe from"
@@ -3429,8 +3483,8 @@ msgid "🏛 Federation '{fed_name}' ({fed_id}) unsubscribed from '{target_fed_na
 msgstr "🏛 Liitto '{fed_name}' ({fed_id}) peruutettu '{target_fed_name}' ({target_fed_id})"
 
 #: sophie_bot/modules/federations/handlers/transfer.py:23
-msgid "Transfer federation ownership"
-msgstr "Siirrä liiton omistajuus"
+msgid "Transfer federation ownership."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/transfer.py:40
 msgid "New owner"
@@ -3475,8 +3529,8 @@ msgid "They have 5 minutes to accept with {cmd}"
 msgstr "Heillä on 5 minuuttia aikaa hyväksyä {cmd}"
 
 #: sophie_bot/modules/federations/handlers/unban.py:33
-msgid "Unban a user from the federation"
-msgstr "Poista käyttäjän kielto liitossa"
+msgid "Unban a user from the federation."
+msgstr ""
 
 #: sophie_bot/modules/federations/handlers/unban.py:90
 msgid "Failed to unban user."
@@ -3561,23 +3615,23 @@ msgstr "Tuotu"
 msgid "Failed"
 msgstr "Epäonnistui"
 
-#: sophie_bot/modules/federations/services/manage.py:85
+#: sophie_bot/modules/federations/services/manage.py:86
 msgid "This chat is not in any federation"
 msgstr "Tämä chat ei ole missään liittossa"
 
-#: sophie_bot/modules/federations/services/manage.py:90
+#: sophie_bot/modules/federations/services/manage.py:91
 msgid "User not found in database"
 msgstr "Käyttäjää ei löydy tietokannasta"
 
-#: sophie_bot/modules/federations/services/manage.py:95
+#: sophie_bot/modules/federations/services/manage.py:96
 msgid "You have multiple federations"
 msgstr "Sinulla on useita liittoja"
 
-#: sophie_bot/modules/federations/services/manage.py:96
+#: sophie_bot/modules/federations/services/manage.py:97
 msgid "You don't have any federations"
 msgstr "Sinulla ei ole yhtään liittoa"
 
-#: sophie_bot/modules/federations/services/manage.py:98
+#: sophie_bot/modules/federations/services/manage.py:99
 msgid "Could not determine federation"
 msgstr "Liittoa ei voitu määrittää"
 
@@ -3734,8 +3788,8 @@ msgid "Invalid callback data."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:25
-msgid "Deletes a filter"
-msgstr "Poistaa suodattimen"
+msgid "Deletes a filter."
+msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:25
 #: sophie_bot/modules/filters/handlers/filter_del.py:38
@@ -3781,8 +3835,8 @@ msgid "The filter {keyword} was deleted."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_edit.py:21
-msgid "Edits filter settings"
-msgstr "Muokkaa suodatinasetuksia"
+msgid "Edits filter settings."
+msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_edit.py:35
 msgid "Filter's keyword"
@@ -3794,12 +3848,12 @@ msgid "Filter with handler {handler} can not be found! Check all filters using {
 msgstr "Käsittelijällä {handler} varustettua suodatinta ei löydy! Tarkista kaikki suodattimet käyttämällä komentoa {cmd}"
 
 #: sophie_bot/modules/filters/handlers/filter_new.py:20
-msgid "Adds a new filter"
-msgstr "Lisää uusi suodin"
+msgid "Adds a new filter."
+msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:55
-msgid "Lists all filters in the chat"
-msgstr "Näyttää kaikki chatissa olevat suodattimet"
+msgid "Lists all filters in the chat."
+msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:116
 #: sophie_bot/modules/filters/handlers/filters_list.py:137
@@ -3818,7 +3872,7 @@ msgstr "🗑 Avainsanalla {keyword} varustettu suodin poistettiin!"
 
 #: sophie_bot/modules/filters/handlers/filters_list.py:185
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
-#: sophie_bot/modules/warns/action_config.py:34
+#: sophie_bot/modules/warns/action_config.py:35
 msgid "Message not found."
 msgstr "Viestiä ei löydy."
 
@@ -4027,8 +4081,8 @@ msgid "Open DM with Sophie"
 msgstr "Avaa DM Sophien kanssa"
 
 #: sophie_bot/modules/greetings/handlers/enablewelcome.py:11
-msgid "Shows / changes the state of sending greetings"
-msgstr "Näyttää / muuttuu tervetuliaistoivotusten lähettämisen tilaa"
+msgid "Shows / changes the state of sending greetings."
+msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/enablewelcome.py:13
 msgid "Welcome messages"
@@ -4054,8 +4108,8 @@ msgid "Join request message was saved in {chat_title}."
 msgstr "Liittymispyyntö viesti tallennettiin {chat_title}."
 
 #: sophie_bot/modules/greetings/handlers/set_join_request.py:55
-msgid "Deletes the join request message"
-msgstr "Poistaa liittymispyyntö viestin"
+msgid "Deletes the join request message."
+msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/set_join_request.py:68
 #, python-brace-format
@@ -4108,8 +4162,8 @@ msgid "⚠️ Please note, that the welcome messages are currently disabled in t
 msgstr "⚠️ Huomaa, että tervetuloviestit ovat tällä hetkellä poissa käytöstä ryhmässä, käytä '{cmd}' komentoa sen ottamiseksi käyttöön."
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:17
-msgid "Shows welcome settings"
-msgstr "Näyttää tervetuloasetukset"
+msgid "Shows welcome settings."
+msgstr ""
 
 #: sophie_bot/modules/greetings/handlers/status_overall.py:33
 msgid "Greet new users"
@@ -4192,16 +4246,20 @@ msgid "Includes command lists, usage instructions, and feature explanations."
 msgstr "Sisältää komennot, käyttöohjeet ja ominaisuuksien selitykset."
 
 #: sophie_bot/modules/help/handlers/help_group.py:17
-msgid "Shows the help message"
-msgstr "Näyttää ohjeviestin"
+msgid "Shows the help message."
+msgstr ""
 
 #: sophie_bot/modules/help/handlers/help_group.py:24
 msgid "The help information available in the private messages with Sophie"
 msgstr "Ohjeet ovat käytettävissä yksityisviesteissä Sophien kanssa"
 
+#: sophie_bot/modules/help/handlers/op.py:53
+msgid "Lists all module commands, including operator-only commands."
+msgstr ""
+
 #: sophie_bot/modules/help/handlers/pm_modules.py:40
-msgid "Shows help overview for all modules"
-msgstr "Näyttää yleiskatsauksen kaikista moduuleista"
+msgid "Shows help overview for all modules."
+msgstr ""
 
 #: sophie_bot/modules/help/handlers/pm_modules.py:78
 #: sophie_bot/modules/help/handlers/pm_modules.py:145
@@ -4256,25 +4314,25 @@ msgstr ""
 msgid "Select your language:"
 msgstr "Valitse kieli:"
 
-#: sophie_bot/modules/help/handlers/start_group.py:20
-msgid "Shows the start message"
-msgstr "Näyttää aloitusviestin"
+#: sophie_bot/modules/help/handlers/start_group.py:21
+msgid "Shows the start message."
+msgstr ""
 
-#: sophie_bot/modules/help/handlers/start_group.py:37
+#: sophie_bot/modules/help/handlers/start_group.py:38
 msgid "My name is Sophie, I help manage this group in an efficient way!"
 msgstr "Nimeni on Sophie, autan hallitsemaan tätä ryhmää tehokkaasti!"
 
-#: sophie_bot/modules/help/handlers/start_group.py:39
+#: sophie_bot/modules/help/handlers/start_group.py:40
 #, python-brace-format
 msgid "Join the {chat} and {channel}."
 msgstr "Liity {chat} ja {channel}."
 
-#: sophie_bot/modules/help/handlers/start_group.py:40
+#: sophie_bot/modules/help/handlers/start_group.py:41
 #: sophie_bot/modules/help/handlers/start_pm.py:66
 msgid "💬 Support Chat"
 msgstr "💬 Tukichat"
 
-#: sophie_bot/modules/help/handlers/start_group.py:41
+#: sophie_bot/modules/help/handlers/start_group.py:42
 #: sophie_bot/modules/help/handlers/start_pm.py:67
 msgid "📢 NEWS Channel"
 msgstr "📢 UUTISET -kanava"
@@ -4371,8 +4429,8 @@ msgid "Prevents users from sending certain content types like stickers, GIFs, UR
 msgstr "Estää käyttäjiä lähettämästä tiettyjä sisältötyyppejä, kuten tarroja, GIF-kuvia, URL-osoitteita, tarrapaketteja ja kieliä."
 
 #: sophie_bot/modules/locks/handlers/lock.py:20
-msgid "Lock a message type in the chat"
-msgstr "Lukitse viestityyppi keskustelussa"
+msgid "Lock a message type in the chat."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/lock.py:23
 #: sophie_bot/modules/locks/handlers/unlock.py:23
@@ -4694,12 +4752,12 @@ msgid "Use {cmd} to lock a specific type."
 msgstr "Käytä {cmd} lukitaksesi tietyn tyypin."
 
 #: sophie_bot/modules/locks/handlers/lockable.py:180
-msgid "Shows all lockable message types"
-msgstr "Näyttää kaikki lukittavissa olevat viestityypit"
+msgid "Shows all lockable message types."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locklanguages.py:17
-msgid "Shows all supported languages for locking"
-msgstr "Näyttää kaikki tuetut lukituskielet"
+msgid "Shows all supported languages for locking."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locklanguages.py:31
 msgid "Supported languages for locking"
@@ -4710,8 +4768,8 @@ msgid "Use /lock language:code to block messages in that language."
 msgstr "Käytä /lock language:code estääksesi viestit kyseisellä kielellä."
 
 #: sophie_bot/modules/locks/handlers/locks_list.py:23
-msgid "Show currently locked message types in the chat"
-msgstr "Näytä tällä hetkellä lukitut viestityypit keskustelussa"
+msgid "Show currently locked message types in the chat."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locks_list.py:44
 #, python-brace-format
@@ -4751,8 +4809,8 @@ msgid "Use {cmd} to remove a lock."
 msgstr "Käytä {cmd} poistaaksesi lukituksen."
 
 #: sophie_bot/modules/locks/handlers/locksticker.py:20
-msgid "Lock a sticker pack in the chat"
-msgstr "Lukitse tarrapaketti keskustelussa"
+msgid "Lock a sticker pack in the chat."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/locksticker.py:36
 msgid "Reply to a sticker to lock its sticker pack."
@@ -4779,8 +4837,8 @@ msgid "Sticker pack {pack} is already locked in this chat."
 msgstr "Tarrapaketti {pack} on jo lukittu tässä keskustelussa."
 
 #: sophie_bot/modules/locks/handlers/unlock.py:20
-msgid "Unlock a message type in the chat"
-msgstr "Avaa viestityyppi keskustelussa"
+msgid "Unlock a message type in the chat."
+msgstr ""
 
 #: sophie_bot/modules/locks/handlers/unlock.py:24
 msgid "Use /locks to see currently locked types."
@@ -4805,7 +4863,11 @@ msgstr "Lukitus poistettu"
 msgid "Lock type {type} is not locked in this chat."
 msgstr "Lukitustyyppi {type} ei ole lukittu tässä keskustelussa."
 
-#: sophie_bot/modules/locks/handlers/unlock_all_cmd.py:64
+#: sophie_bot/modules/locks/handlers/unlock_all_cmd.py:20
+msgid "Unlocks all locked message types in the chat after confirmation."
+msgstr ""
+
+#: sophie_bot/modules/locks/handlers/unlock_all_cmd.py:66
 #, python-brace-format
 msgid "Do you want to unlock all {count} lock type in {chat_name}?"
 msgid_plural "Do you want to unlock all {count} lock types in {chat_name}?"
@@ -4929,7 +4991,7 @@ msgid "Notes allows saving different kind of content, from normal text messages 
 msgstr "Muistiinpanot mahdollistavat eri tyyppisten sisältöjen tallentamisen, normaaleista tekstiviesteistä liimoihin ja ääniviesteihin, muistiinpanot tukevat myös riviviestin painikkeiden lisäämistä."
 
 #: sophie_bot/modules/notes/handlers/delete.py:21
-#: sophie_bot/modules/notes/handlers/get.py:29
+#: sophie_bot/modules/notes/handlers/get.py:30
 msgid "Note name"
 msgstr "Muistiinpanojen nimi"
 
@@ -4980,11 +5042,11 @@ msgstr "Vain aloittaja voi vahvistaa kaikkien muistiinpanojen poistamisen"
 msgid "🗑 All the notes ({removed_count}) have been deleted in the {chat_name}"
 msgstr "🗑 Kaikki muistiinpanot ({removed_count}) on poistettu {chat_name}-keskustelusta"
 
-#: sophie_bot/modules/notes/handlers/get.py:30
+#: sophie_bot/modules/notes/handlers/get.py:31
 msgid "Retrieve the note."
 msgstr "Hae muistiinpano."
 
-#: sophie_bot/modules/notes/handlers/get.py:44
+#: sophie_bot/modules/notes/handlers/get.py:45
 #, python-brace-format
 msgid "No note was found with {name} name."
 msgstr "Mikään muistiinpano ei löytynyt nimellä {name}."
@@ -5060,8 +5122,8 @@ msgid "Use {command} to disconnect"
 msgstr "Käytä {command} katkaistaksesi yhteys"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:21
-msgid "Show current state of Private Notes"
-msgstr "Näytä yksityisten muistiinpanojen nykyinen tila"
+msgid "Show current state of Private Notes."
+msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
 msgid "Current state"
@@ -5087,7 +5149,7 @@ msgid "Private Notes"
 msgstr "Yksityiset muistiinpanot"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:41
-#: sophie_bot/modules/op/handlers/set_mode.py:117
+#: sophie_bot/modules/op/handlers/set_mode.py:119
 #: sophie_bot/modules/utils_/status_handler.py:49
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
@@ -5099,8 +5161,8 @@ msgid "New state"
 msgstr "Uusi tila"
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:48
-msgid "Control Private Notes"
-msgstr "Yksityisten muistiinpanojen hallinta"
+msgid "Control Private Notes."
+msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:72
 msgid "enabled"
@@ -5385,7 +5447,7 @@ msgstr ""
 msgid "Bot-bound Rich buttons are not accepted by the API"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/send.py:333
+#: sophie_bot/modules/notes/utils/send.py:367
 msgid "The text is too long"
 msgstr "Teksti on liian pitkä"
 
@@ -5405,160 +5467,172 @@ msgstr "Tarjoaa vain ylläpitäjän komennot ja työkalut botin hallintaan."
 msgid "Includes system stats, job management, and other administrative functions."
 msgstr "Sisältää järjestelmän tilastot, työnhallinnan ja muut hallinnolliset toiminnot."
 
-#: sophie_bot/modules/op/handlers/buttons_test.py:30
+#: sophie_bot/modules/op/handlers/banner.py:18
+msgid "Generates an emoji banner image with the given text."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/buttons_test.py:19
+msgid "Parses button definitions and shows the parsed result."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/buttons_test.py:33
 #, python-brace-format
 msgid "Buttons: {buttons}"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/captcha.py:16
-msgid "Generate a test emoji captcha"
-msgstr "Luo testiemoji-captcha"
+msgid "Generate a test emoji captcha."
+msgstr ""
 
 #: sophie_bot/modules/op/handlers/event.py:13
 msgid "Prints the message event as JSON."
 msgstr "Tulostaa viestitapahtuman JSON-muodossa."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:68
+#: sophie_bot/modules/op/handlers/feature_flags.py:70
 #, python-brace-format
 msgid "Unknown feature {feature}."
 msgstr "Tuntematon toiminto {feature}."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:69
-#: sophie_bot/modules/op/handlers/feature_flags.py:78
+#: sophie_bot/modules/op/handlers/feature_flags.py:71
+#: sophie_bot/modules/op/handlers/feature_flags.py:80
 #, python-brace-format
 msgid "Allowed features: {features}"
 msgstr "Sallitut toiminnot: {features}"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:77
+#: sophie_bot/modules/op/handlers/feature_flags.py:79
 msgid "Usage: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 msgstr "Käyttö: /op_ff [^chat[=<chat_id>]] <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:109
-#: sophie_bot/modules/op/handlers/feature_flags.py:407
+#: sophie_bot/modules/op/handlers/feature_flags.py:111
+#: sophie_bot/modules/op/handlers/feature_flags.py:410
 #, python-brace-format
 msgid "{feature}: {value}"
 msgstr "{feature} – {value}"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:130
+#: sophie_bot/modules/op/handlers/feature_flags.py:132
 #, python-brace-format
 msgid "Invalid value for {feature}: expected {expected}, got {actual}."
 msgstr "Virheellinen arvo {feature}-asetukselle: odotettiin {expected}, saatiin {actual}."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:144
+#: sophie_bot/modules/op/handlers/feature_flags.py:146
 #, python-brace-format
 msgid "Invalid value for {feature}: {value}."
 msgstr "Virheellinen arvo {feature}-asetukselle: {value}."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:221
+#: sophie_bot/modules/op/handlers/feature_flags.py:223
 #, python-brace-format
 msgid "Args: {args}"
 msgstr "Argumentit: {args}"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:248
-#: sophie_bot/modules/op/handlers/feature_flags.py:251
+#: sophie_bot/modules/op/handlers/feature_flags.py:250
+#: sophie_bot/modules/op/handlers/feature_flags.py:253
 msgid "No changed feature flags are set."
 msgstr "Muutettuja ominaisuuslippuja ei ole asetettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:251
+#: sophie_bot/modules/op/handlers/feature_flags.py:253
 msgid "Changed feature flags"
 msgstr "Muutetut ominaisuusliput"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:253
+#: sophie_bot/modules/op/handlers/feature_flags.py:255
 msgid "All feature flags"
 msgstr "Kaikki ominaisuusliput"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:253
+#: sophie_bot/modules/op/handlers/feature_flags.py:255
 msgid "No feature flags are registered."
 msgstr "Ominaisuuslippuja ei ole rekisteröity."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:254
+#: sophie_bot/modules/op/handlers/feature_flags.py:256
 msgid "Rollouts"
 msgstr "Rolloutit"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:254
-#: sophie_bot/modules/op/handlers/feature_flags.py:440
+#: sophie_bot/modules/op/handlers/feature_flags.py:256
+#: sophie_bot/modules/op/handlers/feature_flags.py:443
 msgid "No feature flag rollouts are set."
 msgstr "Rolloutteja ei ole asetettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:265
+#: sophie_bot/modules/op/handlers/feature_flags.py:267
 msgid "Manual per-chat overrides"
 msgstr "Manuaaliset keskustakohtaiset ylikirjoitukset"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:267
+#: sophie_bot/modules/op/handlers/feature_flags.py:269
 msgid "No manual per-chat overrides are set."
 msgstr "Manuaalisia keskustakohtaisia ylikirjoituksia ei ole asetettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:272
+#: sophie_bot/modules/op/handlers/feature_flags.py:274
 msgid "Rollout-created per-chat overrides"
 msgstr "Rolloutin luomat keskustakohtaiset ylikirjoitukset"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:274
+#: sophie_bot/modules/op/handlers/feature_flags.py:276
 msgid "No rollout-created per-chat overrides are set."
 msgstr "Rolloutin luomia keskustakohtaisia ylikirjoituksia ei ole asetettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:309
-#: sophie_bot/modules/op/handlers/feature_flags.py:471
+#: sophie_bot/modules/op/handlers/feature_flags.py:284
+msgid "Shows / changes feature flags, chat overrides, and rollouts."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/feature_flags.py:312
+#: sophie_bot/modules/op/handlers/feature_flags.py:474
 msgid "Usage: /op_ff ^rollout=<0-100> <feature> <value>"
 msgstr "Käyttö: /op_ff ^rollout=<0-100> <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:311
-#: sophie_bot/modules/op/handlers/feature_flags.py:436
-#: sophie_bot/modules/op/handlers/feature_flags.py:473
+#: sophie_bot/modules/op/handlers/feature_flags.py:314
+#: sophie_bot/modules/op/handlers/feature_flags.py:439
+#: sophie_bot/modules/op/handlers/feature_flags.py:476
 msgid "Usage: /op_ff ^rollout_bump=<0-100> <feature>"
 msgstr "Käyttö: /op_ff ^rollout_bump=<0-100> <feature>"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:313
-#: sophie_bot/modules/op/handlers/feature_flags.py:434
-#: sophie_bot/modules/op/handlers/feature_flags.py:451
+#: sophie_bot/modules/op/handlers/feature_flags.py:316
+#: sophie_bot/modules/op/handlers/feature_flags.py:437
+#: sophie_bot/modules/op/handlers/feature_flags.py:454
 msgid "Usage: /op_ff ^days=<days> <feature> <value>"
 msgstr "Käyttö: /op_ff ^days=<days> <feature> <value>"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:317
+#: sophie_bot/modules/op/handlers/feature_flags.py:320
 msgid "Usage: /op_ff ^chat_overrides"
 msgstr "Käyttö: /op_ff ^chat_overrides"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:370
+#: sophie_bot/modules/op/handlers/feature_flags.py:373
 #, python-brace-format
 msgid "{feature} override for chat {chat} deleted."
 msgstr "{feature}-ylikirjoitus keskustolle {chat} poistettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:378
+#: sophie_bot/modules/op/handlers/feature_flags.py:381
 #, python-brace-format
 msgid "{feature} override deleted."
 msgstr "{feature}-ylikirjoitus poistettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:392
+#: sophie_bot/modules/op/handlers/feature_flags.py:395
 #, python-brace-format
 msgid "{feature} for chat {chat}: {value}"
 msgstr "{feature} chatille {chat}: {value}"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:427
+#: sophie_bot/modules/op/handlers/feature_flags.py:430
 msgid "Rollouts cannot be combined with per-chat overrides."
 msgstr "Rolloutteja ei voi yhdistää keskustakohtaisten ylikirjoitusten kanssa."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:430
+#: sophie_bot/modules/op/handlers/feature_flags.py:433
 msgid "Use only one rollout argument at a time."
 msgstr "Käytä vain yhtä rollout-argumenttia kerrallaan."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:456
-#: sophie_bot/modules/op/handlers/feature_flags.py:501
+#: sophie_bot/modules/op/handlers/feature_flags.py:459
+#: sophie_bot/modules/op/handlers/feature_flags.py:504
 #, python-brace-format
 msgid "No rollout is set for {feature}."
 msgstr "Rolloutia ei ole asetettu ominaisuudelle {feature}."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:460
-#: sophie_bot/modules/op/handlers/feature_flags.py:490
-#: sophie_bot/modules/op/handlers/feature_flags.py:506
+#: sophie_bot/modules/op/handlers/feature_flags.py:463
+#: sophie_bot/modules/op/handlers/feature_flags.py:493
+#: sophie_bot/modules/op/handlers/feature_flags.py:509
 #, python-brace-format
 msgid "{feature}: {rollout}"
 msgstr "{feature}: {rollout}"
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:468
+#: sophie_bot/modules/op/handlers/feature_flags.py:471
 #, python-brace-format
 msgid "{feature} rollout deleted."
 msgstr "{feature}-rollout poistettu."
 
-#: sophie_bot/modules/op/handlers/feature_flags.py:487
+#: sophie_bot/modules/op/handlers/feature_flags.py:490
 msgid "Rollout was not saved."
 msgstr "Rolloutia ei tallennettu."
 
@@ -5790,8 +5864,8 @@ msgid "Open in GitLab"
 msgstr "Avaa GitLabissa"
 
 #: sophie_bot/modules/op/handlers/preview_chat_summary.py:23
-msgid "Force-regenerate today's chat summary for the current chat"
-msgstr "Pakota uudelleenluomaan tämän päivän chat-yhteenveto nykyiselle chatille"
+msgid "Force-regenerate today's chat summary for the current chat."
+msgstr ""
 
 #: sophie_bot/modules/op/handlers/preview_chat_summary.py:45
 msgid "Chat summary regenerated"
@@ -5801,52 +5875,56 @@ msgstr "Chat-yhteenveto luotu uudelleen"
 msgid "Summary day"
 msgstr "Yhteenvetopäivä"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:25
+#: sophie_bot/modules/op/handlers/set_mode.py:26
 msgid "Auto"
 msgstr "Automaattinen"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:26
+#: sophie_bot/modules/op/handlers/set_mode.py:27
 msgid "Old"
 msgstr "Vanha"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:27
+#: sophie_bot/modules/op/handlers/set_mode.py:28
 msgid "Latest"
 msgstr "Uusin"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:75
+#: sophie_bot/modules/op/handlers/set_mode.py:66
+msgid "Shows / changes the preferred beta or stable mode for a chat."
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/set_mode.py:77
 msgid "Preferred strategy mode"
 msgstr "Suosittu strategiatila"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:87
+#: sophie_bot/modules/op/handlers/set_mode.py:89
 #, python-brace-format
 msgid "Chat {chat} not found."
 msgstr "Keskustelua {chat} ei löytynyt."
 
-#: sophie_bot/modules/op/handlers/set_mode.py:112
+#: sophie_bot/modules/op/handlers/set_mode.py:114
 msgid "Preferred mode"
 msgstr "Suositeltu tila"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:113
+#: sophie_bot/modules/op/handlers/set_mode.py:115
 msgid "Current mode"
 msgstr "Nykyinen tila"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:114
+#: sophie_bot/modules/op/handlers/set_mode.py:116
 msgid "Mode information"
 msgstr "Tilan tiedot"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:129
+#: sophie_bot/modules/op/handlers/set_mode.py:131
 msgid "Preferred mode cannot always match the current state due to development and rollout progress."
 msgstr "Suositeltu tila ei aina voi vastata nykytilaa kehityksen ja rolloutin etenemisen vuoksi."
 
-#: sophie_bot/modules/op/handlers/set_mode.py:138
+#: sophie_bot/modules/op/handlers/set_mode.py:140
 msgid "Sophie Support"
 msgstr "Sophie-tuki"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:149
+#: sophie_bot/modules/op/handlers/set_mode.py:151
 msgid "New strategy"
 msgstr "Uusi strategia"
 
-#: sophie_bot/modules/op/handlers/set_mode.py:151
+#: sophie_bot/modules/op/handlers/set_mode.py:153
 msgid "Preferred mode changed"
 msgstr "Suositeltu tila muutettu"
 
@@ -6262,8 +6340,8 @@ msgid "Also provides the ability to unpin messages when needed."
 msgstr "Tarjoaa myös mahdollisuuden poistaa viestien kiinnitys tarvittaessa."
 
 #: sophie_bot/modules/pins/handlers/pin.py:16
-msgid "Pins the replied message, silently unless loud or notify is given"
-msgstr "Kiinnittää vastatun viestin, hiljaisesti ellei 'loud' tai 'notify' -vaihtoehtoa ole annettu"
+msgid "Pins the replied message, silently unless loud or notify is given."
+msgstr ""
 
 #: sophie_bot/modules/pins/handlers/pin.py:29
 msgid "loud"
@@ -6282,8 +6360,8 @@ msgid "I don't have enough rights to pin messages in this chat."
 msgstr "Minulla ei ole riittäviä oikeuksia kiinnittää viestejä tässä chatissa."
 
 #: sophie_bot/modules/pins/handlers/unpin.py:13
-msgid "Unpins the replied message, or every pinned message with all"
-msgstr "Poistaa vastatun viestin kiinnityksen, tai kaikki kiinnitetyt viestit optionilla all"
+msgid "Unpins the replied message, or every pinned message with all."
+msgstr ""
 
 #: sophie_bot/modules/pins/handlers/unpin.py:26
 msgid "all"
@@ -6302,8 +6380,8 @@ msgid "Allows users to export their data and control privacy preferences."
 msgstr "Sallii käyttäjien viedä tietonsa ja hallita yksityisyyden asetuksia."
 
 #: sophie_bot/modules/privacy/handlers/export.py:25
-msgid "Exports your data to a JSON file"
-msgstr "Vie tietosi JSON-tiedostoon"
+msgid "Exports your data to a JSON file."
+msgstr ""
 
 #: sophie_bot/modules/privacy/handlers/export.py:46
 msgid "Export is started, this may take a while."
@@ -6314,8 +6392,8 @@ msgid "Export is done."
 msgstr "Vienti on valmis."
 
 #: sophie_bot/modules/privacy/handlers/privacy.py:18
-msgid "Shows the privacy policy of the bot"
-msgstr "Näyttää bottin tietosuojakäytännön"
+msgid "Shows the privacy policy of the bot."
+msgstr ""
 
 #: sophie_bot/modules/privacy/handlers/privacy.py:28
 msgid "The privacy policy of the bot is available on our wiki page."
@@ -6418,8 +6496,8 @@ msgid "Useful for cleaning up chat history and removing unwanted content."
 msgstr "Hyödyllinen chatin historian puhdistamiseen ja ei-toivotun sisällön poistamiseen."
 
 #: sophie_bot/modules/purges/handlers/delete.py:18
-msgid "Deletes the replied message"
-msgstr "Poistaa vastausviestin"
+msgid "Deletes the replied message."
+msgstr ""
 
 #: sophie_bot/modules/purges/handlers/delete.py:35
 msgid "Reply to a message to delete it."
@@ -6429,19 +6507,19 @@ msgstr "Vastaa viestiin poistaaksesi sen."
 msgid "Couldn't delete the message older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
 msgstr "Ei voitu poistaa yli 48 tunnin (2 päivän) vanhaa viestiä. Voit poistaa sen kuitenkin Telegramin ylläpitotyökaluilla."
 
-#: sophie_bot/modules/purges/handlers/purge.py:20
-msgid "Purges all messages after replied message (including the replied message)"
-msgstr "Poistaa kaikki viestit vastatun viestin jälkeen (mukaan lukien vastattu viesti)"
+#: sophie_bot/modules/purges/handlers/purge.py:23
+msgid "Purges all messages after replied message (including the replied message)."
+msgstr ""
 
-#: sophie_bot/modules/purges/handlers/purge.py:37
+#: sophie_bot/modules/purges/handlers/purge.py:40
 msgid "Reply to a message to start."
 msgstr "Vastaa viestiin aloittaaksesi."
 
-#: sophie_bot/modules/purges/handlers/purge.py:42
+#: sophie_bot/modules/purges/handlers/purge.py:45
 msgid "Couldn't delete the messages older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
 msgstr "Ei voitu poistaa yli 48 tuntia (2 päivää) vanhoja viestejä. Voit kuitenkin poistaa ne Telegramin ylläpito-työkaluilla."
 
-#: sophie_bot/modules/purges/handlers/purge.py:71
+#: sophie_bot/modules/purges/handlers/purge.py:74
 msgid "Purge completed. This message will be removed in 5 seconds."
 msgstr "Puhdistus valmistui. Tämä viesti poistetaan 5 sekunnin kuluttua."
 
@@ -6510,19 +6588,19 @@ msgstr "Tarjoaa REST API:n ulkoisille integraatioille ja kolmannen osapuolen sov
 msgid "Allows programmatic access to bot functionality and data."
 msgstr "Sallii ohjelmallisen pääsyn botin toiminnallisuuteen ja tietoihin."
 
-#: sophie_bot/modules/restrictions/__init__.py:62
+#: sophie_bot/modules/restrictions/__init__.py:76
 msgid "Restrictions"
 msgstr "Rajoitukset"
 
-#: sophie_bot/modules/restrictions/__init__.py:64
+#: sophie_bot/modules/restrictions/__init__.py:78
 msgid "Manage user restrictions in chats"
 msgstr "Hallitsee käyttäjien rajoituksia chateissa"
 
-#: sophie_bot/modules/restrictions/__init__.py:67
+#: sophie_bot/modules/restrictions/__init__.py:81
 msgid "Provides commands to restrict users in chats."
 msgstr "Tarjoaa komennot käyttäjien rajoittamiseen chateissa."
 
-#: sophie_bot/modules/restrictions/__init__.py:68
+#: sophie_bot/modules/restrictions/__init__.py:82
 msgid "Includes ban, kick, mute, and temporary restrictions."
 msgstr "Sisältää bannin, potkut, vaimennuksen ja väliaikaiset rajoitukset."
 
@@ -6817,8 +6895,8 @@ msgid "Users can view the rules at any time using the rules command."
 msgstr "Käyttäjät voivat tarkastella sääntöjä milloin tahansa käyttämällä rules-komentoa."
 
 #: sophie_bot/modules/rules/handlers/get.py:16
-msgid "Gets chat rules"
-msgstr "Hae chatin säännöt"
+msgid "Gets chat rules."
+msgstr ""
 
 #: sophie_bot/modules/rules/handlers/get.py:27
 msgid "Private chats can not have rules. Have fun."
@@ -6843,8 +6921,8 @@ msgid "🗑 Chat rules have been reset."
 msgstr "🗑 Chatin säännöt on nollattu."
 
 #: sophie_bot/modules/rules/handlers/set.py:18
-msgid "Sets chat rules"
-msgstr "Aseta chatin säännöt"
+msgid "Sets chat rules."
+msgstr ""
 
 #: sophie_bot/modules/rules/handlers/set.py:47
 msgid "Please provide the rules text, or reply to the message you want to set as the rules."
@@ -6876,8 +6954,8 @@ msgid "Tools for fixing problems and issues"
 msgstr "Työkalut ongelmien ja ongelmien korjaamiseen"
 
 #: sophie_bot/modules/troubleshooters/handlers/admincache.py:17
-msgid "Reset admin rights cache, use if Sophie didn't get the recently added admin"
-msgstr "Nollaa ylläpitäjän oikeuksien välimuisti, käytä, jos Sophie ei ole saanut uusinta lisättyä ylläpitäjää"
+msgid "Reset admin rights cache, use if Sophie didn't get the recently added admin."
+msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/admincache.py:26
 #: sophie_bot/modules/troubleshooters/handlers/instance.py:27
@@ -6889,8 +6967,8 @@ msgid "Admin rights cache has been reset."
 msgstr "Ylläpitäjän oikeuksien välimuisti on nollattu."
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:13
-msgid "Cancel current state, use if Sophie is not responding on your message"
-msgstr "Peruuta nykyinen tila, käytä, jos Sophie ei vastaa viestiisi"
+msgid "Cancel current state, use if Sophie is not responding on your message."
+msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/cancel.py:24
 msgid "The current state is already cleared, wiping its data anyway..."
@@ -6918,7 +6996,7 @@ msgid "The action was cancelled by {user}."
 msgstr "Toiminto peruutettiin käyttäjän {user} toimesta."
 
 #: sophie_bot/modules/troubleshooters/handlers/instance.py:19
-msgid "Show the instance and instance preference for this chat"
+msgid "Show the instance and instance preference for this chat."
 msgstr ""
 
 #: sophie_bot/modules/troubleshooters/handlers/instance.py:33
@@ -6939,16 +7017,24 @@ msgstr ""
 msgid "Preference"
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:26
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:18
+msgid "Sets the beta rollout percentage for new chats."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:28
 msgid "Please enter a number between 0 and 100."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:31
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:33
 #, python-brace-format, python-format
 msgid "The beta percentage has been set to {percentage}% for all new chats."
 msgstr ""
 
-#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:44
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:39
+msgid "Resets the current beta or stable mode for all chats."
+msgstr ""
+
+#: sophie_bot/modules/troubleshooters/handlers/op_settings.py:47
 msgid "The chosen beta mode has been reset for all chats."
 msgstr ""
 
@@ -7009,27 +7095,31 @@ msgstr "Näkyviä ylläpitäjiä ei löytynyt."
 msgid "Admins in {chat_name}"
 msgstr "Ylläpitäjät {chat_name}"
 
-#: sophie_bot/modules/users/handlers/id.py:42
+#: sophie_bot/modules/users/handlers/id.py:26
+msgid "Shows your Telegram ID, chat IDs, and the replied or specified user's ID."
+msgstr ""
+
+#: sophie_bot/modules/users/handlers/id.py:44
 #, python-brace-format
 msgid "Your ID: {id}"
 msgstr "ID: {id}"
 
-#: sophie_bot/modules/users/handlers/id.py:45
+#: sophie_bot/modules/users/handlers/id.py:47
 #, python-brace-format
 msgid "Chat ID: {id}"
 msgstr "Keskustelun ID: {id}"
 
-#: sophie_bot/modules/users/handlers/id.py:48
+#: sophie_bot/modules/users/handlers/id.py:50
 #, python-brace-format
 msgid "Connected chat ID: {id}"
 msgstr "Yhdistetyn keskustelun ID: {id}"
 
-#: sophie_bot/modules/users/handlers/id.py:54
+#: sophie_bot/modules/users/handlers/id.py:56
 #, python-brace-format
 msgid "Replied user ID: {id}"
 msgstr "Vastatun käyttäjän ID: {id}"
 
-#: sophie_bot/modules/users/handlers/id.py:58
+#: sophie_bot/modules/users/handlers/id.py:60
 #, python-brace-format
 msgid "{user}'s ID: {id}"
 msgstr "{user}'in ID: {id}"
@@ -7228,18 +7318,26 @@ msgstr "Varoittaa käyttäjiä chatissa pitääkseen sen turvallisena."
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr "Voit asettaa maksimi varoitusrajan ja toiminnon, joka suoritetaan, kun raja saavutetaan."
 
-#: sophie_bot/modules/warns/action_config.py:69
+#: sophie_bot/modules/warns/action_config.py:70
 msgid "⚙️ Warn Actions - On Each Warn"
 msgstr "⚙️ Varoitustoiminnot - Jokaisen varoituksen yhteydessä"
 
-#: sophie_bot/modules/warns/action_config.py:70
-#: sophie_bot/modules/warns/action_config.py:81
+#: sophie_bot/modules/warns/action_config.py:71
+#: sophie_bot/modules/warns/action_config.py:82
 msgid "Warn action configured successfully!"
 msgstr "Varoitustoiminto määritetty onnistuneesti!"
 
-#: sophie_bot/modules/warns/action_config.py:80
+#: sophie_bot/modules/warns/action_config.py:81
 msgid "⚠️ Warn Actions - On Max Warns Exceeded"
 msgstr "⚠️ Varoitustoiminnot - Kun varoitusten enimmäismäärä ylittyy"
+
+#: sophie_bot/modules/warns/action_config.py:89
+msgid "Configures actions triggered on each warning."
+msgstr ""
+
+#: sophie_bot/modules/warns/action_config.py:125
+msgid "Configures actions triggered when the warn limit is reached."
+msgstr ""
 
 #: sophie_bot/modules/warns/handlers/callback.py:32
 msgid "Only admins can delete warns!"
@@ -7596,7 +7694,7 @@ msgid "Welcome security message was saved in {chat_title}."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:55
-msgid "Deletes the welcome security message"
+msgid "Deletes the welcome security message."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:68
@@ -7647,8 +7745,8 @@ msgid "Use {cmd} to set a custom Welcome Security message"
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:93
-msgid "Shows Welcome Security settings"
-msgstr "Näyttää Tervetuloa-suojauksen asetukset"
+msgid "Shows Welcome Security settings."
+msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:110
 msgid "Welcome Security message"
@@ -7674,7 +7772,7 @@ msgstr "Lue chat-säännöt"
 msgid "I agree"
 msgstr "Hyväksyn"
 
-#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:73
+#: sophie_bot/modules/welcomesecurity/utils_/complete_captcha.py:75
 msgid "You're all set, and can now participate in the conversation"
 msgstr "Olet valmis ja voit nyt osallistua keskusteluun"
 
@@ -8503,4 +8601,241 @@ msgstr "Käyttäjän mainintaa ei löytynyt"
 
 #~ msgid "This message type is not supported for notes yet."
 #~ msgstr ""
+
+#~ msgid "Suggests filter handlers from a natural language description"
+#~ msgstr "Ehdottaa suodattimien käsittelijöitä luonnollisen kielen kuvauksesta"
+
+#~ msgid "Ask Sophie a question"
+#~ msgstr "Kysy Sophielta kysymys"
+
+#~ msgid "Select what the AI does in this chat"
+#~ msgstr "Valitse, mitä tekoäly tekee tässä keskustelussa"
+
+#~ msgid "Tune what the AI moderator detects in this chat"
+#~ msgstr ""
+
+#~ msgid "Controls AI Auto translator"
+#~ msgstr "Ohjaa tekoälyä automaattisella kääntäjällä"
+
+#~ msgid "Controls AI chat summaries"
+#~ msgstr "Ohjaa tekoälyn keskustelujen tiivistelmiä"
+
+#~ msgid "Controls automatic pinning of AI chat summaries"
+#~ msgstr ""
+
+#~ msgid "Controls AI note title generation"
+#~ msgstr "Ohjaa tekoälyn muistiinpanojen otsikoiden luontia"
+
+#~ msgid "Create or update an AI provider (private chat only)"
+#~ msgstr "Luo tai päivitä tekoälypalveluntarjoaja (vain yksityisviestissä)"
+
+#~ msgid "Create or update an AI model"
+#~ msgstr "Luo tai päivitä tekoälymalli"
+
+#~ msgid "Set monthly AI quota for a chat"
+#~ msgstr "Aseta kuukausittainen tekoälykiintiö keskustelulle"
+
+#~ msgid "Reset AI quota usage for a chat"
+#~ msgstr "Nollaa tekoälykiintiön käyttö keskustelulle"
+
+#~ msgid "Start the AI ChatBot mode"
+#~ msgstr "Käynnistä AI ChatBot -tila"
+
+#~ msgid "Research a topic using multistage web search and return a summary with sources"
+#~ msgstr "Tutki aihe usean vaiheen verkkohauilla ja palauta yhteenveto lähteineen"
+
+#~ msgid "Reset the chat's AI context and AI memory"
+#~ msgstr "Nollaa chat-istunnon tekoälyn konteksti ja muisti"
+
+#~ msgid "Sets the daily AI chat summary generation time in UTC"
+#~ msgstr ""
+
+#~ msgid "Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text"
+#~ msgstr "Kääntää annetun (tai vastatun) tekstin keskustelun valitulle kielelle. Kääntää myös vastatun ääniviestin tekstiksi"
+
+#~ msgid "Check AI quota and usage details"
+#~ msgstr "Tarkista tekoälykiintiö ja käyttötiedot"
+
+#~ msgid "{notename} | title: {title} | content: {content}"
+#~ msgstr "{notename} | otsikko: {title} | sisältö: {content}"
+
+#~ msgid "Related chat notes with content."
+#~ msgstr "Liittyvät chattimuistiinpanot sisällön kanssa."
+
+#~ msgid "You have the following information in your memory"
+#~ msgstr "Sinulla on seuraavat tiedot muistissa"
+
+#~ msgid "Shows antiflood protection settings"
+#~ msgstr "Näyttää antiflood-suojausasetukset"
+
+#~ msgid "Set the message count threshold for antiflood protection"
+#~ msgstr "Aseta viestien määrän kynnys antiflood-suojaukselle"
+
+#~ msgid "Enable or disable antiflood protection"
+#~ msgstr "Ota antiflood-suojaus käyttöön tai poista se käytöstä"
+
+#~ msgid "Accept federation ownership transfer"
+#~ msgstr "Hyväksy liiton omistajuuden siirto"
+
+#~ msgid "List all admins of a federation"
+#~ msgstr "Listaa kaikki liiton ylläpitäjät"
+
+#~ msgid "Ban a user from the federation"
+#~ msgstr "Estä käyttäjä liittosta"
+
+#~ msgid "Show list of banned users in federation"
+#~ msgstr "Näytä estettyjen käyttäjien lista liittossa"
+
+#~ msgid "List all chats in a federation"
+#~ msgstr "Listaa kaikki chatit liitossa"
+
+#~ msgid "Create a new federation"
+#~ msgstr "Luo uusi liitto"
+
+#~ msgid "Delete a federation (owner only)"
+#~ msgstr "Poista federaatio (vain omistaja)"
+
+#~ msgid "Demote a user from federation admin"
+#~ msgstr "Alenna käyttäjä liiton ylläpitäjästä"
+
+#~ msgid "Check federation bans for a user"
+#~ msgstr "Tarkista liiton estot käyttäjälle"
+
+#~ msgid "Check federation bans"
+#~ msgstr "Tarkista liiton estot"
+
+#~ msgid "Import federation ban list from CSV file"
+#~ msgstr "Tuo liiton estolista CSV-tiedostosta"
+
+#~ msgid "Get information about a federation"
+#~ msgstr "Hae tietoja liittosta"
+
+#~ msgid "Join a chat to a federation"
+#~ msgstr "Liitä chat liittoon"
+
+#~ msgid "Leave a federation"
+#~ msgstr "Jätä liitto"
+
+#~ msgid "Sets the Federation logs channel"
+#~ msgstr "Aseta liiton lokit kanava"
+
+#~ msgid "Removes the Federation logs channel"
+#~ msgstr "Poista liiton lokit kanava"
+
+#~ msgid "Promote a user to federation admin"
+#~ msgstr "Ylennä käyttäjä liiton ylläpitäjäksi"
+
+#~ msgid "Rename a federation (owner only)"
+#~ msgstr "Nimeä liitto uudelleen (vain omistaja)"
+
+#~ msgid "Subscribe federation to another federation"
+#~ msgstr "Tilaa liitto toiseen liittoon"
+
+#~ msgid "Unsubscribe federation from another federation"
+#~ msgstr "Peruuta liiton tilaaminen toisesta liitosta"
+
+#~ msgid "Transfer federation ownership"
+#~ msgstr "Siirrä liiton omistajuus"
+
+#~ msgid "Unban a user from the federation"
+#~ msgstr "Poista käyttäjän kielto liitossa"
+
+#~ msgid "Deletes a filter"
+#~ msgstr "Poistaa suodattimen"
+
+#~ msgid "Edits filter settings"
+#~ msgstr "Muokkaa suodatinasetuksia"
+
+#~ msgid "Adds a new filter"
+#~ msgstr "Lisää uusi suodin"
+
+#~ msgid "Lists all filters in the chat"
+#~ msgstr "Näyttää kaikki chatissa olevat suodattimet"
+
+#~ msgid "Shows / changes the state of sending greetings"
+#~ msgstr "Näyttää / muuttuu tervetuliaistoivotusten lähettämisen tilaa"
+
+#~ msgid "Deletes the join request message"
+#~ msgstr "Poistaa liittymispyyntö viestin"
+
+#~ msgid "Shows welcome settings"
+#~ msgstr "Näyttää tervetuloasetukset"
+
+#~ msgid "Shows the help message"
+#~ msgstr "Näyttää ohjeviestin"
+
+#~ msgid "Shows help overview for all modules"
+#~ msgstr "Näyttää yleiskatsauksen kaikista moduuleista"
+
+#~ msgid "Shows the start message"
+#~ msgstr "Näyttää aloitusviestin"
+
+#~ msgid "Lock a message type in the chat"
+#~ msgstr "Lukitse viestityyppi keskustelussa"
+
+#~ msgid "Shows all lockable message types"
+#~ msgstr "Näyttää kaikki lukittavissa olevat viestityypit"
+
+#~ msgid "Shows all supported languages for locking"
+#~ msgstr "Näyttää kaikki tuetut lukituskielet"
+
+#~ msgid "Show currently locked message types in the chat"
+#~ msgstr "Näytä tällä hetkellä lukitut viestityypit keskustelussa"
+
+#~ msgid "Lock a sticker pack in the chat"
+#~ msgstr "Lukitse tarrapaketti keskustelussa"
+
+#~ msgid "Unlock a message type in the chat"
+#~ msgstr "Avaa viestityyppi keskustelussa"
+
+#~ msgid "Show current state of Private Notes"
+#~ msgstr "Näytä yksityisten muistiinpanojen nykyinen tila"
+
+#~ msgid "Control Private Notes"
+#~ msgstr "Yksityisten muistiinpanojen hallinta"
+
+#~ msgid "Generate a test emoji captcha"
+#~ msgstr "Luo testiemoji-captcha"
+
+#~ msgid "Force-regenerate today's chat summary for the current chat"
+#~ msgstr "Pakota uudelleenluomaan tämän päivän chat-yhteenveto nykyiselle chatille"
+
+#~ msgid "Pins the replied message, silently unless loud or notify is given"
+#~ msgstr "Kiinnittää vastatun viestin, hiljaisesti ellei 'loud' tai 'notify' -vaihtoehtoa ole annettu"
+
+#~ msgid "Unpins the replied message, or every pinned message with all"
+#~ msgstr "Poistaa vastatun viestin kiinnityksen, tai kaikki kiinnitetyt viestit optionilla all"
+
+#~ msgid "Exports your data to a JSON file"
+#~ msgstr "Vie tietosi JSON-tiedostoon"
+
+#~ msgid "Shows the privacy policy of the bot"
+#~ msgstr "Näyttää bottin tietosuojakäytännön"
+
+#~ msgid "Deletes the replied message"
+#~ msgstr "Poistaa vastausviestin"
+
+#~ msgid "Purges all messages after replied message (including the replied message)"
+#~ msgstr "Poistaa kaikki viestit vastatun viestin jälkeen (mukaan lukien vastattu viesti)"
+
+#~ msgid "Gets chat rules"
+#~ msgstr "Hae chatin säännöt"
+
+#~ msgid "Sets chat rules"
+#~ msgstr "Aseta chatin säännöt"
+
+#~ msgid "Reset admin rights cache, use if Sophie didn't get the recently added admin"
+#~ msgstr "Nollaa ylläpitäjän oikeuksien välimuisti, käytä, jos Sophie ei ole saanut uusinta lisättyä ylläpitäjää"
+
+#~ msgid "Cancel current state, use if Sophie is not responding on your message"
+#~ msgstr "Peruuta nykyinen tila, käytä, jos Sophie ei vastaa viestiisi"
+
+#~ msgid "Show the instance and instance preference for this chat"
+#~ msgstr ""
+
+#~ msgid "Deletes the welcome security message"
+#~ msgstr ""
+
+#~ msgid "Shows Welcome Security settings"
+#~ msgstr "Näyttää Tervetuloa-suojauksen asetukset"
 

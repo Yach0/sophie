@@ -1,238 +1,41 @@
 from __future__ import annotations
 
 from asyncio import gather
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import BinaryIO
 
-from aiogram import Bot
-from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message
 from mistralai.client.models.assistantmessage import AssistantMessage
 from mistralai.client.models.systemmessage import SystemMessage
 from mistralai.client.models.usermessage import UserMessage
-from normality import normalize
 from openai.types.moderation_text_input_param import ModerationTextInputParam
 from pydantic_ai.messages import (
-    BinaryContent,
     ModelRequest,
     ModelResponse,
     SystemPromptPart,
-    TextContent,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
     UserContent,
     UserPromptPart,
 )
-from redis.asyncio import Redis
-from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
+from stfu_tg import HList, KeyValue, Section, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils import modern_context
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
 )
 from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
-from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
-from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
-from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.i18n import gettext as _
-from sophie_bot.utils.logger import log
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
-type ActivityCallback = Callable[[str], Awaitable[None]]
 
 
-def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
-    if isinstance(content, str):
-        return content
-    text_parts = [
-        item if isinstance(item, str) else item.content for item in content if isinstance(item, (str, TextContent))
-    ]
-    return "\n".join(text_parts) or None
-
-
-class AIUserMessageFormatter:
-    @staticmethod
-    def sanitize_name(name: str) -> str:
-        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-()[] ")
-        return "".join(char for char in name if char in allowed_chars) or "Unknown"
-
-    @classmethod
-    def user_message(
-        cls,
-        text: str,
-        name: str,
-        reply_to_user: str | None = None,
-    ) -> str:
-        name = cls.sanitize_name(name)
-        if reply_to_user:
-            reply_to_user = cls.sanitize_name(reply_to_user)
-            name = f"{name} ({_('reply to')} {reply_to_user})"
-
-        return f"{name}: {text}"
-
-
-async def _admin_context_name(
-    chat_tid: int,
-    user_tid: int,
-    name: str,
-    is_group: bool,
-) -> str:
-    if not is_group:
-        return name
-
-    chat_model = await ChatModel.get_by_tid(chat_tid)
-    user_model = await ChatModel.get_by_tid(user_tid)
-    if not chat_model or not user_model:
-        return name
-    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
-        return name
-
-    admin = await get_admin_record(chat_model, user_model)
-    if not admin:
-        return name
-
-    if admin.member.status == ChatMemberStatus.CREATOR:
-        role = "Owner"
-    elif admin.member.status == ChatMemberStatus.ADMINISTRATOR:
-        role = "Admin"
-    else:
-        return name
-
-    custom_title = admin.member.custom_title
-    if custom_title:
-        return f"{name} [{role} - {custom_title}]"
-    return f"{name} [{role}]"
-
-
-def _extract_message_content(
-    message: Message,
-    custom_text: str | None,
-    normalize_texts: bool,
-    is_sophie: bool,
-) -> str:
-    """Extract text, caption, media info from the message. Returns the processed message text."""
-    content_text = custom_text or message.text or message.caption or _("<No text provided>")
-    if is_sophie and is_ai_message(message):
-        content_text = cut_titlebar(message) if custom_text is None else cut_titlebar(content_text)
-    elif is_sophie and is_ai_message(content_text):
-        content_text = cut_titlebar(content_text)
-    if normalize_texts:
-        content_text = normalize(content_text) or _("<No text provided>")
-
-    return content_text
-
-
-async def _build_message_parts(
-    message: Message,
-    content_text: str,
-    from_user_name: str,
-    replied_user_name: str | None,
-    disable_name: bool,
-    *,
-    bot: Bot,
-    redis: Redis,
-    on_activity: ActivityCallback | None = None,
-) -> list[UserContent]:
-    """Build the list of message parts for the AI context."""
-    # Message's text
-    prompt: list[UserContent] = [
-        content_text
-        if disable_name
-        else AIUserMessageFormatter.user_message(
-            text=content_text,
-            name=from_user_name,
-            reply_to_user=replied_user_name,
-        )
-    ]
-
-    # Visual media
-    if message.photo or message.sticker or message.animation:
-        # Determine a file_id to download irrespective of underlying Telegram type
-        if message.photo:
-            image_file_id = message.photo[-1].file_id
-        elif (
-            message.sticker and (message.sticker.is_animated or message.sticker.is_video) and message.sticker.thumbnail
-        ):
-            image_file_id = message.sticker.thumbnail.file_id
-        elif message.animation and message.animation.thumbnail:
-            image_file_id = message.animation.thumbnail.file_id
-        elif message.sticker:
-            image_file_id = message.sticker.file_id
-        else:
-            # Animation without thumbnail — cannot extract visual media, skip gracefully
-            log.warning("Skipping visual media extraction: %s without thumbnail", message.animation)
-            return prompt
-
-        if on_activity is not None:
-            await on_activity(_("Processing image..."))
-        downloaded_image: BinaryIO | None = await bot.download(image_file_id)
-
-        if not downloaded_image:
-            raise SophieException(_("Image is empty"))
-
-        prompt.append(
-            BinaryContent(
-                media_type="image/jpeg",
-                data=downloaded_image.read(),
-            )
-        )
-
-    # Voice
-    if message.voice:
-        if on_activity is not None:
-            await on_activity(_("Transcribing voice message..."))
-        voice_text = await transform_voice_to_text(
-            message.voice,
-            bot=bot,
-            redis=redis,
-        )
-        prompt.append(voice_text)
-        # TODO: Cache message somehow again?
-
-    # Video - extract thumbnail and transcribe audio
-    if message.video or message.video_note:
-        video = message.video or message.video_note
-
-        if on_activity is not None:
-            await on_activity(_("Processing video..."))
-        # Add video thumbnail if available
-        if video and video.thumbnail:
-            thumbnail_file_id = video.thumbnail.file_id
-            downloaded_thumbnail: BinaryIO | None = await bot.download(thumbnail_file_id)
-
-            if downloaded_thumbnail:
-                prompt.append(
-                    BinaryContent(
-                        media_type="image/jpeg",
-                        data=downloaded_thumbnail.read(),
-                    )
-                )
-
-        # Transcribe video audio
-        if video:
-            if on_activity is not None:
-                await on_activity(_("Transcribing video audio..."))
-            video_transcription = await transform_video_to_text(
-                video,
-                bot=bot,
-                redis=redis,
-            )
-            if video_transcription:
-                prompt.append(str(Template(_("[Video transcription: {text}]"), text=video_transcription)))
-
-    return prompt
-
-
-class AIMessageHistory:
+class OldContext:
     """
     This class is used to store and construct the messages that are sent to the AI.
     """
@@ -267,13 +70,13 @@ class AIMessageHistory:
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
         user = await ChatModel.get_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
-        from_user_name = await _admin_context_name(
+        from_user_name = await modern_context._admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
             is_group=True,
         )
-        return AIUserMessageFormatter.user_message(
+        return modern_context.AIUserMessageFormatter.user_message(
             msg.text,
             from_user_name,
             reply_to_user=msg.reply_to_user_name,
@@ -299,12 +102,7 @@ class AIMessageHistory:
         """Prepend collected background chatter to the prompt as reference-only context."""
         if not self.context_lines:
             return
-        context_block = Doc(
-            Section(
-                VList(*self.context_lines),
-                title=_("Recent chat messages (context only — respond solely to the latest message)"),
-            )
-        ).to_md()
+        context_block = modern_context.AIUserMessageFormatter.context_block(self.context_lines)
         self.prompt = [context_block, *self.prompt]
         self.context_lines = []
 
@@ -314,11 +112,9 @@ class AIMessageHistory:
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.is_bot or msg.user_id == CONFIG.bot_id:
-            stored_message_text = message_text(msg)
-            text = cut_titlebar(stored_message_text) if is_ai_message(stored_message_text) else stored_message_text
-            return ModelResponse(parts=[TextPart(content=text)])
+            return ModelResponse(parts=[TextPart(content=msg.text)])
 
-        from_user_name = await _admin_context_name(
+        from_user_name = await modern_context._admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
@@ -327,7 +123,7 @@ class AIMessageHistory:
         return ModelRequest(
             parts=[
                 UserPromptPart(
-                    content=AIUserMessageFormatter.user_message(
+                    content=modern_context.AIUserMessageFormatter.user_message(
                         msg.text,
                         from_user_name,
                         reply_to_user=msg.reply_to_user_name,
@@ -391,7 +187,7 @@ class AIMessageHistory:
         normalize_texts: bool = False,
         allow_reply_messages: bool = True,
         disable_name: bool = False,
-        on_activity: ActivityCallback | None = None,
+        on_activity: modern_context.ActivityCallback | None = None,
     ) -> None:
         """Adds a user message to the context, returns a list of additional messages to cache for future use."""
 
@@ -409,17 +205,17 @@ class AIMessageHistory:
 
         is_sophie = message.from_user.id == CONFIG.bot_id
 
-        content_text = _extract_message_content(message, custom_text, normalize_texts, is_sophie)
+        content_text = modern_context._extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
-        from_user_name = await _admin_context_name(
+        from_user_name = await modern_context._admin_context_name(
             message.chat.id,
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
         )
         prompt.extend(
-            await _build_message_parts(
+            await modern_context._build_message_parts(
                 message,
                 content_text,
                 from_user_name,
@@ -439,7 +235,7 @@ class AIMessageHistory:
 
     def add_custom(self, content: str, name: str | None) -> None:
         """Add a custom user message to the message history."""
-        user_content = AIUserMessageFormatter.user_message(content, name or "User")
+        user_content = modern_context.AIUserMessageFormatter.user_message(content, name or "User")
         self.message_history.append(ModelRequest(parts=[UserPromptPart(content=user_content)]))
 
     def history_debug(self) -> Element:
@@ -480,7 +276,9 @@ class AIMessageHistory:
                     elif isinstance(part, TextPart):
                         # TextPart is from assistant responses
                         moderation_content.append({"role": "assistant", "content": part.content})
-                    elif isinstance(part, UserPromptPart) and (content_str := _user_prompt_text(part.content)):
+                    elif isinstance(part, UserPromptPart) and (
+                        content_str := modern_context._user_prompt_text(part.content)
+                    ):
                         moderation_content.append({"role": "user", "content": content_str})
 
         # Extract content from current prompt (treat as user content)

@@ -10,7 +10,8 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.ai_mode import ModeCapabilities
 from sophie_bot.modules.ai.utils.cache_messages import cache_message
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
+from sophie_bot.shared.message_text import message_text
 from sophie_bot.utils.logger import log
 
 
@@ -26,6 +27,8 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
+        # Native chatbot delivery already caches its canonical body alongside native history.
+        # Other cache-enabled handlers still need their returned Telegram message cached below.
         if get_flag(data, "ai_chatbot_response", default=None) is not None:
             return result
 

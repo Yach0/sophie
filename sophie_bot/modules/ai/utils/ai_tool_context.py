@@ -24,3 +24,4 @@ class SophieAIToolContext:
     user_text: str | None = None
     research_progress_callback: ResearchProgressCallback | None = None
     user_tid: int | None = None  # Telegram user ID of the person who triggered this AI call
+    speaker_reference_decoder: Callable[[str], str] | None = None

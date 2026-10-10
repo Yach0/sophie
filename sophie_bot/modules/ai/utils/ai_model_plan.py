@@ -29,12 +29,24 @@ class AIModelCandidate:
     Kept unresolved so the distinction survives to the attempt: a candidate that declares nothing
     inherits the purpose's feature-flag tier, while one that declares ``"none"`` overrides it.
     """
+    context_window_tokens: int | None = None
+    """Authoritative registry capacity; legacy/non-budgeted candidates may leave it unset."""
 
     def resolve_service_tier(self, default_tier: str | None) -> str | None:
         """The tier to send upstream for this candidate, given the purpose's flag-level default."""
         if self.service_tier is None:
             return default_tier
         return None if self.service_tier == "none" else self.service_tier
+
+    def require_context_window_tokens(self) -> int:
+        """Require the registry capacity when modern context budgeting needs it."""
+        capacity = self.context_window_tokens
+        if not isinstance(capacity, int) or isinstance(capacity, bool) or capacity <= 0:
+            raise ValueError(
+                f"AI catalog model {self.model_name!r} has no valid context_window_tokens; "
+                "configure a positive context size in the AI catalog before using modern context"
+            )
+        return capacity
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,6 +69,17 @@ class AIModelPlan:
     @property
     def model_names(self) -> tuple[str, ...]:
         return tuple(candidate.model_name for candidate in self.candidates)
+
+    @property
+    def context_window_tokens(self) -> int:
+        """Smallest registry capacity, failing if any candidate has no configured size.
+
+        Runtime appends a last-resort candidate; modern callers use
+        ``ai_run.modern_context_window_tokens`` to include that candidate and the attempt limit.
+        """
+        if not self.candidates:
+            raise ValueError("An AI model plan with no candidates cannot provide a context size")
+        return min(candidate.require_context_window_tokens() for candidate in self.candidates)
 
     def eligible(self, *, has_images: bool) -> tuple[AIModelCandidate, ...]:
         """The candidates allowed to serve a request, in priority order.

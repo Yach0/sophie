@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import Sequence
 from contextlib import suppress
 from random import choice
 from typing import Any
@@ -16,8 +17,8 @@ from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
 from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
-from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
-from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, resolve_mention_index
+from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc, resolve_reply_mention_index
+from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, MentionPolicy
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
@@ -54,6 +55,8 @@ class ChatbotMessageStreamer:
         *,
         redis: Redis,
         strip_alien_html_tags: bool = False,
+        mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
+        speaker_names: Sequence[tuple[int, str]] = (),
     ) -> None:
         self.source_message = source_message
         self.redis = redis
@@ -66,6 +69,8 @@ class ChatbotMessageStreamer:
         self.reasoning_seen = False
         self.throttle_seconds = throttle_seconds
         self.strip_alien_html_tags = strip_alien_html_tags
+        self.mention_policy = mention_policy
+        self.speaker_names = speaker_names
         self.response_message: Message | None = None
         self.latest_text: str = ""
         self.last_sent_text: str = ""
@@ -197,10 +202,12 @@ class ChatbotMessageStreamer:
         self.last_sent_text = self.latest_text
 
     async def _render_doc(self, text: str) -> Doc:
-        if not self._mention_index_resolved and "@" in text:
-            self.mention_index = await resolve_mention_index(
+        if self.mention_policy != MentionPolicy.OPAQUE and not self._mention_index_resolved and "@" in text:
+            self.mention_index = await resolve_reply_mention_index(
                 self.source_message.chat.id,
                 redis=self.redis,
+                mention_policy=self.mention_policy,
+                speaker_names=self.speaker_names,
             )
             self._mention_index_resolved = True
         body = await build_reply_doc(
@@ -213,6 +220,8 @@ class ChatbotMessageStreamer:
             redis=self.redis,
             mention_index=self.mention_index,
             strip_alien_html_tags=self.strip_alien_html_tags,
+            mention_policy=self.mention_policy,
+            speaker_names=self.speaker_names,
         )
         return self._build_progress_doc(body)
 

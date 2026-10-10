@@ -7,16 +7,18 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram import Router
-from aiogram.types import Chat, Message, TelegramObject, User
+from aiogram.types import Chat, Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji, TelegramObject, User
 from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.pm import AiPmHandle
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import CacheBotMessagesMiddleware
-from sophie_bot.modules.ai.utils import message_history
+from sophie_bot.modules.ai.utils import modern_context, old_context
+from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, AIUserMessageFormatter
+from sophie_bot.modules.ai.utils.modern_context import AIUserMessageFormatter
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.utils.handlers import SophieMessageHandler
 
 
@@ -56,7 +58,7 @@ async def test_chatbot_response_caches_only_the_answer(
 
 
 def test_user_message_formatter_localizes_and_sanitizes_reply_title(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(message_history, "_", lambda text: "Antwort auf" if text == "reply to" else text)
+    monkeypatch.setattr(modern_context, "_", lambda text: "Antwort auf" if text == "reply to" else text)
 
     rendered = AIUserMessageFormatter.user_message(
         "hello",
@@ -79,11 +81,11 @@ async def test_cached_history_keeps_reply_title(
         reply_to_username="Bob",
     )
     monkeypatch.setattr(
-        message_history.ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
+        old_context.ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
     )
-    monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
+    monkeypatch.setattr(modern_context, "_admin_context_name", AsyncMock(return_value="Alice"))
 
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     transformed = await history._cache_transform_msg(10, cached)
     context_line = await history._format_context_line(10, cached)
 
@@ -93,28 +95,102 @@ async def test_cached_history_keeps_reply_title(
 
 
 @pytest.mark.asyncio
-async def test_cached_ai_history_uses_shared_message_text_representation(
-    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+@pytest.mark.parametrize(
+    "body",
+    ["stored body", "✨ Battery status\n🔋 92%", "(Search, Notes) Response\n🔋 50%", "  padded\n\n"],
+)
+async def test_cached_ai_history_uses_answer_body_verbatim(
+    body: str, monkeypatch: pytest.MonkeyPatch, test_services: object
 ) -> None:
-    cached = MessageType(user_id=message_history.CONFIG.bot_id, message_id=2, text="stored body")
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
-    monkeypatch.setattr(
-        message_history,
-        "message_text",
-        lambda message: "✨ AI | Help 📖 | 🔋 80%\nstored body",
-    )
+    cached = MessageType(user_id=old_context.CONFIG.bot_id, message_id=2, text=body)
+    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
 
-    transformed = await AIMessageHistory(services=test_services)._cache_transform_msg(10, cached)
+    transformed = await OldContext(services=test_services)._cache_transform_msg(10, cached)
 
     assert isinstance(transformed, ModelResponse)
-    assert transformed.parts[0].content == "stored body"
+    assert transformed.parts[0].content == body
+
+
+def _rich_answer_message(body: str) -> Message:
+    return Message(
+        message_id=51,
+        date=datetime.now(UTC),
+        chat=Chat(id=-100123, type="supergroup"),
+        from_user=User(id=old_context.CONFIG.bot_id, is_bot=True, first_name="Sophie"),
+        text="Plain fallback",
+        rich_message=RichMessage(
+            blocks=[
+                RichBlockParagraph(
+                    text=[
+                        RichTextCustomEmoji(custom_emoji_id=AI_CUSTOM_EMOJI_ID, alternative_text="✨"),
+                        " " + body,
+                    ]
+                ),
+                RichBlockParagraph(
+                    text=[
+                        RichTextCustomEmoji(
+                            custom_emoji_id=min(AI_BATTERY_CUSTOM_EMOJI_IDS), alternative_text="🔋"
+                        ),
+                        " 95%",
+                    ]
+                ),
+            ]
+        ),
+    )
+
+
+@pytest.mark.parametrize("custom_text", ["✨ Already-body\n🔋 90%", ""])
+def test_custom_message_content_overrides_are_already_answer_bodies(custom_text: str) -> None:
+    message = _rich_answer_message("Displayed answer")
+
+    assert modern_context._extract_message_content(message, custom_text, False, True) == custom_text
+
+
+def test_actual_sophie_rich_message_content_excludes_display_decoration() -> None:
+    body = "Answer\nSecond line\n🔋 92% of charge remains"
+    message = _rich_answer_message(body)
+
+    assert modern_context._extract_message_content(message, None, False, True) == body
+
+
+def test_other_senders_rich_message_content_is_not_stripped() -> None:
+    message = _rich_answer_message("User content")
+
+    assert modern_context._extract_message_content(message, None, False, False) == "✨ User content\n🔋 95%"
+
+
+@pytest.mark.asyncio
+async def test_cache_middleware_extracts_body_at_rich_message_boundary(
+    monkeypatch: pytest.MonkeyPatch, test_services: object
+) -> None:
+    body = "Answer\nSecond line\n🔋 92% of charge remains"
+    sent = _rich_answer_message(body)
+    cached = AsyncMock()
+    monkeypatch.setattr("sophie_bot.modules.ai.middlewares.cache_bot_messages.cache_message", cached)
+
+    async def reply(_event: TelegramObject, _data: dict[str, Any]) -> Message:
+        return sent
+
+    await CacheBotMessagesMiddleware()(
+        reply,
+        sent,
+        {
+            "handler": SimpleNamespace(flags={"ai_cache": {"cache_handler_result": True}}),
+            "context": SimpleNamespace(event_chat=SimpleNamespace(tid=sent.chat.id)),
+            "ai_capabilities": SimpleNamespace(message_cache=True),
+            "services": test_services,
+        },
+    )
+
+    cached.assert_awaited_once()
+    assert cached.await_args.args[0] == body
 
 
 @pytest.mark.asyncio
 async def test_cached_foreign_bot_message_is_reference_only_context(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot chatter",
         10,
@@ -126,7 +202,7 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
         redis=test_redis,
     )
 
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     await history.add_from_cache(10, fold_background=True)
 
     assert history.message_history == []
@@ -137,7 +213,7 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
 async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot answer",
         10,
@@ -150,7 +226,7 @@ async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
         redis=test_redis,
     )
 
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     await history.add_from_cache(10, fold_background=True)
 
     assert len(history.message_history) == 1
@@ -165,12 +241,12 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     test_redis: object,
     test_services: object,
 ) -> None:
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
     answer_time = datetime.now(UTC)
     await cache_message(
         "prior answer",
         10,
-        message_history.CONFIG.bot_id,
+        old_context.CONFIG.bot_id,
         20,
         answer_time,
         "Sophie",
@@ -179,7 +255,7 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
         redis=test_redis,
     )
 
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     await history.add_from_cache(10)
 
     assert len(history.message_history) == 1
@@ -198,17 +274,17 @@ async def test_cached_reply_target_is_not_added_to_prompt_twice(
     await cache_message(
         "prior answer",
         10,
-        message_history.CONFIG.bot_id,
+        old_context.CONFIG.bot_id,
         20,
         answer_time,
         "Sophie",
         is_bot=True,
         redis=test_redis,
     )
-    monkeypatch.setattr(message_history.ChatModel, "get_by_tid", AsyncMock(return_value=None))
-    monkeypatch.setattr(message_history, "_admin_context_name", AsyncMock(return_value="Alice"))
+    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(modern_context, "_admin_context_name", AsyncMock(return_value="Alice"))
     chat = Chat(id=10, type="group", title="Test chat")
-    sophie = User(id=message_history.CONFIG.bot_id, is_bot=True, first_name="Sophie")
+    sophie = User(id=old_context.CONFIG.bot_id, is_bot=True, first_name="Sophie")
     alice = User(id=1, is_bot=False, first_name="Alice")
     prior_answer = Message(
         message_id=20,
@@ -226,7 +302,7 @@ async def test_cached_reply_target_is_not_added_to_prompt_twice(
         reply_to_message=prior_answer,
     )
 
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     await history.add_from_cache(10)
     await history.add_from_message(follow_up)
 
@@ -237,7 +313,7 @@ async def test_cached_reply_target_is_not_added_to_prompt_twice(
 def test_message_history_adds_system_custom_and_debug_output(
     test_services: object,
 ) -> None:
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
 
     history.add_system("system prompt")
     history.add_custom("user prompt", name="Tester")
@@ -253,7 +329,7 @@ def test_message_history_adds_system_custom_and_debug_output(
 def test_message_history_moderation_extracts_text_roles(
     test_services: object,
 ) -> None:
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     history.add_system("system prompt")
     history.add_custom("user prompt", name="Tester")
     history.message_history.append(ModelResponse(parts=[TextPart(content="assistant reply")]))
@@ -278,15 +354,15 @@ def _cached_message(text: str, *, handled_by_ai: bool = False, has_ai_command: b
 
 
 def test_is_ai_dialogue_classifies_background_vs_conversation() -> None:
-    assert AIMessageHistory._is_ai_dialogue(_cached_message("hi", handled_by_ai=True)) is True
-    assert AIMessageHistory._is_ai_dialogue(_cached_message("/ai hello", has_ai_command=True)) is True
-    assert AIMessageHistory._is_ai_dialogue(_cached_message("just chatting")) is False
+    assert OldContext._is_ai_dialogue(_cached_message("hi", handled_by_ai=True)) is True
+    assert OldContext._is_ai_dialogue(_cached_message("/ai hello", has_ai_command=True)) is True
+    assert OldContext._is_ai_dialogue(_cached_message("just chatting")) is False
 
 
 def test_fold_trailing_requests_moves_dangling_user_turns_to_context(
     test_services: object,
 ) -> None:
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     history.message_history = [
         ModelResponse(parts=[TextPart(content="Sophie reply")]),
         ModelRequest(parts=[UserPromptPart(content="Alice: first")]),
@@ -306,7 +382,7 @@ def test_fold_trailing_requests_moves_dangling_user_turns_to_context(
 def test_apply_context_block_prepends_reference_only_context(
     test_services: object,
 ) -> None:
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     history.context_lines = ["Alice: first", "Bob: second"]
     history.prompt = ["Carol: latest question"]
 
@@ -324,7 +400,7 @@ def test_apply_context_block_prepends_reference_only_context(
 def test_apply_context_block_is_noop_without_context(
     test_services: object,
 ) -> None:
-    history = AIMessageHistory(services=test_services)
+    history = OldContext(services=test_services)
     history.prompt = ["Carol: latest question"]
 
     history.apply_context_block()

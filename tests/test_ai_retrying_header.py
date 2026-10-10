@@ -13,7 +13,6 @@ from stfu_tg import Doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
-    build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
@@ -211,7 +210,7 @@ async def test_final_tool_titles_survive_a_pending_draft_edit(monkeypatch: pytes
     await asyncio.wait_for(rendering.wait(), timeout=1)
 
     final_doc = build_ai_message_doc(
-        build_ai_header("simple", ai_credit_header(80)),
+        ai_credit_header(80),
         "Answer",
         tool_labels=(AI_TOOLS_BY_NAME["web_search"],),
     )

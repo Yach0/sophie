@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
-from sophie_bot.modules.notes.utils.semantic_search import update_note_embedding
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
+from sophie_bot.utils.notes_search import update_note_embedding
 
 
 class GenerateNoteEmbeddings:

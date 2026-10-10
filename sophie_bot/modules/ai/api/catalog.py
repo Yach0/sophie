@@ -74,6 +74,7 @@ def _model_response(model: AICatalogModelModel) -> ModelResponse:
         api_name=model.api_name,
         supports_reasoning=model.supports_reasoning,
         supports_images=model.supports_images,
+        context_window_tokens=model.context_window_tokens,
         extra_params=model.extra_params,
         roles=model.roles,
         enabled=model.enabled,
@@ -122,6 +123,7 @@ def _resolved_model(current: AICatalog, mode: AIMode, purpose: AIModelPurpose) -
                 model=role.model_name,
                 priority=role.priority,
                 supports_images=role.supports_images,
+                context_window_tokens=role.context_window_tokens,
             )
             for role in candidates
         ],
@@ -251,10 +253,10 @@ async def update_model(
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
 
-    for field, value in data.model_dump(exclude_unset=True).items():
-        setattr(model, field, value)
-
-    await model.save()
+    update = {"$set": data.model_dump(exclude_unset=True)}
+    if "context_window_tokens" in data.model_fields_set:
+        update["$unset"] = {"_migration_add_ai_model_context_sizes": ""}
+    await model.update(update)
     await bump_version(redis=services.redis)
     return _model_response(model)
 
@@ -289,6 +291,7 @@ async def export_catalog() -> CatalogExport:
                 api_name=model.api_name,
                 supports_reasoning=model.supports_reasoning,
                 supports_images=model.supports_images,
+                context_window_tokens=model.context_window_tokens,
                 extra_params=model.extra_params,
                 roles=model.roles,
                 enabled=model.enabled,
@@ -323,9 +326,12 @@ async def import_catalog(
     for model in data.models:
         stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == model.name)
         if stored:
-            for field, value in model.model_dump().items():
-                setattr(stored, field, value)
-            await stored.save()
+            await stored.update(
+                {
+                    "$set": model.model_dump(),
+                    "$unset": {"_migration_add_ai_model_context_sizes": ""},
+                }
+            )
             result.models_updated += 1
         else:
             await AICatalogModelModel(**model.model_dump()).save()

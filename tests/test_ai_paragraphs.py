@@ -16,7 +16,6 @@ from sophie_bot.modules.ai.utils.ai_header import (
     AI_CUSTOM_EMOJI_ID,
     AI_GENERATING_EMOJI_ID,
     ai_credit_header,
-    build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
@@ -39,7 +38,7 @@ def test_real_stfu_renderer_preserves_paragraphs_and_plain_html_separator() -> N
 def test_only_leading_paragraph_is_inline_when_header_present(with_header: bool, preformatted: bool) -> None:
     body = ai_markdown_to_doc(MARKDOWN)
     rendered_body = PreformattedHTML(body.to_rich()) if preformatted else body
-    header = build_ai_header("simple", ai_credit_header(50)) if with_header else None
+    header = ai_credit_header(50) if with_header else None
     rich = build_ai_message_doc(header, rendered_body).to_rich()
     if with_header:
         assert rich.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {FIRST}\n{SECOND}')

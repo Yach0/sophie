@@ -49,7 +49,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
@@ -202,8 +202,8 @@ def _build_history(
     user_prompt: str,
     *,
     services: ApplicationServices,
-) -> AIMessageHistory:
-    history = AIMessageHistory(services=services)
+) -> OldContext:
+    history = OldContext(services=services)
     history.add_system(system_prompt)
     history.prompt = [user_prompt]
     return history
@@ -218,7 +218,7 @@ def _queries_payload(queries: list[ResearchSearchQuery]) -> str:
 
 
 async def run_research_structured_step[ResearchStepT: BaseModel](
-    history: AIMessageHistory,
+    history: OldContext,
     output_type: type[ResearchStepT],
     connection: ChatConnection,
     model_plan: AIModelPlan,

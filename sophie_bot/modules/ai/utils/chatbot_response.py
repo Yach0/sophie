@@ -8,6 +8,7 @@ from html.parser import HTMLParser
 from typing import Any, Final
 
 from beanie import PydanticObjectId
+from beanie.operators import In
 from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart
 from pydantic_ai.models import Model
 from redis.asyncio import Redis
@@ -15,21 +16,65 @@ from stfu_tg import BlockQuote, Doc, KeyValue, Section
 from stfu_tg.ai_md import ai_markdown_to_doc
 from stfu_tg.doc import Element
 
+from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import (
     AI_CHATBOT_CUSTOM_EMOJI_ID,
-    AIHeaderStyle,
     ai_credit_header,
-    build_ai_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
 from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
-from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, apply_mention_usernames, resolve_mentions
+from sophie_bot.modules.ai.utils.mention_usernames import (
+    MentionCandidate,
+    MentionIndex,
+    MentionPolicy,
+    build_mention_index,
+    resolve_mention_index,
+    resolve_mentions,
+)
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
 TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
+
+
+def select_mention_policy(*, modern: bool, mode: AIMode) -> MentionPolicy:
+    if not modern:
+        return MentionPolicy.LEGACY_DISPLAY_NAMES
+    return MentionPolicy.MODERN_FIRST_NAMES if mode == AIMode.entertainment else MentionPolicy.OPAQUE
+
+
+async def resolve_reply_mention_index(
+    chat_tid: int | None,
+    *,
+    redis: Redis,
+    mention_policy: MentionPolicy,
+    speaker_names: Sequence[tuple[int, str]] = (),
+) -> MentionIndex | None:
+    if mention_policy == MentionPolicy.OPAQUE or chat_tid is None:
+        return None
+    if mention_policy == MentionPolicy.LEGACY_DISPLAY_NAMES:
+        return await resolve_mention_index(chat_tid, redis=redis) or build_mention_index(())
+    user_tids = tuple(dict.fromkeys(user_tid for user_tid, _name in speaker_names))
+    users = (
+        await ChatModel.find(In(ChatModel.tid, user_tids), ChatModel.type == ChatType.private).to_list()
+        if user_tids
+        else []
+    )
+    usernames = {user.tid: user.username or "" for user in users}
+    # Select only first-name labels from the session, never current profile names or surnames.
+    # Missing/handleless actors still occupy their supplied names and block misattribution.
+    return build_mention_index(
+        (
+            MentionCandidate(display_names=(first_name,), username=usernames.get(user_tid, ""))
+            for user_tid, first_name in speaker_names
+        ),
+        policy=mention_policy,
+    )
+
 
 _ALLOWED_HTML_ATTRIBUTES: Final[dict[str, frozenset[str]]] = {
     "a": frozenset({"href"}),
@@ -259,19 +304,18 @@ def model_display_name(model: Model) -> str:
 
 async def build_chatbot_header(
     chat_iid: PydanticObjectId,
-    style: AIHeaderStyle = "simple",
     model_label: str | None = None,
     *,
     redis: Redis,
-) -> Element | str | None:
-    battery: Element | str = ""
+) -> Element | str:
+    battery: Element | str = "🔋"
     if quota_info := await get_quota_info(chat_iid, redis=redis):
         percentage = (
             int((quota_info.remaining_credits / quota_info.total_credits) * 100) if quota_info.total_credits > 0 else 0
         )
         battery = ai_credit_header(percentage, model_label)
 
-    return build_ai_header(style, battery)
+    return battery
 
 
 def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
@@ -310,20 +354,24 @@ async def build_reply_doc(
     mention_index: MentionIndex | None = None,
     *,
     redis: Redis,
+    mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
+    speaker_names: Sequence[tuple[int, str]] = (),
     tool_labels: Sequence[AITool] = (),
     strip_alien_html_tags: bool | None = None,
 ) -> Doc:
-    # The single rendering chokepoint for both streamed drafts and the final message, so mention
-    # resolution happens here — before Markdown is rendered, which keeps escaping STFU's job.
-    resolved_text = (
-        await apply_mention_usernames(
-            output_text,
-            chat_tid,
-            redis=redis,
-        )
-        if mention_index is None
-        else resolve_mentions(output_text, mention_index)
-    )
+    # Modern alias-only modes must not back-trace names, even with a preloaded index.
+    # Allowed mentions are resolved before Markdown so escaping remains STFU's job.
+    resolved_text = output_text
+    if mention_policy != MentionPolicy.OPAQUE and "@" in output_text:
+        if mention_index is None:
+            mention_index = await resolve_reply_mention_index(
+                chat_tid,
+                redis=redis,
+                mention_policy=mention_policy,
+                speaker_names=speaker_names,
+            )
+        if mention_index is not None:
+            resolved_text = resolve_mentions(output_text, mention_index)
     if strip_alien_html_tags is None:
         strip_alien_html_tags = await is_enabled(
             "ai_chatbot_strip_alien_html_tags",

@@ -4,17 +4,25 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock, Mock, call
+from xml.etree import ElementTree
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.methods import SetMessageReaction
 from aiogram.types import Chat, Message, User
+from beanie import PydanticObjectId
+from pydantic_ai.messages import ModelRequest, UserPromptPart
 from redis.asyncio import Redis
 
 from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.chat import ChatType
+from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import proactive_replies
+from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.modern_context import ModernContext
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.proactive_replies import (
     ProactiveAction,
     ProactiveDecision,
@@ -26,6 +34,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
 )
 from sophie_bot.modules.ai.utils.proactive_tracking import is_candidate
 from sophie_bot.services.application import ApplicationServices
+from tests.e2e.helpers import next_group_id, next_user_id
 
 
 @pytest.mark.parametrize(
@@ -92,7 +101,7 @@ async def test_proactive_answer_history_keeps_reply_title(
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
 ) -> None:
-    monkeypatch.setattr(AIMessageHistory, "add_from_cache", AsyncMock())
+    monkeypatch.setattr(OldContext, "add_from_cache", AsyncMock())
     target = MessageType(
         user_id=1,
         message_id=2,
@@ -109,6 +118,121 @@ async def test_proactive_answer_history_keeps_reply_title(
     )
 
     assert history.prompt == ["Alice (reply to Bob): hello"]
+
+
+@pytest.mark.parametrize("reply_topic", [7, 8, None])
+@pytest.mark.parametrize("mode", [AIMode.support, AIMode.entertainment])
+async def test_modern_proactive_yes_retains_its_question_reference(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    reply_topic: int | None,
+    mode: AIMode,
+) -> None:
+    chat_tid = next_group_id()
+    alice = User(id=next_user_id(), is_bot=False, first_name="Alice", username="private_alice_handle")
+    bob = User(id=next_user_id(), is_bot=False, first_name="Bob", username="private_bob_handle")
+    users = [await ChatModel.upsert_user(user) for user in (alice, bob)]
+    question = "Should we preserve @authored_handle and user_id=9123 literally?"
+    now = datetime.now(UTC)
+    context = SophieAIToolContext(
+        connection=ChatConnection(
+            type=ChatType.group, is_connected=False, tid=chat_tid, title="Group", db_model=None,
+        ),
+        chat_tid=chat_tid,
+        chat_iid=PydanticObjectId(),
+        services=test_services,
+        mode=mode,
+        user_text="yes",
+    )
+    target = MessageType(
+        user_id=alice.id,
+        message_id=20,
+        text="yes",
+        created_at=now,
+        username=alice.username,
+        message_thread_id=7,
+        reply_to_message_id=10,
+        reply_to_user_id=bob.id,
+        reply_to_username=bob.username,
+    )
+    reconstructed: list[Message] = []
+
+    async def prepare(
+        message: Message,
+        context: SophieAIToolContext,
+        **kwargs: object,
+    ) -> ModernContext:
+        reconstructed.append(message)
+        return await ModernContext.build(
+            message,
+            context,
+            token_budget=100000,
+            instructions="Be helpful.",
+            runtime_context="",
+            request_context=cast(str, kwargs["request_context"]),
+        )
+
+    monkeypatch.setattr(proactive_replies, "is_enabled", AsyncMock(return_value=True))
+    monkeypatch.setattr(proactive_replies, "prepare_chatbot_history", prepare)
+    history = None
+    try:
+        if reply_topic is not None:
+            await cache_message(
+                question,
+                chat_tid,
+                bob.id,
+                10,
+                now - timedelta(seconds=10),
+                bob.username,
+                redis=test_services.redis,
+                message_thread_id=reply_topic,
+            )
+        history = await _build_answer_history(chat_tid, target, services=test_services, context=context)
+        assert isinstance(history, ModernContext)
+        message = reconstructed[0]
+        assert message.chat.type == "group"
+        assert message.reply_to_message is not None
+        assert message.reply_to_message.message_id == 10
+        assert message.reply_to_message.from_user.id == bob.id
+        assert message.reply_to_message.from_user.first_name == ""
+        assert message.reply_to_message.from_user.username is None
+        requests = [
+            *history.message_history,
+            ModelRequest(parts=[UserPromptPart(content=history.prompt)], instructions=history.instructions),
+        ]
+        nodes = []
+        for request in requests:
+            if not isinstance(request, ModelRequest):
+                continue
+            for part in request.parts:
+                if not isinstance(part, UserPromptPart):
+                    continue
+                contents = [part.content] if isinstance(part.content, str) else part.content
+                for content in contents:
+                    if isinstance(content, str) and content.startswith("<message "):
+                        nodes.append(ElementTree.fromstring(content))
+        current = next(node for node in nodes if node.attrib["context"] == "current")
+        references = [node for node in nodes if node.attrib["id"] == current.attrib["reply_to"]]
+        assert current.findtext("text") == "yes"
+        assert len(references) == 1
+        reference = references[0]
+        assert reference.attrib["context"] == "reference"
+        assert reference.attrib["speaker_id"] != current.attrib["speaker_id"]
+        assert reference.findtext("text") == (question if reply_topic == 7 else "")
+        for node, first_name in ((current, "Alice"), (reference, "Bob")):
+            assert node.attrib["id"].startswith("m")
+            assert node.attrib["speaker_id"].startswith("u")
+            assert "username" not in node.attrib
+            if mode == AIMode.entertainment:
+                assert node.attrib["first_name"] == first_name
+            else:
+                assert "first_name" not in node.attrib
+    finally:
+        if history is not None:
+            await history.abort()
+        for user in users:
+            await user.delete()
+
 
 
 @pytest.mark.asyncio

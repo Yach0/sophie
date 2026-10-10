@@ -29,22 +29,20 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import (
-    AIHeaderStyle,
     ai_credit_header,
-    build_ai_header,
     build_ai_message_doc,
-    get_ai_header_style,
 )
 from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, message_text
+from sophie_bot.modules.ai.utils.old_context import OldContext
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.notes.utils.extract_markdown_entities import extract_markdown_entities
 from sophie_bot.services.application import ApplicationServices
+from sophie_bot.shared.message_text import message_text
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_AUTO_TRANSLATE, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import get_value
@@ -122,13 +120,11 @@ def _build_translate_reply_doc(
     is_autotranslate: bool,
     is_voice: bool,
     quota_header: Element | None,
-    header_style: AIHeaderStyle,
 ) -> Doc:
     """Format the translation response document."""
-    header = build_ai_header(header_style, quota_header or "")
     visible_text, entities = extract_markdown_entities(translated.translated_text)
     return build_ai_message_doc(
-        header,
+        quota_header or "🔋",
         (
             Bold(
                 Template(
@@ -221,7 +217,7 @@ class AiTranslate(SophieMessageHandler):
             progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
 
         # AI Context
-        ai_context = AIMessageHistory(services=self.services)
+        ai_context = OldContext(services=self.services)
         if reply_to_message and (
             reply_to_message.photo
             or reply_to_message.sticker
@@ -324,18 +320,12 @@ class AiTranslate(SophieMessageHandler):
             quota_percentage = int((quota_info.remaining_credits / quota_info.total_credits) * 100)
             quota_header = ai_credit_header(quota_percentage)
 
-        header_style = await get_ai_header_style(
-            "translation",
-            self.event.chat.id,
-            redis=self.services.redis,
-        )
         doc = _build_translate_reply_doc(
             translated,
             language_name,
             is_autotranslate,
             is_voice,
             quota_header,
-            header_style,
         )
 
         if progress_streamer:

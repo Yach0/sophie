@@ -12,7 +12,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_pl
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.op.json_schemas.op_task_ai import OpTaskAIResult
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -98,7 +98,7 @@ class OpTaskHandler(SophieMessageHandler):
         )
         history_text = _build_history_context(messages)
 
-        history = AIMessageHistory(services=self.services)
+        history = OldContext(services=self.services)
         history.add_system(
             "You are a project management assistant for SophieBot, a Telegram bot. "
             "Analyze the provided chat context and operator notes to generate a well-structured GitLab issue. "
