@@ -3,6 +3,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
+from xml.etree import ElementTree
 
 import pytest
 from aiogram.exceptions import TelegramBadRequest
@@ -35,17 +36,26 @@ def test_real_stfu_renderer_preserves_paragraphs_and_plain_html_separator() -> N
 
 @pytest.mark.parametrize("preformatted", [False, True])
 @pytest.mark.parametrize("with_header", [False, True])
-def test_only_leading_paragraph_is_inline_when_header_present(with_header: bool, preformatted: bool) -> None:
+def test_header_preserves_later_paragraphs_and_inline_markup(with_header: bool, preformatted: bool) -> None:
     body = ai_markdown_to_doc(MARKDOWN)
     rendered_body = PreformattedHTML(body.to_rich()) if preformatted else body
     header = ai_credit_header(50) if with_header else None
     rich = build_ai_message_doc(header, rendered_body).to_rich()
-    separator = "<br>" if preformatted else "\n"
+    root = ElementTree.fromstring("<rich>" + rich.replace("<br>", "<br />") + "</rich>")
+    paragraphs = root.findall("p")
     if with_header:
-        assert rich.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> {FIRST}{separator}{SECOND}')
-        assert rich.endswith(" 50%</p>")
+        assert root.findtext("b/i") == "italic"
+        assert "".join(paragraphs[0].itertext()) == "Second link & code."
+        assert "".join(paragraphs[-1].itertext()).endswith("50%")
+        assert paragraphs[-1].find("tg-emoji") is not None
+        second = paragraphs[0]
     else:
-        assert rich == f"<p>{FIRST}</p>{separator}{SECOND}"
+        assert "".join(paragraphs[0].itertext()) == "Hello bold and italic text."
+        assert paragraphs[0].findtext("b/i") == "italic"
+        second = paragraphs[1]
+    link = second.find("a")
+    assert link is not None and link.attrib == {"href": "https://example.com"}
+    assert second.findtext("code") == "code"
 
 
 def test_only_first_body_item_is_unwrapped() -> None:
