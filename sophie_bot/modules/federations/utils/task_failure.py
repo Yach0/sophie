@@ -16,7 +16,7 @@ def build_task_failed_doc(error_message: str | None = None) -> Doc:
     import/export. The task is left in ``FAILED`` and kept indefinitely so the failure
     can be investigated and the task re-done, rather than silently disappearing.
     """
-    doc = Doc(_("❌ The task has failed; I will tag it as failed and retry later."))
+    doc = Doc(_("❌ The task has been failed, I will tag it as failed and retry later."))
     if error_message:
         doc += KeyValue(_("Error"), error_message)
     return doc

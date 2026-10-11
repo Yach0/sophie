@@ -1,4 +1,3 @@
-import os
 from ipaddress import IPv4Network
 from typing import Annotated, Literal
 
@@ -129,10 +128,7 @@ class Config(BaseSettings):
     metrics_sample_ratio: float = 1.0
 
     model_config = SettingsConfigDict(
-        env_parse_none_str="None",
-        env_file=os.environ.get("SOPHIE_CONFIG_FILE", "data/config.env"),
-        env_file_encoding="utf-8",
-        extra="ignore",
+        env_parse_none_str="None", env_file="data/config.env", env_file_encoding="utf-8", extra="ignore"
     )
 
     @computed_field

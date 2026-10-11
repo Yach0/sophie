@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -21,13 +21,6 @@ from pymongo.errors import DuplicateKeyError
 from sophie_bot.db.models.mute_permissions import MutePermissionsLockModel, MutePermissionsModel
 from sophie_bot.shared.actions import RestrictionAction, RestrictionResult
 from sophie_bot.utils.logger import log
-
-SessionFence = Callable[[], Awaitable[bool]]
-
-
-async def _is_current(is_current: SessionFence | None) -> bool:
-    return is_current is None or await is_current()
-
 
 _RESTRICTION_EXCEPTIONS = (TelegramBadRequest, TelegramForbiddenError, TelegramUnauthorizedError)
 _TRANSIENT_EXCEPTIONS = (TelegramNetworkError, TelegramRetryAfter, TimeoutError)
@@ -103,9 +96,7 @@ async def _snapshot(bot: Bot, chat_tid: int, user_tid: int) -> tuple[MutePermiss
     return snapshot, True
 
 
-async def _restore(
-    bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool = False, is_current: SessionFence | None = None
-) -> bool:
+async def _restore(bot: Bot, chat_tid: int, user_tid: int, *, expired_only: bool = False) -> bool:
     snapshot = await MutePermissionsModel.find_one({"chat_tid": chat_tid, "user_tid": user_tid})
     if snapshot is None:
         return False
@@ -113,14 +104,12 @@ async def _restore(
     if expired_only and (snapshot.expires_at is None or snapshot.expires_at > now):
         return False
     member = await bot.get_chat_member(chat_id=chat_tid, user_id=user_tid)
-    if not await _is_current(is_current):
-        return False
     if not isinstance(member, ChatMemberRestricted) or not _owns_restriction(snapshot, member):
         # Legacy snapshots have no ownership proof: leave the current state alone.
         await snapshot.delete()
         log.warning("Discarded superseded mute snapshot", chat_tid=chat_tid, user_tid=user_tid)
         return isinstance(member, ChatMemberMember)
-    return await _restore_owned_snapshot(bot, snapshot, member, now, is_current=is_current)
+    return await _restore_owned_snapshot(bot, snapshot, member, now)
 
 
 async def _restoration_permissions(
@@ -146,15 +135,10 @@ async def _restoration_permissions(
 
 
 async def _restore_owned_snapshot(
-    bot: Bot,
-    snapshot: MutePermissionsModel,
-    member: ChatMemberRestricted,
-    now: datetime,
-    *,
-    is_current: SessionFence | None = None,
+    bot: Bot, snapshot: MutePermissionsModel, member: ChatMemberRestricted, now: datetime
 ) -> bool:
     permissions, previous_until = await _restoration_permissions(bot, snapshot, now)
-    if permissions is None or not await _is_current(is_current):
+    if permissions is None:
         return False
     # Telegram interprets deadlines <30s away as forever. A nearly expired old
     # restriction remains until the sweep can safely release it, rather than forever.
@@ -172,10 +156,6 @@ async def _restore_owned_snapshot(
         snapshot.expires_at = previous_until
         # Keep the original restoration policy for retries before its deadline.
         await snapshot.save()
-    if not await _is_current(is_current):
-        if pending_release:
-            await before_restore.save()
-        return False
     try:
         applied = await bot.restrict_chat_member(
             snapshot.chat_tid,
@@ -199,15 +179,7 @@ async def _restore_owned_snapshot(
     return applied
 
 
-async def _apply(
-    bot: Bot,
-    action: RestrictionAction,
-    chat_tid: int,
-    user_tid: int,
-    duration: timedelta | None,
-    *,
-    is_current: SessionFence | None = None,
-) -> bool:
+async def _apply(bot: Bot, action: RestrictionAction, chat_tid: int, user_tid: int, duration: timedelta | None) -> bool:
     snapshot, created = await _snapshot(bot, chat_tid, user_tid)
     permissions = _MUTE_PERMISSIONS
     if action is RestrictionAction.RESTRICT:
@@ -231,10 +203,6 @@ async def _apply(
             setattr(
                 permissions, field_name, bool(getattr(baseline, field_name)) and bool(getattr(defaults, field_name))
             )
-    if not await _is_current(is_current):
-        if created:
-            await snapshot.delete()
-        return False
     before_apply = snapshot.model_copy(deep=True)
     snapshot.pending_permissions = snapshot.applied_permissions
     snapshot.applied_permissions = permissions
@@ -244,12 +212,6 @@ async def _apply(
     # Persist the intended state BEFORE Telegram: a timeout or crash can leave the
     # write applied remotely. A retry verifies ownership before restoring anything.
     await snapshot.save()
-    if not await _is_current(is_current):
-        if created:
-            await snapshot.delete()
-        else:
-            await before_apply.save()
-        return False
     try:
         applied = await bot.restrict_chat_member(
             chat_tid,
@@ -283,13 +245,10 @@ async def execute_restriction(
     *,
     until_date: timedelta | None = None,
     expired_only: bool = False,
-    is_current: SessionFence | None = None,
 ) -> RestrictionResult:
     try:
         # Serialize all Sophie moderation writes, including CAPTCHA replacement.
         async with _mute_lock(chat_tid, user_tid):
-            if not await _is_current(is_current):
-                return RestrictionResult(action=action, applied=False)
             match action:
                 case RestrictionAction.BAN:
                     applied = await bot.ban_chat_member(chat_tid, user_tid, until_date=until_date)
@@ -298,9 +257,9 @@ async def execute_restriction(
                 case RestrictionAction.UNBAN:
                     applied = await bot.unban_chat_member(chat_tid, user_tid, only_if_banned=True)
                 case RestrictionAction.MUTE | RestrictionAction.RESTRICT:
-                    applied = await _apply(bot, action, chat_tid, user_tid, until_date, is_current=is_current)
+                    applied = await _apply(bot, action, chat_tid, user_tid, until_date)
                 case RestrictionAction.UNMUTE:
-                    applied = await _restore(bot, chat_tid, user_tid, expired_only=expired_only, is_current=is_current)
+                    applied = await _restore(bot, chat_tid, user_tid, expired_only=expired_only)
             if applied and action in (RestrictionAction.BAN, RestrictionAction.KICK, RestrictionAction.UNBAN):
                 await MutePermissionsModel.find({"chat_tid": chat_tid, "user_tid": user_tid}).delete()
     except (*_RESTRICTION_EXCEPTIONS, *_TRANSIENT_EXCEPTIONS) as error:

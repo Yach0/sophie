@@ -11,19 +11,14 @@ from sophie_bot.db.models.chat import ChatModel, UserInGroupModel
 from sophie_bot.db.models.greetings import GreetingsModel, WelcomeSecurity
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.db.models.rules import RulesModel
-from sophie_bot.db.models.ws_user import WSUserModel
-from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityConfirmCB,
     WelcomeSecurityRulesAgreeCB,
 )
-from sophie_bot.modules.welcomesecurity.utils_.complete_captcha import complete_captcha
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import (
     initiate_captcha,
 )
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.shared.actions import RestrictionAction
-from tests.e2e.helpers import create_test_user_and_group, join_group, send_join_request
 
 
 @pytest.mark.asyncio
@@ -115,8 +110,6 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
         AsyncMock(return_value=True),
     )
 
-    await WSUserModel.ensure_user(user_db, group_db, is_join_request=True)
-
     captcha_message = await initiate_captcha(
         user_db,
         group_db,
@@ -153,57 +146,3 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
     await test_services.redis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("transition", ["completing", "expiring", "exempting"])
-async def test_duplicate_join_request_does_not_approve_durable_transition(
-    test_client: TestClient, transition: str
-) -> None:
-    user, group, user_db = await create_test_user_and_group(test_client)
-    group_db = await ChatModel.get_by_tid(group.id)
-    assert group_db is not None
-    await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
-    pending = await WSUserModel.ensure_user(user_db, group_db, True)
-    assert await pending.claim_transition(transition) is not None
-    requests = await send_join_request(test_client, group, user)
-    assert not any(request.request_type.value in ("approveChatJoinRequest", "sendPhoto") for request in requests)
-    stored = await WSUserModel.get(pending.id)
-    assert stored is not None and stored.transition == transition
-
-
-@pytest.mark.asyncio
-async def test_completion_survives_approval_service_event_and_bypass_consumption(
-    test_client: TestClient, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    user, group, user_db = await create_test_user_and_group(test_client)
-    group_db = await ChatModel.get_by_tid(group.id)
-    assert group_db is not None
-    greetings = await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
-    pending = await WSUserModel.ensure_user(user_db, group_db, True)
-    result = await execute_restriction(test_client.bot, RestrictionAction.MUTE, group.id, user.id)
-    assert result.applied
-    original_approve = test_client.bot.approve_chat_join_request
-
-    async def approve_with_event(**kwargs: int) -> bool:
-        approved = await original_approve(**kwargs)
-        await join_group(test_client, group, user)
-        assert await test_services.redis.get(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}") is None
-        return approved
-
-    approval = AsyncMock(side_effect=approve_with_event)
-    monkeypatch.setattr(test_client.bot, "approve_chat_join_request", approval)
-    await complete_captcha(
-        user_db,
-        group_db,
-        greetings,
-        SimpleNamespace(chat=SimpleNamespace(id=user.id), message_id=42),
-        bot=test_client.bot,
-        redis=test_services.redis,
-    )
-    assert await WSUserModel.get(pending.id) is None
-    requests = test_client.capture.all_requests
-    approval.assert_awaited_once_with(chat_id=group.id, user_id=user.id)
-    restores = [request for request in requests if request.request_type.value == "restrictChatMember"]
-    assert len(restores) == 2
-    assert restores[-1].params["permissions"]["can_send_messages"]

@@ -8,8 +8,8 @@ from sophie_bot.utils.i18n import gettext as _
 
 def get_default_welcome_message(has_rules: bool) -> Saveable:
     doc = Doc(
-        _("Hi {mention}! Welcome to the group."),
-        Section("{rules}", title=_("Group rules")) if has_rules else _("There are no rules in this group; have fun!"),
+        _("Hi {mention}! Welcome in the group."),
+        Section("{rules}", title=_("Group rules")) if has_rules else _("There are no rules in this group, have fun!"),
     )
     return Saveable(text=str(doc), version=CURRENT_SAVEABLE_VERSION)
 

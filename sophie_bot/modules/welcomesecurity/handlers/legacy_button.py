@@ -99,7 +99,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         if not ws_user.is_join_request and not await self._user_is_still_in_group(user_db, group_db):
             log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
-                _("It seems like you do not belong to the chat anymore. Are you sure you joined the group?")
+                _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
 
         if await is_user_admin(chat_id, user_db.iid):
@@ -116,7 +116,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                 await WSUserModel.remove_user(user_db.iid, group_db.iid)
             log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
             return await self.event.reply(
-                _("You are already an admin in the chat; therefore you don't need to pass the authentication!")
+                _("You already an admin in the chat, therefore you don't need to pass the authentication!")
             )
 
         # Check if banned

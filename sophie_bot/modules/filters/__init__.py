@@ -1,6 +1,6 @@
 from aiogram import Router
 from fastapi import APIRouter
-from stfu_tg import Doc, Template
+from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
 from sophie_bot.services.application import ApplicationServices
@@ -61,28 +61,10 @@ module_manifest = ModuleManifest(
     emoji="🪄",
     info=LazyProxy(
         lambda: Doc(
-            l_("Filters allow invoking different actions for different messages."),
-            l_("For example, muting the users when they mention crypto."),
+            l_("Filters allows to invoke different actions for different messages."),
+            l_("For example muting the users when they mention crypto."),
             l_(
                 "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
-            ),
-            l_("Without a prefix, filters match text contained in the normalized message; punctuation is not literal."),
-            Template(
-                l_("{prefix} matches a whole normalized word or phrase."),
-                prefix="word:",
-            ),
-            Template(
-                l_("{prefix} matches the whole literal message."),
-                prefix="exact:",
-            ),
-            Template(l_("{prefix} uses a regular expression."), prefix="re:"),
-            Template(
-                l_("{prefix} asks AI whether the message meets a criterion."),
-                prefix="ai:",
-            ),
-            Template(
-                l_("Lock-type handlers use Locks detectors; {command} lists them."),
-                command="/lockable",
             ),
         )
     ),

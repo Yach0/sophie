@@ -35,7 +35,7 @@ class ReportHandler(SophieMessageHandler):
 
         # Check if user is admin
         if await is_user_admin(chat_id, user_id):
-            await message.reply(_("You are an admin; you don't need to report."))
+            await message.reply(_("You are an admin, you don't need to report."))
             return
 
         if not message.reply_to_message or not message.reply_to_message.from_user:

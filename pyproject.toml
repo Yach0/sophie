@@ -68,7 +68,6 @@ dev = [
     "watchfiles>=1.3.0,<2",
     "mongomock>=4.3.0,<5",
     "aiogram-test-framework>=1.0.4",
-    "python-dotenv>=1.2.3,<2",
 ]
 
 [[tool.uv.index]]
@@ -85,7 +84,7 @@ torch = [{ index = "pytorch-cpu" }]
 torchvision = [{ index = "pytorch-cpu" }]
 
 [tool.ty.src]
-include = ["sophie_bot/**", "debug/**/*.py"]
+include = ["sophie_bot/**"]
 exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/stfu_gallery.py"]
 
 [tool.ty.environment]
@@ -108,7 +107,7 @@ target-version = "py313"
 
 [tool.pytest.ini_options]
 pythonpath = "."
-testpaths = ["tests", "debug/tests"]
+testpaths = ["tests"]
 norecursedirs = ["libs", ".venv", ".git"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from asyncio import gather
+from asyncio import Task, create_task, gather
 from collections.abc import Awaitable, Callable, Mapping, Sequence
-from dataclasses import replace
 from datetime import timedelta
 from typing import BinaryIO
 
@@ -31,6 +30,7 @@ from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
@@ -40,7 +40,7 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message, message_text
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
-from sophie_bot.modules.utils_.lookups import ChatLookupCache
+from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
@@ -80,22 +80,36 @@ class AIUserMessageFormatter:
         return f"{name}: {text}"
 
 
+async def _get_chat_model(
+    chat_tid: int,
+    chat_models: dict[int, Task[ChatModel | None]],
+) -> ChatModel | None:
+    lookup = chat_models.get(chat_tid)
+    if lookup is None:
+        lookup = create_task(ChatModel.get_by_tid(chat_tid))
+        chat_models[chat_tid] = lookup
+    return await lookup
+
+
 async def _admin_context_name(
     chat_tid: int,
     user_tid: int,
     name: str,
     is_group: bool,
     *,
-    lookups: ChatLookupCache,
+    chat_models: dict[int, Task[ChatModel | None]],
 ) -> str:
     if not is_group:
         return name
 
-    chat_model = await lookups.get_chat_by_tid(chat_tid)
-    if not chat_model or chat_model.type not in {ChatType.group, ChatType.supergroup}:
+    chat_model = await _get_chat_model(chat_tid, chat_models)
+    user_model = await _get_chat_model(user_tid, chat_models)
+    if not chat_model or not user_model:
+        return name
+    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
         return name
 
-    admin = await lookups.get_admin_record(chat_tid, user_tid)
+    admin = await get_admin_record(chat_model, user_model)
     if not admin:
         return name
 
@@ -246,7 +260,8 @@ class AIMessageHistory:
         self.prompt = []
         self.context_lines = []
         self._cached_message_ids: set[tuple[int, int]] = set()
-        self._lookups = ChatLookupCache()
+        # Share in-flight lookups as well as results across this build's concurrent transforms.
+        self._chat_models: dict[int, Task[ChatModel | None]] = {}
 
     @staticmethod
     def _is_ai_dialogue(msg: MessageType) -> bool:
@@ -265,14 +280,14 @@ class AIMessageHistory:
         )
 
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
-        user = await self._lookups.get_chat_by_tid(msg.user_id)
+        user = await _get_chat_model(msg.user_id, self._chat_models)
         first_name = user.first_name_or_title if user else "Unknown"
         from_user_name = await _admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
             is_group=True,
-            lookups=self._lookups,
+            chat_models=self._chat_models,
         )
         return AIUserMessageFormatter.user_message(
             msg.text,
@@ -281,31 +296,20 @@ class AIMessageHistory:
         )
 
     def _fold_trailing_requests(self) -> None:
-        """Fold trailing text user parts into context, retaining other parts and tool boundaries."""
+        """Move trailing unanswered user turns out of the history and into the context block."""
         folded: list[str] = []
-        for index in range(len(self.message_history) - 1, -1, -1):
-            request = self.message_history[index]
-            if not isinstance(request, ModelRequest):
-                break
+        while self.message_history and isinstance(request := self.message_history[-1], ModelRequest):
             # A tool return must stay attached to the call that precedes it, or the provider sees a
             # tool call with no result.
             if any(isinstance(part, ToolReturnPart) for part in request.parts):
                 break
-            folded[:0] = [
+            self.message_history.pop()
+            folded.extend(
                 part.content
                 for part in request.parts
                 if isinstance(part, UserPromptPart) and isinstance(part.content, str)
-            ]
-            retained_parts = [
-                part
-                for part in request.parts
-                if not (isinstance(part, UserPromptPart) and isinstance(part.content, str))
-            ]
-            if retained_parts:
-                self.message_history[index] = replace(request, parts=retained_parts)
-            else:
-                self.message_history.pop(index)
-        self.context_lines.extend(folded)
+            )
+        self.context_lines.extend(reversed(folded))
 
     def apply_context_block(self) -> None:
         """Prepend collected background chatter to the prompt as reference-only context."""
@@ -322,7 +326,7 @@ class AIMessageHistory:
 
     async def _cache_transform_msg(self, chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
-        user = await self._lookups.get_chat_by_tid(msg.user_id)
+        user = await _get_chat_model(msg.user_id, self._chat_models)
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.is_bot or msg.user_id == CONFIG.bot_id:
@@ -335,7 +339,7 @@ class AIMessageHistory:
             msg.user_id,
             first_name,
             is_group=True,
-            lookups=self._lookups,
+            chat_models=self._chat_models,
         )
         return ModelRequest(
             parts=[
@@ -356,7 +360,6 @@ class AIMessageHistory:
         fold_background: bool = False,
         max_age: timedelta | None = None,
         tool_exchanges: Mapping[int, Sequence[ToolExchange]] | None = None,
-        exclude_message: tuple[int, int] | None = None,
     ) -> None:
         """Adds messages from the cache to the message history.
 
@@ -369,10 +372,6 @@ class AIMessageHistory:
         ``tool_exchanges`` maps a Sophie message ID to the tool call/return pairs that produced it.
         They are replayed right before that answer, so the model can reuse what it already looked up
         instead of running the same searches again.
-
-        ``exclude_message`` omits one exact Telegram (chat ID, message ID) identity before
-        transformation and reply-target tracking, when the caller adds that message as the
-        current prompt. Other identities with the same text remain available as context.
         """
         messages = await get_cached_messages(
             chat_id,
@@ -380,7 +379,6 @@ class AIMessageHistory:
             max_age=max_age,
             redis=self.services.redis,
         )
-        messages = tuple(message for message in messages if (chat_id, message.message_id) != exclude_message)
         self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
         exchanges = tool_exchanges or {}
         if not fold_background:
@@ -436,7 +434,7 @@ class AIMessageHistory:
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
-            lookups=self._lookups,
+            chat_models=self._chat_models,
         )
         prompt.extend(
             await _build_message_parts(

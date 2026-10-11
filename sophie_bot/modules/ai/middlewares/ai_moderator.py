@@ -15,7 +15,6 @@ from sophie_bot.modules.ai.utils.moderation import (
     ModerationCategory,
     check_moderator,
 )
-from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -111,17 +110,12 @@ class AiModeratorMiddleware(BaseMiddleware):
             if CONFIG.debug_mode == "off" and await is_user_admin(chat_db.tid, event.from_user.id):
                 return await handler(event, data)
 
-            try:
-                result = await check_moderator(
-                    event,
-                    settings=settings,
-                    chat_tid=chat_db.tid,
-                    services=services,
-                )
-            except ModerationUnavailable:
-                data["ai_moderation_blocked"] = True
-                # None marks this event handled; UNHANDLED/SkipHandler could reach later routers.
-                return None
+            result = await check_moderator(
+                event,
+                settings=settings,
+                chat_tid=chat_db.tid,
+                services=services,
+            )
             if result.flagged:
                 await self._triggered(
                     event,

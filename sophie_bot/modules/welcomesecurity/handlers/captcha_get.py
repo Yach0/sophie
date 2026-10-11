@@ -64,7 +64,7 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         if not target:
             await self.answer(
                 _(
-                    "The chat that initiated the Welcome Security procedure was not found! "
+                    "The chat initiated the Welcome Security procedure were not found! "
                     "Try clicking on the authentication button in the group again."
                 )
             )

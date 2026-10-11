@@ -4,7 +4,6 @@ from aiogram import Bot
 from redis.asyncio import Redis
 
 from sophie_bot.modules.restrictions.utils.restrictions import (
-    SessionFence,
     execute_restriction,
 )
 from sophie_bot.modules.welcomesecurity.utils_.db_time_convert import (
@@ -22,7 +21,6 @@ async def on_welcomemute(
     *,
     bot: Bot,
     redis: Redis,
-    is_current: SessionFence | None = None,
 ) -> bool:
     if await is_user_group_whitelisted(group_id, user_id, redis=redis):
         await log_group_whitelist_exemption(group_id, user_id, "welcome_security_welcome_mute")
@@ -34,6 +32,5 @@ async def on_welcomemute(
             group_id,
             user_id,
             until_date=convert_timedelta_or_str(on_time),
-            is_current=is_current,
         )
     ).applied

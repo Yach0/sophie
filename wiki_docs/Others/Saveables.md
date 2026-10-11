@@ -7,14 +7,14 @@ Saveables support many additional features.
 
 ## Formatting
 
-Saveables DO NOT support HTML / Markdown directly, but instead they extract pre-formatted messages.
+Saveables DOES NOT support HTML / Markdown directly, but instead they extract pre-formatted messages.
 Simply format your content using inbuilt Telegram's tools.
 
 ## Saving files, photos, stickers, media, voice messages
 
-Commonly, the easiest way to do that is to reply to the media message. Sophie would try to save both messages (The
-sent and replied messages' contents).
-But if the media type does not support the text (for example, the sticker or the video circle), it will be ignored.
+Commonly, the easiest way to do that is to reply to the media message. Sophie would try to save the both message (The
+sent and replied message's contents).
+But if the media type does not support the text (for example the sticker or the video circle), it will be ignored.
 However, those types support buttons, so you can simply attach them.
 
 If you reply to a Rich message, Sophie saves its structured text, media, and
@@ -26,7 +26,7 @@ can be saved only when the source message was sent by Sophie.
 
 There's support for some button types.
 
-The most common is the URL button; if you want to add a URL button to your saveable, use the following syntax at the end of
+The most common is the URL button, if you want to add a URL button to your saveable use following syntax at the end of
 the message:
 `[Button name](btnurl:https://google.com)`.
 
@@ -43,7 +43,7 @@ When using the styled syntax, Sophie treats `//example.com` as `https://example.
 If you keep adding buttons, they would stack in a horizontal stack.
 You can change that by adding `:same` to the end of the button's content. For example:
 `[Same-row button](btnurl:https://google.com:same)`.
-That would make the button render in the same row with the previous button.
+That would make button render in the same row with previous button.
 
 ### Other button types
 
@@ -58,7 +58,7 @@ That would make the button render in the same row with the previous button.
 
 ## Fillings
 
-Fillings are special keywords that would be replaced with the actual information later.
+Fillings are special keyword that would be replaced with the actual information later.
 
 | Filling      | Replace value                                                         |
 |--------------|-----------------------------------------------------------------------|
