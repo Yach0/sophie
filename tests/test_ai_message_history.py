@@ -31,6 +31,7 @@ from pydantic_ai.messages import (
 )
 
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.chat_admin import ChatAdminModel
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.pm import AiPmHandle
 from sophie_bot.modules.ai.handlers.reply import AiReplyHandler
@@ -40,6 +41,7 @@ from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, A
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.modern_context import AIUserMessageFormatter
 from sophie_bot.modules.ai.utils.old_context import OldContext
+from sophie_bot.modules.utils_.admin import check_user_admin_permissions
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.handlers import SophieMessageHandler
 from tests.e2e.helpers import grant_admin, next_group_id, next_user_id
@@ -103,9 +105,7 @@ async def test_cached_history_keeps_reply_title(
         reply_to_user_id=3,
         reply_to_username="Bob",
     )
-    monkeypatch.setattr(
-        old_context.ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice"))
-    )
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=SimpleNamespace(first_name_or_title="Alice")))
     monkeypatch.setattr(modern_context, "_admin_context_name", AsyncMock(return_value="Alice"))
 
     history = OldContext(services=test_services)
@@ -126,7 +126,7 @@ async def test_cached_ai_history_uses_answer_body_verbatim(
     body: str, monkeypatch: pytest.MonkeyPatch, test_services: object
 ) -> None:
     cached = MessageType(user_id=old_context.CONFIG.bot_id, message_id=2, text=body)
-    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
 
     transformed = await OldContext(services=test_services)._cache_transform_msg(10, cached)
 
@@ -213,7 +213,7 @@ async def test_cache_middleware_extracts_body_at_rich_message_boundary(
 async def test_cached_foreign_bot_message_is_reference_only_context(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot chatter",
         10,
@@ -236,7 +236,7 @@ async def test_cached_foreign_bot_message_is_reference_only_context(
 async def test_cached_relevant_foreign_bot_message_is_an_assistant_response(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     await cache_message(
         "Dergbot answer",
         10,
@@ -264,7 +264,7 @@ async def test_next_generation_replays_the_authoritative_sophie_answer(
     test_redis: object,
     test_services: object,
 ) -> None:
-    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     answer_time = datetime.now(UTC)
     await cache_message(
         "prior answer",
@@ -304,7 +304,7 @@ async def test_cached_reply_target_is_not_added_to_prompt_twice(
         is_bot=True,
         redis=test_redis,
     )
-    monkeypatch.setattr(old_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=None))
     monkeypatch.setattr(modern_context, "_admin_context_name", AsyncMock(return_value="Alice"))
     chat = Chat(id=10, type="group", title="Test chat")
     sophie = User(id=old_context.CONFIG.bot_id, is_bot=True, first_name="Sophie")
@@ -479,6 +479,8 @@ async def test_history_build_deduplicates_chat_reads_across_cache_replies_media_
     )
     chat_reads = AsyncMock(wraps=ChatModel.get_pymongo_collection().find_one)
     monkeypatch.setattr(ChatModel.get_pymongo_collection(), "find_one", chat_reads)
+    admin_reads = AsyncMock(wraps=ChatAdminModel.get_pymongo_collection().find_one)
+    monkeypatch.setattr(ChatAdminModel.get_pymongo_collection(), "find_one", admin_reads)
     download = AsyncMock(side_effect=[BytesIO(b"history-image"), BytesIO(b"history-image")])
     monkeypatch.setattr(test_services.bot, "download", download)
 
@@ -535,6 +537,7 @@ async def test_history_build_deduplicates_chat_reads_across_cache_replies_media_
     assert Counter(call.kwargs["filter"]["chat_id"] for call in chat_reads.await_args_list) == Counter(
         {group.id: 1, alice.id: 1, bob.id: 1, missing_user_tid: 1, old_context.CONFIG.bot_id: 1}
     )
+    assert admin_reads.await_count == 2
 
 
 @pytest.mark.asyncio
@@ -599,6 +602,8 @@ async def test_private_history_keeps_names_and_replies_without_group_role_lookup
     await grant_admin(alice.id, alice.id, creator=True, custom_title="Not a group")
     chat_reads = AsyncMock(wraps=ChatModel.get_pymongo_collection().find_one)
     monkeypatch.setattr(ChatModel.get_pymongo_collection(), "find_one", chat_reads)
+    admin_reads = AsyncMock(wraps=ChatAdminModel.get_pymongo_collection().find_one)
+    monkeypatch.setattr(ChatAdminModel.get_pymongo_collection(), "find_one", admin_reads)
     history = OldContext(services=test_services)
     await cache_message(
         "cached",
@@ -630,3 +635,102 @@ async def test_private_history_keeps_names_and_replies_without_group_role_lookup
         "Alice (reply to Bob): question",
     ]
     assert chat_reads.await_count == 1
+    assert admin_reads.await_count == 0
+
+
+@pytest.mark.asyncio
+async def test_new_history_build_reloads_admin_titles_promotions_and_revocations(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: FakeAsyncRedis,
+    test_services: ApplicationServices,
+) -> None:
+    group = Chat(id=next_group_id(), type="supergroup", title="Fresh admin history")
+    alice = User(id=next_user_id(), is_bot=False, first_name="Alice")
+    bob = User(id=next_user_id(), is_bot=False, first_name="Bob")
+    carol = User(id=next_user_id(), is_bot=False, first_name="Carol")
+    await ChatModel.upsert_group(group)
+    for user in [alice, bob, carol]:
+        await ChatModel.upsert_user(user)
+    alice_admin = await grant_admin(group.id, alice.id, creator=True, custom_title="Founder")
+    bob_admin = await grant_admin(group.id, bob.id, custom_title="Helper")
+    for message_id, user in enumerate([alice, bob, carol, alice, bob, carol], start=1):
+        await cache_message(
+            f"message {message_id}",
+            group.id,
+            user.id,
+            message_id,
+            datetime.now(UTC) - timedelta(seconds=10 - message_id),
+            None,
+            redis=test_redis,
+        )
+    admin_reads = AsyncMock(wraps=ChatAdminModel.get_pymongo_collection().find_one)
+    monkeypatch.setattr(ChatAdminModel.get_pymongo_collection(), "find_one", admin_reads)
+    first_history = OldContext(services=test_services)
+    await first_history.add_from_cache(group.id)
+
+    assert [entry["content"] for entry in first_history.to_moderation] == [
+        "Alice [Owner - Founder]: message 1",
+        "Bob [Admin - Helper]: message 2",
+        "Carol: message 3",
+        "Alice [Owner - Founder]: message 4",
+        "Bob [Admin - Helper]: message 5",
+        "Carol: message 6",
+    ]
+    assert admin_reads.await_count == 3
+    alice_admin.member = alice_admin.member.model_copy(update={"custom_title": "New title"})
+    await alice_admin.save()
+    await bob_admin.delete()
+    assert await check_user_admin_permissions(group.id, bob.id) is False
+    await grant_admin(group.id, carol.id, custom_title="Promoted")
+    admin_reads.reset_mock()
+    second_history = OldContext(services=test_services)
+    await second_history.add_from_cache(group.id)
+
+    assert [entry["content"] for entry in second_history.to_moderation] == [
+        "Alice [Owner - New title]: message 1",
+        "Bob: message 2",
+        "Carol [Admin - Promoted]: message 3",
+        "Alice [Owner - New title]: message 4",
+        "Bob: message 5",
+        "Carol [Admin - Promoted]: message 6",
+    ]
+    assert admin_reads.await_count == 3
+
+
+@pytest.mark.asyncio
+async def test_history_admin_labels_are_scoped_by_chat_and_do_not_cache_live_names(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+) -> None:
+    first_group = Chat(id=next_group_id(), type="supergroup", title="First group")
+    second_group = Chat(id=next_group_id(), type="supergroup", title="Second group")
+    alice = User(id=next_user_id(), is_bot=False, first_name="Alice")
+    await ChatModel.upsert_group(first_group)
+    await ChatModel.upsert_group(second_group)
+    await ChatModel.upsert_user(alice)
+    await grant_admin(first_group.id, alice.id, custom_title="Moderator")
+    await grant_admin(second_group.id, alice.id, creator=True)
+    admin_reads = AsyncMock(wraps=ChatAdminModel.get_pymongo_collection().find_one)
+    monkeypatch.setattr(ChatAdminModel.get_pymongo_collection(), "find_one", admin_reads)
+    history = OldContext(services=test_services)
+    message = Message(
+        message_id=1,
+        date=datetime.now(UTC),
+        chat=first_group,
+        from_user=alice,
+        text="first",
+    )
+    await history.add_from_message(message)
+    await history.add_from_message(
+        message.model_copy(
+            update={"message_id": 2, "from_user": alice.model_copy(update={"first_name": "Alicia"}), "text": "renamed"}
+        )
+    )
+    await history.add_from_message(message.model_copy(update={"message_id": 3, "chat": second_group, "text": "second"}))
+
+    assert history.prompt == [
+        "Alice [Admin - Moderator]: first",
+        "Alicia [Admin - Moderator]: renamed",
+        "Alice [Owner]: second",
+    ]
+    assert admin_reads.await_count == 2

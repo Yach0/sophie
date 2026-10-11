@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from asyncio import Task, gather
+from asyncio import gather
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
 
@@ -23,13 +23,13 @@ from stfu_tg import HList, KeyValue, Section, VList
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils import modern_context
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
 )
 from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
+from sophie_bot.modules.utils_.lookups import ChatLookupCache
 from sophie_bot.services.application import ApplicationServices
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
@@ -50,8 +50,7 @@ class OldContext:
         self.prompt = []
         self.context_lines = []
         self._cached_message_ids: set[tuple[int, int]] = set()
-        # Share in-flight lookups as well as results across this build's concurrent transforms.
-        self._chat_models: dict[int, Task[ChatModel | None]] = {}
+        self._lookups = ChatLookupCache()
 
     @staticmethod
     def _is_ai_dialogue(msg: MessageType) -> bool:
@@ -70,14 +69,14 @@ class OldContext:
         )
 
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
-        user = await modern_context._get_chat_model(msg.user_id, self._chat_models)
+        user = await self._lookups.get_chat_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
         from_user_name = await modern_context._admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
             is_group=True,
-            chat_models=self._chat_models,
+            lookups=self._lookups,
         )
         return modern_context.AIUserMessageFormatter.user_message(
             msg.text,
@@ -111,7 +110,7 @@ class OldContext:
 
     async def _cache_transform_msg(self, chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
-        user = await modern_context._get_chat_model(msg.user_id, self._chat_models)
+        user = await self._lookups.get_chat_by_tid(msg.user_id)
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.is_bot or msg.user_id == CONFIG.bot_id:
@@ -122,7 +121,7 @@ class OldContext:
             msg.user_id,
             first_name,
             is_group=True,
-            chat_models=self._chat_models,
+            lookups=self._lookups,
         )
         return ModelRequest(
             parts=[
@@ -217,7 +216,7 @@ class OldContext:
             message.from_user.id,
             message.from_user.full_name,
             message.chat.type != "private",
-            chat_models=self._chat_models,
+            lookups=self._lookups,
         )
         prompt.extend(
             await modern_context._build_message_parts(

@@ -53,7 +53,7 @@ from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
-from sophie_bot.modules.utils_.admin import get_admin_record
+from sophie_bot.modules.utils_.lookups import ChatLookupCache
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.message_text import message_text
 from sophie_bot.utils.exception import SophieException
@@ -104,38 +104,22 @@ class AIUserMessageFormatter:
         ).to_md()
 
 
-async def _get_chat_model(
-    chat_tid: int,
-    chat_models: dict[int, asyncio.Task[ChatModel | None]],
-) -> ChatModel | None:
-    lookup = chat_models.get(chat_tid)
-    if lookup is None:
-        lookup = asyncio.create_task(ChatModel.get_by_tid(chat_tid))
-        chat_models[chat_tid] = lookup
-    return await lookup
-
-
 async def _admin_context_name(
     chat_tid: int,
     user_tid: int,
     name: str,
     is_group: bool,
     *,
-    chat_models: dict[int, asyncio.Task[ChatModel | None]] | None = None,
+    lookups: ChatLookupCache,
 ) -> str:
     if not is_group:
         return name
 
-    if chat_models is None:
-        chat_models = {}
-    chat_model = await _get_chat_model(chat_tid, chat_models)
-    user_model = await _get_chat_model(user_tid, chat_models)
-    if not chat_model or not user_model:
-        return name
-    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
+    chat_model = await lookups.get_chat_by_tid(chat_tid)
+    if not chat_model or chat_model.type not in {ChatType.group, ChatType.supergroup}:
         return name
 
-    admin = await get_admin_record(chat_model, user_model)
+    admin = await lookups.get_admin_record(chat_tid, user_tid)
     if not admin:
         return name
 
