@@ -68,6 +68,20 @@ Key points:
 - **Runtime Configuration**: Use the mode runtime's `config` when initializing its resources. Pass it to database initialization so a custom runtime does not inherit process-global index settings.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
 
+Use `AsyncLookupCache` from `sophie_bot.utils.cached` for scoped async lookup memoization.
+It shares pending queries and completed results, including missing records. `ChatLookupCache`
+from `sophie_bot.modules.utils_.lookups` centralizes chat/admin resolution on top of that mechanism.
+Its instances are caller-owned snapshots, not Redis or application-wide caches.
+
+Each AI context render creates its own `AIMessageHistory`, which owns one `ChatLookupCache`
+across cached dialogue, background context, current messages and replies. Media processing
+and tool replay use the same builder; lookup coordination does not belong in the formatter.
+
+Administrator records are keyed by chat and user. Cache records, never formatted sender names:
+live Telegram names and cached names remain distinct. This snapshot is only for display context,
+not authorization checks. A fresh builder must observe changed names, title changes, promotions,
+revocations and previously missing records.
+
 ---
 
 ## Translation System
