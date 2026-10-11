@@ -131,8 +131,10 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         # Mute the user (similar to ws_on_new_user)
         muted = await ws_on_new_user(user, chat, is_join_request=True, redis=self.services.redis)
-        if not muted:
+        if muted is False:
             await _approve_request()
+            return
+        if muted is None:
             return
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
         rules = await RulesModel.get_rules(chat.iid)

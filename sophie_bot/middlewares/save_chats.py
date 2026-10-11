@@ -265,6 +265,23 @@ class SaveChatsMiddleware(BaseMiddleware):
         for member in message.new_chat_members:
             logger.debug("SaveChatsMiddleware: Saving new chat member", user_id=member.id)
             new_user = await ChatModel.upsert_user(member)
+            pending = await WSUserModel.is_user(new_user.iid, group.iid)
+            # Capture the request generation before recording Telegram's admission.
+            bind_completion = (
+                pending is not None
+                and pending.is_join_request
+                and pending.transition == "completing"
+                and (
+                    pending.membership_join_message_id is None
+                    or message.message_id > pending.membership_join_message_id
+                )
+                and await pending.transition_is_current()
+            )
+            if bind_completion and pending is not None:
+                membership = await UserInGroupModel.ensure_user_in_group(new_user, group)
+                # Persist the handoff before advancing membership, so duplicate
+                # delivery can recover a crash between these two Mongo writes.
+                await pending.bind_join_request_admission(membership, message.message_id)
             await UserInGroupModel.ensure_user_in_group(new_user, group, message_id=message.message_id, is_join=True)
             new_users.append(new_user)
 

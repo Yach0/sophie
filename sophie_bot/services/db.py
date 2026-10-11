@@ -12,6 +12,7 @@ from pymongo import AsyncMongoClient
 from pymongo.asynchronous.client_session import AsyncClientSession
 from pymongo.asynchronous.collection import AsyncCollection
 from pymongo.asynchronous.database import AsyncDatabase
+from pymongo.errors import DuplicateKeyError, OperationFailure
 
 from sophie_bot.config import Config
 from sophie_bot.db.models import models
@@ -59,6 +60,9 @@ async def init_db(database: AsyncDatabase, *, config: Config, skip_indexes: bool
 
     await repair_filters_chat_links(get_collection(database, "filters"))
 
+    if not skip_indexes:
+        await ensure_ws_user_uniqueness(database)
+
     await init_beanie(
         database=database,
         document_models=models,
@@ -82,3 +86,21 @@ async def repair_filters_chat_links(filters: AsyncCollection[dict[str, Any]]) ->
         )
         modified += result.modified_count
     return modified
+
+
+async def ensure_ws_user_uniqueness(database: AsyncDatabase) -> None:
+    """Require correctness even when general index synchronization is disabled.
+
+    Do not discard historical duplicates: their durable outcomes require review.
+    MongoDB validates existing data and concurrent inserts during index creation.
+    """
+    try:
+        await get_collection(database, "ws_users").create_index(
+            [("user", 1), ("group", 1)], unique=True, name="ws_user_group_unique"
+        )
+    except (DuplicateKeyError, OperationFailure) as error:
+        raise RuntimeError(
+            "Cannot enforce Welcome Security user/group uniqueness. Stop all WS writers, "
+            "back up and reconcile duplicate ws_users (including durable transitions), "
+            "then create ws_user_group_unique before restarting. No rows were removed."
+        ) from error

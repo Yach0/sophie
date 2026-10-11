@@ -32,6 +32,36 @@ A new join starts a fresh pending captcha deadline. Duplicate delivery of the sa
 
 ## Expiry and concurrent verification
 
-Pending-session initialization, the initial mute, expiry actions, and captcha completion share a per-user lock. A rejoin cannot reset a pending deadline while an expiry action is still using the old session. Expiry also checks the current membership boundary before unmuting, kicking, or declining a request, so a recorded rejoin invalidates an older pending session even before its new captcha setup completes. If another lifecycle operation still holds the lock when the expiry wait times out, that user is deferred to a later sweep; other expired users continue to be processed. A failed expiry action keeps the pending record for retry.
+Pending sessions use a MongoDB atomic transition to choose completion, expiry, or whitelist exemption. The decision and membership generation survive process restarts. Failed kicks and declines retain the expiry decision for subsequent scheduler sweeps. Failed exemption unmutes retain `exempting` for scheduler retry; failed approvals or unmutes retain the completion decision for retry through the CAPTCHA flow, and are never converted into expiry. Rejoins reset the decision and deadline for the new membership generation. Conditional final deletion cannot remove a newer session. Redis is used for existing CAPTCHA data and messages, not synchronization.
+
+MongoDB chooses the durable state decision. Restriction writes use the existing per-user/group Mongo restriction operation lease across processes. Initial mutes, completion actions, scheduler kicks, and exemption unmutes carry the original pending generation and transition into that operation; membership and pending state are checked after acquiring the lease and again after asynchronous Telegram lookups and snapshot writes, immediately before the restriction request. A deleted pending record invalidates a delayed initial mute. A retained completion/expiry/exemption decision never authorizes automatic join-request approval or a new CAPTCHA.
+
+This is fencing, not an atomic MongoDB/Telegram transaction. Membership updates and transition claims do not acquire the restriction lease, so they can still change after the final Mongo check, while the Telegram request is in flight. Telegram accepts no generation token or conditional membership version. A request that times out or outlives the existing lease can also be applied remotely after the worker stops. Another process cannot cancel such a remote request. A crash after Telegram succeeds but before conditional deletion can repeat the same action. Completion recovery requires the user to retry the CAPTCHA flow; operators can inspect retained `completing`/`expiring`/`exempting` rows. No claim expires or switches to the opposite action.
 
 Captcha completion also keeps the pending record and recovery messages until the captcha mute is successfully released or replaced with the configured welcome mute, including for administrators and group-whitelisted users. If a join request was already approved, completion still attempts that restriction transition.
+
+
+## Deploying the pending-user unique index
+
+`ws_user_group_unique` enforces one row for each canonical Beanie user/group DBRef pair. Concurrent Beanie inserts recover from `DuplicateKeyError` by loading the winner, without overwriting its transition. Startup installs this index **after migrations and before starting handlers or schedulers**, even when `mongo_skip_indexes` disables general synchronization. The migration bootstrap uses `skip_indexes=True` and does not build the index before migrations can repair data. No new data migration silently deletes duplicates.
+
+Before deploying to a database that may contain duplicates, stop **all** bot, scheduler, REST, and older-build writers. Back up `ws_users` and the membership data. In MongoDB, identify pairs with:
+
+```javascript
+db.ws_users.aggregate([
+  {$group: {_id: {user: "$user", group: "$group"}, rows: {$push: "$_id"}, count: {$sum: 1}}},
+  {$match: {count: {$gt: 1}}}
+])
+```
+
+Review each pair against current membership, `added_at`, `passed`, and `transition`; archive the original rows outside `ws_users` and explicitly reconcile to one row. Do not blindly keep the newest row: a competing durable decision or historical passed state may require manual reconciliation. Also repair malformed or noncanonical references and review any existing index on the same keys. Then create the index while writers remain stopped:
+
+```javascript
+db.ws_users.createIndex({user: 1, group: 1}, {unique: true, name: "ws_user_group_unique"})
+```
+
+Restart all processes on the fixed build. Mongo validates historical rows and concurrent writes during index creation. If duplicates or an incompatible existing index remain, startup fails closed with a repair message and preserves every row; it does not serve Welcome Security without uniqueness. Do not roll back to an older writer while keeping active new workers: older Beanie inserts do not handle the now-enforced duplicate-key conflict. The new index can remain across code rollback, but that older-build error behavior still applies.
+
+Join-request completion rechecks its captured Mongo decision after updating the CAPTCHA image, immediately before writing the greeting bypass marker, and again after that Redis write immediately before approval. Redis remains message-flow data, not synchronization. If the session changes during the marker write, approval stops; the existing expiring marker may remain because deleting a shared key could remove another completion's marker. Mongo and Redis cannot atomically fence that write.
+
+SaveChatsMiddleware records the first admission for a completing join request with a conditional Mongo handoff before advancing the membership join message. The handoff preserves the completion identity, deadline, and decision, and switches the pending row out of join-request mode. The optional `admission_request_generation` records the original membership pair (existing documents default to no handoff), so timestamp equality alone never authorizes a refresh. Captured completion fences may follow that one handoff; subsequent joins invalidate them. Duplicate service-message delivery can recover interruption between the handoff and membership write. This works before NewUserMiddleware consumes the bypass marker and does not depend on Redis. Failed post-admission restrictions remain retryable through CAPTCHA without another approval. Telegram does not identify which approval attempt produced the join service message; a concurrent administrator admission is treated as the same first admission. A leave/rejoin before admission is observed, or changes after the last check while approval is in flight, cannot be made atomic with Mongo.
