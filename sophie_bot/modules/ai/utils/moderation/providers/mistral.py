@@ -7,10 +7,10 @@ from mistralai.client.models.moderationresponse import ModerationResponse
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
-from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
-from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
+from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory, run_moderation_request
 
 MISTRAL_MODERATION_MODEL: Final[str] = "mistral-moderation-latest"
 
@@ -56,7 +56,7 @@ class MistralModerationProvider:
     ) -> dict[str, float]:
         moderation_messages = convert_to_moderation_format(history.to_moderation)
         client = await get_mistral_client(redis=redis)
-        response: ModerationResponse = await run_ai_request_with_retries(
+        response: ModerationResponse = await run_moderation_request(
             lambda: client.classifiers.moderate_chat_async(
                 inputs=moderation_messages,
                 model=MISTRAL_MODERATION_MODEL,

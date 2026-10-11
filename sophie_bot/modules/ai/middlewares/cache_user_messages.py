@@ -50,6 +50,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         cache_state = MessageCacheState()
         data["ai_message_cache_state"] = cache_state
         result = await handler(event, data)
+        if data.get("ai_moderation_blocked"):
+            return result
 
         if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
             text = event.text or event.caption

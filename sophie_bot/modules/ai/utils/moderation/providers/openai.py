@@ -5,10 +5,10 @@ from typing import Final
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_openai_client
-from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, run_ai_request_with_retries
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext
 from sophie_bot.modules.ai.utils.message_history import AIMessageHistory, convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
-from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory
+from sophie_bot.modules.ai.utils.moderation.providers.base import NativeCategory, run_moderation_request
 
 OPENAI_MODERATION_MODEL: Final[str] = "omni-moderation-latest"
 
@@ -97,7 +97,7 @@ class OpenAIModerationProvider:
             return {}
 
         client = await get_openai_client(redis=redis)
-        response = await run_ai_request_with_retries(
+        response = await run_moderation_request(
             lambda: client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs),
             AIErrorContext(operation="moderation", model_name=OPENAI_MODERATION_MODEL),
         )
