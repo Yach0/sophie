@@ -177,6 +177,22 @@ git branch -D feature/my-feature
 
 A failed final progress-message edit does not undo applied federation bans or prevent federation logging. If the progress message was deleted, Sophie does not send a replacement. Other Telegram edit errors are logged while the completed task retains its result.
 
+### Runtime debugger
+
+Run `make dev` with a dedicated `data/debug.env`, or set `DEBUG_CONFIG` to another development configuration file. The collector and browser UI bind to loopback and keep captured data in memory. Use development credentials and databases, not production targets.
+
+Worker reload closes the previous process and its streams, including failed or cancelled startup. Each new run resumes live following; you can pause again after any reload.
+
+Redis scans display the returned continuation cursor. Use **Load next bounded page** to continue without changing the query. Redis `COUNT` is a hint, so a page can contain more rows than the requested limit. Complete cursor batches are retained; oversized replies fail explicitly instead of silently skipping rows.
+
+AI cache pagination counts both valid and malformed stored messages. Inspecting malformed rows does not change the cache.
+
+The event feed retains at most 1,000 summaries. Pausing keeps a bounded snapshot while live capture continues; resuming shows the latest buffer. Time filters accept RFC3339 timestamps with `Z` or numeric offsets and compare instants.
+
+Repeating a Mongo or Redis inspector submission reads current data again. Mongo update/delete actions require a literal `_id` (including canonical Extended JSON IDs); query predicates and array IDs are rejected. Large Mongo rows may have truncated contents while every page row and its continuation metadata are preserved.
+
+Known credentials are redacted before binary payloads are base64 encoded. Mapping keys retain their content with type tags for non-string keys and numbered suffixes for collisions; secret-shaped bytes keys redact their values just like string keys. Telemetry shutdown drains accepted frames when possible and closes the sender socket and thread even after backpressure or a disconnect. Shutdown waits for any active worker reload and prevents further restarts.
+
 ## Translation of rich replies
 
 Reply translation preserves rich-message list boundaries, details summaries, table captions, and nested visible content. AI headers and quota footers are stripped only from replies authored by Sophie; matching custom emoji in user messages remain part of the translation input.
