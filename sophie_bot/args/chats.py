@@ -51,7 +51,7 @@ class SophieChatArg(OrArg):
 
     def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
         return l_("Chat: 'Chat ID (numeric) / Username (starts with @)'"), l_(
-            "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
+            "Chats: 'Chat IDs (numeric) / Usernames (start with @)'"
         )
 
     @property

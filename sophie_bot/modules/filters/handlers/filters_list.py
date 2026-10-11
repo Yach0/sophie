@@ -239,8 +239,8 @@ async def _render_filter_page(
     def document_for(rows: list[Any]) -> Doc:
         document = Doc(Section(*rows, title=title))
         document += " "
-        document += _("Additionally rules from 'Antiflood' module can be enforced.")
-        document += _("Additionally rules from 'Locks' module can be enforced.")
+        document += _("Additionally, rules from 'Antiflood' module can be enforced.")
+        document += _("Additionally, rules from 'Locks' module can be enforced.")
         return document
 
     pages: list[list[Any]] = []

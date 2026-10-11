@@ -55,9 +55,9 @@ class AiPmInitialize(SophieMessageCallbackQueryHandler):
         doc = Doc(
             Bold(
                 Template(
-                    _("{ai_emoji} Entered the Sophie help mode, ask me anything about using Sophie.")
+                    _("{ai_emoji} Entered the Sophie help mode; ask me anything about using Sophie.")
                     if help_mode
-                    else _("{ai_emoji} Entered to the AI Mode, in this mode you can directly interact with the AI."),
+                    else _("{ai_emoji} Entered the AI Mode; in this mode you can directly interact with the AI."),
                     ai_emoji=AI_EMOJI,
                 )
             ),
@@ -102,7 +102,7 @@ class AiPmHelpMode(SophieMessageHandler):
     async def handle(self) -> Any:
         await set_help_mode(self.data["state"], True)
         await self.event.reply(
-            _("Switched to the Sophie help mode, ask me anything about using Sophie."),
+            _("Switched to the Sophie help mode; ask me anything about using Sophie."),
             reply_markup=_build_keyboard(help_mode=True),
         )
 

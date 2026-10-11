@@ -7,7 +7,7 @@ icon: ✨
 > Sophie supports quite a few ways to use AI features. \
 > From a simple chat-bot, to the automatic translator. Have fun. \
 >   \
-> By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used. \
+> By using AI features you agree to our Privacy Policy (/privacy) and third party AI services used. \
 > Please note that each chat has a limited monthly AI quota. \
 > Use /ai_usage to check your remaining quota.
 
