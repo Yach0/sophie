@@ -7,6 +7,7 @@ from beanie import PydanticObjectId
 from pydantic import ValidationError
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ToolCallPart
+from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -105,7 +106,7 @@ async def test_a_run_is_bounded_and_charged(monkeypatch: pytest.MonkeyPatch, tes
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     run = AsyncMock(
         return_value=SimpleNamespace(
-            output="Notes are saved with /save.", usage=SimpleNamespace(total_tokens=10), served_model=None
+            output="Notes are saved with /save.", usage=RunUsage(input_tokens=8, output_tokens=2), served_model=None
         )
     )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", run)
@@ -141,7 +142,7 @@ async def test_the_model_comes_from_the_catalog(monkeypatch: pytest.MonkeyPatch,
     _patch_model_resolution(monkeypatch, "catalog/model", "catalog/backup")
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect._build_agent", lambda model: SimpleNamespace())
     run = AsyncMock(
-        return_value=SimpleNamespace(output="answer", usage=SimpleNamespace(total_tokens=5), served_model=None)
+        return_value=SimpleNamespace(output="answer", usage=RunUsage(input_tokens=4, output_tokens=1), served_model=None)
     )
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.run_ai_text", run)
     monkeypatch.setattr("sophie_bot.modules.ai.utils.sophie_inspect.charge_ai_usage", AsyncMock())

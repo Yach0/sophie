@@ -19,15 +19,14 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
-from sophie_bot.modules.ai.utils.ai_agent_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_header import (
     AI_CHATBOT_CUSTOM_EMOJI_ID,
     ai_credit_header,
     build_ai_message_doc,
 )
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
-from sophie_bot.modules.ai.utils.ai_usage_service import usage_input_tokens, usage_output_tokens
 from sophie_bot.modules.ai.utils.mention_usernames import (
     MentionCandidate,
     MentionIndex,
@@ -325,8 +324,8 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
                 KeyValue("Model", model.model_name),
                 KeyValue("LLM Requests", result.usage.requests),
                 KeyValue("Retries", result.retries if result.retries is not None else "-"),
-                KeyValue("Request tokens", usage_input_tokens(result.usage) or 0),
-                KeyValue("Response tokens", usage_output_tokens(result.usage) or 0),
+                KeyValue("Request tokens", result.usage.input_tokens),
+                KeyValue("Response tokens", result.usage.output_tokens),
                 KeyValue("Total tokens", result.usage.total_tokens),
                 KeyValue("Details", result.usage.details or "-"),
             ),

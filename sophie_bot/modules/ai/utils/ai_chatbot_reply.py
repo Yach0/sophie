@@ -98,19 +98,6 @@ async def _resolve_model_plan(
     return build_model_plan([pinned, *plan.candidates])
 
 
-async def _build_chatbot_header(
-    connection: ChatConnection,
-    model_label: str | None = None,
-    *,
-    services: ApplicationServices,
-) -> Element | str | None:
-    return await build_chatbot_header(
-        connection.db_model.iid,
-        model_label=model_label,
-        redis=services.redis,
-    )
-
-
 def _truncate_to_boundary(text: str, max_length: int) -> str:
     if len(text) <= max_length:
         return text
@@ -331,10 +318,10 @@ async def ai_chatbot_reply(
             chat_tid=message.chat.id,
             redis=services.redis,
         )
-        header = await _build_chatbot_header(
-            connection,
-            model_display_name(model) if show_model_name else None,
-            services=services,
+        header = await build_chatbot_header(
+            connection.db_model.iid,
+            model_label=model_display_name(model) if show_model_name else None,
+            redis=services.redis,
         )
         # The agent normalizes history, so message offsets cannot identify new research.
         research_response = (

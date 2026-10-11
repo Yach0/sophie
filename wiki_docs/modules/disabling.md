@@ -24,5 +24,5 @@ icon: 🚫
 | `/disabled` | - | Lists all disabled commands. | *Disable-able* |
 | `/disable` | `<Command>` | Disables the command. |  |
 | `/enable` | `<Command>` | Enables previously disabled command. |  |
-| `/enable_all` | - | - |  |
+| `/enable_all` | - | Enables all disabled commands in the chat after confirmation. |  |
 {.card-view-on-mobile}

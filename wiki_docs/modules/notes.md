@@ -14,7 +14,7 @@ icon: 📗
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/pm_notes` `/private_notes` | - | Show current state of Private Notes | *Only in groups* |
+| `/pm_notes` `/private_notes` | - | Show current state of Private Notes. | *Only in groups* |
 | `/notes` `/saved` `/note_list` | `<?Search notes>` | Lists available notes. | *Disable-able* |
 | `/get` | `<Note name>` `<?raw>` | Retrieve the note. |  |
 {.card-view-on-mobile}
@@ -23,7 +23,7 @@ icon: 📗
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/pm_notes` `/private_notes` | `<New state>` | Control Private Notes | *Only in groups* |
+| `/pm_notes` `/private_notes` | `<New state>` | Control Private Notes. | *Only in groups* |
 | `/del_note` `/clear` | `<Note name>` | Deletes notes. |  |
 | `/save` `/add_note` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
 | `/clear_all` | - | Deletes all notes. |  |

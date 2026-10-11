@@ -24,6 +24,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import BinaryContent
+from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -357,7 +358,7 @@ async def test_translate_success(test_client: TestClient, command: str) -> None:
             needs_translation=True,
             translation_explanations=None,
         ),
-        usage=SimpleNamespace(total_tokens=100, request_tokens=50, response_tokens=50),
+        usage=RunUsage(input_tokens=50, output_tokens=50),
     )
 
     with ExitStack() as stack:

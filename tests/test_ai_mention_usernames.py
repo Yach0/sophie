@@ -504,7 +504,7 @@ async def test_chatbot_visible_mentions_follow_selected_history_through_model_fa
 
     monkeypatch.setattr(chatbot_reply, "run_chatbot", run)
     monkeypatch.setattr(
-        chatbot_reply, "_build_chatbot_header", AsyncMock(side_effect=lambda *args, **kwargs: Doc(args[1]))
+        chatbot_reply, "build_chatbot_header", AsyncMock(side_effect=lambda *args, **kwargs: Doc(kwargs["model_label"]))
     )
     monkeypatch.setattr(chatbot_reply, "should_offer_help_mode", AsyncMock(return_value=False))
     monkeypatch.setattr(chatbot_reply, "remember_chatbot_tool_history", AsyncMock())

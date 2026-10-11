@@ -9,7 +9,16 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram import Router
-from aiogram.types import Chat, Message, PhotoSize, RichBlockParagraph, RichMessage, RichTextCustomEmoji, TelegramObject, User
+from aiogram.types import (
+    Chat,
+    Message,
+    PhotoSize,
+    RichBlockParagraph,
+    RichMessage,
+    RichTextCustomEmoji,
+    TelegramObject,
+    User,
+)
 from fakeredis import FakeAsyncRedis
 from pydantic_ai.messages import (
     BinaryContent,

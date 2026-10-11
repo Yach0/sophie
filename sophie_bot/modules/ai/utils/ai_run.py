@@ -4,7 +4,7 @@ import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from functools import partial
-from typing import Any, Final, TypeVar, cast
+from typing import Any, Final, cast
 
 from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field
@@ -55,7 +55,6 @@ from sophie_bot.modules.ai.utils.ai_model_plan import (
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.utils.logger import log
 
-ResponseT = TypeVar("ResponseT", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
@@ -256,7 +255,6 @@ class AIAgentResult[OutputT](BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     output: OutputT
-    steps: int | None = None
     retries: int | None = None
     message_history: list[ModelRequest | ModelResponse]
     new_messages: list[ModelRequest | ModelResponse] = Field(default_factory=list)
@@ -351,18 +349,6 @@ def build_model_settings(
         extra_body["service_tier"] = request_options.service_tier
     model_settings["extra_body"] = extra_body
     return model_settings
-
-
-def _merge_model_settings(
-    base_model_settings: Mapping[str, object] | None,
-    run_model_settings: object | None,
-) -> Mapping[str, object] | None:
-    """Model settings a caller passed through ``**extra_run_kwargs``, layered over the base ones."""
-    if run_model_settings is None:
-        return base_model_settings
-    if not isinstance(run_model_settings, Mapping):
-        raise TypeError("run model_settings must be a mapping when request options are injected")
-    return {**(base_model_settings or {}), **run_model_settings}
 
 
 def _candidate_request_options(
@@ -619,13 +605,12 @@ async def run_ai_structured[DepsT, OutputT](
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[OutputT]:
     run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
-    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     run_kwargs.update(extra_run_kwargs)
     return await _run_with_retries_and_metrics(
         agent,
         run_kwargs,
         request_options=request_options,
-        model_settings=merged_model_settings,
+        model_settings=model_settings,
         on_retry=on_retry,
         operation_label="structured",
         model_plan=model_plan,
@@ -821,14 +806,13 @@ async def run_ai_stream[DepsT](
     agent_model = _get_agent_model(agent)
     candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
-    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     base_run_kwargs.update(extra_run_kwargs)
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
     async def run_stream_once(candidate: AIModelCandidate) -> _StreamOutcome:
         run_stream_kwargs = _candidate_run_kwargs(
-            base_run_kwargs, merged_model_settings, request_options, candidate, agent_model
+            base_run_kwargs, model_settings, request_options, candidate, agent_model
         )
         effective_model = candidate.model
 

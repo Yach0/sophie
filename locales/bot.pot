@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 02:52+0200\n"
+"POT-Creation-Date: 2026-10-11 20:12+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -325,23 +325,23 @@ msgstr ""
 msgid "Please use \"{cmd}\" to pick an AI mode."
 msgstr ""
 
-#: sophie_bot/modules/ai/fsm/pm.py:13
+#: sophie_bot/modules/ai/fsm/pm.py:10
 msgid "🛑 Exit AI mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/fsm/pm.py:14
+#: sophie_bot/modules/ai/fsm/pm.py:11
 msgid "🛑 Exit AI help"
 msgstr ""
 
-#: sophie_bot/modules/ai/fsm/pm.py:15
+#: sophie_bot/modules/ai/fsm/pm.py:12
 msgid "🔄 Reset AI context"
 msgstr ""
 
-#: sophie_bot/modules/ai/fsm/pm.py:16
+#: sophie_bot/modules/ai/fsm/pm.py:13
 msgid "💬 Switch to normal AI mode"
 msgstr ""
 
-#: sophie_bot/modules/ai/fsm/pm.py:17
+#: sophie_bot/modules/ai/fsm/pm.py:14
 msgid "📖 Sophie help mode"
 msgstr ""
 
@@ -953,7 +953,7 @@ msgid "Translates the given (or replied) text to the chat's selected language. A
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/translate.py:187
-#: sophie_bot/modules/ai/utils/modern_context.py:217
+#: sophie_bot/modules/ai/utils/modern_context.py:232
 msgid "Transcribing voice message..."
 msgstr ""
 
@@ -1113,10 +1113,10 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:419
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:406
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
-#: sophie_bot/modules/ai/utils/research.py:444
-#: sophie_bot/modules/ai/utils/research.py:591
+#: sophie_bot/modules/ai/utils/research.py:428
+#: sophie_bot/modules/ai/utils/research.py:559
 msgid "Research"
 msgstr ""
 
@@ -1244,7 +1244,7 @@ msgid "Searching the web..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_tool.py:29
-#: sophie_bot/modules/ai/utils/research.py:76
+#: sophie_bot/modules/ai/utils/research.py:75
 msgid "Looking it up online..."
 msgstr ""
 
@@ -1530,185 +1530,185 @@ msgstr ""
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:152
-#: sophie_bot/modules/ai/utils/modern_context.py:154
+#: sophie_bot/modules/ai/utils/modern_context.py:167
+#: sophie_bot/modules/ai/utils/modern_context.py:169
 msgid "<No text provided>"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:201
+#: sophie_bot/modules/ai/utils/modern_context.py:216
 msgid "Processing image..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:205
+#: sophie_bot/modules/ai/utils/modern_context.py:220
 msgid "Image is empty"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:230
+#: sophie_bot/modules/ai/utils/modern_context.py:245
 msgid "Processing video..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:247
+#: sophie_bot/modules/ai/utils/modern_context.py:262
 msgid "Transcribing video audio..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:254
+#: sophie_bot/modules/ai/utils/modern_context.py:269
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:523
-#: sophie_bot/modules/ai/utils/modern_context.py:1028
+#: sophie_bot/modules/ai/utils/modern_context.py:538
+#: sophie_bot/modules/ai/utils/modern_context.py:1043
 msgid "Prefer to use tables when comparing items"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:524
-#: sophie_bot/modules/ai/utils/modern_context.py:1029
+#: sophie_bot/modules/ai/utils/modern_context.py:539
+#: sophie_bot/modules/ai/utils/modern_context.py:1044
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:525
-#: sophie_bot/modules/ai/utils/modern_context.py:1031
+#: sophie_bot/modules/ai/utils/modern_context.py:540
+#: sophie_bot/modules/ai/utils/modern_context.py:1046
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:526
-#: sophie_bot/modules/ai/utils/modern_context.py:1038
+#: sophie_bot/modules/ai/utils/modern_context.py:541
+#: sophie_bot/modules/ai/utils/modern_context.py:1053
 msgid "You can also save important things to the memory."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:528
-#: sophie_bot/modules/ai/utils/modern_context.py:1040
+#: sophie_bot/modules/ai/utils/modern_context.py:543
+#: sophie_bot/modules/ai/utils/modern_context.py:1055
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:530
-#: sophie_bot/modules/ai/utils/modern_context.py:1042
+#: sophie_bot/modules/ai/utils/modern_context.py:545
+#: sophie_bot/modules/ai/utils/modern_context.py:1057
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:531
-#: sophie_bot/modules/ai/utils/modern_context.py:1044
+#: sophie_bot/modules/ai/utils/modern_context.py:546
+#: sophie_bot/modules/ai/utils/modern_context.py:1059
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:533
-#: sophie_bot/modules/ai/utils/modern_context.py:1046
+#: sophie_bot/modules/ai/utils/modern_context.py:548
+#: sophie_bot/modules/ai/utils/modern_context.py:1061
 msgid "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1030
+#: sophie_bot/modules/ai/utils/modern_context.py:1045
 msgid "Today is "
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1051
+#: sophie_bot/modules/ai/utils/modern_context.py:1066
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1059
+#: sophie_bot/modules/ai/utils/modern_context.py:1074
 #, python-brace-format
 msgid "{title} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1061
+#: sophie_bot/modules/ai/utils/modern_context.py:1076
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1073
+#: sophie_bot/modules/ai/utils/modern_context.py:1088
 msgid "Recent chat summaries"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1096
+#: sophie_bot/modules/ai/utils/modern_context.py:1111
 msgid "Represent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1166
+#: sophie_bot/modules/ai/utils/modern_context.py:1181
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:70
+#: sophie_bot/modules/ai/utils/research.py:69
 msgid "Preparing search queries..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:71
+#: sophie_bot/modules/ai/utils/research.py:70
 msgid "Planning the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:72
+#: sophie_bot/modules/ai/utils/research.py:71
 msgid "Choosing what to search for..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:75
+#: sophie_bot/modules/ai/utils/research.py:74
 msgid "Searching the internet..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:77
+#: sophie_bot/modules/ai/utils/research.py:76
 msgid "Gathering sources from the web..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:80
+#: sophie_bot/modules/ai/utils/research.py:79
 msgid "Reviewing search results..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:81
+#: sophie_bot/modules/ai/utils/research.py:80
 msgid "Checking if more searches are needed..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:82
+#: sophie_bot/modules/ai/utils/research.py:81
 msgid "Reading through the sources..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:85
+#: sophie_bot/modules/ai/utils/research.py:84
 msgid "Summarizing the research..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:86
+#: sophie_bot/modules/ai/utils/research.py:85
 msgid "Putting the findings together..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:87
+#: sophie_bot/modules/ai/utils/research.py:86
 msgid "Preparing the final answer..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:161
+#: sophie_bot/modules/ai/utils/research.py:152
 msgid "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:166
+#: sophie_bot/modules/ai/utils/research.py:157
 msgid "Research requires a configured TinyFish API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:170
+#: sophie_bot/modules/ai/utils/research.py:161
 msgid "Research requires a configured Kagi API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:375
+#: sophie_bot/modules/ai/utils/research.py:366
 msgid "Research requires a saved chat context."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:445
+#: sophie_bot/modules/ai/utils/research.py:429
 msgid "I could not find enough search results to research this topic."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:559
+#: sophie_bot/modules/ai/utils/research.py:527
 msgid "No snippet available."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:581
+#: sophie_bot/modules/ai/utils/research.py:549
 msgid "Sources"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:595
+#: sophie_bot/modules/ai/utils/research.py:563
 msgid "No sources."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:602
+#: sophie_bot/modules/ai/utils/research.py:570
 msgid "Original request"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:603
+#: sophie_bot/modules/ai/utils/research.py:571
 msgid "Research model"
 msgstr ""
 

@@ -156,6 +156,16 @@ or model-name estimate is used. Legacy context can still use models with undefin
 > `/op_ai_providers` and `/op_ai_models` after deploying; environment keys do not configure OpenRouter.
 > {.is-warning}
 
+### AI usage and research settings
+
+Quota accounting and provider-debug output use Pydantic AI's native token counts.
+Zero input or output tokens remain zero; pricing uses the actual input/output split
+rather than estimating a missing side.
+
+Research reads `ai_research_service_tier` with the other workflow settings once per
+workflow. That tier is the default for every research model attempt; a tier configured
+on the model's catalog role can override it.
+
 ### AI progress
 
 Chatbot replies show an in-progress message while they stream. Manual translation

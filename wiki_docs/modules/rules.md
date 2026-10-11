@@ -14,13 +14,13 @@ icon: 🪧
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/rules` | - | Gets chat rules | *Disable-able* |
+| `/rules` | - | Gets chat rules. | *Disable-able* |
 {.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/set_rules` | `<Content>` | Sets chat rules | *Only in groups* |
+| `/set_rules` | `<Content>` | Sets chat rules. | *Only in groups* |
 | `/reset_rules` | - | Resets chat rules to default settings. | *Only in groups* |
 {.card-view-on-mobile}

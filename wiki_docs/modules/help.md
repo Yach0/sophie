@@ -14,13 +14,13 @@ icon: ℹ️
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/help` | - | Shows the help message | *Only in groups*, *Disable-able* |
-| `/start` | - | Shows the start message | *Only in groups*, *Disable-able* |
+| `/help` | - | Shows the help message. | *Only in groups*, *Disable-able* |
+| `/start` | - | Shows the start message. | *Only in groups*, *Disable-able* |
 {.card-view-on-mobile}
 
 ### PM-only
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/help` | - | Shows help overview for all modules |  |
+| `/help` | - | Shows help overview for all modules. |  |
 {.card-view-on-mobile}

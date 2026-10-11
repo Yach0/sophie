@@ -9,7 +9,7 @@ from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import modern_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_agent import coerce_usage_limit
-from sophie_bot.modules.ai.utils.chatbot_tool_history import load_chatbot_tool_history
+from sophie_bot.modules.ai.utils.chatbot_tool_history import get_tool_exchanges
 from sophie_bot.modules.ai.utils.modern_context import ActivityCallback, ModernContext
 from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -63,7 +63,7 @@ async def prepare_chatbot_history(
         )
         max_age = datetime.timedelta(minutes=max_age_minutes) if max_age_minutes > 0 else None
 
-        tool_exchanges = await load_chatbot_tool_history(context.chat_tid, redis=context.services.redis)
+        tool_exchanges = await get_tool_exchanges(context.chat_tid, redis=context.services.redis)
         await history.add_from_cache(
             context.chat_tid,
             limit=CHATBOT_CACHE_MESSAGE_LIMIT,

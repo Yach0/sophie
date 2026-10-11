@@ -171,8 +171,3 @@ async def get_proactive_replies_model_plan(chat_tid: int | None = None, *, redis
             )
         )
     )
-
-
-async def get_research_model(chat_tid: int | None = None, *, redis: Redis) -> Model:
-    model_name = str(await get_value("ai_research_model", chat_tid=chat_tid, redis=redis))
-    return get_ai_model(model_name)
