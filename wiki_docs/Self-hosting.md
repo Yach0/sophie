@@ -148,8 +148,9 @@ Network or invalid-response errors stop the migration before it changes any capa
 Rollback removes only unchanged migration-added values and preserves later operator edits.
 
 Modern context requires a configured capacity for every possible chatbot candidate,
-including the last-resort model. Missing capacities raise an error; no provider-profile
-or model-name estimate is used. Legacy context can still use models with undefined capacities.
+including the last-resort model. Missing capacities stop the request with an AI configuration
+failure reply and are reported for diagnosis; no provider-profile or model-name estimate is used.
+Legacy context can still use models with undefined capacities.
 
 
 > **Warning:** AI requests require a configured catalog model and a key on its provider. Check

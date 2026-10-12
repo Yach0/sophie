@@ -5,6 +5,7 @@ import datetime
 import sentry_sdk
 from aiogram.types import Message
 
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_request_failed_from_error
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import modern_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
@@ -13,6 +14,8 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import get_tool_exchanges
 from sophie_bot.modules.ai.utils.modern_context import ActivityCallback, ModernContext
 from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
 from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 
 async def prepare_chatbot_history(
@@ -41,7 +44,18 @@ async def prepare_chatbot_history(
             )
             if model_plan is None:
                 raise ValueError("Modern context requires a model plan with registered context sizes")
-            capacity = modern_context_window_tokens(model_plan)
+            try:
+                capacity = modern_context_window_tokens(model_plan)
+            except ValueError as error:
+                log.error("Modern chatbot context configuration is invalid: %s", error)
+                raise ai_request_failed_from_error(
+                    error,
+                    AIErrorContext(operation="context"),
+                    user_facing_message=_(
+                        "AI context is not configured correctly. Ask the bot operator to configure "
+                        "context_window_tokens for every chatbot model, including the fallback model."
+                    ),
+                ) from error
             history = await ModernContext.build(
                 message,
                 context,

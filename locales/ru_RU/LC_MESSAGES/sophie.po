@@ -1457,6 +1457,10 @@ msgstr ""
 msgid "Tracing how Sophie works..."
 msgstr ""
 
+#: sophie_bot/modules/ai/utils/chatbot_context.py:55
+msgid "AI context is not configured correctly. Ask the bot operator to configure context_window_tokens for every chatbot model, including the fallback model."
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/chatbot_streaming.py:115
 msgid "Reasoning..."
 msgstr ""

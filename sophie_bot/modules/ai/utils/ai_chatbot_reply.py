@@ -251,12 +251,15 @@ async def ai_chatbot_reply(
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
         )
-        history = await prepare_chatbot_history(
-            message,
-            context,
-            model_plan=model_plan,
-            on_activity=(message_streamer.update_processing_activity if message_streamer else None),
-        )
+        try:
+            history = await prepare_chatbot_history(
+                message,
+                context,
+                model_plan=model_plan,
+                on_activity=(message_streamer.update_processing_activity if message_streamer else None),
+            )
+        except AIRequestFailed as err:
+            return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
         mention_policy = select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode)
