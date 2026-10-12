@@ -22,11 +22,10 @@ class FederationPermissionService:
         if await FederationPermissionService.is_federation_owner(federation, user_tid):
             return True
 
-        if federation.admins:
-            for admin_link in federation.admins:
-                admin = await FederationPermissionService._resolve_link(admin_link)
-                if admin and admin.tid == user_tid:
-                    return True
+        for admin_link in federation.admins or ():
+            admin = await FederationPermissionService._resolve_link(admin_link)
+            if admin and admin.tid == user_tid:
+                return True
         return False
 
     @staticmethod
