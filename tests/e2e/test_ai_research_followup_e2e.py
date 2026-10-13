@@ -150,6 +150,7 @@ async def test_research_followups_only_attach_new_reports(test_client: TestClien
             "sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model",
             return_value=FunctionModel(llm_response, stream_function=llm_stream),
         ),
+        patch("sophie_bot.utils.notes_search.create_embedding", AsyncMock(return_value=None)),
         patch.object(CONFIG, "kagi_api_key", "test-key"),
         patch(
             "sophie_bot.modules.ai.utils.ai_model_pricing.ai_http_client.get",

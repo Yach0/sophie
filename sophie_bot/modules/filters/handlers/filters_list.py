@@ -25,7 +25,6 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit_rich
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils import flags
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -102,7 +101,6 @@ class FilterEditFromListHandler(SophieCallbackQueryHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             FilterManagementCallback.filter(F.operation == "edit"),
-            FeatureFlagFilter("action_config_wizard"),
             FeatureFlagFilter("filters"),
             UserRestricting(admin=True),
             GroupOrConnectedFilter(),
@@ -229,11 +227,6 @@ async def _render_filter_page(
 
     # Page boundaries are rebuilt from the same ordered filters for commands and callbacks.
     # Include the title, controls and fixed footer in every size check.
-    edit_enabled = await is_enabled(
-        "action_config_wizard",
-        chat_tid=chat_tid,
-        redis=services.redis,
-    )
     title = Template(_("Filters in {chat_name}"), chat_name=chat_title or "Unknown")
 
     def document_for(rows: list[Any]) -> Doc:
@@ -250,10 +243,9 @@ async def _render_filter_page(
         action_text = filter_action_text(item.action, list(item.actions), services.modules.actions)
         handler = item.handler
         controls: list[Button] = []
-        if edit_enabled:
-            controls.append(
-                Button(_("Edit"), callback_data=FilterManagementCallback(operation="edit", oid=str(item.id)).pack())
-            )
+        controls.append(
+            Button(_("Edit"), callback_data=FilterManagementCallback(operation="edit", oid=str(item.id)).pack())
+        )
         controls.append(
             Button(
                 _("Delete"),

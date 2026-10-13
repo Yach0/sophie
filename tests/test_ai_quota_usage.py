@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 from aiogram.dispatcher.event.bases import SkipHandler
+from fakeredis import FakeAsyncRedis
+from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models import AIQuotaModel, AIUsageModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
@@ -13,6 +15,7 @@ from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
 from sophie_bot.modules.ai.utils.ai_quota import _ensure_period
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
 
 
@@ -35,7 +38,7 @@ async def _create_chat(chat_tid: int, title: str) -> ChatModel:
 async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object, test_redis: object, test_services: object) -> None:
     cheap_chat = await _create_chat(-1001001, "Cheap")
     expensive_chat = await _create_chat(-1001002, "Expensive")
-    usage = SimpleNamespace(total_tokens=200, request_tokens=100, response_tokens=100)
+    usage = RunUsage(input_tokens=100, output_tokens=100)
 
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(
@@ -151,15 +154,66 @@ async def test_quota_filter_notifies_only_once_per_period(db_init: object, test_
 @pytest.mark.asyncio
 async def test_charge_ai_usage_records_requests_and_credits(db_init: object, test_redis: object, test_services: object) -> None:
     chat = await _create_chat(-1001005, "Tracking")
-    usage = SimpleNamespace(total_tokens=200, request_tokens=100, response_tokens=100)
+    usage = RunUsage(input_tokens=100, output_tokens=100)
 
-    await charge_ai_usage(chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage, redis=test_redis)
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            "sophie_bot.modules.ai.utils.ai_model_pricing.get_model_pricing",
+            AsyncMock(return_value=(0.15, 0.60)),
+        )
+        await charge_ai_usage(
+            chat.iid,
+            AI_FEATURE_CHATBOT,
+            SimpleNamespace(model_name="mistralai/mistral-small-2603"),
+            usage,
+            redis=test_redis,
+        )
 
-    all_usages = await AIUsageModel.find_all().to_list()
-    assert all_usages
-    ai_usage = all_usages[0]
+    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.iid)
+    assert ai_usage is not None
 
     month_key = datetime.now(UTC).date().strftime("%Y-%m")
     assert ai_usage.daily_requests[datetime.now(UTC).date()] == 1
     assert ai_usage.monthly_requests_by_feature[month_key][AI_FEATURE_CHATBOT] == 1
     assert ai_usage.monthly_credits_by_feature[month_key][AI_FEATURE_CHATBOT] == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("input_tokens", "output_tokens", "expected_credits"),
+    [(0, 100, 10), (100, 0, 2)],
+)
+async def test_charge_ai_usage_bills_input_only_and_output_only_runs(
+    db_init: object,
+    test_redis: FakeAsyncRedis,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+    input_tokens: int,
+    output_tokens: int,
+    expected_credits: int,
+) -> None:
+    chat = await _create_chat(-1001006, "Zero token counts")
+    usage = RunUsage(input_tokens=input_tokens, output_tokens=output_tokens)
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.ai_model_pricing.get_model_pricing",
+        AsyncMock(return_value=(0.30, 6.00)),
+    )
+
+    await charge_ai_usage(
+        chat.iid,
+        AI_FEATURE_CHATBOT,
+        SimpleNamespace(model_name="test/zero-counts"),
+        usage,
+        redis=test_redis,
+    )
+
+    quota = await AIQuotaModel.find_one(AIQuotaModel.chat.id == chat.iid)
+    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.iid)
+    assert quota is not None
+    assert ai_usage is not None
+    assert quota.used_credits == expected_credits
+    today = datetime.now(UTC).date()
+    month_key = today.strftime("%Y-%m")
+    assert ai_usage.daily_requests[today] == 1
+    assert ai_usage.monthly_requests_by_feature[month_key][AI_FEATURE_CHATBOT] == 1
+    assert ai_usage.monthly_credits_by_feature[month_key][AI_FEATURE_CHATBOT] == expected_credits

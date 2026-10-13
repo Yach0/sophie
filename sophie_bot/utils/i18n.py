@@ -155,13 +155,6 @@ class LazyProxy(BabelLazyProxy):
         return isinstance(key, str) and str(self) in key
 
 
-def lazy_plural_gettext(*args: Any, **kwargs: Any) -> Callable[[int], str]:
-    def _inner(n: int) -> str:
-        return get_i18n().gettext(*args, **(kwargs | {"n": n}))
-
-    return _inner
-
-
 lazy_gettext = LazyProxy
 ngettext = gettext
 lazy_ngettext = lazy_gettext

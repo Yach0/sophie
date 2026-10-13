@@ -27,12 +27,16 @@ def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFil
     return []
 
 
-async def _handle_modern_filter_action(
-    message: Message, action_name: str, data: dict[str, Any], filter_data: dict[str, Any] | None
+async def handle_effective_filter_action(
+    message: Message,
+    action: EffectiveFilterAction,
+    data: dict[str, Any],
+    matched_filter: FiltersModel | None = None,
 ) -> ActionResult | None:
+    del matched_filter
     services = data["services"]
-    action_item: ModernActionABC = services.modules.action_handlers[action_name]
-    definition = services.modules.actions[action_name]
+    action_item: ModernActionABC = services.modules.action_handlers[action.name]
+    definition = services.modules.actions[action.name]
     if definition.skip_for_admins and message.from_user:
         user_tid = message.from_user.id
         if await is_user_group_whitelisted(
@@ -48,12 +52,5 @@ async def _handle_modern_filter_action(
                 action=definition.name,
             )
             return None
-    loaded_data = definition.load_data(filter_data)
-    return await action_item.execute(message, data, loaded_data)
-
-
-async def handle_effective_filter_action(
-    message: Message, action: EffectiveFilterAction, data: dict[str, Any], matched_filter: FiltersModel
-) -> ActionResult | None:
-    _ = matched_filter
-    return await _handle_modern_filter_action(message, action.name, data, action.data)
+    loaded_data = definition.load_data(action.data)
+    return await action_item.handle(message, data, loaded_data)

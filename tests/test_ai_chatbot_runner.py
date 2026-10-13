@@ -4,6 +4,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
+from pydantic_ai.usage import RunUsage
 from redis.exceptions import RedisError
 
 from sophie_bot.modules.ai.utils import chatbot_agent
@@ -32,7 +33,7 @@ def _patch_run(
 ) -> tuple[SimpleNamespace, AsyncMock]:
     result = SimpleNamespace(
         output="answer",
-        usage=SimpleNamespace(input_tokens=10, output_tokens=5),
+        usage=RunUsage(input_tokens=10, output_tokens=5),
         served_model=None,
     )
     monkeypatch.setattr(

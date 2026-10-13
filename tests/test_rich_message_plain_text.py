@@ -16,7 +16,8 @@ from aiogram.types import (
 )
 
 from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
-from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, message_text
+from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
+from sophie_bot.shared.message_text import message_text
 from sophie_bot.utils.rich_message import rich_message_to_plain_text
 
 

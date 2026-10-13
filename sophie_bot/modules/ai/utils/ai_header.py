@@ -1,19 +1,16 @@
 from collections.abc import Sequence
-from typing import Any, Final, Literal
+from typing import Any, Final
 
-from redis.asyncio import Redis
-from stfu_tg import BlockQuote, CustomEmoji, Doc, HList, Italic, Paragraph
+from stfu_tg import CustomEmoji, Doc, HList, Italic, Paragraph
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.modules.ai.utils.ai_tool import AITool
-from sophie_bot.utils.feature_flags import FeatureType, get_value
 
 AI_CUSTOM_EMOJI_ID: Final[str] = "5325547803936572038"
 AI_CHATBOT_CUSTOM_EMOJI_ID: Final[str] = "5573451671289200650"
 AI_GENERATING_EMOJI_ID: Final[str] = "5573333417954639880"
 AI_PROGRESS_MARKER: Final[str] = "💭"
-AI_REASONING_EMOJI_ID: Final[str] = "5537353471893700616"
 AI_PROGRESS_LINE_EMOJI_IDS: Final[tuple[str, str, str]] = (
     "5348210173104134595",
     "5350601434800889611",
@@ -71,33 +68,6 @@ def _battery_custom_emoji(percentage: int) -> Element:
     return CustomEmoji(_get_battery_custom_emoji_id(percentage), "🔋")
 
 
-AIHeaderStyle = Literal["disable", "simple"]
-AIHeaderPurpose = Literal["chatbot", "filters", "translation", "summary"]
-
-_HEADER_STYLE_FLAG_BY_PURPOSE: Final[dict[AIHeaderPurpose, FeatureType]] = {
-    "filters": "ai_filters_header_style",
-    "translation": "ai_translations_header_style",
-    "summary": "ai_chat_summaries_header_style",
-}
-
-
-async def get_ai_header_style(purpose: AIHeaderPurpose, chat_tid: int, *, redis: Redis) -> AIHeaderStyle:
-    if purpose == "chatbot":
-        return "simple"
-    configured_style = await get_value(
-        _HEADER_STYLE_FLAG_BY_PURPOSE[purpose],
-        chat_tid=chat_tid,
-        redis=redis,
-    )
-    return "disable" if configured_style == "disable" else "simple"
-
-
-def build_ai_header(style: AIHeaderStyle, battery: Element | str = "") -> Element | str | None:
-    if style == "disable":
-        return None
-    return HList(battery or "🔋")
-
-
 def build_ai_message_doc(
     header: Element | str | None,
     *body: Element | str | None,
@@ -132,7 +102,6 @@ def build_ai_progress_doc(
     body: Element | str,
     status: Element | None = None,
     *,
-    reasoning: Element | None = None,
     activity_history: Sequence[Element | str] = (),
 ) -> Doc:
     footer = HList(*(CustomEmoji(emoji_id, "〰️") for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS), divider="")
@@ -144,18 +113,6 @@ def build_ai_progress_doc(
                 divider=" ",
             ),
             _LineBreak(),
-            (
-                BlockQuote(
-                    HList(
-                        CustomEmoji(AI_REASONING_EMOJI_ID, AI_PROGRESS_MARKER),
-                        Italic(_InlineElement(reasoning)),
-                        divider=" ",
-                    )
-                )
-                if reasoning is not None
-                else None
-            ),
-            _LineBreak() if reasoning is not None else None,
             status,
             _LineBreak() if status is not None else None,
             HList(

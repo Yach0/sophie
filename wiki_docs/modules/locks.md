@@ -14,19 +14,19 @@ icon: 🔓
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/lockable` `/lock_types` | - | Shows all lockable message types | *Disable-able* |
-| `/lock_languages` `/lock_langs` | - | Shows all supported languages for locking | *Disable-able* |
+| `/lockable` `/lock_types` | - | Shows all lockable message types. | *Disable-able* |
+| `/lock_languages` `/lock_langs` | - | Shows all supported languages for locking. | *Disable-able* |
 {.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/lock` | `<Lock type>` | Lock a message type in the chat | *Disable-able* |
-| `/unlock` | `<Lock type>` | Unlock a message type in the chat | *Disable-able* |
-| `/lock_sticker` | - | Lock a sticker pack in the chat | *Disable-able* |
-| `/locks` `/locked` | - | Show currently locked message types in the chat | *Disable-able* |
-| `/unlock_all` | - | - |  |
+| `/lock` | `<Lock type>` | Lock a message type in the chat. | *Disable-able* |
+| `/unlock` | `<Lock type>` | Unlock a message type in the chat. | *Disable-able* |
+| `/lock_sticker` | - | Lock a sticker pack in the chat. | *Disable-able* |
+| `/locks` `/locked` | - | Show currently locked message types in the chat. | *Disable-able* |
+| `/unlock_all` | - | Unlocks all locked message types in the chat after confirmation. |  |
 {.card-view-on-mobile}
 ---
 

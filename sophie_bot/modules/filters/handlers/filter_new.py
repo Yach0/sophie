@@ -23,7 +23,6 @@ class FilterNewHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("add_filter", "new_filter")),
-            FeatureFlagFilter("action_config_wizard"),
             FeatureFlagFilter("filters"),
             UserRestricting(admin=True),
             GroupOrConnectedFilter(),

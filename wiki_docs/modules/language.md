@@ -20,5 +20,5 @@ icon: 🌐
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/ai_auto_translate` `/auto_translate` | `<?New status>` `<?Language code>` | Controls AI Auto translator |  |
-| `/ai_translate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text | *Disable-able* |
+| `/ai_auto_translate` `/auto_translate` | `<?New status>` `<?Language code>` | Controls AI Auto translator. |  |
+| `/ai_translate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text. | *Disable-able* |

@@ -7,7 +7,6 @@ from sophie_bot.constants import ANTIFOOD_MAX_ACTIONS
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardCallbackHandler,
     ActionWizardInputCleanupHandler,
@@ -44,7 +43,6 @@ class AntifloodActionWizard(ActionWizardStartHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("antiflood_action",)),
-            FeatureFlagFilter("action_config_wizard"),
             UserRestricting(admin=True),
         )
 
@@ -56,7 +54,6 @@ class AntifloodActionCallback(ActionWizardCallbackHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             WizardCallback.filter(F.scope == "antiflood_action"),
-            FeatureFlagFilter("action_config_wizard", notify_callback=True),
             UserRestricting(admin=True),
         )
 
@@ -69,7 +66,6 @@ class AntifloodActionInput(ActionWizardInputHandler):
         return (
             WizardFSM.interactive_input,
             WizardScopeFilter("antiflood_action"),
-            FeatureFlagFilter("action_config_wizard"),
             UserRestricting(admin=True),
         )
 

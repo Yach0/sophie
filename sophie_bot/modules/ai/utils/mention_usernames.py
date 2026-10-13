@@ -1,14 +1,11 @@
 """Rewrite the display-name mentions a model wrote into real Telegram usernames.
 
-The chatbot's prompt deliberately identifies people by display name only (see
-``AIUserMessageFormatter`` in ``message_history``): a real ``@username`` is never put in front of
-the model. The cost is that when the model writes ``@John Smith`` Telegram renders it as inert
-text instead of a mention.
+Legacy replies repair display-name mentions using recent conversation participants. Modern
+entertainment replies repair supplied first-name mentions using their session-speaker snapshot.
+Known unresolved names render without ``@``; unrelated authored mentions remain untouched.
 
-This module closes that gap strictly on the way out. It reads the recent-message cache to learn
-which users are actually part of the conversation, resolves their usernames from the database, and
-rewrites only the mentions it can attribute to exactly one of them. Nothing here ever feeds back
-into a prompt, so the model still cannot see a username.
+The repair happens strictly on the way out. No real usernames are ever fed back into a prompt;
+code, link destinations, and URLs retain their literal text.
 """
 
 from __future__ import annotations
@@ -17,14 +14,16 @@ import re
 from asyncio import gather
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
+from enum import Enum
 from re import Match
+from types import MappingProxyType
 
 from redis.asyncio import Redis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages
-from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT
+from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT
 
 # A one-character display name matches far too much prose to be worth resolving.
 MIN_MENTION_NAME_LENGTH = 2
@@ -33,6 +32,12 @@ MIN_MENTION_NAME_LENGTH = 2
 # lines and JSON), link destinations, and bare URLs (``.../@handle`` paths, e-mail addresses).
 # Order matters: fenced blocks are consumed whole before an inner backtick can start a span.
 _PROTECTED_PATTERN = r"```.*?```|~~~.*?~~~|`[^`\n]*`|\]\([^)\n]*\)|https?://\S+"
+
+
+class MentionPolicy(Enum):
+    LEGACY_DISPLAY_NAMES = "legacy_display_names"
+    MODERN_FIRST_NAMES = "modern_first_names"
+    OPAQUE = "opaque"
 
 
 @dataclass(frozen=True)
@@ -47,13 +52,14 @@ class MentionCandidate:
 class MentionIndex:
     """Resolved lookup table for one chat.
 
-    ``usernames_by_name`` maps a normalised display name to the single username it belongs to;
-    names shared by several users are absent, so an ambiguous mention is left untouched.
+    ``usernames_by_name`` maps a normalised supplied name to its unambiguous username.
+    Only known unresolved first names render as inert plain names in modern entertainment.
     """
 
     usernames_by_name: Mapping[str, str]
     known_usernames: frozenset[str]
     pattern: re.Pattern[str] | None
+    policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES
 
 
 def _normalize_name(name: str) -> str:
@@ -70,20 +76,30 @@ def _name_pattern(name: str) -> str:
     return r"\s+".join(re.escape(token) for token in name.split())
 
 
-def build_mention_index(candidates: Iterable[MentionCandidate]) -> MentionIndex:
+def build_mention_index(
+    candidates: Iterable[MentionCandidate],
+    *,
+    policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
+) -> MentionIndex:
     """Turn participants into a lookup table, dropping every name that is not unambiguous."""
     usernames_by_name: dict[str, str] = {}
     ambiguous_names: set[str] = set()
     known_usernames: set[str] = set()
+    mention_names: set[str] = set()
 
     for candidate in candidates:
         username = candidate.username.lstrip("@")
-        if not username:
-            continue
-        known_usernames.add(username.casefold())
+        if username:
+            known_usernames.add(username.casefold())
         for display_name in candidate.display_names:
             normalized_name = _normalize_name(display_name)
             if not _is_resolvable_name(normalized_name):
+                continue
+            mention_names.add(normalized_name)
+            if not username:
+                # This participant occupies the name but cannot be mentioned. Do not
+                # silently redirect their name to somebody else who has a username.
+                ambiguous_names.add(normalized_name)
                 continue
             existing_username = usernames_by_name.get(normalized_name)
             if existing_username is not None and existing_username.casefold() != username.casefold():
@@ -93,18 +109,25 @@ def build_mention_index(candidates: Iterable[MentionCandidate]) -> MentionIndex:
 
     resolved_names = {name: username for name, username in usernames_by_name.items() if name not in ambiguous_names}
     return MentionIndex(
-        usernames_by_name=resolved_names,
+        usernames_by_name=MappingProxyType(resolved_names),
         known_usernames=frozenset(known_usernames),
-        pattern=_build_pattern(resolved_names),
+        pattern=_build_pattern(mention_names if policy == MentionPolicy.MODERN_FIRST_NAMES else resolved_names)
+        if policy != MentionPolicy.OPAQUE
+        else None,
+        policy=policy,
     )
 
 
-def _build_pattern(resolved_names: Mapping[str, str]) -> re.Pattern[str] | None:
-    if not resolved_names:
+def _build_pattern(
+    names: Iterable[str],
+) -> re.Pattern[str] | None:
+    # Include blocked names in modern matching, longest first, so a blocked multiword first
+    # name cannot fall through to another participant's shorter, resolvable first name.
+    ordered_names = sorted(names, key=len, reverse=True)
+    patterns = [_name_pattern(name) for name in ordered_names]
+    if not patterns:
         return None
-    # Longest first so "@John Smith" wins over the "@John" prefix of the same alternation.
-    ordered_names = sorted(resolved_names, key=len, reverse=True)
-    names_pattern = "|".join(_name_pattern(name) for name in ordered_names)
+    names_pattern = "|".join(patterns)
     return re.compile(
         rf"(?P<protected>{_PROTECTED_PATTERN})|(?<![\w@/])@(?P<name>{names_pattern})(?!\w)",
         re.DOTALL | re.IGNORECASE,
@@ -114,9 +137,8 @@ def _build_pattern(resolved_names: Mapping[str, str]) -> re.Pattern[str] | None:
 def resolve_mentions(text: str, index: MentionIndex) -> str:
     """Replace ``@DisplayName`` with ``@username`` wherever exactly one user matches.
 
-    Pure and total: anything that is not a confident match — an unknown name, a name shared by two
-    users, a mention that is already someone's real username, an ``@`` inside code or a URL — comes
-    back byte-for-byte unchanged.
+    Known unresolved modern first names lose their ``@`` to avoid selecting another actor.
+    Unknown authored mentions, legacy unresolved mentions, and protected code/URLs stay literal.
     """
     if index.pattern is None or "@" not in text:
         return text
@@ -127,14 +149,18 @@ def resolve_mentions(text: str, index: MentionIndex) -> str:
 
         matched_name = match.group("name")
         normalized_name = _normalize_name(matched_name)
-        # A single-token mention that already is a real username is left alone: it resolves in
-        # Telegram as-is, and rewriting it could point at a different person entirely.
-        if " " not in normalized_name and normalized_name in index.known_usernames:
+        # Legacy output may already use a real username. Modern first-name labels instead
+        # select their session actor, even when another participant owns that username.
+        if (
+            index.policy == MentionPolicy.LEGACY_DISPLAY_NAMES
+            and " " not in normalized_name
+            and normalized_name in index.known_usernames
+        ):
             return match.group(0)
 
         username = index.usernames_by_name.get(normalized_name)
         if username is None:
-            return match.group(0)
+            return matched_name if index.policy == MentionPolicy.MODERN_FIRST_NAMES else match.group(0)
         return f"@{username}"
 
     return index.pattern.sub(replace, text)
@@ -149,9 +175,9 @@ def _display_names(user: ChatModel) -> tuple[str, ...]:
 
 
 def _candidate_from_user(user: ChatModel | None) -> MentionCandidate | None:
-    if user is None or not user.username:
+    if user is None:
         return None
-    return MentionCandidate(display_names=_display_names(user), username=user.username)
+    return MentionCandidate(display_names=_display_names(user), username=user.username or "")
 
 
 def _recent_user_tids(user_tids: Sequence[int]) -> tuple[int, ...]:

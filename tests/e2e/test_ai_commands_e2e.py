@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from contextlib import ExitStack
-from datetime import date
+from datetime import UTC, date, datetime
 from io import BytesIO
 from types import SimpleNamespace
 from typing import Any
@@ -24,6 +24,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import BinaryContent
+from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
@@ -36,6 +37,7 @@ from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageBreakdownItem,
     ChatUsageView,
 )
+from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_cached_messages
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import is_enabled
@@ -236,12 +238,20 @@ async def test_aireset_success(test_client: TestClient) -> None:
     await test_client.send_message(text="init", from_user=admin_wrapper.user, chat=group_chat)
     await grant_admin(group_chat.id, admin_wrapper.user.id)
 
-    mock_reset_messages = AsyncMock()
+    services = test_client.dispatcher.workflow_data["services"]
+    await cache_message(
+        "Previous conversation",
+        group_chat.id,
+        admin_wrapper.user.id,
+        1,
+        datetime.now(UTC),
+        admin_wrapper.user.full_name,
+        redis=services.redis,
+    )
     mock_clear = AsyncMock()
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
-        stack.enter_context(patch("sophie_bot.modules.ai.handlers.reset_context.reset_messages", mock_reset_messages))
         stack.enter_context(patch("sophie_bot.modules.ai.handlers.reset_context.AIMemoryModel.clear", mock_clear))
         requests = await test_client.send_command(
             command="aireset",
@@ -254,7 +264,7 @@ async def test_aireset_success(test_client: TestClient) -> None:
     assert "reset" in response_text.lower() or "clean" in response_text.lower(), (
         f"Expected reset success message, got: {response_text}"
     )
-    mock_reset_messages.assert_awaited_once()
+    assert await get_cached_messages(group_chat.id, redis=services.redis) == ()
     mock_clear.assert_awaited_once()
 
 
@@ -348,7 +358,7 @@ async def test_translate_success(test_client: TestClient, command: str) -> None:
             needs_translation=True,
             translation_explanations=None,
         ),
-        usage=SimpleNamespace(total_tokens=100, request_tokens=50, response_tokens=50),
+        usage=RunUsage(input_tokens=50, output_tokens=50),
     )
 
     with ExitStack() as stack:
@@ -506,7 +516,7 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
         )
         stack.enter_context(
             patch(
-                "sophie_bot.modules.ai.utils.message_history.transform_video_to_text",
+                "sophie_bot.modules.ai.utils.modern_context.transform_video_to_text",
                 AsyncMock(return_value="spoken words"),
             )
         )

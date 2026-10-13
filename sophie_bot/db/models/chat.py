@@ -80,10 +80,6 @@ class ChatModel(Document):
         return ChatModel(tid=user.id, **ChatModel._get_user_data(user))
 
     @staticmethod
-    def get_group_model(chat: Chat) -> "ChatModel":
-        return ChatModel(tid=chat.id, **ChatModel._get_group_data(chat))
-
-    @staticmethod
     def _with_settled_iid(chat: "ChatModel") -> "ChatModel":
         """Make `iid` agree with the `_id` that was actually written.
 
@@ -207,10 +203,6 @@ class ChatModel(Document):
             type=ChatType.private,
             last_saw=datetime.now(UTC),
         )
-
-    @staticmethod
-    def export_dict(chat: "ChatModel") -> dict[str, Any]:
-        return chat.model_dump(mode="json", exclude_none=True, exclude_unset=True, exclude_defaults=True)
 
 
 class UserInGroupModel(Document):

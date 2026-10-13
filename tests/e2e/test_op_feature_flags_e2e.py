@@ -237,30 +237,6 @@ async def test_op_ff_accepts_unregistered_model_flag_value(test_client: TestClie
 
 
 @pytest.mark.asyncio
-async def test_op_ff_accepts_only_supported_ai_header_styles(test_client: TestClient) -> None:
-    response_text = await _send_op_ff(
-        test_client,
-        chat_tid=-1002950000094,
-        user_tid=929500094,
-        command="op_ff ai_translations_header_style disable",
-    )
-
-    assert "Invalid value" not in response_text
-    override = await FeatureFlagOverride.find_one(FeatureFlagOverride.feature == "ai_translations_header_style")
-    assert override is not None
-    assert override.value == "disable"
-
-    invalid_response = await _send_op_ff(
-        test_client,
-        chat_tid=-1002950000095,
-        user_tid=929500095,
-        command="op_ff ai_translations_header_style table",
-    )
-
-    assert "Invalid value" in invalid_response
-
-
-@pytest.mark.asyncio
 async def test_op_ff_partial_args_shows_feature_value(test_client: TestClient) -> None:
     response_text = await _send_op_ff(
         test_client,

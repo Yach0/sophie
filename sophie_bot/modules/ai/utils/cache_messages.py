@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta
 import sentry_sdk
 from pydantic import BaseModel
 from redis.asyncio import Redis
+from redis.asyncio.client import Pipeline
+from redis.exceptions import WatchError
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -42,6 +44,20 @@ def get_message_cache_key(chat_id: int) -> str:
     return f"messages:{chat_id}"
 
 
+def get_context_epoch_key(chat_id: int) -> str:
+    return f"ai:modern_context:epoch:{chat_id}"
+
+
+def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -> None:
+    """Queue the same body cache writes inside a caller-owned transaction."""
+    if message.created_at is None:
+        raise ValueError("Caching a message requires its creation time")
+    key = get_message_cache_key(chat_id)
+    pipe.zadd(key, {message.model_dump_json(): message.created_at.timestamp()})  # type: ignore[misc]
+    pipe.zremrangebyscore(key, 0, _build_cutoff(message.created_at).timestamp())  # type: ignore[misc]
+    pipe.expire(key, int(MESSAGE_CACHE_TTL.total_seconds()), lt=True)
+
+
 def _build_cutoff(now: datetime | None = None) -> datetime:
     current_time = now or datetime.now(UTC)
     return current_time - MESSAGE_CACHE_TTL
@@ -68,6 +84,7 @@ async def cache_message(
     is_ai_filter_reply: bool = False,
     proactively_answered: bool = False,
     proactively_reacted: bool = False,
+    expected_epoch: int | None = None,
 ) -> None:
     """Caches a message if text is provided."""
     if not text:
@@ -92,22 +109,44 @@ async def cache_message(
         proactively_answered=proactively_answered,
         proactively_reacted=proactively_reacted,
     )
-    json_str = msg.model_dump_json()
-    key = get_message_cache_key(chat_id)
-    message_score = created_at.timestamp()
-    cutoff_score = _build_cutoff(created_at).timestamp()
-
-    async with redis.pipeline(transaction=True) as pipe:
-        pipe.zadd(key, {json_str: message_score})  # type: ignore[misc]
-        pipe.zremrangebyscore(key, 0, cutoff_score)  # type: ignore[misc]
-        pipe.expire(key, 86400 * 2, lt=True)
-        await pipe.execute()
+    while True:
+        async with redis.pipeline(transaction=True) as pipe:
+            try:
+                if expected_epoch is not None:
+                    epoch_key = get_context_epoch_key(chat_id)
+                    await pipe.watch(epoch_key)
+                    if int(await pipe.get(epoch_key) or 0) != expected_epoch:
+                        await pipe.unwatch()
+                        return
+                    pipe.multi()
+                enqueue_cached_message(pipe, chat_id, msg)
+                await pipe.execute()
+                return
+            except WatchError:
+                continue
 
 
 async def reset_messages(chat_id: int, *, redis: Redis) -> None:
     """Resets the cached messages for a given chat."""
     key = get_message_cache_key(chat_id)
     await redis.delete(key)
+
+
+async def reset_modern_context(chat_tid: int, *, redis: Redis) -> None:
+    epoch_key = get_context_epoch_key(chat_tid)
+    index_key = f"ai:modern_context:sessions:{chat_tid}"
+    while True:
+        async with redis.pipeline(transaction=True) as pipe:
+            try:
+                await pipe.watch(epoch_key, index_key)
+                session_keys = await pipe.smembers(index_key)
+                pipe.multi()
+                pipe.incr(epoch_key)
+                pipe.delete(index_key, get_message_cache_key(chat_tid), *session_keys)
+                await pipe.execute()
+                return
+            except WatchError:
+                continue
 
 
 def _parse_cached_message(raw_message: object) -> MessageType | None:

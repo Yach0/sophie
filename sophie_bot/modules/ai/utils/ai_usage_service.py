@@ -3,24 +3,17 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
+from pydantic_ai.usage import RunUsage
 from redis.asyncio import Redis
 
 from sophie_bot.db.models import AIUsageModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_quota import consume_quota, get_period_end, get_quota_state
 from sophie_bot.utils.ai_features import AI_FEATURES_BY_KEY, AIFeature
-
-
-class AIUsageLike(Protocol):
-    # Read-only member: conforming types (e.g. pydantic-ai's RunUsage) expose
-    # total_tokens as a computed property, so the protocol must not require a
-    # writable attribute or ty rejects them as non-conforming.
-    @property
-    def total_tokens(self) -> int: ...
 
 
 @dataclass(frozen=True)
@@ -71,36 +64,25 @@ class AIModelLike(Protocol):
     def model_name(self) -> str: ...
 
 
-def usage_input_tokens(usage: Any) -> int | None:
-    return getattr(usage, "input_tokens", None) or getattr(usage, "request_tokens", None)
-
-
-def usage_output_tokens(usage: Any) -> int | None:
-    return getattr(usage, "output_tokens", None) or getattr(usage, "response_tokens", None)
-
-
 async def charge_ai_usage(
     chat_iid: PydanticObjectId,
     feature: AIFeature,
     model: AIModelLike,
-    usage: AIUsageLike,
+    usage: RunUsage,
     *,
     redis: Redis,
 ) -> None:
-    total_tokens = usage.total_tokens if usage.total_tokens else 0
+    total_tokens = usage.total_tokens
     if total_tokens <= 0:
         return
-
-    input_tokens = usage_input_tokens(usage)
-    output_tokens = usage_output_tokens(usage)
 
     await consume_quota(
         chat_iid,
         feature,
         total_tokens,
         model_name=model.model_name,
-        input_tokens=input_tokens,
-        output_tokens=output_tokens,
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
         redis=redis,
     )
 

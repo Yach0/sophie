@@ -10,7 +10,7 @@ from redis.asyncio import Redis
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode
-from sophie_bot.modules.ai.utils.cache_messages import reset_messages
+from sophie_bot.modules.ai.utils.cache_messages import reset_messages, reset_modern_context
 
 
 @dataclass(frozen=True, slots=True)
@@ -143,3 +143,4 @@ async def set_chat_mode(chat: ChatModel, mode: AIMode, *, redis: Redis) -> None:
     reset_history = not get_capabilities(mode).message_cache
     if reset_history:
         await reset_messages(chat.tid, redis=redis)
+        await reset_modern_context(chat.tid, redis=redis)

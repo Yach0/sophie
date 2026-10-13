@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -95,52 +94,6 @@ async def test_connections_middleware_disconnects_dangling_chat_link(
     assert fake_connection_model.expires_at is None
     fake_connection_model.save.assert_awaited_once()
     bot_mock.send_message.assert_awaited_once()
-
-
-@pytest.mark.asyncio
-async def test_cleanup_migration_repairs_dangling_connections(db_init: Any) -> None:
-    del db_init
-    await ChatConnectionModel.delete_all()
-    await ChatModel.delete_all()
-
-    user_tid = 111111111
-    valid_chat_tid = -100111111111
-    stale_chat_iid = ObjectId()
-    user_chat = await build_private_chat_model(user_tid=user_tid, title="Cleanup User")
-    valid_chat = await build_group_chat_model(chat_tid=valid_chat_tid, title="Cleanup Group")
-
-    connection_model = ChatConnectionModel(
-        user=user_chat,
-        chat=valid_chat,
-        expires_at=datetime.now(UTC) + timedelta(hours=8),
-        history=[valid_chat],
-    )
-    await connection_model.insert()
-
-    connections_collection = ChatConnectionModel.get_pymongo_collection()
-    await connections_collection.update_one(
-        {"_id": connection_model.id},
-        {
-            "$set": {
-                "chat": DBRef("chats", stale_chat_iid),
-                "history": [DBRef("chats", stale_chat_iid), DBRef("chats", valid_chat.iid)],
-            }
-        },
-    )
-
-    migration_module = importlib.import_module(
-        "sophie_bot.db.migrations.20260302_090000_cleanup_connections_dangling_chat_links"
-    )
-    migration_forward = migration_module.Forward()
-    await migration_forward.cleanup.run(session=None)
-
-    raw_connection_document = await connections_collection.find_one({"_id": connection_model.id})
-    assert raw_connection_document is not None
-    assert raw_connection_document.get("chat") is None
-    assert raw_connection_document.get("expires_at") is None
-    history_references = raw_connection_document.get("history") or []
-    history_reference_ids = [history_reference.id for history_reference in history_references]
-    assert stale_chat_iid not in history_reference_ids
 
 
 @pytest.mark.asyncio

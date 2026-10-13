@@ -114,7 +114,7 @@ async def test_warnlimit_persists(test_client: TestClient) -> None:
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await WarnSettingsModel.get_by_chat_iid(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.iid)
     assert settings.max_warns == 5
 
 

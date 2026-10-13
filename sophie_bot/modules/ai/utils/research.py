@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import date, datetime
 from email.utils import parsedate_to_datetime
 from random import choice
@@ -31,7 +31,6 @@ from stfu_tg import (
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, search_kagi
 from sophie_bot.modules.ai.agent_tools.tinyfish_search import TinyFishSearchResult, search_tinyfish
@@ -42,14 +41,14 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan
 from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.exception import SophieException
@@ -98,14 +97,6 @@ class ResearchWorkflowResult:
     response: ResearchFinalResponse
     model: Model
     message_history: list[ModelRequest | ModelResponse]
-
-
-async def get_research_settings(
-    chat_tid: int | None = None,
-    *,
-    services: ApplicationServices,
-) -> ResearchWorkflowSettings:
-    return await get_research_workflow_settings(chat_tid, redis=services.redis)
 
 
 def _limit_queries(queries: Iterable[ResearchSearchQuery], limit: int) -> list[ResearchSearchQuery]:
@@ -202,8 +193,8 @@ def _build_history(
     user_prompt: str,
     *,
     services: ApplicationServices,
-) -> AIMessageHistory:
-    history = AIMessageHistory(services=services)
+) -> OldContext:
+    history = OldContext(services=services)
     history.add_system(system_prompt)
     history.prompt = [user_prompt]
     return history
@@ -218,7 +209,7 @@ def _queries_payload(queries: list[ResearchSearchQuery]) -> str:
 
 
 async def run_research_structured_step[ResearchStepT: BaseModel](
-    history: AIMessageHistory,
+    history: OldContext,
     output_type: type[ResearchStepT],
     connection: ChatConnection,
     model_plan: AIModelPlan,
@@ -375,14 +366,7 @@ async def run_research_workflow(
         raise SophieException(_("Research requires a saved chat context."))
 
     chat_tid = connection.tid
-    settings = await get_research_settings(chat_tid, services=services)
-    service_tier = await resolve_chat_service_tier(
-        AIModelPurpose.research,
-        connection.db_model.iid,
-        chat_tid,
-        redis=services.redis,
-    )
-    settings = replace(settings, service_tier=service_tier)
+    settings = await get_research_workflow_settings(chat_tid, redis=services.redis)
     model_plan = await get_chat_research_model_plan(
         connection.db_model.iid,
         chat_tid,
@@ -474,22 +458,6 @@ async def run_research_workflow(
         model=summary_model,
         message_history=summary_result.message_history,
     )
-
-
-async def run_research_workflow_response(
-    prompt: str,
-    connection: ChatConnection,
-    progress_callback: ResearchProgressCallback | None = None,
-    *,
-    services: ApplicationServices,
-) -> ResearchFinalResponse:
-    result = await run_research_workflow(
-        prompt,
-        connection,
-        progress_callback=progress_callback,
-        services=services,
-    )
-    return result.response
 
 
 def _parse_source_date(value: str | None) -> date | None:

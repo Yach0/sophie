@@ -106,13 +106,29 @@ async def test_the_panel_flow_works_through_the_real_app(
             json={
                 "name": "openai/gpt-5.5",
                 "provider": "openrouter",
+                "context_window_tokens": 32768,
                 "roles": [{"mode": "support", "purpose": "summary"}],
             },
         )
         assert model.status_code == 201, model.text
+        assert model.json()["context_window_tokens"] == 32768
 
         models = await client.get("/op/ai/catalog/models")
         assert [item["name"] for item in models.json()] == ["openai/gpt-5.5"]
+        assert models.json()[0]["context_window_tokens"] == 32768
+
+        capacity = await client.put(
+            "/op/ai/catalog/models/openai/gpt-5.5", json={"context_window_tokens": 65536}
+        )
+        assert capacity.status_code == 200
+        assert capacity.json()["context_window_tokens"] == 65536
+        unchanged = await client.put("/op/ai/catalog/models/openai/gpt-5.5", json={"supports_images": False})
+        assert unchanged.json()["context_window_tokens"] == 65536
+        cleared = await client.put(
+            "/op/ai/catalog/models/openai/gpt-5.5", json={"context_window_tokens": None}
+        )
+        assert cleared.status_code == 200
+        assert cleared.json()["context_window_tokens"] is None
 
         # Update without a key keeps the stored one.
         updated = await client.put("/op/ai/catalog/providers/openrouter", json={"enabled": False})
@@ -199,5 +215,31 @@ async def test_feature_flags_are_closed_without_an_operator_token(
     try:
         response = await client.get("/op/feature-flags")
         assert response.status_code in (401, 403)
+    finally:
+        await client.aclose()
+
+
+@pytest.mark.usefixtures("db_init")
+@pytest.mark.parametrize("capacity", [0, -1, True, 1.5, "32768"])
+@pytest.mark.parametrize("method", ["post", "put"])
+async def test_catalog_api_rejects_invalid_context_capacity(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, capacity: object, method: str
+) -> None:
+    client = await _operator_client(monkeypatch, test_redis)
+    try:
+        if method == "post":
+            response = await client.post(
+                "/op/ai/catalog/models",
+                json={"name": "invalid/model", "provider": "custom", "context_window_tokens": capacity},
+            )
+        else:
+            response = await client.put(
+                "/op/ai/catalog/models/invalid/model", json={"context_window_tokens": capacity}
+            )
+        assert response.status_code == 422, response.text
+        assert any(
+            error["loc"][-1] == "context_window_tokens"
+            for error in response.json()["detail"]
+        )
     finally:
         await client.aclose()

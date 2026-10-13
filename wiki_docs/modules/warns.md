@@ -30,6 +30,6 @@ icon: ⚠️
 | `/reset_all_warns` `/del_all_warns` | - | Resets all warnings of all users in the current chat. | *Only in groups* |
 | `/warn_limit` | `<?New value>` | Shows / changes the warn limit for this chat. |  |
 | `/warn_action` | - | Configures warn actions. |  |
-| `/warn_action_each` | - | - |  |
-| `/warn_action_max` | - | - |  |
+| `/warn_action_each` | - | Configures actions triggered on each warning. |  |
+| `/warn_action_max` | - | Configures actions triggered when the warn limit is reached. |  |
 {.card-view-on-mobile}

@@ -12,7 +12,7 @@ from redis.asyncio import Redis
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions, run_ai_structured
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.utils.ai_features import AIFeature
 from sophie_bot.utils.feature_flags import FeatureType, get_service_tier
 
@@ -29,7 +29,7 @@ class AIStructuredTask[OutputT: BaseModel]:
 async def run_structured_task[OutputT: BaseModel](
     task: AIStructuredTask[OutputT],
     model_plan: AIModelPlan,
-    history: AIMessageHistory,
+    history: OldContext,
     chat_iid: PydanticObjectId | None = None,
     chat_tid: int | None = None,
     session_id: str | None = None,

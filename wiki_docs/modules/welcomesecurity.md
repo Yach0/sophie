@@ -16,8 +16,8 @@ icon: 🛡️
 | `/welcome_captcha` `/enable_welcome_captcha` | `<?New status or expiry time>` | Shows / changes Welcome Captcha and its expiry time. |  |
 | `/welcome_restrict` | `<?New status or restrict time>` | Shows / changes the state of Welcome Restrict (Media restricting). |  |
 | `/set_welcome_security` | `<Content>` | Sets welcome security message. |  |
-| `/del_welcome_security` | - | Deletes the welcome security message |  |
-| `/welcome_security` | - | Shows Welcome Security settings | *Disable-able* |
+| `/del_welcome_security` | - | Deletes the welcome security message. |  |
+| `/welcome_security` | - | Shows Welcome Security settings. | *Disable-able* |
 {.card-view-on-mobile}
 ---
 # Welcome Security expiry settings

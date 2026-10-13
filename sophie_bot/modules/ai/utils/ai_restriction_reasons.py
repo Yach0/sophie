@@ -12,7 +12,7 @@ from sophie_bot.db.models import ChatModel, RulesModel
 from sophie_bot.modules.ai.utils.ai_chat_models import get_moderation_reason_model_plan
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 from sophie_bot.utils.logger import log
@@ -95,7 +95,7 @@ async def generate_restriction_reason(
     prompt = build_reason_prompt(message_text=message_text, rules_text=rules_text, base_prompt=reason_prompt)
 
     # Generate AI response
-    history = AIMessageHistory(services=services)
+    history = OldContext(services=services)
     history.add_system(
         "You are a moderation assistant for a Telegram group management bot. "
         "Generate concise, professional reasons for user restrictions."

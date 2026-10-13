@@ -4,8 +4,9 @@ from ass_tg.i18n import gettext_ctx
 
 import sophie_bot.utils.i18n
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
+from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
-from sophie_bot.modules.notes.utils.buttons_processor.legacy import legacy_button_parser
 
 TEST_CASES = [
     # URL Button
@@ -90,8 +91,8 @@ async def test_compare_parsers(text):
     chat_id = 123456789
 
     # Legacy
-    _, legacy_markup = legacy_button_parser(chat_id, text)
-
+    _, legacy_buttons = parse_legacy_text_buttons(text)
+    legacy_markup = render_buttons(legacy_buttons, chat_id)
     # New
     new_markup = (await ButtonsList.from_text(text)).unparse(chat_id)
 

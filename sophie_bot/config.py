@@ -50,7 +50,6 @@ class Config(BaseSettings):
 
     modules_load: list[str] = ["*"]
     modules_not_load: list[str] = []
-    legacy_modules_not_load: list[str] = []
 
     webhooks_enable: bool = False
     webhooks_listen: str = "127.0.0.1"

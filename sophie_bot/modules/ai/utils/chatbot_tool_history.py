@@ -162,10 +162,6 @@ async def reset_tool_exchanges(chat_tid: int, *, redis: Redis) -> None:
     await redis.delete(tool_history_key(chat_tid))
 
 
-async def load_chatbot_tool_history(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
-    return await get_tool_exchanges(chat_tid, redis=redis)
-
-
 async def remember_chatbot_tool_history(
     chat_tid: int,
     message_id: int,

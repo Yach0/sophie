@@ -5,7 +5,7 @@ from pydantic_ai import RunContext, Tool
 from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.json_schemas.research import ResearchFinalResponse
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.research import run_research_workflow_response
+from sophie_bot.modules.ai.utils.research import run_research_workflow
 
 
 async def research_topic(ctx: RunContext[SophieAIToolContext], topic: str) -> ResearchFinalResponse:
@@ -16,12 +16,13 @@ async def research_topic(ctx: RunContext[SophieAIToolContext], topic: str) -> Re
         topic: Topic or question to research.
     """
     async with track_ai_tool("research_topic"):
-        return await run_research_workflow_response(
+        result = await run_research_workflow(
             topic,
             ctx.deps.connection,
             progress_callback=ctx.deps.research_progress_callback,
             services=ctx.deps.services,
         )
+        return result.response
 
 
 research_topic_tool = Tool(

@@ -5,8 +5,8 @@ from typing import Protocol
 
 from redis.asyncio import Redis
 
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.utils.feature_flags import FeatureType
 
 
@@ -31,7 +31,7 @@ class ModerationProvider(Protocol):
 
     async def classify(
         self,
-        history: AIMessageHistory,
+        history: OldContext,
         *,
         redis: Redis,
     ) -> dict[str, float]:

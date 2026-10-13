@@ -9,7 +9,6 @@ from typing import Any
 from beanie import init_beanie
 from bson import DBRef
 from pymongo import AsyncMongoClient
-from pymongo.asynchronous.client_session import AsyncClientSession
 from pymongo.asynchronous.collection import AsyncCollection
 from pymongo.asynchronous.database import AsyncDatabase
 
@@ -37,19 +36,6 @@ async def open_database(config: Config) -> AsyncIterator[DatabaseResources]:
 
 def get_collection(database: AsyncDatabase, name: str) -> AsyncCollection[dict[str, Any]]:
     return database[name]
-
-
-async def backfill_chat_admin_welcome_messages(
-    chat_admin: AsyncCollection[dict[str, Any]],
-    session: AsyncClientSession | None = None,
-) -> int:
-    """Repair administrator members saved before Telegram added the welcome permission."""
-    result = await chat_admin.update_many(
-        {"member.status": "administrator", "member.can_send_welcome_messages": {"$exists": False}},
-        {"$set": {"member.can_send_welcome_messages": False}},
-        session=session,
-    )
-    return result.modified_count
 
 
 async def init_db(database: AsyncDatabase, *, config: Config, skip_indexes: bool | None = None) -> None:
