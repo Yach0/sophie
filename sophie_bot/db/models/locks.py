@@ -52,6 +52,4 @@ class LocksModel(Document):
     @staticmethod
     async def get_locked_types(chat_iid: PydanticObjectId) -> set[str]:
         model = await LocksModel.find_one(LocksModel.chat.id == chat_iid)
-        if model:
-            return model.locked_types
-        return set()
+        return model.locked_types if model else set()
