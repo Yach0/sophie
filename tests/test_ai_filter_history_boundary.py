@@ -113,7 +113,7 @@ async def test_filter_action_provider_gets_trigger_once_and_system(
     before = await get_cached_messages(CHAT_TID, redis=test_services.redis)
     requests: list[list[ModelMessage]] = []
 
-    def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+    async def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
         requests.append(messages.copy())
         if len(requests) == 1:
             raise ModelHTTPError(503, "local-function", "temporary failure")
@@ -185,7 +185,7 @@ async def test_cache_exclusion_uses_exact_identity_before_transformation(
     history.apply_context_block()
     seen: list[list[ModelMessage]] = []
 
-    def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+    async def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
         seen.append(messages.copy())
         return ModelResponse(parts=[TextPart("Answer")])
 
@@ -213,7 +213,7 @@ async def test_filter_reply_context_preserves_same_text_with_different_ids(
     await history.add_from_message(_message(30, "same text", reply=_message(29, "same text")))
     history.apply_context_block()
 
-    def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+    async def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
         text = _user_text(messages)
         assert text.count("same text") == 2
         assert text.count("Alice (reply to Alice): same text") == 1
@@ -224,14 +224,19 @@ async def test_filter_reply_context_preserves_same_text_with_different_ids(
 
 
 @pytest.mark.parametrize("cache_hit", [False, True])
+@pytest.mark.parametrize("cached_current", [False, True])
 async def test_normal_chatbot_provider_history_and_retry(
     cache_hit: bool,
+    cached_current: bool,
     names: None,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
     if cache_hit:
         await _cache(test_services, 29, "earlier")
+    if cached_current:
+        await _cache(test_services, 30, "latest", handled_by_ai=True)
+    before = await get_cached_messages(CHAT_TID, redis=test_services.redis)
     monkeypatch.setattr(chatbot_context, "get_value", AsyncMock(return_value=0))
     monkeypatch.setattr(chatbot_context, "get_tool_exchanges", AsyncMock(return_value={}))
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda _candidates: None)
@@ -246,7 +251,7 @@ async def test_normal_chatbot_provider_history_and_retry(
     history = await chatbot_context.prepare_chatbot_history(_message(30, "latest"), context)
     requests: list[list[ModelMessage]] = []
 
-    def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+    async def respond(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
         requests.append(messages.copy())
         assert _user_text(messages).count("Alice: latest") == 1
         assert _user_text(messages).count("Alice: earlier") == int(cache_hit)
@@ -262,6 +267,7 @@ async def test_normal_chatbot_provider_history_and_retry(
     assert result.output == "Answer"
     assert len(requests) == 2
     assert _user_text(requests[0]) == _user_text(requests[1])
+    assert await get_cached_messages(CHAT_TID, redis=test_services.redis) == before
 
 
 def test_folding_preserves_non_user_parts_order_and_is_idempotent(test_services: ApplicationServices) -> None:

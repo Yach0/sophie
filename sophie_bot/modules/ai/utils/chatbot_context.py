@@ -84,6 +84,7 @@ async def prepare_chatbot_history(
             fold_background=True,
             max_age=max_age,
             tool_exchanges=tool_exchanges,
+            exclude_message=(message.chat.id, message.message_id),
         )
 
         await history.add_from_message(message, custom_text=context.user_text, on_activity=on_activity)

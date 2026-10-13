@@ -408,7 +408,7 @@ async def _build_answer_history(
         )
     history = OldContext(services=services)
     history.add_system(build_proactive_answer_prompt())
-    await history.add_from_cache(chat_tid)
+    await history.add_from_cache(chat_tid, exclude_message=(chat_tid, target_message.message_id))
     history.prompt = [render_proactive_answer_target(target_message)]
     return history
 
