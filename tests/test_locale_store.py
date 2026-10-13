@@ -9,10 +9,9 @@ Regression coverage for two findings:
 
 from __future__ import annotations
 
-import importlib
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
-from types import ModuleType, SimpleNamespace
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -348,77 +347,3 @@ async def test_lang_reselecting_the_active_language_does_not_re_edit(
     assert event.message.edited == []
 
 
-# --- Migration ---
-
-
-def _locale_migration() -> ModuleType:
-    return importlib.import_module("sophie_bot.db.migrations.20260715_225629_copy_selected_locale_to_lang_collection")
-
-
-async def test_migration_copies_valid_locales_only(
-    chats: _ChatFactory,
-    locales: LocaleStore,
-) -> None:
-    migration = _locale_migration()
-
-    selected = await chats.group(-100787, language_code=_SELECTED_LOCALE)
-    client_reported = await chats.group(-100788, language_code=_CLIENT_LOCALE)
-    bare_language = await chats.group(-100789, language_code="ru")
-    never_set = await chats.group(-100790)
-
-    copied = await migration.copy_selected_locales(i18n.available_locales)
-
-    assert copied == 1
-    assert await locales.get_selected_locale(selected.iid) == _SELECTED_LOCALE
-    assert await LanguageModel.find_one(LanguageModel.chat.id == client_reported.iid) is None
-    assert await LanguageModel.find_one(LanguageModel.chat.id == bare_language.iid) is None
-    assert await LanguageModel.find_one(LanguageModel.chat.id == never_set.iid) is None
-
-
-async def test_migration_does_not_overwrite_an_existing_selection(
-    chats: _ChatFactory,
-    locales: LocaleStore,
-) -> None:
-    migration = _locale_migration()
-
-    chat = await chats.group(-100791, language_code=_SELECTED_LOCALE)
-    await LanguageModel(chat=chat, lang="uk_UA").insert()
-
-    copied = await migration.copy_selected_locales(i18n.available_locales)
-
-    assert copied == 0
-    assert await LanguageModel.find(LanguageModel.chat.id == chat.iid).count() == 1
-    assert await locales.get_selected_locale(chat.iid) == "uk_UA"
-
-
-async def test_migration_is_idempotent(chats: _ChatFactory) -> None:
-    migration = _locale_migration()
-
-    await chats.group(-100792, language_code=_SELECTED_LOCALE)
-
-    assert await migration.copy_selected_locales(i18n.available_locales) == 1
-    assert await migration.copy_selected_locales(i18n.available_locales) == 0
-
-
-async def test_migration_leaves_language_code_populated(chats: _ChatFactory) -> None:
-    """language_code is the client-reported field now; the migration must not clear it."""
-    migration = _locale_migration()
-
-    chat = await chats.group(-100793, language_code=_SELECTED_LOCALE)
-    await migration.copy_selected_locales(i18n.available_locales)
-
-    refreshed = await ChatModel.get_by_tid(chat.tid)
-    assert refreshed
-    assert refreshed.language_code == _SELECTED_LOCALE
-
-
-async def test_migration_backward_reverts_nothing(chats: _ChatFactory) -> None:
-    """Backward is an explicit no-op; assert it does not delete selections it did not create."""
-    migration = _locale_migration()
-
-    chat = await chats.group(-100794, language_code=_SELECTED_LOCALE)
-    await migration.copy_selected_locales(i18n.available_locales)
-
-    await migration.Backward.noop.run(session=None)
-
-    assert await LanguageModel.find(LanguageModel.chat.id == chat.iid).count() == 1

@@ -23,7 +23,6 @@ from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import (
     AIAgentResult,
     AIRequestOptions,
-    ChatbotStreamOptions,
     TextStreamCallback,
     ToolCallCallback,
     run_ai_stream,
@@ -74,7 +73,6 @@ class ChatbotRunRequest:
     thread_id: int | None = None
     session_id: str | None = None
     use_base_tools: bool = False
-    stream_options: ChatbotStreamOptions | None = None
     callbacks: ChatbotRunCallbacks = field(default_factory=ChatbotRunCallbacks)
 
 
@@ -224,7 +222,6 @@ async def run_chatbot(request: ChatbotRunRequest) -> AIAgentResult[str]:
             on_before_tool_call=callbacks.on_tool_call,
             on_reasoning_stream=callbacks.on_reasoning_stream,
             on_retry=callbacks.on_retry,
-            stream_options=request.stream_options,
             model_plan=request.model_plan,
         )
     else:

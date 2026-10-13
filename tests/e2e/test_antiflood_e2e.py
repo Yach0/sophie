@@ -128,20 +128,6 @@ async def test_enableantiflood_command_persists(test_client: TestClient) -> None
     assert settings.enabled is True
 
 
-@pytest.mark.asyncio
-async def test_antiflood_action_is_silent_when_wizard_flag_is_disabled(test_client: TestClient) -> None:
-    await set_feature(test_client, "action_config_wizard", False)
-    try:
-        admin, group, _model = await create_test_user_and_group(
-            test_client, group_title="Antiflood Wizard Disabled Group"
-        )
-        await grant_admin(group.id, admin.id)
-
-        requests = await test_client.send_command(command="antiflood_action", from_user=admin, chat=group)
-        assert not requests
-    finally:
-        await set_feature(test_client, "action_config_wizard", True)
-
 
 @pytest.mark.asyncio
 async def test_antiflood_action_configures_action_and_ignores_plain_messages(

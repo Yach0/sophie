@@ -91,14 +91,6 @@ class ModernActionABC[ACTION_DATA: BaseModel | None](ABC):
 
     definition: ClassVar[ActionDefinition[Any]]
 
-    async def execute(
-        self,
-        message: Message,
-        data: dict[str, Any],
-        filter_data: ACTION_DATA,
-    ) -> ActionResult | None:
-        return await self.handle(message, data, filter_data)
-
     @staticmethod
     @abstractmethod
     def description(data: ACTION_DATA) -> Element | str:

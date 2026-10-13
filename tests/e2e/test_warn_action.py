@@ -8,7 +8,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.shared.actions import StoredAction
-from tests.e2e.helpers import get_wizard_session_id, grant_admin, set_feature
+from tests.e2e.helpers import get_wizard_session_id, grant_admin
 
 
 @pytest.mark.asyncio
@@ -22,20 +22,6 @@ async def test_warnaction_requires_restrict_admin_rights(test_client: TestClient
     assert requests, "Bot should respond when non-admin uses /warnaction."
     assert any("administrator" in (request.text or "").lower() for request in requests)
 
-
-@pytest.mark.asyncio
-async def test_warnaction_is_silent_when_wizard_flag_is_disabled(test_client: TestClient) -> None:
-    await set_feature(test_client, "action_config_wizard", False)
-    try:
-        group_chat = ChatFactory.create_group(chat_id=-1002600000005, title="Warn Action Disabled")
-        user_wrapper = test_client.create_user(user_id=926000005, first_name="WarnAdmin", username="warn_admin")
-        await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
-        await grant_admin(group_chat.id, user_wrapper.user.id)
-
-        requests = await test_client.send_command(command="warnaction", from_user=user_wrapper.user, chat=group_chat)
-        assert not requests
-    finally:
-        await set_feature(test_client, "action_config_wizard", True)
 
 
 @pytest.mark.asyncio
@@ -78,7 +64,7 @@ async def test_warnaction_configures_each_warn_action_through_wizard(test_client
 
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
-    settings = await WarnSettingsModel.get_by_chat_iid(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.iid)
     assert settings is not None
     assert [action.name for action in settings.on_each_warn_actions] == ["kick_user"]
 
@@ -120,7 +106,7 @@ async def test_warnaction_can_save_removal_of_last_action(test_client: TestClien
         message=wizard_message,
     )
 
-    saved = await WarnSettingsModel.get_by_chat_iid(chat.iid)
+    saved = await WarnSettingsModel.get_or_create(chat.iid)
     assert saved is not None
     assert saved.on_each_warn_actions == []
 

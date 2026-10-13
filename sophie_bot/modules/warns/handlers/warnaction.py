@@ -9,7 +9,6 @@ from stfu_tg.doc import Element
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils import flags
@@ -116,7 +115,6 @@ class WarnActionHandler(SophieMessageHandler):
     def filters() -> tuple[CallbackType, ...]:
         return (
             CMDFilter(("warn_action",)),
-            FeatureFlagFilter("action_config_wizard"),
             UserRestricting(can_restrict_members=True),
         )
 

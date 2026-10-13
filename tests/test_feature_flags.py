@@ -344,12 +344,6 @@ class TestCoerceRollout:
         assert rollout is not None
         assert rollout["duration_days"] is None
 
-    def test_legacy_percentage_format(self) -> None:
-        rollout = _coerce_rollout({"percentage": 30, "value": True})
-        assert rollout is not None
-        assert rollout["start_percentage"] == 30
-        assert rollout["target_percentage"] == 30
-        assert rollout["duration_days"] is None
 
     def test_json_string_input(self) -> None:
         rollout = _coerce_rollout(

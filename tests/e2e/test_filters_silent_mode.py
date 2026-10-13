@@ -8,7 +8,7 @@ from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFa
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
-from sophie_bot.modules.filters.callbacks import FilterManagementCallback, FiltersPageCallback
+from sophie_bot.modules.filters.callbacks import FiltersPageCallback
 from sophie_bot.modules.utils_.wizard import WizardCallback
 from tests.e2e.helpers import get_wizard_session_id, grant_admin, next_group_id, next_user_id, set_feature
 
@@ -267,24 +267,6 @@ async def test_filter_list_rich_structure_escapes_items_before_button_rows(test_
     assert "</tg-button-row>\n<b>second &amp; filter</b>" in rich_html
 
 
-@pytest.mark.asyncio
-async def test_filter_list_hides_edit_when_wizard_flag_is_disabled(test_client: TestClient) -> None:
-    group, user_wrapper, filter_item = await _create_filter(
-        test_client,
-        group_tid=-1002700000006,
-        user_tid=927000006,
-        silent=False,
-    )
-    await set_feature(test_client, "action_config_wizard", False)
-    try:
-        requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
-    finally:
-        await set_feature(test_client, "action_config_wizard", True)
-
-    rich_html = requests[-1].params.get("rich_message", {}).get("html", "")
-    edit_callback = FilterManagementCallback(operation="edit", oid=str(filter_item.id)).pack()
-    assert edit_callback not in rich_html
-
 
 @pytest.mark.asyncio
 async def test_filter_wizard_hides_silent_control_when_flag_is_disabled(test_client: TestClient) -> None:
@@ -326,47 +308,3 @@ async def test_filter_list_is_silent_when_filters_flag_is_disabled(test_client: 
     assert not requests
 
 
-@pytest.mark.asyncio
-async def test_disabled_wizard_clears_pending_input_instead_of_bypassing_filters(test_client: TestClient) -> None:
-    group = ChatFactory.create_group(chat_id=-1002700000008, title="Wizard Input Cleanup")
-    user_wrapper = test_client.create_user(user_id=927000008, first_name="Admin", username="cleanup_admin")
-    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group)
-    await grant_admin(group.id, user_wrapper.user.id)
-    await test_client.send_message(text="/addfilter spam", from_user=user_wrapper.user, chat=group)
-    session_id = await get_wizard_session_id(test_client, group.id, user_wrapper.user.id)
-    bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
-    wizard_message = MessageFactory.create(text="Filter setup", from_user=bot_user, chat=group)
-    await test_client.send_callback(
-        WizardCallback(scope="filter_action", op="add", session_id=session_id).pack(),
-        from_user=user_wrapper.user,
-        message=wizard_message,
-    )
-    await test_client.send_callback(
-        WizardCallback(
-            scope="filter_action",
-            op="select",
-            session_id=session_id,
-            arg="ai_text",
-        ).pack(),
-        from_user=user_wrapper.user,
-        message=wizard_message,
-    )
-
-    await set_feature(test_client, "action_config_wizard", False)
-    try:
-        requests = await test_client.send_message(
-            text="ordinary message",
-            from_user=user_wrapper.user,
-            chat=group,
-        )
-    finally:
-        await set_feature(test_client, "action_config_wizard", True)
-
-    assert any("session has expired" in (request.text or "").lower() for request in requests)
-    state = test_client.dispatcher.fsm.get_context(
-        bot=test_client.bot,
-        chat_id=group.id,
-        user_id=user_wrapper.user.id,
-    )
-    assert "wizard" not in await state.get_data()
-    assert await state.get_state() is None

@@ -5,7 +5,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes_buttons import Button, ButtonStyle
-from sophie_bot.modules.notes.utils.buttons.payloads import (
+from sophie_bot.modules.utils_.legacy_buttons import (
     LEGACY_CONNECTION_BUTTON_PREFIX,
     LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
     LEGACY_NOTE_BUTTON_PREFIX,

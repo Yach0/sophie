@@ -19,7 +19,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_pl
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
-from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, ChatbotStreamOptions
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
@@ -279,19 +279,11 @@ async def ai_chatbot_reply(
 
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.chatbot,
-            connection.db_model.iid,
-            message.chat.id,
-            mode,
-            redis=services.redis,
-        )
-        continuation = await is_enabled(
-            "ai_chatbot_stream_continuation",
             chat_tid=message.chat.id,
             redis=services.redis,
         )
         on_tool_call = message_streamer.update_thinking_for_tool if message_streamer else None
         on_reasoning_stream = message_streamer.stream_reasoning if message_streamer else None
-        stream_options = ChatbotStreamOptions(continuation=continuation)
         try:
             result = await run_chatbot(
                 ChatbotRunRequest(
@@ -300,7 +292,6 @@ async def ai_chatbot_reply(
                     model_plan=model_plan,
                     service_tier=service_tier,
                     thread_id=message.message_thread_id,
-                    stream_options=stream_options,
                     callbacks=ChatbotRunCallbacks(
                         on_text_stream=(message_streamer.stream if message_streamer else None),
                         on_tool_call=on_tool_call,

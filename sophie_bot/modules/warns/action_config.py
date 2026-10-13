@@ -8,7 +8,6 @@ from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models.warns import WarnSettingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.filters.feature_flag import FeatureFlagFilter
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardCallbackHandler,
     ActionWizardInputCleanupHandler,
@@ -43,13 +42,12 @@ async def _on_warn_action_back(handler: SophieCallbackQueryHandler, callback_que
 
 
 def _command_filters(*commands: str) -> tuple[CallbackType, ...]:
-    return CMDFilter(commands), FeatureFlagFilter("action_config_wizard"), UserRestricting(can_restrict_members=True)
+    return CMDFilter(commands), UserRestricting(can_restrict_members=True)
 
 
 def _callback_filters(scope: str) -> tuple[CallbackType, ...]:
     return (
         WizardCallback.filter(F.scope == scope),
-        FeatureFlagFilter("action_config_wizard", notify_callback=True),
         UserRestricting(can_restrict_members=True),
     )
 
@@ -58,13 +56,12 @@ def _input_filters(scope: str) -> tuple[CallbackType, ...]:
     return (
         WizardFSM.interactive_input,
         WizardScopeFilter(scope),
-        FeatureFlagFilter("action_config_wizard"),
         UserRestricting(can_restrict_members=True),
     )
 
 
 WARN_EACH_ACTION_WIZARD = model_action_wizard(
-    model_loader=WarnSettingsModel.get_by_chat_iid,
+    model_loader=WarnSettingsModel.get_or_create,
     attribute="on_each_warn_actions",
     scope="warn_action_each",
     title=l_("⚙️ Warn Actions - On Each Warn"),
@@ -75,7 +72,7 @@ WARN_EACH_ACTION_WIZARD = model_action_wizard(
 )
 
 WARN_MAX_ACTION_WIZARD = model_action_wizard(
-    model_loader=WarnSettingsModel.get_by_chat_iid,
+    model_loader=WarnSettingsModel.get_or_create,
     attribute="on_max_warn_actions",
     scope="warn_action_max",
     title=l_("⚠️ Warn Actions - On Max Warns Exceeded"),

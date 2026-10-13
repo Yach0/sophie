@@ -974,7 +974,7 @@ msgid "Translates the given (or replied) text to the chat's selected language. A
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/translate.py:187
-#: sophie_bot/modules/ai/utils/modern_context.py:217
+#: sophie_bot/modules/ai/utils/modern_context.py:232
 msgid "Transcribing voice message..."
 msgstr ""
 
@@ -997,11 +997,11 @@ msgstr ""
 "Traduce el siguiente texto a {language_name}:\n"
 "{to_translate}"
 
-#: sophie_bot/modules/ai/handlers/translate.py:276
+#: sophie_bot/modules/ai/handlers/translate.py:274
 msgid "Translating..."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/translate.py:294
+#: sophie_bot/modules/ai/handlers/translate.py:292
 msgid "Error generating translation"
 msgstr "Error al generar la traducción"
 
@@ -1136,10 +1136,10 @@ msgstr "Resumes las discusiones de grupos de Telegram en líneas temáticas estr
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Al usar características de IA aceptas nuestra Política de Privacidad (/privacy) y los servicios de IA de terceros utilizados."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:407
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:400
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
-#: sophie_bot/modules/ai/utils/research.py:429
-#: sophie_bot/modules/ai/utils/research.py:562
+#: sophie_bot/modules/ai/utils/research.py:428
+#: sophie_bot/modules/ai/utils/research.py:559
 msgid "Research"
 msgstr "Investigación"
 
@@ -1557,101 +1557,101 @@ msgstr "responder a"
 msgid "Recent chat messages (context only — respond solely to the latest message)"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:152
-#: sophie_bot/modules/ai/utils/modern_context.py:154
+#: sophie_bot/modules/ai/utils/modern_context.py:167
+#: sophie_bot/modules/ai/utils/modern_context.py:169
 msgid "<No text provided>"
 msgstr "<No text provided>"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:201
+#: sophie_bot/modules/ai/utils/modern_context.py:216
 msgid "Processing image..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:205
+#: sophie_bot/modules/ai/utils/modern_context.py:220
 msgid "Image is empty"
 msgstr "La imagen está vacía"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:230
+#: sophie_bot/modules/ai/utils/modern_context.py:245
 msgid "Processing video..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:247
+#: sophie_bot/modules/ai/utils/modern_context.py:262
 msgid "Transcribing video audio..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:254
+#: sophie_bot/modules/ai/utils/modern_context.py:269
 #, python-brace-format
 msgid "[Video transcription: {text}]"
 msgstr "[Transcripción de video: {text}]"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:523
-#: sophie_bot/modules/ai/utils/modern_context.py:1028
+#: sophie_bot/modules/ai/utils/modern_context.py:538
+#: sophie_bot/modules/ai/utils/modern_context.py:1043
 msgid "Prefer to use tables when comparing items"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:524
-#: sophie_bot/modules/ai/utils/modern_context.py:1029
+#: sophie_bot/modules/ai/utils/modern_context.py:539
+#: sophie_bot/modules/ai/utils/modern_context.py:1044
 msgid "Use the conversation history only for context, but respond specifically to the latest prompt."
 msgstr "Usa el historial de la conversación solo como contexto, pero responde específicamente a la pregunta más reciente."
 
-#: sophie_bot/modules/ai/utils/modern_context.py:525
-#: sophie_bot/modules/ai/utils/modern_context.py:1031
+#: sophie_bot/modules/ai/utils/modern_context.py:540
+#: sophie_bot/modules/ai/utils/modern_context.py:1046
 msgid "You can use the web search tool to search for information. Include information sources as links."
 msgstr "Puede usar la herramienta de búsqueda web para buscar información. Incluya las fuentes de información como enlaces."
 
-#: sophie_bot/modules/ai/utils/modern_context.py:526
-#: sophie_bot/modules/ai/utils/modern_context.py:1038
+#: sophie_bot/modules/ai/utils/modern_context.py:541
+#: sophie_bot/modules/ai/utils/modern_context.py:1053
 msgid "You can also save important things to the memory."
 msgstr "También puedes guardar cosas importantes en la memoria."
 
-#: sophie_bot/modules/ai/utils/modern_context.py:528
-#: sophie_bot/modules/ai/utils/modern_context.py:1040
+#: sophie_bot/modules/ai/utils/modern_context.py:543
+#: sophie_bot/modules/ai/utils/modern_context.py:1055
 msgid "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:530
-#: sophie_bot/modules/ai/utils/modern_context.py:1042
+#: sophie_bot/modules/ai/utils/modern_context.py:545
+#: sophie_bot/modules/ai/utils/modern_context.py:1057
 #, python-brace-format
 msgid "Available Sophie modules: {modules}"
 msgstr "Módulos Sophie disponibles: {modules}"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:531
-#: sophie_bot/modules/ai/utils/modern_context.py:1044
+#: sophie_bot/modules/ai/utils/modern_context.py:546
+#: sophie_bot/modules/ai/utils/modern_context.py:1059
 msgid "You can use the research tool to research complicated topics instead of plain web search."
 msgstr "Puede usar la herramienta de investigación para investigar temas complicados en lugar de la búsqueda web simple."
 
-#: sophie_bot/modules/ai/utils/modern_context.py:533
-#: sophie_bot/modules/ai/utils/modern_context.py:1046
+#: sophie_bot/modules/ai/utils/modern_context.py:548
+#: sophie_bot/modules/ai/utils/modern_context.py:1061
 msgid "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1030
+#: sophie_bot/modules/ai/utils/modern_context.py:1045
 msgid "Today is "
 msgstr "Hoy es "
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1051
+#: sophie_bot/modules/ai/utils/modern_context.py:1066
 #, python-brace-format
 msgid "This conversation is taking place in chat: {chat_name}"
 msgstr "Esta conversación se está llevando a cabo en el chat: {chat_name}"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1059
+#: sophie_bot/modules/ai/utils/modern_context.py:1074
 #, python-brace-format
 msgid "{title} | users: {users} | excerpt: {excerpt}"
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1061
+#: sophie_bot/modules/ai/utils/modern_context.py:1076
 #, python-brace-format
 msgid "{title} | first message #{message_id} | users: {users} | excerpt: {excerpt}"
 msgstr "{title} | primer mensaje #{message_id} | usuarios: {users} | extracto: {excerpt}"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1073
+#: sophie_bot/modules/ai/utils/modern_context.py:1088
 msgid "Recent chat summaries"
 msgstr "Resúmenes de chat recientes"
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1096
+#: sophie_bot/modules/ai/utils/modern_context.py:1111
 msgid "Represent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/modern_context.py:1166
+#: sophie_bot/modules/ai/utils/modern_context.py:1181
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "Te estás uniendo proactivamente a un chat grupal de Telegram. Mantén la respuesta oportuna, informal y muy corta: 1-2 frases cortas. No incluyas explicaciones largas, listas con viñetas o detalles tipo herramienta a menos que el mensaje objetivo lo pida explícitamente. Si el tema ha cambiado o una respuesta se sentiría forzada, mantén la respuesta mínima en lugar de intentar cubrir todo."
 
@@ -1699,43 +1699,43 @@ msgstr "Uniendo los hallazgos..."
 msgid "Preparing the final answer..."
 msgstr "Preparando la respuesta final..."
 
-#: sophie_bot/modules/ai/utils/research.py:153
+#: sophie_bot/modules/ai/utils/research.py:152
 msgid "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:158
+#: sophie_bot/modules/ai/utils/research.py:157
 msgid "Research requires a configured TinyFish API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:162
+#: sophie_bot/modules/ai/utils/research.py:161
 msgid "Research requires a configured Kagi API key."
 msgstr "La investigación requiere una clave API de Kagi configurada."
 
-#: sophie_bot/modules/ai/utils/research.py:367
+#: sophie_bot/modules/ai/utils/research.py:366
 msgid "Research requires a saved chat context."
 msgstr "La investigación requiere un contexto de chat guardado."
 
-#: sophie_bot/modules/ai/utils/research.py:430
+#: sophie_bot/modules/ai/utils/research.py:429
 msgid "I could not find enough search results to research this topic."
 msgstr "No pude encontrar suficientes resultados de búsqueda para investigar este tema."
 
-#: sophie_bot/modules/ai/utils/research.py:530
+#: sophie_bot/modules/ai/utils/research.py:527
 msgid "No snippet available."
 msgstr "No hay fragmento disponible."
 
-#: sophie_bot/modules/ai/utils/research.py:552
+#: sophie_bot/modules/ai/utils/research.py:549
 msgid "Sources"
 msgstr "Fuentes"
 
-#: sophie_bot/modules/ai/utils/research.py:566
+#: sophie_bot/modules/ai/utils/research.py:563
 msgid "No sources."
 msgstr "Sin fuentes."
 
-#: sophie_bot/modules/ai/utils/research.py:573
+#: sophie_bot/modules/ai/utils/research.py:570
 msgid "Original request"
 msgstr "Solicitud original"
 
-#: sophie_bot/modules/ai/utils/research.py:574
+#: sophie_bot/modules/ai/utils/research.py:571
 msgid "Research model"
 msgstr "Modelo de investigación"
 
@@ -1755,15 +1755,15 @@ msgstr ""
 msgid "Failed to download video file"
 msgstr "Fallo al descargar archivo de video"
 
-#: sophie_bot/modules/antiflood/action_config.py:32
+#: sophie_bot/modules/antiflood/action_config.py:31
 msgid "Antiflood Action Configuration"
 msgstr "Configuración de Acción Antiflood"
 
-#: sophie_bot/modules/antiflood/action_config.py:33
+#: sophie_bot/modules/antiflood/action_config.py:32
 msgid "Antiflood action configured successfully!"
 msgstr "¡Acción antiflood configurada con éxito!"
 
-#: sophie_bot/modules/antiflood/action_config.py:39
+#: sophie_bot/modules/antiflood/action_config.py:38
 msgid "Configures actions triggered by antiflood protection."
 msgstr ""
 
@@ -1807,7 +1807,7 @@ msgstr "Silenciar por 30 minutos (por defecto)"
 
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:46
 #: sophie_bot/modules/antiflood/handlers/antiflood_info.py:73
-#: sophie_bot/modules/filters/handlers/filters_list.py:194
+#: sophie_bot/modules/filters/handlers/filters_list.py:192
 #: sophie_bot/modules/utils_/action_config_wizard/views.py:84
 msgid "Actions"
 msgstr "Acciones"
@@ -2314,7 +2314,6 @@ msgstr "Deshabilita el comando."
 
 #: sophie_bot/modules/disabling/handlers/disable.py:38
 #: sophie_bot/modules/disabling/handlers/enable.py:40
-#: sophie_bot/utils/errors.py:35
 #, python-brace-format
 msgid "Command {cmd} not found."
 msgstr "Comando {cmd} no encontrado."
@@ -3797,7 +3796,7 @@ msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:25
 #: sophie_bot/modules/filters/handlers/filter_del.py:38
-#: sophie_bot/modules/filters/handlers/filter_new.py:34
+#: sophie_bot/modules/filters/handlers/filter_new.py:33
 msgid "Text to match"
 msgstr "Texto a buscar"
 
@@ -3806,7 +3805,7 @@ msgid "?Filter index"
 msgstr "?Índice del filtro"
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:44
-#: sophie_bot/modules/filters/handlers/filters_list.py:259
+#: sophie_bot/modules/filters/handlers/filters_list.py:251
 msgid "Delete"
 msgstr ""
 
@@ -3842,11 +3841,11 @@ msgstr ""
 msgid "Edits filter settings."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filter_edit.py:35
+#: sophie_bot/modules/filters/handlers/filter_edit.py:34
 msgid "Filter's keyword"
 msgstr "Palabra clave del filtro"
 
-#: sophie_bot/modules/filters/handlers/filter_edit.py:44
+#: sophie_bot/modules/filters/handlers/filter_edit.py:43
 #, python-brace-format
 msgid "Filter with handler {handler} can not be found! Check all filters using {cmd} command"
 msgstr "¡El filtro con el manejador {handler} no se puede encontrar! Verifica todos los filtros usando el comando {cmd}"
@@ -3855,76 +3854,76 @@ msgstr "¡El filtro con el manejador {handler} no se puede encontrar! Verifica t
 msgid "Adds a new filter."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:55
+#: sophie_bot/modules/filters/handlers/filters_list.py:54
 msgid "Lists all filters in the chat."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:116
-#: sophie_bot/modules/filters/handlers/filters_list.py:137
-#: sophie_bot/modules/filters/handlers/filters_list.py:157
+#: sophie_bot/modules/filters/handlers/filters_list.py:114
+#: sophie_bot/modules/filters/handlers/filters_list.py:135
+#: sophie_bot/modules/filters/handlers/filters_list.py:155
 msgid "Filter not found."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:164
+#: sophie_bot/modules/filters/handlers/filters_list.py:162
 msgid "Filter deleted."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:166
+#: sophie_bot/modules/filters/handlers/filters_list.py:164
 #, python-brace-format
 msgid "🗑 The filter with keyword {keyword} was deleted!"
 msgstr "🗑 ¡El filtro con la palabra clave {keyword} fue eliminado!"
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:185
+#: sophie_bot/modules/filters/handlers/filters_list.py:183
 #: sophie_bot/modules/troubleshooters/handlers/cancel_callback.py:31
-#: sophie_bot/modules/warns/action_config.py:35
+#: sophie_bot/modules/warns/action_config.py:34
 msgid "Message not found."
 msgstr "Mensaje no encontrado."
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:193
+#: sophie_bot/modules/filters/handlers/filters_list.py:191
 #, python-brace-format
 msgid "Delete filter {handler}?"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:198
+#: sophie_bot/modules/filters/handlers/filters_list.py:196
 msgid "🗑 Delete"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:210
+#: sophie_bot/modules/filters/handlers/filters_list.py:208
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:34
 #: sophie_bot/modules/warns/handlers/reset_warns.py:50
 msgid "Cancel"
 msgstr "Cancelar"
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:226
+#: sophie_bot/modules/filters/handlers/filters_list.py:224
 msgid ""
 "There are no filters in this chat!\n"
 "Use /add_filter <handler> to create one."
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:237
+#: sophie_bot/modules/filters/handlers/filters_list.py:230
 #, python-brace-format
 msgid "Filters in {chat_name}"
 msgstr "Filtros en {chat_name}"
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:242
+#: sophie_bot/modules/filters/handlers/filters_list.py:235
 msgid "Additionally rules from 'Antiflood' module can be enforced."
 msgstr "Además, se pueden hacer cumplir las reglas del módulo 'Antiflood'."
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:243
+#: sophie_bot/modules/filters/handlers/filters_list.py:236
 msgid "Additionally rules from 'Locks' module can be enforced."
 msgstr "Además, se pueden aplicar reglas del módulo 'Bloqueos'."
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:255
+#: sophie_bot/modules/filters/handlers/filters_list.py:247
 msgid "Edit"
 msgstr ""
 
-#: sophie_bot/modules/filters/handlers/filters_list.py:273
+#: sophie_bot/modules/filters/handlers/filters_list.py:265
 msgid "Action description is too long to display."
 msgstr ""
 
 #: sophie_bot/modules/filters/utils_/filter_action_text.py:24
-#: sophie_bot/modules/warns/handlers/warnaction.py:33
-#: sophie_bot/modules/warns/handlers/warnaction.py:52
+#: sophie_bot/modules/warns/handlers/warnaction.py:32
+#: sophie_bot/modules/warns/handlers/warnaction.py:51
 msgid "No actions configured"
 msgstr "No hay acciones configuradas"
 
@@ -5275,7 +5274,6 @@ msgid "Replies to the message with the note with {notename} note name"
 msgstr "Responde al mensaje con la nota con el nombre de nota {notename}"
 
 #: sophie_bot/modules/notes/magic_handlers/send_note_action.py:92
-#: sophie_bot/utils/errors.py:92
 #, python-brace-format
 msgid "#{name} note was not found."
 msgstr "#{name} nota no fue encontrada."
@@ -5389,33 +5387,33 @@ msgstr "Los botones no son válidos."
 msgid "Local chat"
 msgstr "Chat local"
 
-#: sophie_bot/modules/notes/utils/parse.py:53
+#: sophie_bot/modules/notes/utils/parse.py:54
 msgid "Please check the notes documentation for the list of the allowed content types."
 msgstr "Por favor, consulte la documentación de notas para la lista de tipos de contenido permitidos."
 
-#: sophie_bot/modules/notes/utils/parse.py:54
+#: sophie_bot/modules/notes/utils/parse.py:55
 msgid "Reply message content is not parsable as the note."
 msgstr "El contenido del mensaje de respuesta no se puede procesar como la nota."
 
-#: sophie_bot/modules/notes/utils/parse.py:76
-#: sophie_bot/modules/notes/utils/parse.py:123
+#: sophie_bot/modules/notes/utils/parse.py:77
+#: sophie_bot/modules/notes/utils/parse.py:124
 msgid "Rich message cannot be saved."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:122
+#: sophie_bot/modules/notes/utils/parse.py:123
 msgid "Rich messages cannot be combined with additional note text."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/parse.py:170
+#: sophie_bot/modules/notes/utils/parse.py:171
 #, python-brace-format
 msgid "The maximum length of the note is {limit} characters."
 msgstr "La longitud máxima de la nota es {limit} caracteres."
 
-#: sophie_bot/modules/notes/utils/parse.py:171
+#: sophie_bot/modules/notes/utils/parse.py:172
 msgid "Please try to reduce the length of note."
 msgstr "Por favor, intente reducir la longitud de la nota."
 
-#: sophie_bot/modules/notes/utils/parse.py:172
+#: sophie_bot/modules/notes/utils/parse.py:173
 msgid "Note is too long."
 msgstr "La nota es demasiado larga."
 
@@ -7086,7 +7084,6 @@ msgid "This command can only be used in groups."
 msgstr "Este comando solo puede ser utilizado en grupos."
 
 #: sophie_bot/modules/users/handlers/adminlist.py:30
-#: sophie_bot/utils/errors.py:85
 msgid "Chat not found."
 msgstr "Chat no encontrado."
 
@@ -7322,24 +7319,24 @@ msgstr "Advierte a los usuarios en el chat para mantenerlo seguro."
 msgid "You can set a max warning limit and an action to take when the limit is reached."
 msgstr "Puedes establecer un límite máximo de advertencias y una acción a tomar cuando se alcance el límite."
 
-#: sophie_bot/modules/warns/action_config.py:70
+#: sophie_bot/modules/warns/action_config.py:67
 msgid "⚙️ Warn Actions - On Each Warn"
 msgstr "⚙️ Acciones de advertencia - En cada advertencia"
 
-#: sophie_bot/modules/warns/action_config.py:71
-#: sophie_bot/modules/warns/action_config.py:82
+#: sophie_bot/modules/warns/action_config.py:68
+#: sophie_bot/modules/warns/action_config.py:79
 msgid "Warn action configured successfully!"
 msgstr "¡Acción de advertencia configurada con éxito!"
 
-#: sophie_bot/modules/warns/action_config.py:81
+#: sophie_bot/modules/warns/action_config.py:78
 msgid "⚠️ Warn Actions - On Max Warns Exceeded"
 msgstr "⚠️ Acciones de advertencia - Al exceder las advertencias máximas"
 
-#: sophie_bot/modules/warns/action_config.py:89
+#: sophie_bot/modules/warns/action_config.py:86
 msgid "Configures actions triggered on each warning."
 msgstr ""
 
-#: sophie_bot/modules/warns/action_config.py:125
+#: sophie_bot/modules/warns/action_config.py:122
 msgid "Configures actions triggered when the warn limit is reached."
 msgstr ""
 
@@ -7464,32 +7461,32 @@ msgstr "No puedo advertir a un administrador."
 msgid "Delete warn"
 msgstr "Eliminar advertencia"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:64
+#: sophie_bot/modules/warns/handlers/warnaction.py:63
 #, python-brace-format
 msgid "{icon} {title} (default)"
 msgstr "{icon} {title} (predeterminado)"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:68
+#: sophie_bot/modules/warns/handlers/warnaction.py:67
 msgid "Ban the user (default)"
 msgstr "Banear al usuario (predeterminado)"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:93
+#: sophie_bot/modules/warns/handlers/warnaction.py:92
 msgid "On each warn"
 msgstr "En cada advertencia"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:94
+#: sophie_bot/modules/warns/handlers/warnaction.py:93
 msgid "On exceeding warnings"
 msgstr "Al exceder las advertencias"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:98
+#: sophie_bot/modules/warns/handlers/warnaction.py:97
 msgid "Configure on each warn"
 msgstr "Configurar en cada advertencia"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:104
+#: sophie_bot/modules/warns/handlers/warnaction.py:103
 msgid "Configure on warnings exceeding"
 msgstr "Configurar al exceder las advertencias"
 
-#: sophie_bot/modules/warns/handlers/warnaction.py:113
+#: sophie_bot/modules/warns/handlers/warnaction.py:112
 msgid "Configures warn actions."
 msgstr "Configura acciones de advertencia."
 
@@ -8105,39 +8102,6 @@ msgstr "Mensajes con tiradas de dados"
 #: sophie_bot/utils/error_references.py:9
 msgid "Reference ID"
 msgstr "ID de referencia"
-
-#: sophie_bot/utils/errors.py:45
-msgid "Setup data not found. Please try again."
-msgstr "No se encontraron datos de configuración. Por favor, inténtelo de nuevo."
-
-#: sophie_bot/utils/errors.py:50
-msgid "Setup session expired. Please start again."
-msgstr "La sesión de configuración ha expirado. Por favor, comience de nuevo."
-
-#: sophie_bot/utils/errors.py:55
-msgid "Invalid chat context. Please restart the setup."
-msgstr "Contexto de chat inválido. Por favor, reinicie la configuración."
-
-#: sophie_bot/utils/errors.py:60
-msgid "Invalid action."
-msgstr "Acción inválida."
-
-#: sophie_bot/utils/errors.py:65
-msgid "Invalid action configuration."
-msgstr "Configuración de la acción inválida."
-
-#: sophie_bot/utils/errors.py:70
-msgid "Invalid setting."
-msgstr "Ajuste inválido."
-
-#: sophie_bot/utils/errors.py:75
-msgid "Setting configuration not available."
-msgstr "La configuración del ajuste no está disponible."
-
-#: sophie_bot/utils/errors.py:106
-#, python-brace-format
-msgid "Invalid {action} duration, please try again."
-msgstr "Duración de {action} no válida, por favor intenta de nuevo."
 
 #: sophie_bot/utils/pagination.py:47
 msgid "◀️ Previous"
@@ -8959,4 +8923,28 @@ msgstr "No se pudo encontrar la mención de usuario"
 
 #~ msgid "Shows Welcome Security settings"
 #~ msgstr "Muestra la configuración de Seguridad de Bienvenida"
+
+#~ msgid "Setup data not found. Please try again."
+#~ msgstr "No se encontraron datos de configuración. Por favor, inténtelo de nuevo."
+
+#~ msgid "Setup session expired. Please start again."
+#~ msgstr "La sesión de configuración ha expirado. Por favor, comience de nuevo."
+
+#~ msgid "Invalid chat context. Please restart the setup."
+#~ msgstr "Contexto de chat inválido. Por favor, reinicie la configuración."
+
+#~ msgid "Invalid action."
+#~ msgstr "Acción inválida."
+
+#~ msgid "Invalid action configuration."
+#~ msgstr "Configuración de la acción inválida."
+
+#~ msgid "Invalid setting."
+#~ msgstr "Ajuste inválido."
+
+#~ msgid "Setting configuration not available."
+#~ msgstr "La configuración del ajuste no está disponible."
+
+#~ msgid "Invalid {action} duration, please try again."
+#~ msgstr "Duración de {action} no válida, por favor intenta de nuevo."
 

@@ -1,50 +1,23 @@
 ---
 name: database-migrations
-description: Use this skill when creating or changing Beanie migrations, moving stored data, or evolving persisted schemas in Sophie Bot.
+description: Use when creating or modifying Beanie migrations, moving stored data, or evolving schemas.
 ---
 
-# Database migrations
+# Database Migrations
 
-Use this skill for changes under `sophie_bot/db/migrations/` and for any task that changes persisted MongoDB documents.
+## Creation & Structure
 
-## Create migrations the project way
+- Create via `make new_migration NAME=<name>` or `uv run python tools/migration_helper.py create <name>`.
+- Structure requires: docstring describing impact, a `Forward` class, and a `Backward` class.
+- Always implement rollback logic; avoid irreversible one-way migrations unless explicitly accepted.
 
-- Prefer `make new_migration NAME=<descriptive_name>`.
-- Equivalent helper: `uv run python tools/migration_helper.py create <descriptive_name>`.
-- Use descriptive names such as `add_user_preferences`, not generic numeric names.
+## Migration Design
 
-## Required file structure
+- Use `@iterative_migration()` for document-by-document updates.
+- Use `@free_fall_migration()` for bulk operations, raw collection queries, or custom session sequencing.
+- Ensure operations are idempotent. Batch heavy operations to respect memory and transaction limits.
 
-Every migration should include:
+## Verification
 
-1. A docstring describing the goal, affected collections, and impact.
-2. A `Forward` class.
-3. A `Backward` class.
-
-Backward logic is required. Do not ship one-way migrations unless the task explicitly accepts that risk.
-
-## Choosing the migration style
-
-- Use `@iterative_migration()` for document-by-document changes.
-- Use `@free_fall_migration()` when you need session control, bulk operations, batching, or special sequencing.
-- For very large collections, prefer batched work and keep transaction limits in mind.
-
-## Safety checklist
-
-- Keep migrations idempotent when possible.
-- Consider batch size, runtime, and rollback behavior before writing code.
-- For replica-set deployments, transaction support can be enabled, but do not assume it is always available.
-- Large migrations should be staged and observed carefully.
-
-## Verification workflow
-
-- Run `make migrate_up` locally when the environment supports it.
-- Check status with `make migrate_status`.
-- Verify rollback logic before considering the migration done.
-- Add or update migration tests when the project already covers that area.
-
-## Useful references
-
-- `sophie_bot/db/migrations/`
-- `tools/migration_helper.py`
-- `config.py`
+- Test execution via `make migrate_up` and check status via `make migrate_status`.
+- Test backward rollback before completion. Add corresponding migration unit tests.

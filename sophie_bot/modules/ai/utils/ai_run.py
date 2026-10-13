@@ -316,13 +316,6 @@ class _StreamChannel:
 
 
 @dataclass(frozen=True, slots=True)
-class ChatbotStreamOptions:
-    """Controls whether the full agent event stream or legacy run_stream path is used."""
-
-    continuation: bool = True
-
-
-@dataclass(frozen=True, slots=True)
 class _StreamOutcome:
     output_text: str
     usage: RunUsage
@@ -732,59 +725,6 @@ async def _stream_via_events[DepsT](
     )
 
 
-async def _stream_via_run_stream[DepsT](
-    agent: Agent[DepsT, str],
-    run_kwargs: dict[str, Any],
-    effective_model: Model,
-    on_text_stream: TextStreamCallback,
-    on_before_tool_call: ToolCallCallback | None,
-    on_tool_call: ToolCallCallback | None,
-    seen_tool_names: set[str],
-) -> _StreamOutcome:
-    """Rollback path for ``ai_chatbot_stream_continuation``: stream a single model response.
-
-    This is the pre-continuation behaviour and carries its bug — the agent loop stops at the first
-    text token, so tool calls made after a narration preamble never get a follow-up request.
-    """
-    stream_start = time.perf_counter()
-    first_token_seen = False
-    chunk_count = 0
-
-    if on_before_tool_call is not None or on_tool_call is not None:
-        notify_tool_call = _tool_call_notifier(on_tool_call, seen_tool_names)
-
-        async def event_stream_handler(
-            _ctx: RunContext[object],
-            events: AsyncIterable[AgentStreamEvent],
-        ) -> None:
-            async for event in events:
-                if isinstance(event, FunctionToolCallEvent):
-                    if on_before_tool_call is not None:
-                        await on_before_tool_call(event.part.tool_name)
-                    await notify_tool_call(event.part.tool_name)
-
-        run_kwargs["event_stream_handler"] = event_stream_handler
-
-    async with agent.run_stream(**run_kwargs) as result_stream:
-        accumulated_text = ""
-        async for text_delta in result_stream.stream_text(delta=True, debounce_by=_STREAM_DEBOUNCE_SECONDS):
-            if text_delta and not first_token_seen:
-                first_token_seen = True
-                track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
-            chunk_count += 1
-            accumulated_text += text_delta
-            await on_text_stream(accumulated_text)
-
-        return _StreamOutcome(
-            output_text=await result_stream.get_output(),
-            usage=result_stream.usage,
-            message_history=result_stream.all_messages(),
-            new_messages=result_stream.new_messages(),
-            first_token_seen=first_token_seen,
-            chunk_count=chunk_count,
-        )
-
-
 async def run_ai_stream[DepsT](
     agent: Agent[DepsT, str],
     user_prompt: str | Sequence[UserContent],
@@ -798,11 +738,9 @@ async def run_ai_stream[DepsT](
     on_tool_call: ToolCallCallback | None = None,
     on_reasoning_stream: TextStreamCallback | None = None,
     on_retry: AIRetryCallback | None = None,
-    stream_options: ChatbotStreamOptions | None = None,
     model_plan: AIModelPlan | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
-    options = stream_options or ChatbotStreamOptions()
     agent_model = _get_agent_model(agent)
     candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
@@ -814,23 +752,10 @@ async def run_ai_stream[DepsT](
         run_stream_kwargs = _candidate_run_kwargs(
             base_run_kwargs, model_settings, request_options, candidate, agent_model
         )
-        effective_model = candidate.model
-
-        if not options.continuation:
-            return await _stream_via_run_stream(
-                agent,
-                run_stream_kwargs,
-                effective_model,
-                on_text_stream,
-                on_before_tool_call,
-                on_tool_call,
-                seen_tool_names,
-            )
-
         return await _stream_via_events(
             agent,
             run_stream_kwargs,
-            effective_model,
+            candidate.model,
             on_text_stream,
             on_reasoning_stream,
             on_before_tool_call,

@@ -266,10 +266,8 @@ class AiTranslate(SophieMessageHandler):
         )
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.translation,
-            self.connection.db_model.iid,
-            self.event.chat.id,
+            chat_tid=self.event.chat.id,
             redis=self.services.redis,
-            mode=self.data.get("ai_mode"),
         )
 
         if progress_streamer:

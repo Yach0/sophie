@@ -232,8 +232,7 @@ class GenerateChatSummaries:
         )
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.summary,
-            chat_iid,
-            chat_tid,
+            chat_tid=chat_tid,
             redis=self.services.redis,
         )
         result = await run_structured_task(

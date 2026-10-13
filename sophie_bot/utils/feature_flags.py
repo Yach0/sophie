@@ -15,7 +15,6 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOv
 
 # Public types
 FeatureType: TypeAlias = Literal[  # noqa: UP040
-    "architecture_refactor",
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_filter_daily_chat_limit",
@@ -41,7 +40,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "ai_chatbot_modern_context_tokens",
     "ai_chatbot_research_quote",
     "ai_chatbot_streaming_backoff_seconds",
-    "ai_chatbot_stream_continuation",
     "ai_chatbot_request_limit",
     "ai_chatbot_tool_calls_limit",
     "ai_chatbot_response_tokens_limit",
@@ -87,7 +85,6 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "cleannotes",
     "filters",
     "filters_silent_mode",
-    "action_config_wizard",
     "antiflood",
     "locks",
     "group_user_whitelist",
@@ -219,7 +216,6 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
-    "architecture_refactor": _feature(True),
     "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
@@ -257,10 +253,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_chatbot_modern_context_tokens": _feature(16384),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
-    # Off restores `Agent.run_stream`, which stops at the first text token and can drop
-    # later tool calls. That path also cannot show reasoning progress.
-    # Delete this rollback switch and `_stream_via_run_stream` after the new path holds in production.
-    "ai_chatbot_stream_continuation": _feature(True),
     "ai_chatbot_request_limit": _feature(4),
     "ai_chatbot_tool_calls_limit": _feature(6),
     "ai_chatbot_response_tokens_limit": _feature(2048),
@@ -314,7 +306,6 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "cleannotes": _feature(False),
     "filters": _feature(True),
     "filters_silent_mode": _feature(True),
-    "action_config_wizard": _feature(True),
     "antiflood": _feature(True),
     "locks": _feature(True),
     "group_user_whitelist": _feature(False),
@@ -466,17 +457,6 @@ def _coerce_rollout(value: Any) -> FeatureRollout | None:
     rollout_value = _coerce_db_value(raw_value)
     if rollout_value is None:
         return None
-
-    legacy_percentage = _coerce_percentage(value.get("percentage"))
-    # TODO: Remove legacy percentage migration after 2026-09 if no old-format rollouts remain.
-    if legacy_percentage is not None:
-        return {
-            "start_percentage": legacy_percentage,
-            "target_percentage": legacy_percentage,
-            "started_at": _serialize_datetime(_utc_now()),
-            "duration_days": None,
-            "value": rollout_value,
-        }
 
     start_percentage = _coerce_percentage(value.get("start_percentage"))
     target_percentage = _coerce_percentage(value.get("target_percentage"))

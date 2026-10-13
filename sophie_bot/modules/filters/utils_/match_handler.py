@@ -313,8 +313,7 @@ async def match_ai_handler(
         )
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.filters,
-            chat_iid,
-            chat_tid,
+            chat_tid=chat_tid,
             redis=services.redis,
         )
 

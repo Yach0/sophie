@@ -8,7 +8,8 @@ from stfu_tg import Section, Template
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList, parse_message_buttons
+from sophie_bot.modules.notes.utils.buttons.storage import buttons_from_markup
+from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.buttons_processor.list_from_message import parse_buttons_list_from_message
 from sophie_bot.modules.notes.utils.convert_to_html import preserve_custom_emoji_inline_html, tg_emoji_workaround
 from sophie_bot.modules.notes.utils.media import (
@@ -44,7 +45,7 @@ def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[li
     rich_message = getattr(message, "rich_message", None)
     if rich_message is not None:
         reply_markup = getattr(message, "reply_markup", None)
-        buttons = parse_message_buttons(reply_markup) if reply_markup else []
+        buttons = buttons_from_markup(reply_markup) if reply_markup else []
         return rich_message_to_html_fallback(rich_message), None, buttons
 
     if message.content_type not in (*PARSABLE_CONTENT_TYPES, ContentType.TEXT):
@@ -56,7 +57,7 @@ def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[li
         )
 
     reply_markup = getattr(message, "reply_markup", None)
-    buttons = parse_message_buttons(reply_markup) if reply_markup else []
+    buttons = buttons_from_markup(reply_markup) if reply_markup else []
     return tg_emoji_workaround(message.html_text), extract_file_info(message), buttons
 
 
@@ -77,7 +78,7 @@ def _rich_saveable(
 
     source_markup = getattr(source_message, "reply_markup", None)
     if source_markup:
-        buttons.extend(parse_message_buttons(source_markup))
+        buttons.extend(buttons_from_markup(source_markup))
     return Saveable(
         text=rich_message_to_html_fallback(rich_message),
         file=None,

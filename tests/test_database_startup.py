@@ -124,7 +124,6 @@ async def test_runtime_config_controls_indexes_on_borrowed_database(
     await collection.insert_one({"value": 1})
     monkeypatch.setattr(CONFIG, "mongo_skip_indexes", True)
     monkeypatch.setattr(CONFIG, "mongo_allow_index_dropping", False)
-    monkeypatch.setattr(startup, "ensure_architecture_enabled", AsyncMock())
     monkeypatch.setattr(startup, "ensure_bot_in_db", AsyncMock())
     monkeypatch.setattr("sophie_bot.runtime.create_scheduler", lambda _config: AsyncIOScheduler())
     config = Config(
@@ -176,15 +175,3 @@ async def test_startup_can_skip_migrations_and_index_synchronization(
     assert "obsolete" in await collection.index_information()
 
 
-@pytest.mark.asyncio
-async def test_architecture_rollout_gate_rejects_disabled_build(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        startup,
-        "is_enabled",
-        AsyncMock(return_value=False),
-    )
-
-    with pytest.raises(RuntimeError, match="refusing to start"):
-        await startup.ensure_architecture_enabled(object())
