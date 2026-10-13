@@ -44,10 +44,6 @@ class WarnSettingsModel(Document):
         return settings
 
     @staticmethod
-    async def get_by_chat_iid(chat_iid: PydanticObjectId) -> WarnSettingsModel:
-        return await WarnSettingsModel.get_or_create(chat_iid)
-
-    @staticmethod
     def _upsert_action(
         actions: list[StoredAction], action_name: str, action_data: dict | None = None
     ) -> list[StoredAction]:

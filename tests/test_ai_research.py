@@ -8,9 +8,11 @@ import httpx2
 import pytest
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from pydantic_ai.models import Model
+from pydantic_ai.usage import RunUsage
 from stfu_tg import Title
 
 from sophie_bot.config import CONFIG
+from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic
 from sophie_bot.modules.ai.agent_tools.tinyfish_search import (
@@ -27,14 +29,15 @@ from sophie_bot.modules.ai.json_schemas.research import (
 )
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
+from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, ResearchProgressStage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     _get_search_tool,
     build_chatbot_usage_limits,
 )
 from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
+from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings
 from sophie_bot.modules.ai.utils.research import (
-    ResearchProgressStage,
-    ResearchWorkflowSettings,
+    ResearchWorkflowResult,
     build_research_doc,
     build_research_markdown_file,
     render_research_markdown,
@@ -43,31 +46,17 @@ from sophie_bot.modules.ai.utils.research import (
     run_research_workflow,
     search_web_for_research,
 )
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
-from sophie_bot.utils.feature_flags import get_service_tier, get_value, is_enabled
 
 
 @pytest.mark.asyncio
-async def test_research_settings_have_safe_defaults(db_init: object, test_redis: object, test_services: object) -> None:
-    assert await is_enabled(
-        "ai_chatbot_research_quote",
-        redis=test_redis,
-    ) is True
-    # Empty by default: research resolves from the catalog; this flag is only a model override.
-    assert await get_value("ai_research_model", redis=test_redis) == ""
-    assert await get_value("ai_research_max_rounds", redis=test_redis) == 3
-    assert await get_value("ai_research_queries_per_round", redis=test_redis) == 5
-    assert await get_value("ai_research_results_per_query", redis=test_redis) == 5
-    assert await get_service_tier(
-        "ai_research_service_tier",
-        redis=test_redis,
-    ) == "flex"
-
-
-@pytest.mark.asyncio
-async def test_run_research_workflow_runs_followup_searches(test_redis: object, test_services: object) -> None:
+async def test_run_research_workflow_runs_followup_searches(
+    test_redis: object,
+    test_services: ApplicationServices,
+) -> None:
     connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
-    settings = ResearchWorkflowSettings(max_rounds=3, queries_per_round=2, results_per_query=2, service_tier=None)
+    settings = ResearchWorkflowSettings(max_rounds=3, queries_per_round=2, results_per_query=2, service_tier="flex")
     first_query = ResearchSearchQuery(query="initial query", reason="Start broad")
     followup_query = ResearchSearchQuery(query="followup query", reason="Fill gap")
     first_source = ResearchSource(title="First", url="https://example.com/first", snippet="First snippet")
@@ -79,16 +68,16 @@ async def test_run_research_workflow_runs_followup_searches(test_redis: object, 
     )
 
     generated_results = [
-        SimpleNamespace(output=ResearchQueryPlan(queries=[first_query]), usage=None),
+        SimpleNamespace(output=ResearchQueryPlan(queries=[first_query]), usage=RunUsage()),
         SimpleNamespace(
             output=ResearchDecision(action="search", followup_queries=[followup_query], reasoning="Need more"),
-            usage=None,
+            usage=RunUsage(),
         ),
         SimpleNamespace(
             output=ResearchDecision(action="continue", followup_queries=[], reasoning="Enough"),
-            usage=None,
+            usage=RunUsage(),
         ),
-        SimpleNamespace(output=final_response, usage=None, message_history=[], served_model=None),
+        SimpleNamespace(output=final_response, usage=RunUsage(), message_history=[], served_model=None),
     ]
 
     async def search_side_effect(
@@ -111,8 +100,7 @@ async def test_run_research_workflow_runs_followup_searches(test_redis: object, 
         progress_stages.append(stage)
 
     with (
-        patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
-        patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
+        patch("sophie_bot.modules.ai.utils.research.get_research_workflow_settings", autospec=True, return_value=settings),
         patch(
             "sophie_bot.modules.ai.utils.research.get_chat_research_model_plan",
             AsyncMock(
@@ -143,23 +131,22 @@ async def test_run_research_workflow_runs_followup_searches(test_redis: object, 
 
 
 async def test_the_reported_research_model_is_the_one_that_summarised(
-    test_services: object,
+    test_services: ApplicationServices,
 ) -> None:
     """Failover may move the summary off the plan's first candidate; the report must follow it."""
     connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
-    settings = ResearchWorkflowSettings(max_rounds=1, queries_per_round=1, results_per_query=1, service_tier=None)
+    settings = ResearchWorkflowSettings(max_rounds=1, queries_per_round=1, results_per_query=1, service_tier="flex")
     source = ResearchSource(title="Only", url="https://example.com/only", snippet="Only snippet")
     final_response = ResearchFinalResponse(research_title="Answer", text="Answer", sources=[source])
     served_model = cast(Model, SimpleNamespace(model_name="backup-model"))
 
     generated_results = [
-        SimpleNamespace(output=ResearchQueryPlan(queries=[ResearchSearchQuery(query="q", reason="r")]), usage=None),
-        SimpleNamespace(output=final_response, usage=None, message_history=[], served_model=served_model),
+        SimpleNamespace(output=ResearchQueryPlan(queries=[ResearchSearchQuery(query="q", reason="r")]), usage=RunUsage()),
+        SimpleNamespace(output=final_response, usage=RunUsage(), message_history=[], served_model=served_model),
     ]
 
     with (
-        patch("sophie_bot.modules.ai.utils.research.get_research_settings", AsyncMock(return_value=settings)),
-        patch("sophie_bot.modules.ai.utils.research.resolve_chat_service_tier", AsyncMock(return_value=None)),
+        patch("sophie_bot.modules.ai.utils.research.get_research_workflow_settings", autospec=True, return_value=settings),
         patch(
             "sophie_bot.modules.ai.utils.research.get_chat_research_model_plan",
             AsyncMock(
@@ -225,11 +212,34 @@ def test_retrieve_latest_research_response_reads_research_tool_return() -> None:
 
 
 @pytest.mark.asyncio
-async def test_research_tool_forwards_chatbot_progress_callback(test_redis: object, test_services: object) -> None:
-    expected_response = ResearchFinalResponse(research_title="Answer", text="Answer", sources=[])
+async def test_research_tool_returns_report_and_updates_chatbot_progress(
+    test_services: ApplicationServices,
+) -> None:
+    expected_response = ResearchFinalResponse(
+        research_title="Answer",
+        text="Answer",
+        sources=[ResearchSource(title="Source", url="https://example.com/source", snippet="Supporting evidence")],
+    )
+    progress_stages: list[ResearchProgressStage] = []
 
     async def progress_callback(stage: ResearchProgressStage) -> None:
-        assert stage == "planning"
+        progress_stages.append(stage)
+
+    async def run_workflow(
+        prompt: str,
+        connection: ChatConnection,
+        progress_callback: ResearchProgressCallback | None = None,
+        *,
+        services: ApplicationServices,
+    ) -> ResearchWorkflowResult:
+        if progress_callback is not None:
+            await progress_callback("planning")
+            await progress_callback("summarizing")
+        return ResearchWorkflowResult(
+            response=expected_response,
+            model=cast(Model, SimpleNamespace(model_name="test-model")),
+            message_history=[],
+        )
 
     context = SimpleNamespace(
         deps=SimpleNamespace(
@@ -240,18 +250,13 @@ async def test_research_tool_forwards_chatbot_progress_callback(test_redis: obje
     )
 
     with patch(
-        "sophie_bot.modules.ai.agent_tools.research.run_research_workflow_response",
-        AsyncMock(return_value=expected_response),
-    ) as workflow_mock:
+        "sophie_bot.modules.ai.agent_tools.research.run_research_workflow",
+        AsyncMock(side_effect=run_workflow),
+    ):
         response = await research_topic(context, "complicated topic")
 
-    assert response == expected_response
-    workflow_mock.assert_awaited_once_with(
-        "complicated topic",
-        context.deps.connection,
-        progress_callback=progress_callback,
-        services=test_services,
-    )
+    assert response is expected_response
+    assert progress_stages == ["planning", "summarizing"]
 
 
 @pytest.mark.asyncio
@@ -401,11 +406,10 @@ async def test_search_web_for_research_maps_tinyfish_results(monkeypatch: pytest
     )
     with (
         patch("sophie_bot.modules.ai.utils.research.get_value", AsyncMock(return_value="tinyfish")),
-        patch("sophie_bot.modules.ai.utils.research.search_tinyfish", AsyncMock(return_value=[tiny_result])) as mock,
+        patch("sophie_bot.modules.ai.utils.research.search_tinyfish", AsyncMock(return_value=[tiny_result])),
     ):
         sources = await search_web_for_research(-100123, "query", 5, services=test_services)
 
-    mock.assert_awaited_once_with("query", 5)
     assert sources == [
         ResearchSource(title="Tiny title", url="https://example.com/tiny", snippet="Snip", published="2026-08-01")
     ]

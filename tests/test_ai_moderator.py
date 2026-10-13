@@ -58,7 +58,7 @@ def _mistral_returning(scores: dict[str, float] | None):
 
 @pytest.fixture
 def mock_history() -> AsyncMock:
-    with patch("sophie_bot.modules.ai.utils.moderation.AIMessageHistory") as mock_cls:
+    with patch("sophie_bot.modules.ai.utils.moderation.OldContext") as mock_cls:
         instance = AsyncMock()
         instance.add_from_message = AsyncMock()
         instance.to_moderation = [{"role": "user", "content": "test message"}]

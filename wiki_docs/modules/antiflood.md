@@ -12,8 +12,8 @@ icon: 📈
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/antiflood` `/flood` | - | Shows antiflood protection settings |  |
-| `/enable_antiflood` `/antiflood_enable` | `<?New status>` | Enable or disable antiflood protection | *Disable-able* |
-| `/antiflood_count` | `<Number of messages allowed in 30 seconds>` | Set the message count threshold for antiflood protection |  |
-| `/antiflood_action` | - | - |  |
+| `/antiflood` `/flood` | - | Shows antiflood protection settings. |  |
+| `/enable_antiflood` `/antiflood_enable` | `<?New status>` | Enable or disable antiflood protection. | *Disable-able* |
+| `/antiflood_count` | `<Number of messages allowed in 30 seconds>` | Set the message count threshold for antiflood protection. |  |
+| `/antiflood_action` | - | Configures actions triggered by antiflood protection. |  |
 {.card-view-on-mobile}

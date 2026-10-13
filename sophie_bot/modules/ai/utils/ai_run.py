@@ -4,10 +4,10 @@ import time
 from collections.abc import AsyncIterable, Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from functools import partial
-from typing import Any, Final, TypeVar, cast
+from typing import Any, Final, cast
 
 from beanie import PydanticObjectId
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic_ai import (
     Agent,
     AgentStreamEvent,
@@ -24,6 +24,8 @@ from pydantic_ai import (
 from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
 from pydantic_ai.models import Model
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
+from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.metrics import (
@@ -44,12 +46,15 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     is_retryable_ai_provider_error,
     run_ai_request_with_retries,
 )
-from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
-from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, request_has_images
+from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model, registered_context_window_tokens
+from sophie_bot.modules.ai.utils.ai_model_plan import (
+    AIModelCandidate,
+    AIModelPlan,
+    request_has_images,
+)
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.utils.logger import log
 
-ResponseT = TypeVar("ResponseT", bound=BaseModel)
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
 
@@ -82,7 +87,11 @@ def _last_resort_candidate(candidates: Sequence[AIModelCandidate]) -> AIModelCan
         for candidate in candidates
     ):
         return None
-    return AIModelCandidate(model=model, model_name=AI_FALLBACK_MODEL_NAME)
+    return AIModelCandidate(
+        model=model,
+        model_name=AI_FALLBACK_MODEL_NAME,
+        context_window_tokens=registered_context_window_tokens(AI_FALLBACK_MODEL_NAME),
+    )
 
 
 def _closed_chain(candidates: list[AIModelCandidate]) -> list[AIModelCandidate]:
@@ -102,7 +111,11 @@ def _agent_candidate(agent_model: Model, model_plan: AIModelPlan | None) -> AIMo
     for candidate in model_plan.candidates if model_plan else ():
         if candidate.model is agent_model:
             return candidate
-    return AIModelCandidate(model=agent_model, model_name=agent_model.model_name)
+    return AIModelCandidate(
+        model=agent_model,
+        model_name=agent_model.model_name,
+        context_window_tokens=registered_context_window_tokens(agent_model.model_name),
+    )
 
 
 def resolve_candidates(
@@ -128,6 +141,18 @@ def resolve_candidates(
     if ruled_out:
         return _closed_chain(eligible)
     return _closed_chain([agent_candidate, *(c for c in eligible if c.model is not agent_model)])
+
+
+def modern_context_window_tokens(model_plan: AIModelPlan) -> int:
+    """Admission limit across the actual failover chain, including its last-resort model.
+
+    Every runtime candidate must have an explicit registry capacity.
+    Checking without image filtering conservatively covers both text and image turns.
+    """
+    return min(
+        candidate.require_context_window_tokens()
+        for candidate in resolve_candidates(model_plan.primary, model_plan, has_images=False)
+    )
 
 
 def _should_try_next_model(error: BaseException) -> bool:
@@ -219,6 +244,7 @@ class AIRequestOptions:
     user_tracking_id: str | int | PydanticObjectId | None = None
     session_id: str | None = None
     service_tier: str | None = None
+    prompt_cache: bool = False
 
     @property
     def has_extra_body(self) -> bool:
@@ -229,9 +255,9 @@ class AIAgentResult[OutputT](BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     output: OutputT
-    steps: int | None = None
     retries: int | None = None
     message_history: list[ModelRequest | ModelResponse]
+    new_messages: list[ModelRequest | ModelResponse] = Field(default_factory=list)
     usage: RunUsage
     served_model: Model | None = None
     """The candidate that actually answered, which failover may have moved off the first one.
@@ -290,17 +316,11 @@ class _StreamChannel:
 
 
 @dataclass(frozen=True, slots=True)
-class ChatbotStreamOptions:
-    """Controls whether the full agent event stream or legacy run_stream path is used."""
-
-    continuation: bool = True
-
-
-@dataclass(frozen=True, slots=True)
 class _StreamOutcome:
     output_text: str
     usage: RunUsage
     message_history: list[ModelRequest | ModelResponse]
+    new_messages: list[ModelRequest | ModelResponse]
     first_token_seen: bool
     chunk_count: int
 
@@ -324,18 +344,6 @@ def build_model_settings(
     return model_settings
 
 
-def _merge_model_settings(
-    base_model_settings: Mapping[str, object] | None,
-    run_model_settings: object | None,
-) -> Mapping[str, object] | None:
-    """Model settings a caller passed through ``**extra_run_kwargs``, layered over the base ones."""
-    if run_model_settings is None:
-        return base_model_settings
-    if not isinstance(run_model_settings, Mapping):
-        raise TypeError("run model_settings must be a mapping when request options are injected")
-    return {**(base_model_settings or {}), **run_model_settings}
-
-
 def _candidate_request_options(
     request_options: AIRequestOptions | None,
     candidate: AIModelCandidate,
@@ -353,6 +361,48 @@ def _candidate_request_options(
     return replace(base, service_tier=service_tier)
 
 
+def _candidate_cache_settings(
+    model_settings: dict[str, object] | None,
+    request_options: AIRequestOptions | None,
+    model: Model,
+) -> dict[str, object] | None:
+    """Enable only cache controls that the candidate's actual serializer supports.
+
+    OpenRouter gates explicit boundaries through its downstream model profile. Native OpenAI
+    caching is automatic; its opaque routing key improves prefix affinity. Compatible endpoints
+    are not assumed to implement OpenAI's cache-key extension.
+    """
+    if request_options is None or not request_options.prompt_cache:
+        return model_settings
+    settings = dict(model_settings or {})
+    if isinstance(model, OpenRouterModel):
+        settings.update(
+            openrouter_cache_instructions=True,
+            openrouter_cache_messages=True,
+            openrouter_cache_tool_definitions=True,
+        )
+    elif any(
+        cls.__module__ == "pydantic_ai.models.anthropic" and cls.__name__ == "AnthropicModel"
+        for cls in type(model).__mro__
+    ):
+        # Identify the actual native serializer without importing its optional SDK. This also
+        # covers subclasses and Anthropic gateways whose provider name is not "anthropic".
+        settings.update(
+            anthropic_cache_instructions=True,
+            anthropic_cache_messages=True,
+            anthropic_cache_tool_definitions=True,
+        )
+        # Explicit boundaries also support gateways without automatic caching.
+        settings["anthropic_cache"] = False
+    elif (
+        isinstance(model, (OpenAIChatModel, OpenAIResponsesModel))
+        and model.client.base_url.host == "api.openai.com"
+        and request_options.session_id is not None
+    ):
+        settings["openai_prompt_cache_key"] = request_options.session_id
+    return settings or None
+
+
 def _candidate_run_kwargs(
     run_kwargs: Mapping[str, Any],
     model_settings: Mapping[str, object] | None,
@@ -362,8 +412,18 @@ def _candidate_run_kwargs(
 ) -> dict[str, Any]:
     """The run kwargs for one attempt, built per candidate because the service tier is one of them."""
     candidate_kwargs = dict(run_kwargs)
-    resolved_model_settings = build_model_settings(
-        model_settings, _candidate_request_options(request_options, candidate)
+    candidate_options = _candidate_request_options(request_options, candidate)
+    body_options = candidate_options
+    if candidate_options is not None and candidate_options.prompt_cache:
+        # Modern attribution uses opaque session keys, never real Telegram user/chat identifiers.
+        # OpenRouter accepts session_id; native/compatible APIs must not receive that extension.
+        body_options = replace(
+            candidate_options,
+            user_tracking_id=None,
+            session_id=candidate_options.session_id if isinstance(candidate.model, OpenRouterModel) else None,
+        )
+    resolved_model_settings = _candidate_cache_settings(
+        build_model_settings(model_settings, body_options), candidate_options, candidate.model
     )
     resolved_model_settings = _with_hard_output_token_limit(
         resolved_model_settings,
@@ -467,6 +527,7 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
         output=result.output,
         retries=retries,
         message_history=message_history,
+        new_messages=result.new_messages(),
         usage=result.usage,
         served_model=served_model,
     )
@@ -537,13 +598,12 @@ async def run_ai_structured[DepsT, OutputT](
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[OutputT]:
     run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
-    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     run_kwargs.update(extra_run_kwargs)
     return await _run_with_retries_and_metrics(
         agent,
         run_kwargs,
         request_options=request_options,
-        model_settings=merged_model_settings,
+        model_settings=model_settings,
         on_retry=on_retry,
         operation_label="structured",
         model_plan=model_plan,
@@ -659,61 +719,10 @@ async def _stream_via_events[DepsT](
         output_text=output_text,
         usage=result.usage,
         message_history=result.all_messages(),
+        new_messages=result.new_messages(),
         first_token_seen=first_token_seen,
         chunk_count=chunk_count,
     )
-
-
-async def _stream_via_run_stream[DepsT](
-    agent: Agent[DepsT, str],
-    run_kwargs: dict[str, Any],
-    effective_model: Model,
-    on_text_stream: TextStreamCallback,
-    on_before_tool_call: ToolCallCallback | None,
-    on_tool_call: ToolCallCallback | None,
-    seen_tool_names: set[str],
-) -> _StreamOutcome:
-    """Rollback path for ``ai_chatbot_stream_continuation``: stream a single model response.
-
-    This is the pre-continuation behaviour and carries its bug — the agent loop stops at the first
-    text token, so tool calls made after a narration preamble never get a follow-up request.
-    """
-    stream_start = time.perf_counter()
-    first_token_seen = False
-    chunk_count = 0
-
-    if on_before_tool_call is not None or on_tool_call is not None:
-        notify_tool_call = _tool_call_notifier(on_tool_call, seen_tool_names)
-
-        async def event_stream_handler(
-            _ctx: RunContext[object],
-            events: AsyncIterable[AgentStreamEvent],
-        ) -> None:
-            async for event in events:
-                if isinstance(event, FunctionToolCallEvent):
-                    if on_before_tool_call is not None:
-                        await on_before_tool_call(event.part.tool_name)
-                    await notify_tool_call(event.part.tool_name)
-
-        run_kwargs["event_stream_handler"] = event_stream_handler
-
-    async with agent.run_stream(**run_kwargs) as result_stream:
-        accumulated_text = ""
-        async for text_delta in result_stream.stream_text(delta=True, debounce_by=_STREAM_DEBOUNCE_SECONDS):
-            if text_delta and not first_token_seen:
-                first_token_seen = True
-                track_ai_time_to_first_token(effective_model, time.perf_counter() - stream_start)
-            chunk_count += 1
-            accumulated_text += text_delta
-            await on_text_stream(accumulated_text)
-
-        return _StreamOutcome(
-            output_text=await result_stream.get_output(),
-            usage=result_stream.usage,
-            message_history=result_stream.all_messages(),
-            first_token_seen=first_token_seen,
-            chunk_count=chunk_count,
-        )
 
 
 async def run_ai_stream[DepsT](
@@ -729,40 +738,24 @@ async def run_ai_stream[DepsT](
     on_tool_call: ToolCallCallback | None = None,
     on_reasoning_stream: TextStreamCallback | None = None,
     on_retry: AIRetryCallback | None = None,
-    stream_options: ChatbotStreamOptions | None = None,
     model_plan: AIModelPlan | None = None,
     **extra_run_kwargs: Any,
 ) -> AIAgentResult[str]:
-    options = stream_options or ChatbotStreamOptions()
     agent_model = _get_agent_model(agent)
     candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
-    merged_model_settings = _merge_model_settings(model_settings, extra_run_kwargs.pop("model_settings", None))
     base_run_kwargs.update(extra_run_kwargs)
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
     async def run_stream_once(candidate: AIModelCandidate) -> _StreamOutcome:
         run_stream_kwargs = _candidate_run_kwargs(
-            base_run_kwargs, merged_model_settings, request_options, candidate, agent_model
+            base_run_kwargs, model_settings, request_options, candidate, agent_model
         )
-        effective_model = candidate.model
-
-        if not options.continuation:
-            return await _stream_via_run_stream(
-                agent,
-                run_stream_kwargs,
-                effective_model,
-                on_text_stream,
-                on_before_tool_call,
-                on_tool_call,
-                seen_tool_names,
-            )
-
         return await _stream_via_events(
             agent,
             run_stream_kwargs,
-            effective_model,
+            candidate.model,
             on_text_stream,
             on_reasoning_stream,
             on_before_tool_call,
@@ -799,6 +792,7 @@ async def run_ai_stream[DepsT](
         output=outcome.output_text,
         retries=retries,
         message_history=outcome.message_history,
+        new_messages=outcome.new_messages,
         usage=outcome.usage,
         served_model=served_model,
     )

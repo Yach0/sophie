@@ -16,7 +16,7 @@ from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_pl
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
-from sophie_bot.modules.ai.utils.message_history import CHATBOT_CACHE_MESSAGE_LIMIT, AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
     ActionWizardSetting,
@@ -107,7 +107,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         ):
             return None
 
-        messages = AIMessageHistory(services=data["services"])
+        messages = OldContext(services=data["services"])
         messages.add_system(filter_data.prompt)
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)

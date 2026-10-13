@@ -9,13 +9,14 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji, Update, User
+from aiogram.types import Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji, RichTextItalic, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.old_context import OldContext
 
 HistoryCapture = Callable[..., Awaitable[None]]
 
@@ -49,7 +50,7 @@ def _history_capture(
         user_text: str | None = None,
         **kwargs: Any,
     ) -> None:
-        history = AIMessageHistory(services=services)
+        history = OldContext(services=services)
         await history.add_from_message(message, custom_text=user_text)
         prompts.append(history.prompt)
 
@@ -113,19 +114,29 @@ async def test_reply_to_ai_without_command_builds_reply_title(test_client: TestC
     alice = User(id=929000093, is_bot=False, first_name="Alice")
     sophie = User(id=CONFIG.bot_id, is_bot=True, first_name="Sophie")
     await test_client.send_message(text="init", from_user=alice, chat=group)
-    rich_text = [
-        RichTextCustomEmoji(custom_emoji_id="5325547803936572038", alternative_text="✨"),
-        " Earlier answer",
-    ]
-    if layout == "tagged_tip":
-        rich_text.extend(
-            [
-                "\n",
-                RichTextCustomEmoji(custom_emoji_id="5816915599019741395", alternative_text="🔋"),
-                " 80% ⚠️ Help mode is available.",
+    blocks = [
+        RichBlockParagraph(
+            text=[
+                RichTextCustomEmoji(custom_emoji_id=AI_CUSTOM_EMOJI_ID, alternative_text="✨"),
+                " Earlier answer",
             ]
         )
-    rich_message = RichMessage(blocks=[RichBlockParagraph(text=rich_text)])
+    ]
+    if layout == "tagged_tip":
+        blocks.extend(
+            [
+                RichBlockParagraph(
+                    text=[
+                        RichTextCustomEmoji(
+                            custom_emoji_id=min(AI_BATTERY_CUSTOM_EMOJI_IDS), alternative_text="🔋"
+                        ),
+                        " 80%",
+                    ]
+                ),
+                RichBlockParagraph(text=RichTextItalic(text="⚠️ Help mode is available.")),
+            ]
+        )
+    rich_message = RichMessage(blocks=blocks)
     ai_message = MessageFactory.create(text="Earlier answer", from_user=sophie, chat=group).model_copy(
         update={
             "rich_message": rich_message,

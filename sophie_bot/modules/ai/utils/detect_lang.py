@@ -12,9 +12,6 @@ _AUTO_TRANSLATE_AMBIGUOUS_CONFIDENCE_GAP = 0.20
 _TEXT_LANGUAGE_CONFIDENCE_THRESHOLD = 0.35
 _URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 
-# Keep backward-compatible private alias
-_confidence_for_language = confidence_for_language
-
 
 def _normalize_auto_translate_detection_text(text: str) -> str:
     return " ".join(_URL_RE.sub(" ", text).split())

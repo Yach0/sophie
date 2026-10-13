@@ -6,6 +6,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory
+from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
@@ -47,7 +48,7 @@ async def test_aiaddfilter_returns_suggestions(test_client: TestClient) -> None:
                 ),
             ]
         ),
-        usage=SimpleNamespace(total_tokens=0, request_tokens=0, response_tokens=0),
+        usage=RunUsage(),
     )
 
     with (

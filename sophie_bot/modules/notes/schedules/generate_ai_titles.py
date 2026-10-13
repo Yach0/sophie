@@ -8,7 +8,7 @@ from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateN
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
 from sophie_bot.modules.utils_.scheduler.for_chats import ForChats
 from sophie_bot.services.application import ApplicationServices
@@ -31,7 +31,7 @@ class GenerateAITitles:
             "You need to update the data of the chat notes. Generate the note data from the provided note text"
         )
 
-        messages = AIMessageHistory(services=self.services)
+        messages = OldContext(services=self.services)
         messages.add_custom(note.text or "", name=None)
         messages.add_system(system_prompt)
 

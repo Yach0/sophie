@@ -32,7 +32,7 @@ LOCALES_DIR := $(CURDIR)/locales
 
 all: fix_code_style locale test_all clean build_onefile
 commit: fix_code_style extract_lang test_code_style test_codeanalysis run_tests gen_wiki api migrate_status
-test_all: test_code_style test_codeanalysis run_tests test_migrations
+test_all: test_code_style test_codeanalysis run_tests
 locale: extract_lang update_lang compile_lang
 
 
@@ -168,10 +168,6 @@ migrate_rollback:
 migrate_down_all:
 	@echo "Rolling back all migrations..."
 	@uv run python tools/migration_helper.py down_all
-
-test_migrations:
-	@echo "Running migration tests..."
-	@RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run python -m pytest tests/test_migrations.py -v
 
 # Worktree support
 

@@ -158,7 +158,6 @@ FILTER_WIZARD = FilterWizard(FILTER_WIZARD_CONFIG)
 
 def _wizard_filters(*, notify_callback: bool = False) -> tuple[CallbackType, ...]:
     return (
-        FeatureFlagFilter("action_config_wizard", notify_callback=notify_callback),
         FeatureFlagFilter("filters", notify_callback=notify_callback),
         UserRestricting(admin=True),
         GroupOrConnectedFilter(),

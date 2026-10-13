@@ -12,23 +12,23 @@ icon: 🪄
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/filters` | - | Lists all filters in the chat | *Disable-able* |
+| `/filters` | - | Lists all filters in the chat. | *Disable-able* |
 {.card-view-on-mobile}
 
 ### Only admins
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/add_filter` `/new_filter` | `<Text to match>` | Adds a new filter |  |
-| `/edit_filter` | `<Filter's keyword>` | Edits filter settings |  |
-| `/del_filter` | `<Text to match>` | Deletes a filter |  |
+| `/add_filter` `/new_filter` | `<Text to match>` | Adds a new filter. |  |
+| `/edit_filter` | `<Filter's keyword>` | Edits filter settings. |  |
+| `/del_filter` | `<Text to match>` | Deletes a filter. |  |
 {.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/ai_add_filter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description |  |
+| `/ai_add_filter` | `<Describe what the filter should catch>` | Suggests filter handlers from a natural language description. |  |
 ---
 Use `/filters` to browse filters with Previous and Next buttons. Sophie keeps each page within Telegram's message limit; very long handlers are shortened in the list, but the saved filter and its edit/delete controls are unchanged.
 
@@ -130,10 +130,8 @@ Remarks:
 
 ## AI Filter handlers
 
-Sophie introduces powerful AI-powered filter handlers that intelligently determine whether to trigger filter actions
-based on message content. Powered by Mistral AI, an industry-leading AI provider known for its commitment to data
-privacy, this feature allows you to create intelligent filters that understand context and meaning rather than just
-matching text patterns.
+Sophie supports AI-powered filter handlers that determine whether to trigger filter actions
+based on message content, evaluating semantic context rather than literal text matches.
 
 ### How to Use AI Filters
 

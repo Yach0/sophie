@@ -37,7 +37,6 @@ def test_translation_expandability_is_based_on_estimated_visible_lines(translate
         False,
         False,
         None,
-        "disable",
     )
 
     rich_html = doc.to_rich()
@@ -56,7 +55,6 @@ def test_translation_notes_are_preserved_for_short_translation() -> None:
         False,
         False,
         None,
-        "disable",
     )
 
     rich_html = doc.to_rich()
@@ -66,26 +64,26 @@ def test_translation_notes_are_preserved_for_short_translation() -> None:
     assert "A brief clarification." in rich_html
 
 
-def test_voice_translation_without_header_keeps_short_translation_non_expandable() -> None:
+def test_voice_translation_keeps_short_translation_non_expandable() -> None:
     doc = _build_translate_reply_doc(
         _translation_response("Hi"),
         "German",
         False,
         True,
         None,
-        "disable",
     )
 
     rich_html = doc.to_rich()
 
-    assert rich_html == "<blockquote>Hi</blockquote>"
+    assert "<blockquote>Hi</blockquote>" in rich_html
+    assert "<blockquote expandable>" not in rich_html
 
 
 def test_voice_translation_keeps_notes_after_expandable_translation() -> None:
     text = "a" * 121
-    doc = _build_translate_reply_doc(_translation_response(text), "German", False, False, None, "disable")
+    doc = _build_translate_reply_doc(_translation_response(text), "German", False, True, None)
     doc_with_notes = _build_translate_reply_doc(
-        _translation_response(text, "A brief clarification."), "German", False, True, None, "disable"
+        _translation_response(text, "A brief clarification."), "German", False, True, None
     )
 
     assert f"<blockquote expandable>{text}</blockquote>" in doc.to_rich()

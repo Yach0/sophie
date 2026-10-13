@@ -33,7 +33,6 @@ from sophie_bot.modules.ai.utils.ai_model_plan import (
 from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
-    ChatbotStreamOptions,
     build_model_settings,
     run_ai_stream,
     run_ai_structured,
@@ -80,6 +79,9 @@ class FakeRunResult:
         self.output = output
 
     def all_messages(self) -> list[ModelRequest | ModelResponse]:
+        return [ModelResponse(parts=[TextPart(content=self.output)])]
+
+    def new_messages(self) -> list[ModelRequest | ModelResponse]:
         return [ModelResponse(parts=[TextPart(content=self.output)])]
 
 
@@ -130,6 +132,9 @@ class FakeStreamResult:
         return "hello"
 
     def all_messages(self) -> list[ModelRequest | ModelResponse]:
+        return []
+
+    def new_messages(self) -> list[ModelRequest | ModelResponse]:
         return []
 
 
@@ -230,29 +235,6 @@ async def test_output_limit_preserves_zero_provider_generation_ceiling() -> None
 
     assert agent.run_kwargs is not None
     assert agent.run_kwargs["model_settings"]["max_tokens"] == 0
-
-
-async def test_run_ai_stream_legacy_path_sends_cumulative_text_and_deduplicates_tools() -> None:
-    streamed_text: list[str] = []
-    tool_calls: list[str] = []
-
-    async def on_text_stream(text: str) -> None:
-        streamed_text.append(text)
-
-    async def on_tool_call(tool_name: str) -> None:
-        tool_calls.append(tool_name)
-
-    result = await run_ai_stream(
-        cast(Agent[Any, str], FakeStreamingAgent()),
-        user_prompt="Say hello",
-        on_text_stream=on_text_stream,
-        on_tool_call=on_tool_call,
-        stream_options=ChatbotStreamOptions(continuation=False),
-    )
-
-    assert streamed_text == ["hel", "hello"]
-    assert tool_calls == ["search", "notes"]
-    assert result.output == "hello"
 
 
 async def test_run_ai_stream_completes_tool_loop_and_uses_final_output(no_stream_debounce: None) -> None:

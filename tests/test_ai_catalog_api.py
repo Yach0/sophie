@@ -6,6 +6,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from fastapi import HTTPException
 from httpx2 import HTTPError
+from pydantic import BaseModel, ValidationError
+from pydantic_ai.models.test import TestModel
 
 from sophie_bot.db.models.ai.ai_catalog import (
     AICatalogModelModel,
@@ -13,14 +15,17 @@ from sophie_bot.db.models.ai.ai_catalog import (
     AIModelPurpose,
     AIModelRole,
 )
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.api import catalog
 from sophie_bot.modules.ai.api.catalog_schemas import (
     ModelCreate,
+    ModelExport,
     ModelUpdate,
     ProviderCreate,
     ProviderUpdate,
 )
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_roles
+from sophie_bot.modules.ai.utils.ai_model_factory import build_purpose_plan, role_candidate
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 
@@ -102,6 +107,129 @@ async def test_creating_a_model_carries_its_roles(_no_version_bump, test_service
     assert result.roles == [role]
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "openai/gpt-5.5")
     assert stored.provider == "openrouter"
+
+
+async def test_model_capacity_round_trips_and_can_be_updated_or_cleared(
+    _no_version_bump: object, test_services: object
+) -> None:
+    await _clear()
+    created = await catalog.create_model(
+        ModelCreate(name="custom/model", provider="custom", context_window_tokens=32768),
+        services=test_services,
+    )
+    assert created.context_window_tokens == 32768
+    assert (await catalog.list_models())[0].context_window_tokens == 32768
+
+    unchanged = await catalog.update_model(
+        "custom/model", ModelUpdate(supports_images=False), services=test_services
+    )
+    assert unchanged.context_window_tokens == 32768
+    updated = await catalog.update_model(
+        "custom/model", ModelUpdate(context_window_tokens=65536), services=test_services
+    )
+    assert updated.context_window_tokens == 65536
+    stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "custom/model")
+    assert stored.context_window_tokens == 65536
+    cleared = await catalog.update_model(
+        "custom/model", ModelUpdate(context_window_tokens=None), services=test_services
+    )
+    assert cleared.context_window_tokens is None
+    assert (await catalog.list_models())[0].context_window_tokens is None
+
+
+@pytest.mark.parametrize("model_type", [AICatalogModelModel, ModelCreate, ModelUpdate, ModelExport])
+@pytest.mark.parametrize("capacity", [0, -1, True, 1.5, "32768"])
+async def test_model_capacity_must_be_a_positive_integer(model_type: type[BaseModel], capacity: object) -> None:
+    with pytest.raises(ValidationError, match="context_window_tokens"):
+        model_type(name="configured/model", provider="custom", context_window_tokens=capacity)
+
+
+async def test_existing_model_rows_without_capacity_remain_nullable(
+    _no_version_bump: object, test_services: object
+) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="existing/model",
+            provider="openrouter",
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+        ),
+        services=test_services,
+    )
+    await AICatalogModelModel.get_pymongo_collection().update_one(
+        {"name": "existing/model"}, {"$unset": {"context_window_tokens": ""}}
+    )
+    snapshot = await load_catalog(redis=test_services.redis)
+    assert snapshot.models["existing/model"].context_window_tokens is None
+    assert snapshot.roles_for(AIMode.support, AIModelPurpose.chatbot)[0].context_window_tokens is None
+    assert (await catalog.list_models())[0].context_window_tokens is None
+
+
+async def test_catalog_size_reaches_roles_candidates_and_flag_override(
+    _no_version_bump: object, test_services: object
+) -> None:
+    await _clear()
+    await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
+    await catalog.create_model(
+        ModelCreate(
+            name="primary/model",
+            provider="openrouter",
+            context_window_tokens=32768,
+            roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
+        ),
+        services=test_services,
+    )
+    await catalog.create_model(
+        ModelCreate(name="override/model", provider="openrouter", context_window_tokens=8192),
+        services=test_services,
+    )
+    snapshot = await load_catalog(redis=test_services.redis)
+    role = snapshot.roles_for("support", AIModelPurpose.chatbot)[0]
+    assert snapshot.models["primary/model"].context_window_tokens == role.context_window_tokens == 32768
+    with patch(
+        "sophie_bot.modules.ai.utils.ai_model_factory.get_ai_model",
+        side_effect=lambda name, **_kwargs: TestModel(model_name=name),
+    ):
+        assert role_candidate(role).context_window_tokens == 32768
+        plan = await build_purpose_plan(
+            AIMode.support, AIModelPurpose.chatbot, override_name="override/model", redis=test_services.redis
+        )
+    assert [(candidate.model_name, candidate.context_window_tokens) for candidate in plan.candidates] == [
+        ("override/model", 8192),
+        ("primary/model", 32768),
+    ]
+    assert plan.context_window_tokens == 8192
+    with patch.object(catalog, "get_catalog", catalog.load_catalog):
+        resolution = await catalog.get_resolution(services=test_services)
+    assert resolution.per_mode["support"]["chatbot"].candidates[0].context_window_tokens == 32768
+
+
+@pytest.mark.parametrize("assigned_capacity", [32768, 65536, None])
+async def test_explicit_capacity_assignment_clears_migration_provenance(
+    _no_version_bump: object, test_services: object, assigned_capacity: int | None
+) -> None:
+    await _clear()
+    await catalog.create_model(
+        ModelCreate(name="migrated/model", provider="openrouter", context_window_tokens=32768),
+        services=test_services,
+    )
+    marker = "_migration_add_ai_model_context_sizes"
+    collection = AICatalogModelModel.get_pymongo_collection()
+    await collection.update_one(
+        {"name": "migrated/model"},
+        {"$set": {marker: {"context_window_tokens": 32768, "openrouter_id": "migrated/model", "was_null": False}}},
+    )
+    await catalog.update_model(
+        "migrated/model", ModelUpdate(supports_images=False), services=test_services
+    )
+    assert marker in await collection.find_one({"name": "migrated/model"})
+    await catalog.update_model(
+        "migrated/model", ModelUpdate(context_window_tokens=assigned_capacity), services=test_services
+    )
+    stored = await collection.find_one({"name": "migrated/model"})
+    assert stored["context_window_tokens"] == assigned_capacity
+    assert marker not in stored
 
 
 async def test_deleting_a_model_removes_it(_no_version_bump, test_services: object) -> None:
@@ -236,6 +364,7 @@ async def test_export_round_trips_through_import(_no_version_bump, test_services
         ModelCreate(
             name="a/model",
             provider="openrouter",
+            context_window_tokens=49152,
             roles=[AIModelRole(mode="support", purpose=AIModelPurpose.chatbot)],
         ),
         services=test_services,
@@ -243,6 +372,7 @@ async def test_export_round_trips_through_import(_no_version_bump, test_services
 
     exported = await catalog.export_catalog()
     assert [model.name for model in exported.models] == ["a/model"]
+    assert exported.models[0].context_window_tokens == 49152
 
     await _clear()
     result = await catalog.import_catalog(exported, services=test_services)
@@ -250,6 +380,7 @@ async def test_export_round_trips_through_import(_no_version_bump, test_services
     assert result.models_created == 1
     stored = await AICatalogModelModel.find_one(AICatalogModelModel.name == "a/model")
     assert stored.roles[0].purpose == AIModelPurpose.chatbot
+    assert stored.context_window_tokens == 49152
 
 
 async def test_merge_import_leaves_models_absent_from_the_file_alone(_no_version_bump, test_services: object) -> None:
@@ -421,3 +552,29 @@ async def test_meta_exposes_service_tiers_and_reasoning_efforts() -> None:
     meta = await catalog.get_meta()
     assert "flex" in meta.service_tiers
     assert meta.reasoning_efforts == ["low", "medium", "high"]
+
+
+async def test_imported_capacity_is_operator_owned_not_migration_owned(
+    _no_version_bump: object, test_services: object
+) -> None:
+    await _clear()
+    await catalog.create_model(
+        ModelCreate(name="migrated/model", provider="openrouter", context_window_tokens=32768),
+        services=test_services,
+    )
+    marker = "_migration_add_ai_model_context_sizes"
+    collection = AICatalogModelModel.get_pymongo_collection()
+    await collection.update_one(
+        {"name": "migrated/model"},
+        {"$set": {marker: {"context_window_tokens": 32768, "openrouter_id": "migrated/model", "was_null": False}}},
+    )
+    imported = await catalog.import_catalog(
+        catalog.CatalogExport(
+            models=[ModelExport(name="migrated/model", provider="openrouter", context_window_tokens=32768)]
+        ),
+        services=test_services,
+    )
+    assert imported.models_updated == 1
+    stored = await collection.find_one({"name": "migrated/model"})
+    assert stored["context_window_tokens"] == 32768
+    assert marker not in stored

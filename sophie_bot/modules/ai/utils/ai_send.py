@@ -49,8 +49,6 @@ async def send_ai_rich_message_to_chat(
     """Send a rich AI message to a chat."""
     if reply_to_message_id is not None and reply_parameters is None:
         reply_parameters = ReplyParameters(message_id=reply_to_message_id)
-    elif "reply_to_message_id" in send_kwargs and reply_parameters is None:
-        reply_parameters = ReplyParameters(message_id=send_kwargs.pop("reply_to_message_id"))
     if reply_parameters is not None:
         send_kwargs["reply_parameters"] = reply_parameters
     return await bot.send_rich_message(

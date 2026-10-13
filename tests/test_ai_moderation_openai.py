@@ -11,9 +11,9 @@ from openai.types.moderation import Moderation
 from tenacity import wait_none
 
 from sophie_bot.modules.ai.utils import ai_errors
-from sophie_bot.modules.ai.utils.message_history import convert_to_openai_moderation_format
 from sophie_bot.modules.ai.utils.moderation import ModerationCategory, check_moderator
 from sophie_bot.modules.ai.utils.moderation.providers.openai import OpenAIModerationProvider
+from sophie_bot.modules.ai.utils.old_context import convert_to_openai_moderation_format
 from sophie_bot.utils.feature_flags import set_value
 
 _DEFAULTS = {native.key: native.default_threshold for native in OpenAIModerationProvider.native_categories}
@@ -43,7 +43,7 @@ def _openai_returning(scores: dict[str, float | None] | None):
 
 @pytest.fixture
 def mock_history() -> AsyncMock:
-    with patch("sophie_bot.modules.ai.utils.moderation.AIMessageHistory") as mock_cls:
+    with patch("sophie_bot.modules.ai.utils.moderation.OldContext") as mock_cls:
         instance = AsyncMock()
         instance.add_from_message = AsyncMock()
         instance.to_moderation = [{"role": "user", "content": "test message"}]

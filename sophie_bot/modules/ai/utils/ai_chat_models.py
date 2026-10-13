@@ -53,13 +53,10 @@ async def get_chat_model_plan(
 
 async def resolve_chat_service_tier(
     purpose: AIModelPurpose,
-    chat_iid: PydanticObjectId | None,
     chat_tid: int | None = None,
-    mode: AIMode | None = None,
     *,
     redis: Redis,
 ) -> str | None:
-    del chat_iid, mode
     if purpose in {AIModelPurpose.chatbot, AIModelPurpose.filters, AIModelPurpose.summary}:
         return "flex"
     flag = SERVICE_TIER_FLAG_BY_PURPOSE.get(purpose)

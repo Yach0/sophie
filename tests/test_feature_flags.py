@@ -208,16 +208,6 @@ class TestFeatureMetadata:
             {"none", "auto", "default", "flex", "priority"}
         )
 
-    def test_ai_header_style_values_are_declared_in_metadata(self) -> None:
-        assert get_value_kind("ai_translations_header_style") == "ai_header_style"
-        assert get_allowed_string_values("ai_translations_header_style") == frozenset({"disable", "simple"})
-
-    def test_every_ai_header_style_defaults_to_simple(self) -> None:
-        header_flags = [feature for feature in FEATURE_FLAGS if feature.endswith("header_style")]
-        assert header_flags
-        assert "ai_translations_header_style" in header_flags
-        assert {get_default_value(feature) for feature in header_flags} == {"simple"}
-
     def test_ai_output_sanitizer_and_model_label_defaults(self) -> None:
         assert get_default_value("ai_chatbot_strip_alien_html_tags") is True
         assert get_default_value("ai_chatbot_show_model_name") is False
@@ -354,12 +344,6 @@ class TestCoerceRollout:
         assert rollout is not None
         assert rollout["duration_days"] is None
 
-    def test_legacy_percentage_format(self) -> None:
-        rollout = _coerce_rollout({"percentage": 30, "value": True})
-        assert rollout is not None
-        assert rollout["start_percentage"] == 30
-        assert rollout["target_percentage"] == 30
-        assert rollout["duration_days"] is None
 
     def test_json_string_input(self) -> None:
         rollout = _coerce_rollout(

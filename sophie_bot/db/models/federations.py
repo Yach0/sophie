@@ -106,16 +106,3 @@ class FederationTask(Document):
             IndexModel([("status", ASCENDING)]),
             IndexModel([("created_at", ASCENDING)]),
         ]
-
-
-# Legacy task collections, superseded by the unified ``FederationTask`` (``fed_tasks``).
-# These are NOT registered as active models; they exist only so the historical
-# ``convert_federations_to_links`` migration can still address the original collections.
-class FederationImportTask(Document):
-    class Settings:
-        name = "fed_import_tasks"
-
-
-class FederationExportTask(Document):
-    class Settings:
-        name = "fed_export_tasks"

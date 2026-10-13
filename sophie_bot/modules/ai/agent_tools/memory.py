@@ -20,6 +20,8 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
         information_to_save: The fact, preference, or instruction to remember for this chat.
     """
     normalized_information = information_to_save.strip()
+    if ctx.deps.speaker_reference_decoder is not None:
+        normalized_information = ctx.deps.speaker_reference_decoder(normalized_information)
     if not normalized_information:
         raise ModelRetry("The memory text must not be empty. Provide the information that should be remembered.")
     if len(normalized_information) > _MAX_MEMORY_LINE_LENGTH:

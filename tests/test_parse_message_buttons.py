@@ -2,17 +2,17 @@ import pytest
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 from sophie_bot.db.models.button_action import ButtonAction
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import (
+from sophie_bot.modules.notes.utils.buttons.storage import (
     UnknownMessageButtonTypeError,
-    parse_message_button,
-    parse_message_buttons,
-    parse_message_buttons_row,
+    button_from_markup,
+    button_row_from_markup,
+    buttons_from_markup,
 )
 
 
 def test_parse_message_button_url():
     button = InlineKeyboardButton(text="Google", url="https://google.com")
-    parsed = parse_message_button(button)
+    parsed = button_from_markup(button)
     assert parsed.text == "Google"
     assert parsed.action == ButtonAction.url
     assert parsed.data == "https://google.com"
@@ -20,7 +20,7 @@ def test_parse_message_button_url():
 
 def test_parse_message_button_url_with_style():
     button = InlineKeyboardButton(text="Google", url="https://google.com", style="danger")
-    parsed = parse_message_button(button)
+    parsed = button_from_markup(button)
     assert parsed.text == "Google"
     assert parsed.action == ButtonAction.url
     assert parsed.data == "https://google.com"
@@ -31,7 +31,7 @@ def test_parse_message_button_invalid():
     # Only url is supported for now in parse_message_button
     button = InlineKeyboardButton(text="Callback", callback_data="cb_data")
     with pytest.raises(UnknownMessageButtonTypeError):
-        parse_message_button(button)
+        button_from_markup(button)
 
 
 def test_parse_message_buttons_row():
@@ -39,7 +39,7 @@ def test_parse_message_buttons_row():
         InlineKeyboardButton(text="Google", url="https://google.com"),
         InlineKeyboardButton(text="Bing", url="https://bing.com"),
     ]
-    parsed_row = parse_message_buttons_row(row)
+    parsed_row = button_row_from_markup(row)
     assert len(parsed_row) == 2
     assert parsed_row[0].text == "Google"
     assert parsed_row[1].text == "Bing"
@@ -51,7 +51,7 @@ def test_parse_message_buttons_row_with_invalid():
         InlineKeyboardButton(text="Invalid", callback_data="cb_data"),
     ]
     # parse_message_buttons_row catches UnknownMessageButtonTypeError and returns []
-    parsed_row = parse_message_buttons_row(row)
+    parsed_row = button_row_from_markup(row)
     assert parsed_row == []
 
 
@@ -65,7 +65,7 @@ def test_parse_message_buttons():
             ],
         ]
     )
-    parsed_markup = parse_message_buttons(markup)
+    parsed_markup = buttons_from_markup(markup)
     assert len(parsed_markup) == 2
     assert len(parsed_markup[0]) == 1
     assert len(parsed_markup[1]) == 2
@@ -75,4 +75,4 @@ def test_parse_message_buttons():
 
 def test_parse_message_buttons_empty():
     markup = InlineKeyboardMarkup(inline_keyboard=[])
-    assert parse_message_buttons(markup) == []
+    assert buttons_from_markup(markup) == []

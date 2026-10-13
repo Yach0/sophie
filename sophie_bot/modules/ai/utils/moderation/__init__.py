@@ -6,7 +6,6 @@ from typing import Final
 from aiogram.types import Message
 
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
-from sophie_bot.modules.ai.utils.message_history import AIMessageHistory
 from sophie_bot.modules.ai.utils.moderation.categories import MODERATION_CATEGORIES_TRANSLATES, ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers import (
     MistralModerationProvider,
@@ -18,6 +17,7 @@ from sophie_bot.modules.ai.utils.moderation.thresholds import (
     resolve_level_multipliers,
     resolve_thresholds,
 )
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.logger import log
@@ -65,7 +65,7 @@ async def check_moderator(
     *,
     services: ApplicationServices,
 ) -> ModerationResult:
-    history = AIMessageHistory(services=services)
+    history = OldContext(services=services)
     await history.add_from_message(message, normalize_texts=True)
 
     provider = await get_moderation_provider(chat_tid, services=services)
