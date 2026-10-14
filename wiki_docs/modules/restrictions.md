@@ -2,6 +2,7 @@
 title: Restrictions
 icon: 🛑
 ---
+
 ### Manage user restrictions in chats
 
 > Provides commands to restrict users in chats. \

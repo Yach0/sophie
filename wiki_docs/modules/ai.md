@@ -2,6 +2,7 @@
 title: Sophie AI
 icon: ✨
 ---
+
 ### Rainbow sparkles and shininess
 
 > Sophie supports quite a few ways to use AI features. \

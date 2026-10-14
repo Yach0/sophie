@@ -2,6 +2,7 @@
 title: Purges
 icon: 🗑
 ---
+
 ### Delete messages in bulk
 
 > Allows administrators to delete multiple messages at once. \

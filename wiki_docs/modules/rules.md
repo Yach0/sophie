@@ -2,6 +2,7 @@
 title: Rules
 icon: 🪧
 ---
+
 ### Set and display chat rules
 
 > Allows administrators to set rules for their chats. \

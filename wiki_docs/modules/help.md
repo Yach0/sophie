@@ -2,6 +2,7 @@
 title: Help
 icon: ℹ️
 ---
+
 ### Provides helpful information
 
 > Provides help and documentation for all bot commands and features. \

@@ -2,6 +2,7 @@
 title: Users
 icon: 🫂
 ---
+
 ### User information and management
 
 > Provides commands to get information about users and chat members. \

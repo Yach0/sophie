@@ -2,6 +2,7 @@
 title: Reports
 icon: 📢
 ---
+
 ### Report messages to chat admins
 
 > Allows users to report messages to chat administrators. \

@@ -4,9 +4,9 @@ from ass_tg.i18n import gettext_ctx
 
 import sophie_bot.utils.i18n
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.notes.utils.buttons import parse_buttons_from_text
 from sophie_bot.modules.notes.utils.buttons.compat import parse_legacy_text_buttons
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 
 TEST_CASES = [
     # URL Button
@@ -94,6 +94,6 @@ async def test_compare_parsers(text):
     _, legacy_buttons = parse_legacy_text_buttons(text)
     legacy_markup = render_buttons(legacy_buttons, chat_id)
     # New
-    new_markup = (await ButtonsList.from_text(text)).unparse(chat_id)
+    new_markup = (await parse_buttons_from_text(text)).render(chat_id)
 
     assert compare_markups(legacy_markup, new_markup), f"Markup mismatch for input: {text}"

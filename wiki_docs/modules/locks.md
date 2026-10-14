@@ -2,6 +2,7 @@
 title: Locks
 icon: 🔓
 ---
+
 ### Lock specific message types in chats
 
 > Allows administrators to lock specific types of messages in chats. \

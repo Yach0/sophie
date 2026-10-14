@@ -4,12 +4,9 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
-from typing import Any
 
 from beanie import init_beanie
-from bson import DBRef
 from pymongo import AsyncMongoClient
-from pymongo.asynchronous.collection import AsyncCollection
 from pymongo.asynchronous.database import AsyncDatabase
 
 from sophie_bot.config import Config
@@ -34,16 +31,10 @@ async def open_database(config: Config) -> AsyncIterator[DatabaseResources]:
         await mongo.close()
 
 
-def get_collection(database: AsyncDatabase, name: str) -> AsyncCollection[dict[str, Any]]:
-    return database[name]
-
-
 async def init_db(database: AsyncDatabase, *, config: Config, skip_indexes: bool | None = None) -> None:
     """Initialize Beanie against the explicitly owned database."""
     if skip_indexes is None:
         skip_indexes = config.mongo_skip_indexes
-
-    await repair_filters_chat_links(get_collection(database, "filters"))
 
     await init_beanie(
         database=database,
@@ -51,20 +42,3 @@ async def init_db(database: AsyncDatabase, *, config: Config, skip_indexes: bool
         allow_index_dropping=config.mongo_allow_index_dropping,
         skip_indexes=skip_indexes,
     )
-
-
-async def repair_filters_chat_links(filters: AsyncCollection[dict[str, Any]]) -> int:
-    """Repair raw chat ObjectIds written by the already-applied filters link migration.
-
-    Preserve the referenced ID and all other fields, including dangling references.
-    Matching the original value on update makes concurrent startup repairs safe.
-    """
-    modified = 0
-    async for document in filters.find({"chat": {"$type": "objectId"}}, {"chat": 1}):
-        chat_iid = document["chat"]
-        result = await filters.update_one(
-            {"_id": document["_id"], "chat": chat_iid},
-            {"$set": {"chat": DBRef("chats", chat_iid)}},
-        )
-        modified += result.modified_count
-    return modified

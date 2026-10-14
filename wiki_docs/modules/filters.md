@@ -1,7 +1,8 @@
 ---
 title: Filters
 icon: 🪄
----> Filters allows to invoke different actions for different messages. \
+---
+> Filters allows to invoke different actions for different messages. \
 > For example muting the users when they mention crypto. \
 > Sophie supports many different actions you can configure to automatize chat moderation in many different ways.
 

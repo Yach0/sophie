@@ -4,10 +4,6 @@ from aiogram import Router
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_CONNECTION_BUTTON_PREFIX,
-    LegacyButtonAction,
-)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -34,7 +30,6 @@ module_manifest = ModuleManifest(
         DisconnectCmd,
         AllowUsersConnectCmd,
     ),
-    legacy_buttons=(LegacyButtonAction("connect", LEGACY_CONNECTION_BUTTON_PREFIX),),
     title=l_("Connections"),
     emoji="🔗",
     description=l_("Connect to chats from private messages"),

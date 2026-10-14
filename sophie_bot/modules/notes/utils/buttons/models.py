@@ -9,3 +9,6 @@ from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 class ButtonLayout(list[list[Button]]):
     def render(self, chat_tid: int) -> InlineKeyboardMarkup:
         return render_buttons(self, chat_tid)
+
+    def unparse(self, chat_tid: int) -> InlineKeyboardMarkup:
+        return self.render(chat_tid)

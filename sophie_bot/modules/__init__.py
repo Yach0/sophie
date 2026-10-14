@@ -19,7 +19,6 @@ if TYPE_CHECKING:
 
     from sophie_bot.modules.help.utils.extract_info import HandlerHelp, ModuleHelp
     from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSpec
-    from sophie_bot.modules.utils_.legacy_buttons import LegacyButtonAction
     from sophie_bot.services.application import ApplicationServices
     from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
     from sophie_bot.utils.handlers import SophieBaseHandler
@@ -50,7 +49,6 @@ class LoadedModuleRegistry:
     help_modules: OrderedDict[str, ModuleHelp] = field(default_factory=OrderedDict)
     disableable_commands: dict[str, HandlerHelp] = field(default_factory=dict)
     export_hooks: list[ExportHook] = field(default_factory=list)
-    legacy_buttons: dict[str, str] = field(default_factory=dict)
     action_wizards: dict[str, ActionWizardSpec] = field(default_factory=dict)
 
 
@@ -67,7 +65,6 @@ class ModuleManifest:
     initialize: InitializeHook | None = None
     setup_bot: BotSetupHook | None = None
     setup_scheduler: SchedulerSetupHook | None = None
-    legacy_buttons: tuple[LegacyButtonAction, ...] = ()
     build_action_wizards: ActionWizardBuilder | None = None
     advertise_wiki_page: bool = False
     exclude_public: bool = False
@@ -134,7 +131,6 @@ def discover_modules(to_load: Sequence[str], to_not_load: Sequence[str] = ()) ->
         registry.modules[manifest.name] = module
         if manifest.export is not None:
             registry.export_hooks.append(manifest.export)
-        registry.legacy_buttons.update({action.action: action.payload_prefix for action in manifest.legacy_buttons})
         for action_type in manifest.modern_actions:
             handler = action_type()
             definition = handler.definition

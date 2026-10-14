@@ -4,7 +4,6 @@ from typing import Any
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import Message
 from ass_tg.types import DividedArg, OptionalArg, SurroundedArg, TextArg, WordArg
-from ass_tg.types.base_abc import ParsedArg
 from beanie import PydanticObjectId
 from stfu_tg import Code, KeyValue, Section, Template
 
@@ -16,12 +15,11 @@ from sophie_bot.metrics.notes import track_note_saved
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.names import format_notes_aliases
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.rich import rich_message_has_media
+from sophie_bot.modules.utils_.text_with_buttons import parse_text_with_buttons
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -47,14 +45,7 @@ class SaveNote(SophieMessageHandler):
 
         connection: ChatConnection = self.connection
 
-        text_with_buttons: dict[str, Any] = self.data.get("text_with_buttons", {})
-        raw_text_parsed: ParsedArg[str] | None = text_with_buttons.get("text")
-        raw_text = raw_text_parsed.value if raw_text_parsed else None
-        text_offset = raw_text_parsed.offset if raw_text_parsed else 0
-
-        raw_buttons_parsed: ParsedArg[list[AssButtonData]] | None = text_with_buttons.get("buttons")
-        raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
-        buttons = ButtonsList.from_ass(raw_buttons)
+        raw_text, text_offset, buttons = parse_text_with_buttons(self.data)
 
         notenames: tuple[str, ...] = normalize_notenames(self.data["notenames"])
         if not notenames:

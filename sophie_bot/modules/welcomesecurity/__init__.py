@@ -4,10 +4,6 @@ from aiogram import Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_WELCOME_SECURITY_BUTTON_PREFIX,
-    LegacyButtonAction,
-)
 from sophie_bot.modules.welcomesecurity.handlers.captcha_confirm import (
     CaptchaConfirmHandler,
 )
@@ -74,7 +70,6 @@ module_manifest = ModuleManifest(
     ),
     setup_bot=setup_bot,
     setup_scheduler=setup_scheduler,
-    legacy_buttons=(LegacyButtonAction("welcomesecurity", LEGACY_WELCOME_SECURITY_BUTTON_PREFIX),),
     title=l_("Welcome Security"),
     emoji="🛡️",
     description=l_("Protect your chat from bots and verify new users"),

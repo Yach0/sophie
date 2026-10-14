@@ -4,13 +4,13 @@ from typing import Any
 
 from ass_tg.types.base_abc import ParsedArg
 
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout, buttons_from_ass
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 
 
 def parse_text_with_buttons(
     data: dict[str, Any],
-) -> tuple[str | None, int, ButtonsList]:
+) -> tuple[str | None, int, ButtonLayout]:
     """Extract text, offset, and buttons from text_with_buttons ASS data.
 
     Returns:
@@ -24,6 +24,6 @@ def parse_text_with_buttons(
 
     raw_buttons_parsed: ParsedArg[list[AssButtonData]] | None = text_with_buttons.get("buttons")
     raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
-    buttons = ButtonsList.from_ass(raw_buttons)
+    buttons = buttons_from_ass(raw_buttons)
 
     return raw_text, text_offset, buttons

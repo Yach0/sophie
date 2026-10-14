@@ -5,7 +5,7 @@ from aiogram.enums import ContentType
 from aiogram.types import Message, MessageEntity
 
 from sophie_bot.db.models.notes import NoteFile
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout
 from sophie_bot.modules.notes.utils.media import MEDIA_CAPTION_LENGTH_LIMIT
 from sophie_bot.modules.notes.utils.parse import (
     extract_file_info,
@@ -90,7 +90,7 @@ async def test_parse_saveable_rejects_caption_over_media_limit(
             await parse_saveable(
                 message,
                 text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
-                buttons=ButtonsList(),
+                buttons=ButtonLayout(),
                 bot=test_services.bot,
             )
 
@@ -109,7 +109,7 @@ async def test_parse_saveable_allows_caption_length_text_without_caption_support
         result = await parse_saveable(
             message,
             text="A" * (MEDIA_CAPTION_LENGTH_LIMIT + 1),
-            buttons=ButtonsList(),
+            buttons=ButtonLayout(),
             bot=test_services.bot,
         )
 
@@ -189,7 +189,7 @@ async def test_parse_saveable_preserves_inline_custom_emoji(
         message=message,
         text="Hello 🙂",
         offset=11,
-        buttons=ButtonsList(),
+        buttons=ButtonLayout(),
         bot=test_services.bot,
     )
 

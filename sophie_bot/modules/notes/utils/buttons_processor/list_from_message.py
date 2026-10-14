@@ -5,21 +5,21 @@ from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgError
 from stfu_tg import Section
 
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout
 from sophie_bot.modules.notes.utils.buttons.storage import buttons_from_ass
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
 
-async def parse_buttons_list_from_message(message: Message, text: str, offset: int = 0) -> tuple[str, ButtonsList]:
+async def parse_buttons_list_from_message(message: Message, text: str, offset: int = 0) -> tuple[str, ButtonLayout]:
     try:
         arg = TextWithButtonsArg()
         raw_entities = getattr(message, "entities", None) or getattr(message, "caption_entities", None) or []
         entities = ArgEntities(raw_entities).cut_before(offset)
         _length, result = await arg.parse(text, 0, entities)
         note_text = result["text"].value
-        buttons = ButtonsList(buttons_from_ass(result["buttons"].value))
+        buttons = ButtonLayout(buttons_from_ass(result["buttons"].value))
 
         return note_text, buttons
     except ArgError as err:

@@ -1,7 +1,8 @@
 ---
 title: Warnings
 icon: ⚠️
----> Warns users in the chat to keep it safe. \
+---
+> Warns users in the chat to keep it safe. \
 > You can set a max warning limit and an action to take when the limit is reached.
 
 ## Available commands

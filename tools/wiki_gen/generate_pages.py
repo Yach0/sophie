@@ -71,7 +71,7 @@ class ModuleWikiPage:
             text = "---"
             text += "\n" + f"title: {self.module.name}"
             text += "\n" + f"icon: {self.module.icon}"
-            text += "\n" + "---"
+            text += "\n" + "---\n"
         return text
 
     def _generate_module_info(self) -> str:
