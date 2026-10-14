@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from html.parser import HTMLParser
 from types import SimpleNamespace
+from typing import Literal
 from unittest.mock import AsyncMock
 
 import pytest
@@ -33,8 +34,10 @@ from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message, send_ai_ri
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.delivery import deliver_doc
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit, reply_or_edit_rich
+from sophie_bot.utils.i18n import LazyProxy
 
 type DeliveryMethod = SendMessage | SendRichMessage | EditMessageText | DeleteMessage
 type Transport = tuple[Bot, list[DeliveryMethod]]
@@ -610,3 +613,93 @@ async def test_owned_final_unchanged_first_page_updates_existing_continuations(
     calls.clear()
     await progress.send_final(Doc("a" * 4096 + ("" if shrink else "new")))
     assert not any(isinstance(method, (SendRichMessage, DeleteMessage)) for method in calls)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_lazy_translation_resolves_at_reply_boundary(transport: Transport) -> None:
+    bot, calls = transport
+    text = LazyProxy(lambda: "Translated <b>reply</b>")
+    await reply_or_answer(source_message(bot), text)
+    assert payloads(calls) == ["Translated <b>reply</b>"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("lazy", [False, True])
+@pytest.mark.parametrize("parse_mode", [None, "HTML"])
+async def test_paired_surrogate_string_and_lazy_replies_preserve_parse_mode(
+    transport: Transport, lazy: bool, parse_mode: str | None
+) -> None:
+    bot, calls = transport
+    body = "<b>\ud83c\udf0d &amp;</b>"
+    text = LazyProxy(lambda: body) if lazy else body
+    await reply_or_answer(source_message(bot), text, parse_mode=parse_mode)
+    assert payloads(calls) == ["&lt;b&gt;🌍 &amp;amp;&lt;/b&gt;" if parse_mode is None else "<b>🌍 &amp;</b>"]
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("repetitions", [1, 1000])
+@pytest.mark.parametrize(
+    "unsupported", [Image("photo"), Buttons(Button("action", url="https://example.org"))], ids=["image", "buttons"]
+)
+async def test_paired_surrogates_do_not_bypass_ordinary_html_tree_validation(
+    transport: Transport, unsupported: Image | Buttons, repetitions: int
+) -> None:
+    bot, calls = transport
+    doc = Doc(Bold("\ud83c\udf0d text " * repetitions), unsupported)
+    with pytest.raises(ValueError):
+        await reply_or_answer(source_message(bot), doc)
+    assert calls == []
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("mode", ["html", "rich"])
+@pytest.mark.parametrize("allow_short_rich", [False, True])
+@pytest.mark.parametrize("repetitions", [1, 1000])
+async def test_delivery_normalizes_paired_surrogates_without_losing_markup(
+    transport: Transport, mode: Literal["html", "rich"], allow_short_rich: bool, repetitions: int
+) -> None:
+    bot, calls = transport
+    body = "\ud83c\udf0d &<> 🌍\n" * repetitions
+    doc = Doc(Bold(Url(body, "https://example.org/\ud83c\udf0d")))
+    original = doc.to_rich() if mode == "rich" else doc.to_html()
+    expected = original.replace("\ud83c\udf0d", "🌍")
+    await deliver_doc(bot, -100123, doc, mode=mode, allow_short_rich=allow_short_rich, edit_message_id=20)
+    assert isinstance(calls[0], EditMessageText)
+    assert "".join(VisibleText(payload).text for payload in payloads(calls)) == VisibleText(expected).text
+    assert all('<b><a href="https://example.org/🌍">' in payload for payload in payloads(calls))
+    assert (len(calls) > 1) == (repetitions > 1)
+    assert (doc.to_rich() if mode == "rich" else doc.to_html()) == original
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("mode", ["html", "rich"])
+@pytest.mark.parametrize("allow_short_rich", [False, True])
+@pytest.mark.parametrize("invalid", ["high \ud800", "low \udc00", "reversed \udc00\ud800", "mixed \ud83c\udf0d\ud800"])
+async def test_delivery_rejects_unpaired_surrogates_before_transport(
+    transport: Transport, mode: Literal["html", "rich"], allow_short_rich: bool, invalid: str
+) -> None:
+    bot, calls = transport
+    with pytest.raises(ValueError, match="unpaired surrogates"):
+        await deliver_doc(bot, -100123, Doc(Bold(invalid)), mode=mode, allow_short_rich=allow_short_rich)
+    assert calls == []
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_delivery_normalizes_paired_surrogates_in_continuation_marker(transport: Transport) -> None:
+    bot, calls = transport
+    await deliver_doc(bot, -100123, Doc("a" * 4097), mode="rich", continuation_prefix="\ud83c\udf0d ")
+    assert payloads(calls)[1].startswith("🌍 ")
+    assert "".join(VisibleText(payload).text.removeprefix("🌍 ") for payload in payloads(calls)) == "a" * 4097
+
+
+@pytest.mark.asyncio(loop_scope="session")
+@pytest.mark.parametrize("path", ["reply", "edit", "ai"])
+async def test_delivery_requires_a_mounted_bot(path: str) -> None:
+    source = source_message(Bot("123456:abcdefghijklmnopqrstuvwxyz0123456789")).as_(None)
+    with pytest.raises(RuntimeError, match="mounted"):
+        if path == "reply":
+            await reply_or_answer(source, "reply")
+        elif path == "edit":
+            await reply_or_edit(source, "reply")
+        else:
+            await send_ai_rich_message(source, Doc("reply"))

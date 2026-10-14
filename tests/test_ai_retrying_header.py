@@ -33,7 +33,7 @@ def _build_streamer(response_message: SimpleNamespace) -> ChatbotMessageStreamer
     streamer = ChatbotMessageStreamer(
         source_message=cast(
             Message,
-            SimpleNamespace(chat=SimpleNamespace(id=-100123)),
+            SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=7, message_thread_id=None),
         ),
         status=Doc("Initial"),
         throttle_seconds=1,

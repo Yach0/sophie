@@ -27,7 +27,7 @@ T = TypeVar("T")
 
 
 class SophieBaseHandler(BaseHandler[T], BaseHandlerMixin[T], ABC):
-    async def answer_rich(self, doc: Element, **kwargs) -> Message | bool:
+    async def answer_rich(self, doc: Element, **kwargs: Any) -> Message | bool | None:
         """Reply, or edit the message a button was pressed on, rendering the doc as a rich message."""
         if not isinstance(self.event, (Message, CallbackQuery)):
             raise TypeError(f"{type(self).__name__} cannot answer this event with a rich message")

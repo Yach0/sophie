@@ -116,7 +116,7 @@ async def test_reply_pipeline_preserves_second_paragraph(test_redis: Redis, stri
 async def test_streamed_draft_and_final_edit_preserve_paragraphs(test_redis: Redis) -> None:
     edit = AsyncMock()
     bot = SimpleNamespace(edit_message_text=edit)
-    source = SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=7, bot=bot)
+    source = SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=7, message_thread_id=None, bot=bot)
     streamer = ChatbotMessageStreamer(cast(Message, source), "thinking", 0, redis=test_redis)
     streamer.response_message = cast(Message, SimpleNamespace(chat=source.chat, message_id=8, bot=bot))
     await streamer.stream(MARKDOWN)

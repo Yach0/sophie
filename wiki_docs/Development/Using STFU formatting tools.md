@@ -474,7 +474,9 @@ replyable. Its visible UTF-16 size is reserved before partitioning; no body
 content is discarded or header/footer repeated.
 
 This boundary accepts text documents and HTML strings; use `parse_mode=None`
-for literal plain strings. It rejects empty documents, Markdown parse modes,
+for literal plain strings. Before size checks and partitioning, it normalizes
+valid UTF-16 surrogate pairs into Unicode scalars and rejects unpaired surrogates.
+It rejects empty documents, Markdown parse modes,
 explicit entity arrays, captions, embedded media/buttons, unsupported elements,
 and invalid trusted HTML before partitioned delivery. `reply_or_edit_rich` keeps
 its existing single-message Rich path for fitting documents, including embedded

@@ -42,6 +42,16 @@ class _VisibleSize(HTMLParser):
             self.units += 1
 
 
+def _normalize_surrogate_pairs(source: str) -> str:
+    """Combine UTF-16 pairs into Unicode scalars; reject unpaired surrogates."""
+    if not any(0xD800 <= ord(character) <= 0xDFFF for character in source):
+        return source
+    try:
+        return source.encode("utf-16-le", errors="surrogatepass").decode("utf-16-le")
+    except UnicodeDecodeError as error:
+        raise ValueError("Document delivery requires Unicode without unpaired surrogates") from error
+
+
 def partition_delivery_doc(
     doc: Doc,
     *,
@@ -50,8 +60,11 @@ def partition_delivery_doc(
     continuation_prefix: str = "",
 ) -> list[Doc]:
     """Partition the selected layout; short existing Rich payloads need no partitioning."""
+    rendered = doc.to_rich() if mode == "rich" else doc.to_html()
+    normalized = _normalize_surrogate_pairs(rendered)
+    continuation_prefix = _normalize_surrogate_pairs(continuation_prefix)
     if mode == "rich":
-        rendered = doc.to_rich()
+        rendered = normalized
         if allow_short_rich and rendered and _VisibleSize(rendered).units <= TELEGRAM_MESSAGE_LENGTH_LIMIT:
             return [Doc(Template(rendered))]
         # Preserve structural newlines in the already-rendered Rich layout.
@@ -64,8 +77,14 @@ def partition_delivery_doc(
     return chunks
 
 
+async def _send_chunk(bot: Bot, chat_id: int, rendered: str, mode: Literal["html", "rich"], **options: Any) -> Message:
+    if mode == "rich":
+        return await bot.send_rich_message(chat_id=chat_id, rich_message=InputRichMessage(html=rendered), **options)
+    return await bot.send_message(chat_id=chat_id, text=rendered, parse_mode="HTML", **options)
+
+
 async def deliver_doc(
-    bot: Bot,
+    bot: Bot | None,
     chat_id: int,
     text: Element | str,
     *,
@@ -88,6 +107,8 @@ async def deliver_doc(
     of continuation IDs, updated after each successful send/delete, for reuse and
     surplus cleanup. Other failures propagate.
     """
+    if bot is None:
+        raise RuntimeError("Document delivery requires an event mounted to a bot")
     if kwargs.get("entities") is not None or "caption" in kwargs:
         raise ValueError("Document delivery does not support entities or captions")
     kwargs.pop("entities", None)
@@ -108,11 +129,8 @@ async def deliver_doc(
         options = dict(kwargs)
         if index:
             options.pop("reply_markup", None)
-        payload = (
-            {"rich_message": InputRichMessage(html=chunk.to_rich())}
-            if mode == "rich"
-            else {"text": chunk.to_html(), "parse_mode": "HTML"}
-        )
+        rendered = chunk.to_rich() if mode == "rich" else chunk.to_html()
+
         target_message_id = (
             edit_message_id
             if index == 0
@@ -125,9 +143,17 @@ async def deliver_doc(
         if target_message_id is not None:
             options = {key: value for key, value in options.items() if key not in _SEND_ONLY_OPTIONS}
             try:
-                result = await bot.edit_message_text(
-                    chat_id=chat_id, message_id=target_message_id, **payload, **options
-                )
+                if mode == "rich":
+                    result = await bot.edit_message_text(
+                        chat_id=chat_id,
+                        message_id=target_message_id,
+                        rich_message=InputRichMessage(html=rendered),
+                        **options,
+                    )
+                else:
+                    result = await bot.edit_message_text(
+                        chat_id=chat_id, message_id=target_message_id, text=rendered, parse_mode="HTML", **options
+                    )
             except TelegramBadRequest as error:
                 if MSG_NOT_MODIFIED not in error.message:
                     raise
@@ -135,9 +161,8 @@ async def deliver_doc(
         else:
             if mode == "rich":
                 options.pop("disable_web_page_preview", None)
-            send = bot.send_rich_message if mode == "rich" else bot.send_message
             try:
-                result = await send(chat_id=chat_id, **payload, **options)
+                result = await _send_chunk(bot, chat_id, rendered, mode, **options)
             except TelegramBadRequest as error:
                 if not allow_deleted_reply or not any(
                     reason in error.message for reason in (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID)
@@ -145,7 +170,7 @@ async def deliver_doc(
                     raise
                 options.pop("reply_parameters", None)
                 kwargs.pop("reply_parameters", None)
-                result = await send(chat_id=chat_id, **payload, **options)
+                result = await _send_chunk(bot, chat_id, rendered, mode, **options)
             if index and continuation_message_ids is not None:
                 continuation_message_ids.append(result.message_id)
         if index == 0:
