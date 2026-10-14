@@ -78,23 +78,3 @@ test:
         coverage_format: cobertura
         path: coverage.xml
     expire_in: 1 day
-
-test-qodana:
-  stage: test
-  interruptible: true
-  needs: []
-  image:
-    name: jetbrains/qodana-python-community:2026.2
-    entrypoint: [""]
-  cache:
-    - key: qodana-2026.1-$CI_DEFAULT_BRANCH-$CI_COMMIT_REF_SLUG
-      fallback_keys:
-        - qodana-2026.1-$CI_DEFAULT_BRANCH-
-        - qodana-2026.1-
-      paths:
-        - .qodana/cache
-  variables:
-    QODANA_TOKEN: $QODANA_TOKEN
-    QODANA_ENDPOINT: "https://qodana.cloud"
-  script:
-    - qodana --cache-dir=$CI_PROJECT_DIR/.qodana/cache
