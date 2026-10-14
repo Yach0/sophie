@@ -98,6 +98,11 @@ What Sophie's AI does in a chat, and what it is given, depends on the mode chose
 * **Support** — the chatbot answers questions using the chat's notes, and the AI moderator runs.
   Recent messages are cached to provide conversation context.
 
+Chat admins can turn the AI moderator on or off with /aimoderator. It defaults to off in
+Entertainment and on in Moderation and Support; an explicit chat setting overrides that default.
+When off, messages are not sent to the moderation classifier. Other AI features keep their own
+mode and feature settings.
+
 Cached message history is held for at most 48 hours and can be cleared at any time with /ai_reset.
 
 When using certain AI-assisted features, user-saved data (including notes, filters, and settings)

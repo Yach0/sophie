@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -9,13 +10,12 @@ from aiogram.types import Message
 from mistralai.client.errors import SDKError
 from tenacity import wait_none
 
-from sophie_bot.db.models.ai.ai_moderator import DetectionLevel
+from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
 from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
-from sophie_bot.modules.ai.handlers.aimoderator import _build_doc, _build_keyboard
+from sophie_bot.modules.ai.handlers.aimoderator import CATEGORY_DESCRIPTIONS, _build_doc
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.utils import ai_errors
 from sophie_bot.modules.ai.utils.moderation import (
-    MODERATION_CATEGORIES_TRANSLATES,
     ModerationCategory,
     check_moderator,
     get_moderation_provider,
@@ -24,6 +24,7 @@ from sophie_bot.modules.ai.utils.moderation.providers.mistral import MistralMode
 from sophie_bot.modules.ai.utils.moderation.settings import LEVEL_CYCLE, next_level
 from sophie_bot.modules.ai.utils.moderation.thresholds import resolve_level_multipliers, resolve_thresholds
 from sophie_bot.utils.feature_flags import set_chat_override, set_value
+from tests.utils.rich_html import parse_rich_html
 
 _MISTRAL_DEFAULTS = {native.key: native.default_threshold for native in MistralModerationProvider.native_categories}
 _CHAT_TID = -1001234567890
@@ -129,7 +130,9 @@ async def test_moderation_no_scores_not_flagged(test_redis: object, test_service
     assert result.scores == {}
 
 
-async def test_mistral_moderation_retries_transient_503(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+async def test_mistral_moderation_retries_transient_503(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     response = _make_moderation_response(dict.fromkeys(_MISTRAL_DEFAULTS, 0.0))
     raw_response = httpx.Response(
         503,
@@ -158,7 +161,9 @@ async def test_moderation_off_disables_category(test_redis: object, test_service
     scores["sexual"] = 1.0
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.OFF), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.OFF), services=test_services
+        )
 
     assert result.flagged is False
 
@@ -169,7 +174,9 @@ async def test_moderation_high_lowers_threshold(test_redis: object, test_service
     scores["sexual"] = normal - 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.HIGH), services=test_services
+        )
 
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
@@ -180,7 +187,9 @@ async def test_moderation_low_raises_threshold(test_redis: object, test_services
     scores["sexual"] = normal + 0.1
 
     with _mistral_returning(scores):
-        result = await check_moderator(_make_message(), settings=_make_settings(sexual=DetectionLevel.LOW), services=test_services)
+        result = await check_moderator(
+            _make_message(), settings=_make_settings(sexual=DetectionLevel.LOW), services=test_services
+        )
 
     assert result.flagged is False
 
@@ -276,23 +285,22 @@ def test_level_cycle_walks_every_level_and_returns() -> None:
     assert walked[-1] == DetectionLevel.OFF
 
 
-def test_keyboard_shows_every_category_with_its_level() -> None:
-    levels = dict.fromkeys(ModerationCategory, DetectionLevel.NORMAL)
-    levels[ModerationCategory.PII] = DetectionLevel.OFF
-
-    buttons = [button for row in _build_keyboard(levels).inline_keyboard for button in row]
-
-    assert len(buttons) == len(ModerationCategory)
-    pii_button = next(button for button in buttons if "Personal data" in button.text)
-    assert "Off" in pii_button.text
-    assert AIModeratorCategoryCallback.unpack(pii_button.callback_data).category == ModerationCategory.PII.value
-
-
-def test_picker_table_describes_every_category() -> None:
-    rendered = _build_doc().to_rich()
-
+def test_picker_shows_every_category_with_its_inline_level() -> None:
+    settings = cast(AIModeratorModel, _make_settings(pii=DetectionLevel.OFF))
+    rendered = _build_doc(settings, True).to_rich()
+    root = parse_rich_html(rendered)
+    table = root.find("table")
+    assert table is not None
+    buttons = table.findall(".//tg-button")
+    assert len(buttons) == len(ModerationCategory) + 1
+    pii_button = next(
+        button
+        for button in buttons
+        if button.get("data") == AIModeratorCategoryCallback(category=ModerationCategory.PII.value).pack()
+    )
+    assert "Off" in "".join(pii_button.itertext())
     for category in ModerationCategory:
-        assert str(MODERATION_CATEGORIES_TRANSLATES[category]) in rendered
+        assert str(CATEGORY_DESCRIPTIONS[category]) in rendered
 
 
 # --- the deletion notice ---

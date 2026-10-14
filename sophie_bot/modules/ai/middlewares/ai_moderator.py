@@ -15,6 +15,7 @@ from sophie_bot.modules.ai.utils.moderation import (
     ModerationCategory,
     check_moderator,
 )
+from sophie_bot.modules.ai.utils.moderation.settings import get_enabled
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import get_value, is_enabled
@@ -86,12 +87,14 @@ class AiModeratorMiddleware(BaseMiddleware):
 
         capabilities: ModeCapabilities | None = data.get("ai_capabilities")
 
-        if chat_db and chat_db.type != ChatType.private and capabilities and capabilities.moderator:
+        if chat_db and chat_db.type != ChatType.private and capabilities and capabilities.ai_enabled:
             if not isinstance(event, Message):
                 return await handler(event, data)
             if not await is_enabled("ai_moderation", chat_tid=chat_db.tid, redis=data["services"].redis):
                 return await handler(event, data)
             settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
+            if not get_enabled(settings, data["ai_mode"]):
+                return await handler(event, data)
 
             if not (event.text or event.caption or event.photo or event.audio):
                 return await handler(event, data)

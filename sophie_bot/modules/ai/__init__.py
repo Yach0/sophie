@@ -9,7 +9,12 @@ from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.aimode import AIModeSelectCallback, AIModeSetting
-from sophie_bot.modules.ai.handlers.aimoderator import AIModeratorCategoryToggle, AIModeratorSetting
+from sophie_bot.modules.ai.handlers.aimoderator import (
+    AIModeratorCategoryToggle,
+    AIModeratorControl,
+    AIModeratorEnabledToggle,
+    AIModeratorSetting,
+)
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
     AutoTranslateLanguageHandler,
@@ -102,7 +107,9 @@ module_manifest = ModuleManifest(
         OpAIModel,
         AIModeSetting,
         AIModeSelectCallback,
+        AIModeratorControl,
         AIModeratorSetting,
+        AIModeratorEnabledToggle,
         AIModeratorCategoryToggle,
         AIAutotrans,
         AutoTranslateLanguageHandler,

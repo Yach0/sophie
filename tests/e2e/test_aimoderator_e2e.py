@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import pytest
-from aiogram.types import InlineKeyboardMarkup
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
+from aiogram_test_framework.types import CapturedRequest
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
@@ -14,12 +14,17 @@ from sophie_bot.modules.ai.callbacks import AIModeratorCategoryCallback
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.settings import get_levels, get_moderator_settings
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user_id
+from tests.utils.rich_html import parse_rich_html
 
 
-def _callbacks(requests: list) -> list[str]:
-    markup_data = next(request.params.get("reply_markup") for request in requests if request.params.get("reply_markup"))
-    markup = InlineKeyboardMarkup.model_validate(markup_data)
-    return [button.callback_data or "" for row in markup.inline_keyboard for button in row]
+def _callbacks(requests: list[CapturedRequest]) -> list[str]:
+    rich = next(request.params["rich_message"]["html"] for request in requests if request.params.get("rich_message"))
+    root = parse_rich_html(rich)
+    return [
+        button.attrib["data"]
+        for button in root.findall(".//table/tr/td/tg-button")
+        if button.attrib["data"].startswith("ai_mod_cat:")
+    ]
 
 
 @pytest.mark.asyncio
@@ -66,7 +71,7 @@ async def test_aimoderator_requires_admin(test_client: TestClient) -> None:
 
     requests = await test_client.send_command(command="aimoderator", from_user=stranger.user, chat=group)
 
-    assert not any(request.params.get("reply_markup") for request in requests), (
+    assert not any(request.params.get("rich_message") for request in requests), (
         "A non-admin should not get the category picker"
     )
 
