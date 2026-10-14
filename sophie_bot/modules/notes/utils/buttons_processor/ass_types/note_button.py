@@ -8,10 +8,12 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class NoteButton(SophieButtonABC):
     button_type_names = ("note", "#")
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Note Button"), l_("Note Buttons")
 
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    @staticmethod
+    def examples() -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnnote:note_name)": None,
         }

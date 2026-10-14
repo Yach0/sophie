@@ -110,7 +110,8 @@ class TestMetricsMiddleware:
         change_gauge_metric_mock.assert_not_called()
         distribution_metric_mock.assert_not_called()
 
-    def test_extract_update_info_message(self, mock_update: Update):
+    @staticmethod
+    def test_extract_update_info_message(mock_update: Update):
         """Test update info extraction for messages"""
         info = extract_update_info(mock_update)
 
@@ -119,7 +120,8 @@ class TestMetricsMiddleware:
         assert info["transport"] == "polling"
         assert info["message_kind"] == "text"
 
-    def test_extract_update_info_callback_query(self, mock_message: Message):
+    @staticmethod
+    def test_extract_update_info_callback_query(mock_message: Message):
         """Test update info extraction for callback queries"""
         from aiogram.types import CallbackQuery
 
@@ -138,12 +140,14 @@ class TestMetricsMiddleware:
         assert info["chat_type"] == "private"
         assert info["message_kind"] is None
 
-    def test_get_message_kind_text(self, mock_message: Message):
+    @staticmethod
+    def test_get_message_kind_text(mock_message: Message):
         """Test message kind extraction for text messages"""
         kind = get_message_kind(mock_message)
         assert kind == "text"
 
-    def test_get_message_kind_photo(self):
+    @staticmethod
+    def test_get_message_kind_photo():
         """Test message kind extraction for photo messages"""
         from datetime import UTC, datetime
 
@@ -158,7 +162,8 @@ class TestMetricsMiddleware:
         kind = get_message_kind(message)
         assert kind == "photo"
 
-    def test_extract_command_name_with_alt_prefix(self):
+    @staticmethod
+    def test_extract_command_name_with_alt_prefix():
         """Test command extraction with alternate configured prefix."""
         from datetime import UTC, datetime
 
@@ -169,7 +174,8 @@ class TestMetricsMiddleware:
         command_name = extract_command_name(message)
         assert command_name == "help"
 
-    def test_extract_command_name_with_mention(self):
+    @staticmethod
+    def test_extract_command_name_with_mention():
         """Test command extraction when message contains bot mention."""
         from datetime import UTC, datetime
 
@@ -180,7 +186,8 @@ class TestMetricsMiddleware:
         command_name = extract_command_name(message)
         assert command_name == "start"
 
-    def test_get_handler_name(self, middleware: MetricsMiddleware):
+    @staticmethod
+    def test_get_handler_name(middleware: MetricsMiddleware):
         """Test handler name extraction"""
 
         # Test with function name
@@ -241,7 +248,8 @@ class TestMetricsMiddleware:
         name = middleware._get_handler_name(test_handler, None)
         assert len(name) == 50
 
-    def test_webhook_transport_detection(self, mock_update: Update, monkeypatch: pytest.MonkeyPatch):
+    @staticmethod
+    def test_webhook_transport_detection(mock_update: Update, monkeypatch: pytest.MonkeyPatch):
         """Transport is reported from the configured dispatch mode."""
         monkeypatch.setattr(CONFIG, "webhooks_enable", True)
         assert extract_update_info(mock_update)["transport"] == "webhook"

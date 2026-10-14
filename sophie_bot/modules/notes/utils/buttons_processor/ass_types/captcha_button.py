@@ -7,10 +7,12 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 class CaptchaButton(SophieButtonABC):
     button_type_names = ("welcomesecurity",)
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Captcha Button"), l_("Captcha Buttons")
 
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    @staticmethod
+    def examples() -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnwelcomesecurity)": None,
         }

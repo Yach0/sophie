@@ -18,10 +18,12 @@ class RecordingLog:
     def warning(self, event: str, **kwargs: Any) -> None:
         self.warnings.append((event, kwargs))
 
-    def info(self, event: str, **kwargs: Any) -> None:
+    @staticmethod
+    def info(event: str, **kwargs: Any) -> None:
         return None
 
-    def error(self, event: str, **kwargs: Any) -> None:
+    @staticmethod
+    def error(event: str, **kwargs: Any) -> None:
         return None
 
 

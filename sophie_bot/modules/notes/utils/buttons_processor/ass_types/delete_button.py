@@ -8,10 +8,12 @@ class DeleteButton(SophieButtonABC):
     button_type_names = ("delmsg",)
     allowed_prefixes = ("btn", "button", "")
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Delete Button"), l_("Delete Buttons")
 
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    @staticmethod
+    def examples() -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](delmsg)": None,
         }

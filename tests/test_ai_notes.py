@@ -12,5 +12,6 @@ class _FakeNote:
     async def get_by_notenames(chat_iid: object, notenames: tuple[str, ...]) -> None:
         _FakeNote.last_get_by_notenames = (chat_iid, notenames)
 
-    async def insert(self) -> None:
+    @staticmethod
+    async def insert() -> None:
         return None

@@ -18,7 +18,8 @@ class FedIdArg(TextArg[Federation]):
     def __init__(self, description: LazyProxy | None = None):
         super().__init__(description or l_("Federation ID"))
 
-    def check(self, text: str, entities: ArgEntities) -> bool:
+    @staticmethod
+    def check(text: str, entities: ArgEntities) -> bool:
         """Check if text has valid federation ID format and no overlapping entities."""
         fed_id, *_rest = text.split(maxsplit=1) or (text,)
 
@@ -35,7 +36,8 @@ class FedIdArg(TextArg[Federation]):
 
         return True
 
-    async def parse(self, text: str, offset: int, entities: ArgEntities) -> tuple[int, Federation]:
+    @staticmethod
+    async def parse(text: str, offset: int, entities: ArgEntities) -> tuple[int, Federation]:
         """Parse and validate federation ID, return Federation model."""
         fed_id, *_rest = text.split(maxsplit=1) or (text,)
 
@@ -46,10 +48,12 @@ class FedIdArg(TextArg[Federation]):
 
         return len(fed_id), federation
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Federation ID (format: xxxx-xxxx-xxxx-xxxx)"), l_("Federation IDs")
 
-    def unparse(self, data: Any, **kwargs) -> str:
+    @staticmethod
+    def unparse(data: Any, **kwargs) -> str:
         return data.fed_id
 
     @property

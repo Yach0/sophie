@@ -66,7 +66,8 @@ class SophieUserArg(OrArg):
             description=description,
         )
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"), l_(
             "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
         )

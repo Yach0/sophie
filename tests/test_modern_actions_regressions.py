@@ -307,7 +307,8 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(
         def __init__(self, **kwargs: Any) -> None:
             captured_kwargs.update(kwargs)
 
-        def emit(self, bot: object) -> object:
+        @staticmethod
+        def emit(bot: object) -> object:
             async def emit_result() -> object:
                 return SimpleNamespace(message_id=7)
 
