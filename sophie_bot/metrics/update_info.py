@@ -145,8 +145,7 @@ def _get_command_prefix(text: str) -> str | None:
         return None
 
     ordered_prefixes = sorted(prefixes, key=len, reverse=True)
-    for prefix_value in ordered_prefixes:
-        prefix = str(prefix_value)
+    for prefix in ordered_prefixes:
         if text.startswith(prefix):
             return prefix
 
