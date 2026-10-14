@@ -2,6 +2,7 @@
 title: Language
 icon: 🌐
 ---
+
 ### Language and localization settings
 
 > Allows users to set their preferred language for bot interactions.

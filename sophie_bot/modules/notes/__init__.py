@@ -6,10 +6,6 @@ from fastapi import APIRouter
 from stfu_tg import Doc
 
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_NOTE_BUTTON_PREFIX,
-    LegacyButtonAction,
-)
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -90,10 +86,6 @@ module_manifest = ModuleManifest(
         DelAllNotesHandler,
         DelAllNotesCallbackHandler,
         LegacyStartNoteButton,
-    ),
-    legacy_buttons=(
-        LegacyButtonAction("note", LEGACY_NOTE_BUTTON_PREFIX),
-        LegacyButtonAction("#", LEGACY_NOTE_BUTTON_PREFIX),
     ),
     setup_scheduler=setup_scheduler,
     title=l_("Notes"),

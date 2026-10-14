@@ -11,7 +11,7 @@ from aiogram.utils.text_decorations import HtmlDecoration
 from aiogram_test_framework import TestClient
 
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.services.application import ApplicationServices
 
@@ -118,7 +118,7 @@ async def e2e_parse_saveable_raw_handler(
         message=message,
         text=parsed_content_value,
         allow_reply_message=False,
-        buttons=ButtonsList(),
+        buttons=ButtonLayout(),
         offset=content_offset,
         bot=services.bot,
     )
@@ -152,7 +152,7 @@ async def e2e_parse_saveable_html_handler(
         message=message,
         text=parsed_content_html,
         allow_reply_message=False,
-        buttons=ButtonsList(),
+        buttons=ButtonLayout(),
         offset=content_offset,
         bot=services.bot,
     )
@@ -167,7 +167,7 @@ async def e2e_parse_saveable_rich_handler(
         message=message,
         text=None,
         allow_reply_message=False,
-        buttons=ButtonsList(),
+        buttons=ButtonLayout(),
         bot=services.bot,
     )
     await message.reply(saveable.text or "<EMPTY>")

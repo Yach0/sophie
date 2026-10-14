@@ -22,7 +22,6 @@ from sophie_bot.modules.ai.utils.sophie_inspect_source import (
     read_source,
     search_source,
 )
-from sophie_bot.services.db import get_collection
 from sophie_bot.utils.feature_flags import get_default_value
 
 
@@ -278,15 +277,8 @@ def test_help_mode_prompt_refuses_off_topic_and_names_the_way_out() -> None:
 
 @pytest.mark.usefixtures("db_init")
 async def test_a_stale_catalog_row_propagates_schema_error(test_redis: object, test_services: object) -> None:
-
-    providers = get_collection(
-        test_services.db.database,
-        "ai_catalog_provider",
-    )
-    models = get_collection(
-        test_services.db.database,
-        "ai_catalog_model",
-    )
+    providers = test_services.db.database["ai_catalog_provider"]
+    models = test_services.db.database["ai_catalog_model"]
     await providers.delete_many({})
     await models.delete_many({})
     await providers.insert_one({"name": "openrouter", "kind": "openrouter", "api_key": "k", "enabled": True})

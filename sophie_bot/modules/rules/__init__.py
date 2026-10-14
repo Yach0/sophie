@@ -9,10 +9,6 @@ from sophie_bot.modules.rules.handlers.legacy_button import LegacyRulesButton
 from sophie_bot.modules.rules.handlers.reset import ResetRulesHandler
 from sophie_bot.modules.rules.handlers.set import SetRulesHandler
 from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesAction
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_RULES_BUTTON_PREFIX,
-    LegacyButtonAction,
-)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -34,7 +30,6 @@ module_manifest = ModuleManifest(
         ResetRulesHandler,
         LegacyRulesButton,
     ),
-    legacy_buttons=(LegacyButtonAction("rules", LEGACY_RULES_BUTTON_PREFIX),),
     title=l_("Rules"),
     emoji="🪧",
     description=l_("Set and display chat rules"),

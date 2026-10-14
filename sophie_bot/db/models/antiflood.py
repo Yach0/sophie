@@ -37,13 +37,15 @@ class AntifloodModel(Document):
         if existing:
             return existing
 
-        return AntifloodModel(chat=chat_iid)
+        chat = await ChatModel.get_by_iid(chat_iid)
+        if chat is None:
+            raise ValueError(f"Chat with internal ID {chat_iid!s} not found")
+        return AntifloodModel(chat=chat)
 
     @staticmethod
     async def set_antiflood_count(chat_iid: PydanticObjectId, message_count: int) -> AntifloodModel:
         """Set the message count threshold for antiflood using internal DB ID (chat_iid)."""
-        model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid) or AntifloodModel(chat=chat_iid)
-
+        model = await AntifloodModel.get_by_chat_iid(chat_iid)
         model.message_count = message_count
         await model.save()
         return model
@@ -54,34 +56,17 @@ class AntifloodModel(Document):
     ) -> AntifloodModel:
         """Add an action for antiflood violations using internal DB ID (chat_iid)."""
         action = StoredAction(name=action_name, data=action_data or {})
-
-        model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
-        if model is None:
-            chat = await ChatModel.get_by_iid(chat_iid)
-            if chat is None:
-                raise ValueError(f"Chat with internal ID {chat_iid!s} not found")
-            model = AntifloodModel(chat=chat)
-
+        model = await AntifloodModel.get_by_chat_iid(chat_iid)
         actions = list(model.actions or [])
         actions.append(action)
         model.actions = actions
-
         await model.save()
         return model
 
     @staticmethod
     async def remove_antiflood_action(chat_iid: PydanticObjectId, action_name: str) -> AntifloodModel:
         """Remove an action for antiflood violations using internal DB ID (chat_iid)."""
-        model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
-        if model is None:
-            chat = await ChatModel.get_by_iid(chat_iid)
-            if chat is None:
-                raise ValueError(f"Chat with internal ID {chat_iid!s} not found")
-            model = AntifloodModel(chat=chat)
-            # No actions to remove on a fresh model
-            await model.save()
-            return model
-
+        model = await AntifloodModel.get_by_chat_iid(chat_iid)
         model.actions = [action for action in model.actions if action.name != action_name]
         await model.save()
         return model

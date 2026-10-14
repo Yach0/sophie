@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 00:51+0200\n"
+"POT-Creation-Date: 2026-10-14 22:01+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -254,7 +254,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:91
 #: sophie_bot/modules/ai/agent_tools/sophie_help.py:103
-#: sophie_bot/modules/notes/handlers/save.py:89
+#: sophie_bot/modules/notes/handlers/save.py:80
 msgid "Description"
 msgstr ""
 
@@ -1258,7 +1258,7 @@ msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_tool.py:41
 #: sophie_bot/modules/ai/utils/ai_tool.py:53
-#: sophie_bot/modules/notes/__init__.py:99
+#: sophie_bot/modules/notes/__init__.py:91
 msgid "Notes"
 msgstr ""
 
@@ -2150,20 +2150,20 @@ msgstr ""
 msgid "This user was unbanned before the ban finished propagating, so there was nothing left to do."
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:38
+#: sophie_bot/modules/connections/__init__.py:33
 #: sophie_bot/modules/connections/handlers/connect_dm.py:72
 msgid "Connections"
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:40
+#: sophie_bot/modules/connections/__init__.py:35
 msgid "Connect to chats from private messages"
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:43
+#: sophie_bot/modules/connections/__init__.py:38
 msgid "Allows users to connect to chats from private messages."
 msgstr ""
 
-#: sophie_bot/modules/connections/__init__.py:44
+#: sophie_bot/modules/connections/__init__.py:39
 msgid "Enables managing chat settings and using commands without being in the chat."
 msgstr ""
 
@@ -4059,35 +4059,35 @@ msgstr ""
 msgid "Welcome messages"
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:20
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:20
-#: sophie_bot/modules/notes/handlers/save.py:36
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:18
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:18
+#: sophie_bot/modules/notes/handlers/save.py:34
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/text_with_buttons_arg.py:14
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:217
 #: sophie_bot/modules/rules/handlers/set.py:20
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:20
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:18
 msgid "Content"
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:21
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:19
 msgid "Sets join request message."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:49
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:40
 #, python-brace-format
 msgid "Join request message was saved in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:55
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:46
 msgid "Deletes the join request message."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:68
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:59
 #, python-brace-format
 msgid "Join request message in {chat_title} has not been set before"
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/set_join_request.py:78
+#: sophie_bot/modules/greetings/handlers/set_join_request.py:69
 #, python-brace-format
 msgid "Join request message was reset to default in {chat_title}."
 msgstr ""
@@ -4108,26 +4108,26 @@ msgstr ""
 msgid "Automatic welcome messages cleanup"
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:21
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:19
 msgid "Sets welcome message."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:44
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:34
 #, python-brace-format
 msgid "Please the '{cmd}' to control the welcome status."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:60
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:50
 #, python-brace-format
 msgid "Welcome message was successfully updated in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:62
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:52
 #, python-brace-format
 msgid "Use {cmd} to retrieve the welcome message."
 msgstr ""
 
-#: sophie_bot/modules/greetings/handlers/status_greetings.py:69
+#: sophie_bot/modules/greetings/handlers/status_greetings.py:59
 #, python-brace-format
 msgid "⚠️ Please note, that the welcome messages are currently disabled in the chat, use '{cmd}' to enable it."
 msgstr ""
@@ -4949,15 +4949,15 @@ msgstr ""
 msgid "Group whitelist exemption"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:101
+#: sophie_bot/modules/notes/__init__.py:93
 msgid "Save and retrieve notes in chats"
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:105
+#: sophie_bot/modules/notes/__init__.py:97
 msgid "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
 msgstr ""
 
-#: sophie_bot/modules/notes/__init__.py:108
+#: sophie_bot/modules/notes/__init__.py:100
 msgid "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
 msgstr ""
 
@@ -5148,42 +5148,42 @@ msgstr ""
 msgid "PrivateNotes have been {status} in {chat}."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:34
-#: sophie_bot/modules/notes/handlers/save.py:88
+#: sophie_bot/modules/notes/handlers/save.py:32
+#: sophie_bot/modules/notes/handlers/save.py:79
 msgid "Note names"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:35
+#: sophie_bot/modules/notes/handlers/save.py:33
 msgid "?Description"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:38
+#: sophie_bot/modules/notes/handlers/save.py:36
 msgid "Save the note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:61
+#: sophie_bot/modules/notes/handlers/save.py:52
 msgid "Please provide at least one valid note name."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:90
+#: sophie_bot/modules/notes/handlers/save.py:81
 msgid "Note was successfully created"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:90
+#: sophie_bot/modules/notes/handlers/save.py:81
 msgid "Note was successfully updated"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:92
+#: sophie_bot/modules/notes/handlers/save.py:83
 #, python-brace-format
 msgid "Use {cmd} to retrieve this note."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:102
+#: sophie_bot/modules/notes/handlers/save.py:93
 #, python-brace-format
 msgid "To save the whole album, send it with {cmd} in the caption instead."
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/save.py:105
+#: sophie_bot/modules/notes/handlers/save.py:96
 msgid "⚠️ Only the first media of the album was saved"
 msgstr ""
 
@@ -6449,19 +6449,19 @@ msgstr ""
 msgid "Admin promoted successfully"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:30
+#: sophie_bot/modules/purges/__init__.py:25
 msgid "Purges"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:32
+#: sophie_bot/modules/purges/__init__.py:27
 msgid "Delete messages in bulk"
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:35
+#: sophie_bot/modules/purges/__init__.py:30
 msgid "Allows administrators to delete multiple messages at once."
 msgstr ""
 
-#: sophie_bot/modules/purges/__init__.py:36
+#: sophie_bot/modules/purges/__init__.py:31
 msgid "Useful for cleaning up chat history and removing unwanted content."
 msgstr ""
 
@@ -6844,7 +6844,7 @@ msgstr ""
 msgid "Unmuted by"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:38
+#: sophie_bot/modules/rules/__init__.py:33
 #: sophie_bot/modules/rules/handlers/get.py:34
 #: sophie_bot/modules/rules/handlers/legacy_button.py:36
 #: sophie_bot/modules/rules/magic_handlers/modern_filter.py:38
@@ -6852,15 +6852,15 @@ msgstr ""
 msgid "Rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:40
+#: sophie_bot/modules/rules/__init__.py:35
 msgid "Set and display chat rules"
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:43
+#: sophie_bot/modules/rules/__init__.py:38
 msgid "Allows administrators to set rules for their chats."
 msgstr ""
 
-#: sophie_bot/modules/rules/__init__.py:44
+#: sophie_bot/modules/rules/__init__.py:39
 msgid "Users can view the rules at any time using the rules command."
 msgstr ""
 
@@ -7548,15 +7548,15 @@ msgstr ""
 msgid "muted"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:78
+#: sophie_bot/modules/welcomesecurity/__init__.py:73
 msgid "Welcome Security"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:80
+#: sophie_bot/modules/welcomesecurity/__init__.py:75
 msgid "Protect your chat from bots and verify new users"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/__init__.py:82
+#: sophie_bot/modules/welcomesecurity/__init__.py:77
 msgid "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
 msgstr ""
 
@@ -7653,25 +7653,25 @@ msgstr ""
 msgid "You are banned in the federation, so you cannot pass the authentication!"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:21
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:19
 msgid "Sets welcome security message."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:49
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:40
 #, python-brace-format
 msgid "Welcome security message was saved in {chat_title}."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:55
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:46
 msgid "Deletes the welcome security message."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:68
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:59
 #, python-brace-format
 msgid "Welcome security message in {chat_title} has not been set before"
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:78
+#: sophie_bot/modules/welcomesecurity/handlers/set_security_message.py:69
 #, python-brace-format
 msgid "Welcome security message was reset to default in {chat_title}."
 msgstr ""

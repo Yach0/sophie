@@ -2,6 +2,7 @@
 title: Notes
 icon: 📗
 ---
+
 ### Save and retrieve notes in chats
 
 > If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes. \
@@ -26,6 +27,7 @@ icon: 📗
 | `/pm_notes` `/private_notes` | `<New state>` | Control Private Notes. | *Only in groups* |
 | `/del_note` `/clear` | `<Note name>` | Deletes notes. |  |
 | `/save` `/add_note` | `<Note names>` `<?Description>` `<Content>` | Save the note. |  |
+| `/clean_notes` | `<?New status>` | Shows / changes the state of automatic notes cleanup. |  |
 | `/clear_all` | - | Deletes all notes. |  |
 {.card-view-on-mobile}
 ---

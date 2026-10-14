@@ -2,6 +2,7 @@
 title: Greetings
 icon: 🙋‍♂️
 ---
+
 ### Welcome new users to your chat
 
 > This module helps you to welcome new users automatically, while keeping the chat clean. \

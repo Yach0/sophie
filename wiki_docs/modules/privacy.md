@@ -2,6 +2,7 @@
 title: Privacy
 icon: 🕵️‍♂️️
 ---
+
 ### Data protection
 
 > Manages user privacy and data protection settings. \

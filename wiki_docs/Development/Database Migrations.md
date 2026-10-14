@@ -18,11 +18,6 @@ Migrations are versioned, reversible Python scripts that transform data between 
 4. Applied migrations are tracked in the `migration_states` collection
 5. Migrations run automatically on startup for beta instance
 
-Database initialization also repairs raw ObjectId `filters.chat` values left by the
-already-applied `20260125_210117_convert_filters_chat_id_to_link` migration. The repair
-runs even when migrations are disabled, preserves each referenced ID, and leaves existing
-DBRefs unchanged. Repeated or concurrent startup runs are safe. Fresh migrations write
-DBRefs directly.
 
 ## Creating a Migration
 
@@ -40,7 +35,7 @@ This creates a file like: `sophie_bot/db/migrations/20240125_120000_add_user_pre
 2. Define old and new model structures if needed
 3. Implement Forward and Backward migration classes
 4. Test migration locally
-5. Add tests to `tests/test_migrations.py`
+5. Add unit tests if validating complex document transformations
 
 ## Migration Examples
 
@@ -650,30 +645,3 @@ CONFIG.migration_batch_size = 5000  # Adjust based on testing
 - [MongoDB Transactions](https://www.mongodb.com/docs/manual/core/transactions/)
 - [Beanie ODM Documentation](https://beanie-odm.dev/)
 
-## Migration Checklist
-
-**Pre-Migration:**
-- [ ] Migration file created with proper naming
-- [ ] Forward and Backward classes implemented
-- [ ] Docstring with description and impact
-- [ ] Tests written in `tests/test_migrations.py`
-- [ ] Code reviewed by team
-- [ ] Tested locally with `make migrate_up`
-- [ ] Tested in staging environment
-
-**Post-Migration:**
-- [ ] Migration applied successfully
-- [ ] Data integrity verified
-- [ ] Application functionality tested
-- [ ] Performance acceptable
-- [ ] Logs reviewed for errors
-- [ ] Documentation updated
-- [ ] Rollback procedure documented
-
-**Production Deployment:**
-- [ ] Staging migration successful
-- [ ] Rollback procedure documented
-- [ ] Team notified of deployment
-- [ ] Maintenance window scheduled (if needed)
-- [ ] Monitoring configured
-- [ ] Backup taken (if possible)

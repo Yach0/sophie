@@ -2,6 +2,7 @@
 title: Connections
 icon: 🔗
 ---
+
 ### Connect to chats from private messages
 
 > Allows users to connect to chats from private messages. \

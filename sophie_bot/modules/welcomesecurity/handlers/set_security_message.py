@@ -1,16 +1,14 @@
 from typing import Any
 
 from aiogram.dispatcher.event.handler import CallbackType
-from ass_tg.types.base_abc import ParsedArg
 from stfu_tg import Doc, Italic, Template
 
 from sophie_bot.db.models import GreetingsModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
-from sophie_bot.modules.notes.utils.buttons_processor.ass_types.sophie_button_abc import AssButtonData
 from sophie_bot.modules.notes.utils.buttons_processor.ass_types.text_with_buttons_arg import TextWithButtonsArg
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.parse import parse_saveable
+from sophie_bot.modules.utils_.text_with_buttons import parse_text_with_buttons
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -27,14 +25,7 @@ class SetSecurityMessageHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        text_with_buttons: dict[str, Any] = self.data["text_with_buttons"]
-        raw_text_parsed: ParsedArg[str] | None = text_with_buttons.get("text")
-        raw_text = raw_text_parsed.value if raw_text_parsed else None
-        text_offset = raw_text_parsed.offset if raw_text_parsed else 0
-
-        raw_buttons_parsed: ParsedArg[list[AssButtonData]] | None = text_with_buttons.get("buttons")
-        raw_buttons = raw_buttons_parsed.value if raw_buttons_parsed else []
-        buttons = ButtonsList.from_ass(raw_buttons)
+        raw_text, text_offset, buttons = parse_text_with_buttons(self.data)
 
         saveable = await parse_saveable(
             self.event,

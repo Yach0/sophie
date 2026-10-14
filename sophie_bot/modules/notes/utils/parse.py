@@ -8,8 +8,8 @@ from stfu_tg import Section, Template
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout
 from sophie_bot.modules.notes.utils.buttons.storage import buttons_from_markup
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
 from sophie_bot.modules.notes.utils.buttons_processor.list_from_message import parse_buttons_list_from_message
 from sophie_bot.modules.notes.utils.convert_to_html import preserve_custom_emoji_inline_html, tg_emoji_workaround
 from sophie_bot.modules.notes.utils.media import (
@@ -64,7 +64,7 @@ def parse_reply_message(message: Message) -> tuple[str, NoteFile | None, list[li
 def _rich_saveable(
     source_message: Message,
     *,
-    buttons: ButtonsList,
+    buttons: ButtonLayout,
     bot: Bot,
 ) -> Saveable:
     rich_message = source_message.rich_message
@@ -93,7 +93,7 @@ async def parse_saveable(
     message: Message,
     text: str | None,
     allow_reply_message: bool = True,
-    buttons: ButtonsList | None = None,
+    buttons: ButtonLayout | None = None,
     offset: int = 0,
     album: list[Message] | None = None,
     *,
@@ -124,7 +124,7 @@ async def parse_saveable(
                     title=_("Rich message cannot be saved."),
                 )
             )
-        rich_buttons = buttons if buttons is not None else ButtonsList()
+        rich_buttons = buttons if buttons is not None else ButtonLayout()
         return _rich_saveable(
             rich_source,
             buttons=rich_buttons,
@@ -149,7 +149,7 @@ async def parse_saveable(
         note_text, buttons = await parse_buttons_list_from_message(message, note_text, offset=offset)
 
     if buttons is None:
-        buttons = ButtonsList()
+        buttons = ButtonLayout()
 
     if note_text and initial_note_text and note_text == initial_note_text:
         parsed_inline_html = preserve_custom_emoji_inline_html(message, text=note_text, offset=offset)

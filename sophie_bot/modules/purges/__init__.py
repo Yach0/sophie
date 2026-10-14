@@ -8,10 +8,6 @@ from sophie_bot.modules.purges.handlers.button import LegacyDelMsgButton
 from sophie_bot.modules.purges.handlers.delete import DelMsgCmdHandler
 from sophie_bot.modules.purges.handlers.purge import PurgeMessagesHandler
 from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModern
-from sophie_bot.modules.utils_.legacy_buttons import (
-    LEGACY_DELETE_MESSAGE_BUTTON_PREFIX,
-    LegacyButtonAction,
-)
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -26,7 +22,6 @@ module_manifest = ModuleManifest(
         PurgeMessagesHandler,
         LegacyDelMsgButton,
     ),
-    legacy_buttons=(LegacyButtonAction("delmsg", LEGACY_DELETE_MESSAGE_BUTTON_PREFIX),),
     title=l_("Purges"),
     emoji="🗑",
     description=l_("Delete messages in bulk"),

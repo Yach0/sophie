@@ -2,6 +2,7 @@
 title: Antiflood
 icon: 📈
 ---
+
 ### Protect your chat from message flooding
 
 

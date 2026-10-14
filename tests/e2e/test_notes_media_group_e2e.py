@@ -24,7 +24,7 @@ from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import NoteFile, Saveable
 from sophie_bot.db.models.notes_buttons import Button
 from sophie_bot.middlewares.media_group import MediaGroupAggregatorMiddleware, MemoryMediaGroupAggregator
-from sophie_bot.modules.notes.utils.buttons_processor.buttons import ButtonsList
+from sophie_bot.modules.notes.utils.buttons import ButtonLayout
 from sophie_bot.modules.notes.utils.parse import parse_saveable
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.services.application import ApplicationServices
@@ -111,7 +111,7 @@ async def test_parse_saveable_collects_album_files(test_services: ApplicationSer
     saveable = await parse_saveable(
         album[0],
         text="Hello",
-        buttons=ButtonsList(),
+        buttons=ButtonLayout(),
         album=album,
         bot=test_services.bot,
     )

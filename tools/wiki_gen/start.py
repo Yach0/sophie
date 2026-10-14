@@ -11,7 +11,8 @@ from tools.wiki_gen.generate_pages import generate_wiki_pages
 async def _generate_wiki() -> None:
     registry = discover_modules(["*"], CONFIG.modules_not_load)
     feature_defaults = {
-        feature: get_default_value(feature) for feature in FEATURE_FLAGS
+        feature: (True if isinstance(get_default_value(feature), bool) else get_default_value(feature))
+        for feature in FEATURE_FLAGS
     }
     await build_help_catalog(registry, feature_defaults)
     await generate_wiki_pages(registry.help_modules)

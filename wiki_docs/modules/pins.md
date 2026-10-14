@@ -2,6 +2,7 @@
 title: Pins
 icon: 📌
 ---
+
 ### Pin and unpin messages in chats
 
 > Allows administrators to pin important messages in the chat. \
