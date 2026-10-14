@@ -35,7 +35,7 @@ This creates a file like: `sophie_bot/db/migrations/20240125_120000_add_user_pre
 2. Define old and new model structures if needed
 3. Implement Forward and Backward migration classes
 4. Test migration locally
-5. Add unit tests if validating complex document transformations
+5. Add unit tests for complex document transformations to `tests/test_migration_helper.py` and re-export them in the CI entry point `tests/test_migrations.py`
 
 ## Migration Examples
 
@@ -455,18 +455,21 @@ class Forward:
 ### Running Tests
 
 ```bash
-make test_migrations
+env -u PYTHONPATH uv run pytest tests/test_migrations.py -v
 ```
 
-Or:
+The CI entry point re-exports the current migration CLI and AI moderator migration
+tests from `tests/test_migration_helper.py`. It is excluded from directory collection
+so normal unit runs collect each test once from its implementation module.
+To run that module directly:
 
 ```bash
-pytest tests/test_migrations.py -v
+uv run pytest tests/test_migration_helper.py -v
 ```
 
 ### Writing Tests
 
-Add tests to `tests/test_migrations.py`:
+Add tests to `tests/test_migration_helper.py` and re-export them in `tests/test_migrations.py`:
 
 ```python
 import pytest
@@ -503,7 +506,7 @@ async def test_migration_applies_correctly(test_services: ApplicationServices) -
 
 1. **Create migration** on development branch
 2. **Test locally**: `make migrate_up`
-3. **Add tests** to `tests/test_migrations.py`
+3. **Add tests** to `tests/test_migration_helper.py` and re-export them in `tests/test_migrations.py`
 4. **Test in staging** (beta instance)
 5. **Verify status**: `make migrate_status`
 6. **Open merge request** with migration details
@@ -644,4 +647,3 @@ CONFIG.migration_batch_size = 5000  # Adjust based on testing
 - [Project AGENTS.md](../AGENTS.md)
 - [MongoDB Transactions](https://www.mongodb.com/docs/manual/core/transactions/)
 - [Beanie ODM Documentation](https://beanie-odm.dev/)
-

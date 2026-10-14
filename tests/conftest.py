@@ -41,6 +41,10 @@ from tests.utils.db_fixture import MOCK_MONGO, cleanup_beanie, initialize_beanie
 
 logger = logging.getLogger(__name__)
 
+# Explicit file arguments still collect this CI entry point. Directory runs use
+# test_migration_helper.py directly, without collecting its re-exports twice.
+collect_ignore = ["test_migrations.py"]
+
 # Set testing environment
 os.environ["TESTING"] = "1"
 

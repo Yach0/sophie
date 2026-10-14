@@ -22,7 +22,6 @@ from beanie import free_fall_migration
 from bson import DBRef, ObjectId
 from pymongo.asynchronous.client_session import AsyncClientSession
 
-from sophie_bot.services.db import get_collection
 from sophie_bot.services.migrations import MigrationResources
 
 
@@ -31,8 +30,8 @@ class Forward:
 
     @free_fall_migration(document_models=[])
     async def migrate(self, session: AsyncClientSession | None, *, resources: MigrationResources) -> None:
-        collection = get_collection(resources.database.database, "ai_moderator")
-        backup = get_collection(resources.database.database, "ai_moderator_upgrade_backup")
+        collection = resources.database.database["ai_moderator"]
+        backup = resources.database.database["ai_moderator_upgrade_backup"]
         survivors: dict[DBRef, ObjectId] = {}
         async for document in collection.find({}, sort=[("_id", -1)], session=session):
             await backup.update_one(
@@ -61,8 +60,8 @@ class Backward:
 
     @free_fall_migration(document_models=[])
     async def migrate(self, session: AsyncClientSession | None, *, resources: MigrationResources) -> None:
-        collection = get_collection(resources.database.database, "ai_moderator")
-        backup = get_collection(resources.database.database, "ai_moderator_upgrade_backup")
+        collection = resources.database.database["ai_moderator"]
+        backup = resources.database.database["ai_moderator_upgrade_backup"]
         # Index DDL cannot run in the data transaction. Remove it before restoring duplicates.
         if "moderator_chat_unique" in await collection.index_information():
             await collection.drop_index("moderator_chat_unique")

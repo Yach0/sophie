@@ -27,7 +27,7 @@ from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.settings import get_enabled, set_category_level
 from sophie_bot.services import db as database_service
 from sophie_bot.services import migrations as migration_service
-from sophie_bot.services.db import DatabaseResources, get_collection
+from sophie_bot.services.db import DatabaseResources
 from sophie_bot.services.migrations import MigrationResources, _bind_migration_resources
 from tests.utils.db_fixture import MOCK_MONGO, initialize_beanie
 from tests.utils.mongo_mock import AsyncMongoMockClient
@@ -211,8 +211,8 @@ async def test_moderator_rollback_after_first_category_configuration(
     db_init: Any, test_redis: FakeAsyncRedis, enabled: bool | str | None
 ) -> None:
     migration = _moderator_settings_migration()
-    collection = get_collection(db_init, "ai_moderator")
-    backup = get_collection(db_init, "ai_moderator_upgrade_backup")
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
     await collection.delete_many({})
     await backup.delete_many({})
     originals = [
@@ -261,8 +261,8 @@ async def test_moderator_migration_normalizes_legacy_defaults_and_preserves_fals
     db_init: Any, test_redis: FakeAsyncRedis
 ) -> None:
     migration = _moderator_settings_migration()
-    collection = get_collection(db_init, "ai_moderator")
-    backup = get_collection(db_init, "ai_moderator_upgrade_backup")
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
     await collection.delete_many({})
     await backup.delete_many({})
     legacy_true = {"chat": DBRef("chats", ObjectId()), "enabled": True, "pii": "high"}
@@ -296,8 +296,8 @@ async def test_moderator_migration_repairs_duplicates_before_unique_index_and_ro
     db_init: Any, test_redis: FakeAsyncRedis
 ) -> None:
     migration = _moderator_settings_migration()
-    collection = get_collection(db_init, "ai_moderator")
-    backup = get_collection(db_init, "ai_moderator_upgrade_backup")
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
     await collection.delete_many({})
     await backup.delete_many({})
     chat_ref = DBRef("chats", ObjectId())
