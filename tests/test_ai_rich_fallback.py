@@ -21,7 +21,7 @@ class _RichFailure(Exception):
 async def test_chatbot_final_edit_propagates_telegram_failure(
     test_redis: object,
 ) -> None:
-    source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
+    source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2, message_thread_id=None)
     error = _RichFailure()
     edit_message_text = AsyncMock(side_effect=error)
     response = SimpleNamespace(
@@ -43,10 +43,11 @@ async def test_chatbot_final_edit_propagates_telegram_failure(
     assert raised.value is error
     edit_message_text.assert_awaited_once()
 
+
 @pytest.mark.usefixtures("db_init")
 @pytest.mark.asyncio
 async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: object) -> None:
-    source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2)
+    source = SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2, message_thread_id=None)
     error = _RichFailure()
     edit_message_text = AsyncMock(side_effect=error)
     response = SimpleNamespace(
@@ -62,6 +63,7 @@ async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: obj
 
     assert raised.value is error
     edit_message_text.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 async def test_rich_sender_uses_one_reply_on_success() -> None:
@@ -103,7 +105,9 @@ async def test_research_final_edit_propagates_telegram_failure() -> None:
     error = _RichFailure()
     edit_message_text = AsyncMock(side_effect=error)
     bot = SimpleNamespace(edit_message_text=edit_message_text)
-    progress = ResearchProgressMessage(SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2), bot)
+    progress = ResearchProgressMessage(
+        SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2, message_thread_id=None), bot
+    )
 
     with pytest.raises(_RichFailure) as raised:
         await progress.send_final(Doc("answer"))
@@ -119,7 +123,7 @@ async def test_research_progress_edit_propagates_telegram_failure() -> None:
     error = _RichFailure()
     edit_message_text = AsyncMock(side_effect=error)
     progress = ResearchProgressMessage(
-        SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2),
+        SimpleNamespace(chat=SimpleNamespace(id=1), message_id=2, message_thread_id=None),
         SimpleNamespace(edit_message_text=edit_message_text),
     )
 

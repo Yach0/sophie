@@ -446,3 +446,43 @@ await message.reply(doc.to_html())
 9. **All components auto-escape HTML** (except `PreformattedHTML`)
 10. **Combine with formatting** - Bold, Code, Italic work inside all components
 11. **Use `doc.to_html()` instead of `str(doc)`** - preferred method for clarity and explicit format
+
+
+## Delivering long text documents
+
+Use `reply_or_answer` for ordinary replies, `reply_or_edit` for ordinary
+reply/callback flows, and `reply_or_edit_rich` for Rich flows. AI reply and
+chat-send helpers use the same `modules/utils_/delivery.py` boundary.
+Pass the STFU document to these helpers rather than rendering and sending it
+through Telegram directly. For a final edit, `deliver_doc` accepts an
+`edit_message_id`, the original `reply_parameters`, and `message_thread_id`.
+
+The boundary uses STFU's public `partition_doc` API with a 4096 visible UTF-16
+unit budget. Each chunk retains its formatting and links; Rich chunks keep
+nested block structure. Chunks send sequentially. An edit replaces the first
+page, then sends the remaining pages in the same topic and reply context.
+Streamer and research coordinators keep continuation IDs for their own lifetime:
+subsequent finals reuse those messages and delete surplus pages, including when
+returning to a short progress edit. No global or durable registry is used.
+The first send/edit result is returned only after all continuations succeed.
+An unchanged edit returns `None` and still processes continuations; coordinators
+retain the original first message in that case.
+A keyboard appears on the first page only. AI final answers and debug history
+retain all content; streaming drafts edit only the first page until completion.
+AI continuations repeat the recognized custom emoji marker so they remain
+replyable. Its visible UTF-16 size is reserved before partitioning; no body
+content is discarded or header/footer repeated.
+
+This boundary accepts text documents and HTML strings; use `parse_mode=None`
+for literal plain strings. It rejects empty documents, Markdown parse modes,
+explicit entity arrays, captions, embedded media/buttons, unsupported elements,
+and invalid trusted HTML before partitioned delivery. `reply_or_edit_rich` keeps
+its existing single-message Rich path for fitting documents, including embedded
+`Buttons`; oversized documents containing buttons have an explicit partition
+boundary error before any send/edit. Media/caption/album and stored Rich
+block delivery remain in the notes delivery code, with their existing limits
+and button rules. Do not pass those surfaces through the text partitioner.
+Telegram errors propagate; a deleted reply target is retried without that reply
+only where the caller enables it. A failed continuation stops further sends,
+while already delivered pages remain visible. Legacy `common_try` also
+propagates Telegram's oversized-message error instead of silently dropping it.

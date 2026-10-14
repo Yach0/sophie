@@ -52,7 +52,7 @@ async def test_inaccessible_callback_raises_sophie_exception() -> None:
 @pytest.mark.asyncio
 async def test_rich_render_failure_does_not_fallback_to_plain_reply() -> None:
     message = _message()
-    document = MagicMock()
+    document = MagicMock(spec=Doc)
     document.to_rich.side_effect = RuntimeError("render failed")
     send = AsyncMock()
     bot = SimpleNamespace(send_rich_message=send)

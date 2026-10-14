@@ -37,8 +37,6 @@ from sophie_bot.modules.ai.utils.mention_usernames import (
 )
 from sophie_bot.utils.feature_flags import get_value, is_enabled
 
-TELEGRAM_MESSAGE_SAFE_LIMIT = 3900
-
 
 def select_mention_policy(*, modern: bool, mode: AIMode) -> MentionPolicy:
     if not modern:
@@ -333,14 +331,6 @@ def build_debug_doc(model: Model, result: AIAgentResult[Any]) -> Section:
         ),
         title="Provider debug",
     )
-
-
-def truncate_output(header: Element | str | None, output_text: str) -> str:
-    header_html = header.to_html() if isinstance(header, Element) else str(header or "")
-    length = len(output_text) + len(header_html)
-    if length > 4000:
-        return output_text[:4000] + "..."
-    return output_text
 
 
 async def build_reply_doc(

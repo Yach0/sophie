@@ -8,14 +8,14 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import Message, ReplyParameters
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
 
 from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
 from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
-from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_send import ai_continuation_prefix, editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc, resolve_reply_mention_index
 from sophie_bot.modules.ai.utils.mention_usernames import MentionIndex, MentionPolicy
@@ -23,6 +23,7 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
+from sophie_bot.modules.utils_.delivery import deliver_doc, partition_delivery_doc
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 
@@ -72,6 +73,7 @@ class ChatbotMessageStreamer:
         self.mention_policy = mention_policy
         self.speaker_names = speaker_names
         self.response_message: Message | None = None
+        self._continuation_message_ids: list[int] = []
         self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
@@ -144,17 +146,30 @@ class ChatbotMessageStreamer:
         await self._cancel_pending_update()
         rendered_rich = doc.to_rich()
         if self.response_message is None:
-            return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+            self.response_message = await send_ai_rich_message(
+                self.source_message, doc, continuation_message_ids=self._continuation_message_ids, **reply_kwargs
+            )
+            self._last_sent_rich = rendered_rich
+            return self.response_message
 
         reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
         if rendered_rich == self._last_sent_rich and reply_markup is None:
             return self.response_message
 
-        result = await self._editing_bot().edit_message_text(
-            chat_id=self.response_message.chat.id,
-            message_id=self.response_message.message_id,
-            rich_message=InputRichMessage(html=rendered_rich),
-            reply_markup=reply_markup,
+        delivery_options = dict(reply_kwargs)
+        delivery_options["reply_markup"] = reply_markup
+        delivery_options.setdefault("message_thread_id", self.source_message.message_thread_id)
+        delivery_options.setdefault("reply_parameters", ReplyParameters(message_id=self.source_message.message_id))
+        result = await deliver_doc(
+            self._editing_bot(),
+            self.response_message.chat.id,
+            doc,
+            mode="rich",
+            continuation_prefix=ai_continuation_prefix(doc),
+            continuation_message_ids=self._continuation_message_ids,
+            edit_message_id=self.response_message.message_id,
+            allow_deleted_reply=True,
+            **delivery_options,
         )
         self._last_sent_rich = rendered_rich
         return result if isinstance(result, Message) else self.response_message
@@ -258,6 +273,7 @@ class ChatbotMessageStreamer:
 
     async def _update(self, doc: Doc) -> None:
         """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
+        doc = partition_delivery_doc(doc, mode="rich")[0]
         rendered_rich = doc.to_rich()
         if rendered_rich == self._last_sent_rich:
             return
@@ -265,10 +281,13 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await self._editing_bot().edit_message_text(
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
+            await deliver_doc(
+                self._editing_bot(),
+                self.response_message.chat.id,
+                doc,
+                mode="rich",
+                edit_message_id=self.response_message.message_id,
+                continuation_message_ids=self._continuation_message_ids,
             )
 
         self._last_sent_rich = rendered_rich

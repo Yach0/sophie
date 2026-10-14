@@ -1,13 +1,29 @@
 from __future__ import annotations
 
-from typing import Any
+import re
+from typing import Any, cast
 
 from aiogram import Bot
-from aiogram.exceptions import TelegramBadRequest
-from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
+from aiogram.types import InlineKeyboardMarkup, Message, ReplyParameters
 from stfu_tg import Doc
 
-from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
+    AI_CUSTOM_EMOJI_ID,
+    AI_GENERATING_EMOJI_ID,
+)
+from sophie_bot.modules.utils_.delivery import deliver_doc
+
+_AI_MARKER = re.compile(
+    rf'^(?:<p>)?(<tg-emoji emoji-id="(?:{AI_CUSTOM_EMOJI_ID}|{AI_CHATBOT_CUSTOM_EMOJI_ID}|{AI_GENERATING_EMOJI_ID})">'
+    r"[^<]+</tg-emoji>)"
+)
+
+
+def ai_continuation_prefix(doc: Doc) -> str:
+    """Repeat the recognized marker on AI continuations, without repeating the header."""
+    marker = _AI_MARKER.match(doc.to_rich())
+    return marker[1] + " " if marker else ""
 
 
 def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
@@ -17,24 +33,20 @@ def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
 
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
     """Send a rich AI reply, falling back to a plain message if its source was deleted."""
-    rich_message = InputRichMessage(html=doc.to_rich())
-    try:
-        return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-            chat_id=message.chat.id,
-            rich_message=rich_message,
+    return cast(
+        Message,
+        await deliver_doc(
+            message.bot,
+            message.chat.id,
+            doc,
+            mode="rich",
+            continuation_prefix=ai_continuation_prefix(doc),
+            allow_deleted_reply=True,
             reply_parameters=ReplyParameters(message_id=message.message_id),
             message_thread_id=message.message_thread_id,
             **reply_kwargs,
-        )
-    except TelegramBadRequest as error:
-        if REPLIED_NOT_FOUND not in error.message:
-            raise
-        return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
-            chat_id=message.chat.id,
-            rich_message=rich_message,
-            message_thread_id=message.message_thread_id,
-            **reply_kwargs,
-        )
+        ),
+    )
 
 
 async def send_ai_rich_message_to_chat(
@@ -51,8 +63,9 @@ async def send_ai_rich_message_to_chat(
         reply_parameters = ReplyParameters(message_id=reply_to_message_id)
     if reply_parameters is not None:
         send_kwargs["reply_parameters"] = reply_parameters
-    return await bot.send_rich_message(
-        chat_id=chat_id,
-        rich_message=InputRichMessage(html=doc.to_rich()),
-        **send_kwargs,
+    return cast(
+        Message,
+        await deliver_doc(
+            bot, chat_id, doc, mode="rich", continuation_prefix=ai_continuation_prefix(doc), **send_kwargs
+        ),
     )

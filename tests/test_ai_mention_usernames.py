@@ -361,11 +361,9 @@ async def test_alias_only_rendering_never_back_traces_names(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("mention_policy", list(MentionPolicy))
-@pytest.mark.parametrize("render_limit", [3900, 1])
-async def test_fitted_and_last_resort_replies_preserve_mention_policy(
+async def test_chatbot_reply_doc_preserves_mention_policy(
     monkeypatch: pytest.MonkeyPatch,
     test_services: Any,
-    render_limit: int,
     mention_policy: MentionPolicy,
 ) -> None:
     collect = AsyncMock(return_value=(MentionCandidate(display_names=("Alice",), username="alice_real"),))
@@ -373,9 +371,8 @@ async def test_fitted_and_last_resort_replies_preserve_mention_policy(
     speaker_names, _lookup = _modern_actor_lookup(
         monkeypatch, (MentionCandidate(display_names=("Alice",), username="alice_real"),)
     )
-    monkeypatch.setattr(chatbot_reply, "TELEGRAM_MESSAGE_SAFE_LIMIT", render_limit)
 
-    doc = await chatbot_reply._build_fitting_reply_doc(
+    doc = await chatbot_reply._build_chatbot_reply_doc(
         None,
         "Hi @Alice",
         None,

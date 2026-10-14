@@ -27,14 +27,13 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
+from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_chatbot_reply_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, ResearchProgressStage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     _get_search_tool,
     build_chatbot_usage_limits,
 )
-from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings
 from sophie_bot.modules.ai.utils.research import (
     ResearchWorkflowResult,
@@ -260,8 +259,8 @@ async def test_research_tool_returns_report_and_updates_chatbot_progress(
 
 
 @pytest.mark.asyncio
-async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: object, test_services: object) -> None:
-    doc = await _build_fitting_reply_doc(
+async def test_build_chatbot_reply_doc_preserves_full_output(test_redis: object, test_services: object) -> None:
+    doc = await _build_chatbot_reply_doc(
         Title("AI Chatbot"),
         "Long answer " * 600,
         model=None,
@@ -271,7 +270,7 @@ async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: obje
         services=test_services,
     )
 
-    assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
+    assert "Long answer " * 600 in doc.to_html()
 
 
 def test_render_research_markdown_has_metadata_and_sources_without_blockquote() -> None:

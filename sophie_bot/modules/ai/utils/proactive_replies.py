@@ -40,7 +40,6 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     build_reply_doc,
     model_display_name,
     select_mention_policy,
-    truncate_output,
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
@@ -481,7 +480,7 @@ async def _answer_message(
             model_label=model_display_name(model) if show_model_name else None,
             redis=services.redis,
         )
-        output_text = truncate_output(header, str(result.output))
+        output_text = str(result.output)
         tool_labels = used_tool_labels(
             result.new_messages
             if isinstance(history, ModernContext)

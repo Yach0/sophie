@@ -31,13 +31,11 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
 from sophie_bot.modules.ai.utils.chatbot_response import (
-    TELEGRAM_MESSAGE_SAFE_LIMIT,
     build_chatbot_header,
     build_reply_doc,
     model_display_name,
     resolve_reply_mention_index,
     select_mention_policy,
-    truncate_output,
     used_tool_labels,
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
@@ -51,6 +49,7 @@ from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
+from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
@@ -68,8 +67,9 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
 
 
 async def _reply_debug_history(message: Message, history: OldContext | ModernContext) -> None:
-    await message.reply(
-        Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
+    await reply_or_answer(
+        message,
+        Section(BlockQuote(history.history_debug(), expandable=True), title=_("LLM History")),
         disable_web_page_preview=True,
     )
 
@@ -98,25 +98,7 @@ async def _resolve_model_plan(
     return build_model_plan([pinned, *plan.candidates])
 
 
-def _truncate_to_boundary(text: str, max_length: int) -> str:
-    if len(text) <= max_length:
-        return text
-    if max_length <= 3:
-        return text[:max_length]
-
-    truncated_text = text[: max_length - 3]
-    split_index = max(
-        truncated_text.rfind("\n\n"),
-        truncated_text.rfind("\n"),
-        truncated_text.rfind(". "),
-        truncated_text.rfind(" "),
-    )
-    if split_index >= max_length // 2:
-        truncated_text = truncated_text[:split_index]
-    return truncated_text.rstrip() + "..."
-
-
-async def _build_fitting_reply_doc(
+async def _build_chatbot_reply_doc(
     header: Element | str | None,
     output_text: str,
     model: Model | None,
@@ -130,7 +112,6 @@ async def _build_fitting_reply_doc(
     mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
     speaker_names: Sequence[tuple[int, str]] = (),
 ) -> Doc:
-    fitted_output_text = output_text
     mention_index = (
         await resolve_reply_mention_index(
             chat_tid,
@@ -141,36 +122,9 @@ async def _build_fitting_reply_doc(
         if mention_policy != MentionPolicy.OPAQUE and "@" in output_text
         else None
     )
-    for _attempt_index in range(8):
-        doc = await build_reply_doc(
-            header,
-            fitted_output_text,
-            model,
-            result,
-            explicit_debug_mode,
-            chat_tid=chat_tid,
-            mention_index=mention_index,
-            redis=services.redis,
-            tool_labels=tool_labels,
-            strip_alien_html_tags=strip_alien_html_tags,
-            mention_policy=mention_policy,
-            speaker_names=speaker_names,
-        )
-        html_length = len(doc.to_html())
-        if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
-            return doc
-
-        overflow = html_length - TELEGRAM_MESSAGE_SAFE_LIMIT
-        next_length = len(fitted_output_text) - overflow - 128
-        if next_length >= len(fitted_output_text):
-            next_length = len(fitted_output_text) - 256
-        if next_length <= 0:
-            break
-        fitted_output_text = _truncate_to_boundary(fitted_output_text, next_length)
-
     return await build_reply_doc(
         header,
-        _truncate_to_boundary(fitted_output_text, max(0, min(len(fitted_output_text), 512))),
+        output_text,
         model,
         result,
         explicit_debug_mode,
@@ -334,8 +288,8 @@ async def ai_chatbot_reply(
             if isinstance(history, ModernContext)
             else result.message_history[len(previous_history) :]
         )
-        output_text = truncate_output(header, str(result.output))
-        doc = await _build_fitting_reply_doc(
+        output_text = str(result.output)
+        doc = await _build_chatbot_reply_doc(
             header,
             output_text,
             model,

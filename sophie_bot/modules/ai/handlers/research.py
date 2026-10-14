@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import Message, ReplyParameters
 from ass_tg.types import TextArg
 from stfu_tg import Doc
 
@@ -14,7 +14,7 @@ from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
-from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
+from sophie_bot.modules.ai.utils.ai_send import ai_continuation_prefix, send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
@@ -23,6 +23,7 @@ from sophie_bot.modules.ai.utils.research import (
     run_research_workflow,
 )
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
+from sophie_bot.modules.utils_.delivery import deliver_doc
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -31,34 +32,44 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class ResearchProgressMessage:
-    def __init__(self, message: Message, bot: Bot) -> None:
+    def __init__(self, message: Message, bot: Bot, source_message: Message | None = None) -> None:
         self.message = message
         self.bot = bot
+        self.source_message = source_message or message
+        self._continuation_message_ids: list[int] = []
 
     @classmethod
     async def send(cls, source_message: Message) -> ResearchProgressMessage:
         message = await send_ai_rich_message(source_message, build_ai_progress_doc(_("Starting the research...")))
-        return cls(message, cast(Bot, source_message.bot))
+        return cls(message, cast(Bot, source_message.bot), source_message)
 
     async def update(self, stage: ResearchProgressStage) -> None:
         doc = build_ai_progress_doc(random_research_progress_text(stage))
-        await self.bot.edit_message_text(
-            rich_message=InputRichMessage(html=doc.to_rich()),
-            chat_id=self.message.chat.id,
-            message_id=self.message.message_id,
+        await deliver_doc(
+            self.bot,
+            self.message.chat.id,
+            doc,
+            mode="rich",
+            edit_message_id=self.message.message_id,
+            continuation_message_ids=self._continuation_message_ids,
             disable_web_page_preview=True,
         )
 
     async def send_final(self, doc: Doc) -> Message:
-        return cast(
-            Message,
-            await self.bot.edit_message_text(
-                rich_message=InputRichMessage(html=doc.to_rich()),
-                chat_id=self.message.chat.id,
-                message_id=self.message.message_id,
-                disable_web_page_preview=True,
-            ),
+        result = await deliver_doc(
+            self.bot,
+            self.message.chat.id,
+            doc,
+            mode="rich",
+            continuation_prefix=ai_continuation_prefix(doc),
+            continuation_message_ids=self._continuation_message_ids,
+            edit_message_id=self.message.message_id,
+            message_thread_id=self.source_message.message_thread_id,
+            reply_parameters=ReplyParameters(message_id=self.source_message.message_id),
+            allow_deleted_reply=True,
+            disable_web_page_preview=True,
         )
+        return result if isinstance(result, Message) else self.message
 
 
 @flags.args(

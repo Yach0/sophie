@@ -3,10 +3,10 @@ from __future__ import annotations
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import CallbackQuery, InaccessibleMessage, InputRichMessage, Message
+from aiogram.types import CallbackQuery, InaccessibleMessage, Message, ReplyParameters
 from stfu_tg.doc import Element
 
-from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.delivery import deliver_doc
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 
@@ -20,13 +20,19 @@ def _accessible_message(event: Message | CallbackQuery) -> Message | None:
 
 
 async def reply_or_edit(event: Message | CallbackQuery, text: Element | str, **kwargs: Any) -> Message | bool | None:
-    rendered_text = str(text)
-
-    if (edit_target := _accessible_message(event)) is not None:
-        return await common_try(edit_target.edit_text(text=rendered_text, **kwargs))
-    if isinstance(event, Message):
-        return await common_try(event.reply(rendered_text, **kwargs))
-    raise ValueError("answer: Wrong event type")
+    target = _accessible_message(event) or event
+    if not isinstance(target, Message):
+        raise TypeError("reply_or_edit: Wrong event type")
+    kwargs.setdefault("message_thread_id", target.message_thread_id)
+    reply_target = (target.reply_to_message or target) if isinstance(event, CallbackQuery) else target
+    kwargs.setdefault("reply_parameters", ReplyParameters(message_id=reply_target.message_id))
+    return await deliver_doc(
+        event.bot,
+        target.chat.id,
+        text,
+        edit_message_id=target.message_id if isinstance(event, CallbackQuery) else None,
+        **kwargs,
+    )
 
 
 async def reply_or_edit_rich(
@@ -35,22 +41,20 @@ async def reply_or_edit_rich(
     *,
     bot: Bot,
     **kwargs: Any,
-) -> Message | bool:
+) -> Message | bool | None:
     """Reply or edit using Telegram's rich message parser without a silent fallback."""
-    edit_target = _accessible_message(event)
-    rich_message = InputRichMessage(html=doc.to_rich())
-    if edit_target is not None:
-        return await bot.edit_message_text(
-            chat_id=edit_target.chat.id,
-            message_id=edit_target.message_id,
-            rich_message=rich_message,
-            **kwargs,
-        )
-    if isinstance(event, Message):
-        return await bot.send_rich_message(
-            chat_id=event.chat.id,
-            message_thread_id=event.message_thread_id,
-            rich_message=rich_message,
-            **kwargs,
-        )
-    raise ValueError("reply_or_edit_rich: Wrong event type")
+    target = _accessible_message(event) or event
+    if not isinstance(target, Message):
+        raise TypeError("reply_or_edit_rich: Wrong event type")
+    kwargs.setdefault("message_thread_id", target.message_thread_id)
+    reply_target = (target.reply_to_message or target) if isinstance(event, CallbackQuery) else target
+    kwargs.setdefault("reply_parameters", ReplyParameters(message_id=reply_target.message_id))
+    return await deliver_doc(
+        bot,
+        target.chat.id,
+        doc,
+        mode="rich",
+        allow_short_rich=True,
+        edit_message_id=target.message_id if isinstance(event, CallbackQuery) else None,
+        **kwargs,
+    )
