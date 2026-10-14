@@ -136,7 +136,8 @@ async def test_cli_rest_check_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
     class FakeResponse:
         status_code = 200
 
-        def json(self) -> dict[str, str]:
+        @staticmethod
+        def json() -> dict[str, str]:
             return {"status": "ok"}
 
     class FakeClient:
@@ -149,7 +150,8 @@ async def test_cli_rest_check_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
         async def __aexit__(self, *_args: object) -> None:
             return None
 
-        async def get(self, _url: str) -> FakeResponse:
+        @staticmethod
+        async def get(_url: str) -> FakeResponse:
             return FakeResponse()
 
     monkeypatch.setattr(healthcheck.httpx2, "AsyncClient", FakeClient)

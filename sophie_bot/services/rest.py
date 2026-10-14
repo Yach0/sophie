@@ -47,7 +47,8 @@ async def health_check() -> dict[str, str]:
 class I18nMiddleware(BaseHTTPMiddleware):
     """Middleware to set up i18n context for REST API requests."""
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    @staticmethod
+    async def dispatch(request: Request, call_next: RequestResponseEndpoint) -> Response:
         locales = get_services(request).locales
         locale = locales.default_locale
         accept_language = request.headers.get("accept-language")
@@ -62,7 +63,8 @@ class I18nMiddleware(BaseHTTPMiddleware):
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Middleware to add security headers to all responses."""
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    @staticmethod
+    async def dispatch(request: Request, call_next: RequestResponseEndpoint) -> Response:
         response = await call_next(request)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
@@ -121,7 +123,8 @@ class GlobalRateLimitMiddleware(BaseHTTPMiddleware):
 
     _redis_failure_count: int = 0
 
-    async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+    @staticmethod
+    async def dispatch(request: Request, call_next: RequestResponseEndpoint) -> Response:
         if request.url.path in RATE_LIMIT_EXEMPT_PATHS:
             return await call_next(request)
 

@@ -16,37 +16,44 @@ from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 
 
 class TestDbTimeConvert:
-    def test_db_time_convert_hours(self) -> None:
+    @staticmethod
+    def test_db_time_convert_hours() -> None:
         """'2h' converts to timedelta(hours=2)."""
         result = convert_timedelta_or_str("2h")
         assert result == timedelta(hours=2)
 
-    def test_db_time_convert_days(self) -> None:
+    @staticmethod
+    def test_db_time_convert_days() -> None:
         """'1d' converts to timedelta(days=1)."""
         result = convert_timedelta_or_str("1d")
         assert result == timedelta(days=1)
 
-    def test_db_time_convert_weeks(self) -> None:
+    @staticmethod
+    def test_db_time_convert_weeks() -> None:
         """'1w' converts to timedelta(weeks=1)."""
         result = convert_timedelta_or_str("1w")
         assert result == timedelta(weeks=1)
 
-    def test_db_time_convert_minutes(self) -> None:
+    @staticmethod
+    def test_db_time_convert_minutes() -> None:
         """'30m' converts to timedelta(minutes=30)."""
         result = convert_timedelta_or_str("30m")
         assert result == timedelta(minutes=30)
 
-    def test_db_time_convert_invalid(self) -> None:
+    @staticmethod
+    def test_db_time_convert_invalid() -> None:
         """Invalid input (non-str, non-timedelta) raises TypeError."""
         with pytest.raises(TypeError, match="Cannot convert"):
             convert_timedelta_or_str(12345)  # type: ignore[arg-type]
 
-    def test_db_time_convert_unknown_suffix_returns_zero(self) -> None:
+    @staticmethod
+    def test_db_time_convert_unknown_suffix_returns_zero() -> None:
         """Unknown suffix returns timedelta(seconds=0) as the default."""
         result = convert_timedelta_or_str("10x")
         assert result == timedelta(seconds=0)
 
-    def test_db_time_convert_passthrough_timedelta(self) -> None:
+    @staticmethod
+    def test_db_time_convert_passthrough_timedelta() -> None:
         """If already a timedelta, returns it unchanged."""
         original = timedelta(hours=5)
         result = convert_timedelta_or_str(original)
@@ -57,7 +64,8 @@ class TestDbTimeConvert:
 
 
 class TestEmojiCaptchaData:
-    def test_captcha_data_is_correct_when_aligned(self) -> None:
+    @staticmethod
+    def test_captcha_data_is_correct_when_aligned() -> None:
         """When base_emoji is at the same index in both rows, is_correct is True."""
         base = "🍎"
         back_row = ["🍇", "🍉", "🍎", "🍒", "🍌"]
@@ -66,7 +74,8 @@ class TestEmojiCaptchaData:
         data = EmojiCaptchaData(base_emoji=base, back_row=back_row, front_row=front_row)
         assert data.is_correct is True
 
-    def test_captcha_data_is_incorrect_when_misaligned(self) -> None:
+    @staticmethod
+    def test_captcha_data_is_incorrect_when_misaligned() -> None:
         """When base_emoji indices differ between rows, is_correct is False."""
         base = "🍎"
         back_row = ["🍇", "🍉", "🍎", "🍒", "🍌"]  # index 2
@@ -75,7 +84,8 @@ class TestEmojiCaptchaData:
         data = EmojiCaptchaData(base_emoji=base, back_row=back_row, front_row=front_row)
         assert data.is_correct is False
 
-    def test_captcha_move_to_right_shifts_front_row(self) -> None:
+    @staticmethod
+    def test_captcha_move_to_right_shifts_front_row() -> None:
         """move_to_right rotates front_row so the last element moves to front."""
         data = EmojiCaptchaData(
             base_emoji="🍎",
@@ -85,7 +95,8 @@ class TestEmojiCaptchaData:
         data.move_to_right()
         assert data.front_row == ["🥥", "🍍", "🥝", "🍎", "🥭"]
 
-    def test_captcha_move_to_left_shifts_front_row(self) -> None:
+    @staticmethod
+    def test_captcha_move_to_left_shifts_front_row() -> None:
         """move_to_left rotates front_row so the first element moves to end."""
         data = EmojiCaptchaData(
             base_emoji="🍎",
@@ -95,7 +106,8 @@ class TestEmojiCaptchaData:
         data.move_to_left()
         assert data.front_row == ["🥝", "🍎", "🥭", "🥥", "🍍"]
 
-    def test_captcha_alignment_after_moves(self) -> None:
+    @staticmethod
+    def test_captcha_alignment_after_moves() -> None:
         """Rotating front_row can change is_correct from True to False."""
         base = "🍎"
         # Aligned at index 2

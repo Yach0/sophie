@@ -28,7 +28,8 @@ class ButtonsArg(ArgFabric[list[AssButtonData]]):
         super().__init__(description=description)
         self.child = ButtonArg()
 
-    def needed_type(self):
+    @staticmethod
+    def needed_type():
         return l_("Buttons"), l_("Buttons")
 
     def get_start(self, raw_text: str, entities: ArgEntities) -> int:

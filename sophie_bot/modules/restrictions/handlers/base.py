@@ -159,7 +159,8 @@ class BaseRestrictionHandler(SophieMessageHandler):
             )
         return None
 
-    async def _after_restriction_applied(self, chat_tid: int, user_tid: int) -> None:
+    @staticmethod
+    async def _after_restriction_applied(chat_tid: int, user_tid: int) -> None:
         return None
 
     def _build_fed_ban_notice(self, info: FederationBanInfo | None) -> KeyValue | None:

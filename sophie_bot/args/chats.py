@@ -9,7 +9,8 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 class SophieChatIDArg(UserIDArg[ChatModel]):
-    async def check_type(self, text: str) -> bool:
+    @staticmethod
+    async def check_type(text: str) -> bool:
         # Unlike a user ID, a chat ID is negative for groups/supergroups/channels, so the
         # inherited `isdigit()` check (which rejects the leading "-") can't be used here.
         words = text.split()
@@ -49,7 +50,8 @@ class SophieChatArg(OrArg):
             description=description,
         )
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Chat: 'Chat ID (numeric) / Username (starts with @)'"), l_(
             "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
         )

@@ -189,8 +189,8 @@ class UserRestricting(Filter):
 
         return AnonymousResolution(permission_check=True, resolved_actor=None)
 
+    @staticmethod
     async def get_target(
-        self,
         event: TelegramObject,
         actor: ChatModel | None,
     ) -> int | ChatModel:

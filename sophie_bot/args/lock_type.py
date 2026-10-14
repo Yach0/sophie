@@ -15,11 +15,13 @@ class LockTypeArg(WordArg):
     def __init__(self, description: LazyProxy | str | None = None) -> None:
         super().__init__(description=description if description is not None else l_("Lock type"))
 
-    def check(self, text: str, entities: ArgEntities) -> bool:
+    @staticmethod
+    def check(text: str, entities: ArgEntities) -> bool:
         word = text.split()[0].lower() if text.split() else ""
         return word in ALL_LOCK_TYPES or is_stickerpack_lock(word) or is_language_lock(word)
 
-    async def value(self, text: str) -> str:
+    @staticmethod
+    async def value(text: str) -> str:
         lock_type = text.lower()
 
         if lock_type in ALL_LOCK_TYPES or is_stickerpack_lock(lock_type) or is_language_lock(lock_type):
@@ -31,7 +33,8 @@ class LockTypeArg(WordArg):
             )
         )
 
-    def needed_type(self) -> tuple[LazyProxy, LazyProxy]:
+    @staticmethod
+    def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"), l_("Lock types")
 
     @property

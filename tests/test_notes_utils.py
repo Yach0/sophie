@@ -12,13 +12,15 @@ from sophie_bot.modules.notes.utils.names import format_notes_aliases
 
 
 class TestRandomParser:
-    def test_random_parser_single_section(self) -> None:
+    @staticmethod
+    def test_random_parser_single_section() -> None:
         """Text with one %%% section picks one of the available options."""
         text = "Hello %%%world%%%universe%%% today!"
         result = parse_random_text(text)
         assert result in ["Hello world today!", "Hello universe today!"]
 
-    def test_random_parser_no_sections(self) -> None:
+    @staticmethod
+    def test_random_parser_no_sections() -> None:
         """Text without %%% returns unchanged."""
         text = "Just a normal string without any delimiters."
         result = parse_random_text(text)
@@ -36,7 +38,8 @@ class TestRandomParser:
         mock_choice.assert_any_call(["good", "bad"])
         mock_choice.assert_any_call(["day", "night"])
 
-    def test_random_parser_empty_string(self) -> None:
+    @staticmethod
+    def test_random_parser_empty_string() -> None:
         """Empty string returns empty string."""
         assert parse_random_text("") == ""
 
@@ -54,13 +57,15 @@ class TestRandomParser:
 
 
 class TestFormatNotesAliases:
-    def test_format_notes_aliases_single(self) -> None:
+    @staticmethod
+    def test_format_notes_aliases_single() -> None:
         """Single name formats correctly as a code element."""
         result = format_notes_aliases(["hello"])
         rendered = str(result)
         assert "#hello" in rendered
 
-    def test_format_notes_aliases_multiple(self) -> None:
+    @staticmethod
+    def test_format_notes_aliases_multiple() -> None:
         """Multiple names are formatted and separated."""
         result = format_notes_aliases(["hello", "world", "test"])
         rendered = str(result)
@@ -68,7 +73,8 @@ class TestFormatNotesAliases:
         assert "#world" in rendered
         assert "#test" in rendered
 
-    def test_format_notes_aliases_empty(self) -> None:
+    @staticmethod
+    def test_format_notes_aliases_empty() -> None:
         """Empty list produces an empty HList."""
         result = format_notes_aliases([])
         rendered = str(result)
@@ -80,8 +86,8 @@ class TestFormatNotesAliases:
 
 
 class TestFillings:
+    @staticmethod
     def _make_message_and_user(
-        self,
         first_name: str = "Alice",
         last_name: str | None = "Smith",
         username: str | None = "alicesmith",
@@ -154,7 +160,8 @@ class TestFillings:
         result = process_fillings("{username}", message, user)
         assert "FallbackName" in result
 
-    def test_fillings_no_message_returns_text_unchanged(self) -> None:
+    @staticmethod
+    def test_fillings_no_message_returns_text_unchanged() -> None:
         """When message is None, chat_fillings returns text as-is."""
         result = chat_fillings("{chatname} test", None)
         assert result == "{chatname} test"
@@ -183,7 +190,8 @@ class TestFillings:
 
 
 class TestCombineSaveables:
-    def test_combine_saveables_text_only(self) -> None:
+    @staticmethod
+    def test_combine_saveables_text_only() -> None:
         """Combines two text-only saveables into a single saveable with HTML."""
         from stfu_tg import Bold
 
@@ -203,7 +211,8 @@ class TestCombineSaveables:
         assert "Goodbye world" in result.text
         assert result.parse_mode == SaveableParseMode.html
 
-    def test_combine_saveables_does_not_convert_legacy_markdown(self) -> None:
+    @staticmethod
+    def test_combine_saveables_does_not_convert_legacy_markdown() -> None:
         from stfu_tg import Bold
 
         from sophie_bot.db.models.notes import Saveable, SaveableParseMode
@@ -220,12 +229,14 @@ class TestCombineSaveables:
 
 
 class TestAiMarkdownToHtml:
-    def test_ai_markdown_to_html_converts_basic_markdown(self) -> None:
+    @staticmethod
+    def test_ai_markdown_to_html_converts_basic_markdown() -> None:
         from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 
         assert ai_markdown_to_html("**bold**") == "<b>bold</b>"
 
-    def test_ai_markdown_to_html_can_extract_headings(self) -> None:
+    @staticmethod
+    def test_ai_markdown_to_html_can_extract_headings() -> None:
         from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 
         assert ai_markdown_to_html("# Title", extract_headings=True) == "<b>Title</b>"

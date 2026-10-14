@@ -328,7 +328,8 @@ class _FakeTinyFishResponse:
     def __init__(self, payload: dict) -> None:
         self._payload = payload
 
-    def raise_for_status(self) -> None:
+    @staticmethod
+    def raise_for_status() -> None:
         return None
 
     def json(self) -> dict:
@@ -336,10 +337,12 @@ class _FakeTinyFishResponse:
 
 
 class _FailingTinyFishResponse:
-    def raise_for_status(self) -> None:
+    @staticmethod
+    def raise_for_status() -> None:
         raise httpx2.HTTPError("503 Service Unavailable")
 
-    def json(self) -> dict:
+    @staticmethod
+    def json() -> dict:
         raise AssertionError("response body must not be read after an HTTP error")
 
 

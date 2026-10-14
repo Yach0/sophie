@@ -42,7 +42,8 @@ class TestHashtagGetNoteRegex:
 
         assert filter_regex.match(text)
 
-    def test_filter_regex_does_not_match_text_without_hashtag(self) -> None:
+    @staticmethod
+    def test_filter_regex_does_not_match_text_without_hashtag() -> None:
         filter_regex = re.compile(HashtagGetNote.hashtag_filter_pattern)
 
         assert not filter_regex.match("no hashtag here")

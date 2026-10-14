@@ -122,19 +122,23 @@ class FakeEventAgent:
 class FakeStreamResult:
     usage = RunUsage(input_tokens=1, output_tokens=2, requests=1)
 
-    async def stream_text(self, delta: bool, debounce_by: float) -> AsyncIterable[str]:
+    @staticmethod
+    async def stream_text(delta: bool, debounce_by: float) -> AsyncIterable[str]:
         assert delta is True
         assert debounce_by == 0.2
         for chunk in ("hel", "lo"):
             yield chunk
 
-    async def get_output(self) -> str:
+    @staticmethod
+    async def get_output() -> str:
         return "hello"
 
-    def all_messages(self) -> list[ModelRequest | ModelResponse]:
+    @staticmethod
+    def all_messages() -> list[ModelRequest | ModelResponse]:
         return []
 
-    def new_messages(self) -> list[ModelRequest | ModelResponse]:
+    @staticmethod
+    def new_messages() -> list[ModelRequest | ModelResponse]:
         return []
 
 

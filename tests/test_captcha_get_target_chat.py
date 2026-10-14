@@ -42,7 +42,8 @@ class FakeState:
     async def get_data(self) -> dict[str, Any]:
         return dict(self._data)
 
-    async def set_state(self, _state: Any) -> None:
+    @staticmethod
+    async def set_state(_state: Any) -> None:
         return None
 
     async def update_data(self, data: dict[str, Any]) -> None:

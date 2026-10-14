@@ -34,10 +34,12 @@ class MockI18n:
     def get_current(self, no_error=False):
         return self
 
-    def gettext(self, *args, **kwargs):
+    @staticmethod
+    def gettext(*args, **kwargs):
         return args[0] if args else ""
 
-    def lazy_gettext(self, *args, **kwargs):
+    @staticmethod
+    def lazy_gettext(*args, **kwargs):
         return args[0] if args else ""
 
 
