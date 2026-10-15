@@ -252,6 +252,7 @@ async def _cache_chatbot_reply(
             redis=services.redis,
         )
 
+
 async def ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,
