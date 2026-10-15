@@ -56,9 +56,8 @@ def coerce_positive_int(value: object, default: int, maximum: int) -> int:
 async def _feature_int(
     feature: FeatureType,
     chat_tid: int,
-    default: int,
-    minimum: int = 1,
     *,
+    minimum: int = 1,
     redis: Redis,
 ) -> int:
     value = await get_value(feature, chat_tid=chat_tid, redis=redis)
@@ -67,20 +66,16 @@ async def _feature_int(
 
 
 async def get_proactive_reply_settings(chat_tid: int, *, redis: Redis) -> ProactiveReplySettings:
-    window_seconds = await _feature_int(
-        "ai_proactive_replies_window_seconds", chat_tid, _DEFAULT_PROACTIVE_WINDOW_SECONDS, redis=redis
-    )
+    window_seconds = await _feature_int("ai_proactive_replies_window_seconds", chat_tid, redis=redis)
     max_answers = await _feature_int(
         "ai_proactive_replies_max_answers",
         chat_tid,
-        _DEFAULT_PROACTIVE_MAX_ANSWERS,
         minimum=0,
         redis=redis,
     )
     max_reactions = await _feature_int(
         "ai_proactive_replies_max_reactions",
         chat_tid,
-        _DEFAULT_PROACTIVE_MAX_REACTIONS,
         minimum=0,
         redis=redis,
     )

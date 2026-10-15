@@ -65,7 +65,6 @@ class FiltersListHandler(SophieMessageHandler):
         filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
         await _render_filter_page(
             self.event,
-            self.connection.tid,
             self.connection.title,
             filters,
             0,
@@ -87,7 +86,6 @@ class FiltersPageHandler(SophieCallbackQueryHandler):
         filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
         await _render_filter_page(
             callback,
-            self.connection.tid,
             self.connection.title,
             filters,
             self.data["callback_data"].page,
@@ -213,7 +211,6 @@ async def _show_delete_confirmation(
 
 async def _render_filter_page(
     event: Message | CallbackQuery,
-    chat_tid: int,
     chat_title: str | None,
     all_filters: list[FiltersModel],
     requested_page: int,

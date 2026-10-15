@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .config import ActionDraft, ActionWizardConfig, model_action_wizard
+from .config import ActionDraft, ActionWizardConfig
 from .duration import make_duration_setup_confirm, make_duration_setup_message
 from .handlers import (
     ActionWizardCallbackHandler,
@@ -13,7 +13,7 @@ from .spec import (
     ActionWizardSetting,
     ActionWizardSpec,
 )
-from .wizard import ActionWizard
+from .wizard import ActionWizard, model_action_wizard
 
 __all__ = [
     "ActionDraft",

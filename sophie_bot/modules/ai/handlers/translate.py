@@ -117,14 +117,15 @@ async def _start_translation_progress(message: Message, *, redis: Redis) -> Chat
 def _build_translate_reply_doc(
     translated: AITranslateResponseSchema,
     language_name: str,
-    is_autotranslate: bool,
-    is_voice: bool,
-    quota_header: Element | None,
+    is_autotranslate: bool = False,
+    is_voice: bool = False,
+    quota_header: Element | None = None,
 ) -> Doc:
     """Format the translation response document."""
+    default_header = "🌐" if is_autotranslate else "🔋"
     visible_text, entities = extract_markdown_entities(translated.translated_text)
     return build_ai_message_doc(
-        quota_header or "🔋",
+        quota_header or default_header,
         (
             Bold(
                 Template(

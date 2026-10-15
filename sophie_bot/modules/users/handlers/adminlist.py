@@ -33,17 +33,13 @@ class AdminListHandler(SophieMessageHandler):
 
         admin_list_doc = []
         for admin_entry in admins:
-            # We need to fetch the user details. ChatAdminModel links to User (ChatModel).
-            # admin_entry.user is a Link. We need to fetch it if not automatically fetched (Beanie usually requires fetch).
-
-            # Optimization: If ChatAdminModel definition doesn't auto-fetch, we might need to agg or fetch separately.
-            # Assuming standard Beanie Link behavior or fetching explicitly.
+            # admin_entry.user is a Link requiring an explicit fetch.
 
             user = await admin_entry.user.fetch()
             if not user:
                 continue
 
-            # Skip anonymous admin bot if desired, or keep it. Legacy skipped "anonymous" rights but here we check user ID.
+            # Skip Telegram's anonymous admin bot placeholder.
             if user.tid == TELEGRAM_ANONYMOUS_ADMIN_BOT_ID:
                 continue
 

@@ -5,7 +5,11 @@ from sophie_bot.modules import discover_modules
 from sophie_bot.modules.help.utils.extract_info import build_help_catalog
 from sophie_bot.utils.feature_flags import FEATURE_FLAGS, get_default_value
 from sophie_bot.utils.logger import log
-from tools.wiki_gen.generate_pages import generate_wiki_pages
+
+try:
+    from tools.wiki_gen.generate_pages import generate_wiki_pages
+except ModuleNotFoundError:
+    from generate_pages import generate_wiki_pages
 
 
 async def _generate_wiki() -> None:

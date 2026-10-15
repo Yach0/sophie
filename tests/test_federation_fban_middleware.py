@@ -40,13 +40,12 @@ def build_message(chat_tid: int, user_tid: int) -> SimpleNamespace:
     )
 
 
+@pytest.mark.usefixtures("db_init")
 @pytest.mark.asyncio
 async def test_repeated_messages_from_fbanned_user_do_not_duplicate_banned_chats(
-    db_init: Any,
     monkeypatch: pytest.MonkeyPatch,
     test_redis: Any,
 ) -> None:
-    del db_init
     await ChatModel.delete_all()
     await Federation.delete_all()
     await FederationBan.delete_all()

@@ -22,7 +22,12 @@ class _VisibleText(HTMLParser):
 
 
 def _rich_request(requests):
-    return next(request for request in requests if isinstance(request.params, dict) and "rich_message" in request.params)
+    rich_request = next(
+        (request for request in requests if isinstance(request.params, dict) and "rich_message" in request.params),
+        None,
+    )
+    assert rich_request is not None
+    return rich_request
 
 
 def _page_details(requests):

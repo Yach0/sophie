@@ -72,7 +72,8 @@ class ReportHandler(SophieMessageHandler):
             if hasattr(user, "tid"):
                 mentions.append(UserLink(user.tid, InvisibleSymbol()))
 
-        # We add mentions right after this line, because if we add them at the last line, they would make the message bubble bigger
+        # Mentions are placed here; adding them to the final line
+        # widens the Telegram message bubble.
         doc += HList(
             Template(_("User {user} ({user_id}) has been reported!"), user=offender_mention, user_id=Code(offender_id)),
             *mentions,

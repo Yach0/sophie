@@ -310,10 +310,9 @@ class BotHasPermissions(UserRestricting):
     }
     PAYLOAD_ARGUMENT_NAME = "bot_member"
 
+    @staticmethod
     async def get_target(
-        self,
         event: TelegramObject,
         actor: ChatModel | None,
     ) -> int | ChatModel:
-        del event, actor
         return CONFIG.bot_id

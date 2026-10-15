@@ -571,7 +571,6 @@ async def test_translate_replied_voice_shows_transcription_before_starting_work(
     )
 
     async def transcribe_voice(*args: Any, **kwargs: Any) -> str:
-        del args, kwargs
         progress = [
             request for request in test_client.capture.all_requests if request.request_type == RequestType.OTHER
         ]

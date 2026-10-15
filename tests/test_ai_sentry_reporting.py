@@ -117,6 +117,7 @@ def test_capture_ai_error_flushes_before_returning_reference_id(
 def test_capture_ai_error_tags_and_groups_by_model_and_status(sentry_events: list[dict[str, Any]]) -> None:
     context = AIErrorContext(operation="agent", model_name="openai/gpt-5")
 
+    event_id: str | None = None
     try:
         raise _model_http_error()
     except ModelHTTPError as error:
@@ -263,6 +264,7 @@ def test_error_handler_reuses_an_already_captured_event_id(sentry_events: list[d
 def test_error_handler_captures_ai_failure_cause_when_contextual_capture_failed(
     sentry_events: list[dict[str, Any]],
 ) -> None:
+    event_id: str | None = None
     try:
         try:
             raise _model_http_error()

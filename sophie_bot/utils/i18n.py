@@ -1,7 +1,7 @@
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from re import compile
 from typing import Any, cast
 
 from aiogram.utils.i18n import I18n
@@ -11,7 +11,7 @@ from flag import flag
 
 from sophie_bot.utils.logger import log
 
-LANG_STATS_REGEX = compile(
+LANG_STATS_REGEX = re.compile(
     r"^(?P<translated>\d+) translated messages?(, (?P<fuzzy>\d+) fuzzy translation)?"
     r"(, (?P<untranslated>\d+) untranslated messages)?"
 )
