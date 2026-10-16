@@ -19,12 +19,12 @@ class CleanNotesHandlerABC(StatusBoolHandlerABC):
         return CMDFilter("clean_notes"), FeatureFlagFilter("cleannotes"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         db_model = await CleanNotesModel.get_by_chat_iid(chat_iid)
         return db_model.enabled
 
     async def set_status(self, new_status: bool) -> None:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
 
         db_model = await CleanNotesModel.get_by_chat_iid(chat_iid)
         await db_model.set_status(new_status)

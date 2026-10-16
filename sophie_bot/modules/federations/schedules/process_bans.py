@@ -137,7 +137,7 @@ class ProcessFederationBans:
         lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(
             federation,
             task.target_user_id,
-            by_user.iid,
+            by_user.id,
             task.reason,
             task.original_message_text,
             redis=self.services.redis,

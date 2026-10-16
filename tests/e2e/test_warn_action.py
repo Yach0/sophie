@@ -64,7 +64,7 @@ async def test_warnaction_configures_each_warn_action_through_wizard(test_client
 
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
     assert settings is not None
     assert [action.name for action in settings.on_each_warn_actions] == ["kick_user"]
 
@@ -77,7 +77,7 @@ async def test_warnaction_can_save_removal_of_last_action(test_client: TestClien
     await grant_admin(group_chat.id, user_wrapper.user.id)
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
     settings.on_each_warn_actions = [StoredAction(name="kick_user")]
     await settings.save()
 
@@ -106,7 +106,7 @@ async def test_warnaction_can_save_removal_of_last_action(test_client: TestClien
         message=wizard_message,
     )
 
-    saved = await WarnSettingsModel.get_or_create(chat.iid)
+    saved = await WarnSettingsModel.get_or_create(chat.id)
     assert saved is not None
     assert saved.on_each_warn_actions == []
 

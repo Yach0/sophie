@@ -48,7 +48,7 @@ class ReactionLocksEnforcerMiddleware(BaseMiddleware):
 
         locked_types = await get_cached_locks(
             chat_tid,
-            chat.iid,
+            chat.id,
             redis=data["services"].redis,
         )
         if not locked_types or LockType.OUTSIDE_REACTION not in locked_types:

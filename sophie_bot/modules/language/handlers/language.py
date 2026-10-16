@@ -31,7 +31,7 @@ class LanguageHandler(SophieMessageHandler):
         # Get the language selected for the connected chat
         chat = self.connection.db_model
         current_lang_code = (
-            await self.services.locales.get_selected_locale(chat.iid) if chat else None
+            await self.services.locales.get_selected_locale(chat.id) if chat else None
         ) or i18n.default_locale
 
         text = _("Select the language you want to use in this chat.")
@@ -84,7 +84,7 @@ class LanguageCallbackHandler(SophieCallbackQueryHandler):
 
         # If the selected language is already active, skip the re-edit — editing the
         # message with identical content raises "message is not modified". SOPHIE-26R.
-        if chat and await self.services.locales.get_selected_locale(chat.iid) == lang_code:
+        if chat and await self.services.locales.get_selected_locale(chat.id) == lang_code:
             await self.event.answer()
             return
 

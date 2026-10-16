@@ -94,7 +94,7 @@ class SetModeHandler(SophieMessageHandler):
         return await self._set_state(chat_db, chat_tid, new_state)
 
     async def _show_state(self, chat_db: ChatModel, chat_tid: int) -> Any:
-        beta_state = await BetaModeModel.get_by_chat_iid(chat_db.iid)
+        beta_state = await BetaModeModel.get_by_chat_iid(chat_db.id)
         preferred_mode = PreferredMode(beta_state.preferred_mode) if beta_state else PreferredMode.auto
 
         gs_beta_db = await GlobalSettings.get_by_key("beta_percentage")
@@ -125,7 +125,7 @@ class SetModeHandler(SophieMessageHandler):
     async def _set_state(self, chat_db: ChatModel, chat_tid: int, new_state: str) -> Any:
         state = preferred_mode_by_user_mode[new_state]
 
-        await BetaModeModel.set_preferred_mode(chat_db.iid, state)
+        await BetaModeModel.set_preferred_mode(chat_db.id, state)
 
         mismatch_note = (
             _("Preferred mode cannot always match the current state due to development and rollout progress.")

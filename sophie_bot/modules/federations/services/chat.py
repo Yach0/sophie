@@ -24,12 +24,12 @@ class FederationChatService:
             return False
 
         existing_chat_iids = [chat_link.to_ref().id for chat_link in federation.chats]
-        if chat.iid in existing_chat_iids:
+        if chat.id in existing_chat_iids:
             return False
 
         federation.chats.append(chat)
         await federation.save()
-        await FederationCacheService.set_fed_id_for_chat(chat.iid, federation.fed_id, redis=redis)
+        await FederationCacheService.set_fed_id_for_chat(chat.id, federation.fed_id, redis=redis)
         await FederationCacheService.incr_chat_count(federation.fed_id, 1, redis=redis)
         return True
 
@@ -50,7 +50,7 @@ class FederationChatService:
 
             federation.chats.remove(chat_link)
             await federation.save()
-            await FederationCacheService.invalidate_federation_for_chat(chat.iid, redis=redis)
+            await FederationCacheService.invalidate_federation_for_chat(chat.id, redis=redis)
             await FederationCacheService.incr_chat_count(federation.fed_id, -1, redis=redis)
             return True
 

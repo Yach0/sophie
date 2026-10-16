@@ -48,7 +48,7 @@ class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
         )
 
     async def get_status(self) -> WelcomeMuteStatus:
-        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.id)
 
         if not db_model.welcome_mute or not db_model.welcome_mute.enabled or not db_model.welcome_mute.time:
             return False
@@ -56,7 +56,7 @@ class EnableWelcomeMute(StatusHandlerABC[WelcomeMuteStatus]):
         return db_model.welcome_mute.time
 
     async def set_status(self, new_status: WelcomeMuteStatus) -> None:
-        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.id)
 
         time: timedelta | None = new_status if new_status is not False else None
         await db_model.set_status_welcomemute(time is not None, time)

@@ -154,7 +154,7 @@ def _patch_privacy_flag(monkeypatch: pytest.MonkeyPatch, *, enabled: bool) -> No
 
 @pytest.mark.asyncio
 async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    chat = SimpleNamespace(id="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
     _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
@@ -253,7 +253,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
 
 @pytest.mark.asyncio
 async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    chat = SimpleNamespace(id="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
     _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
@@ -320,7 +320,7 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.asyncio
 async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    chat = SimpleNamespace(id="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
     _patch_privacy_flag(monkeypatch, enabled=False)
     cached_messages = (
@@ -380,7 +380,7 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
 
 @pytest.mark.asyncio
 async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    chat = SimpleNamespace(id="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
     for has_lines in (True, False):
         existing_lines = (
@@ -416,7 +416,7 @@ async def test_process_chat_skips_when_summary_already_exists(monkeypatch: pytes
 
 @pytest.mark.asyncio
 async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-100123)
+    chat = SimpleNamespace(id="chat-iid", tid=-100123)
     summary_date = date(2026, 5, 3)
     _patch_privacy_flag(monkeypatch, enabled=False)
 
@@ -748,7 +748,7 @@ async def _run_process_chat(chat: SimpleNamespace) -> None:
 async def test_process_chat_sends_anonymized_transcript_and_resolves_real_ids(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    chat = SimpleNamespace(id="chat-iid", tid=-1001234567890)
     generate_summary_groups = AsyncMock(return_value=_summary_groups([1, 2]))
     _, send_summary = _patch_process_chat_dependencies(
         monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
@@ -768,7 +768,7 @@ async def test_process_chat_sends_anonymized_transcript_and_resolves_real_ids(
 
 @pytest.mark.asyncio
 async def test_process_chat_retries_once_when_model_invents_references(monkeypatch: pytest.MonkeyPatch) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    chat = SimpleNamespace(id="chat-iid", tid=-1001234567890)
     generate_summary_groups = AsyncMock(side_effect=[_summary_groups([1, 99]), _summary_groups([1, 2])])
     upsert_for_date, send_summary = _patch_process_chat_dependencies(
         monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
@@ -785,7 +785,7 @@ async def test_process_chat_retries_once_when_model_invents_references(monkeypat
 async def test_process_chat_discards_summary_when_retry_also_invents_references(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    chat = SimpleNamespace(id="chat-iid", tid=-1001234567890)
     generate_summary_groups = AsyncMock(side_effect=[_summary_groups([1, 99]), _summary_groups([2, 98])])
     upsert_for_date, send_summary = _patch_process_chat_dependencies(
         monkeypatch, privacy_enabled=True, generate_summary_groups=generate_summary_groups
@@ -802,7 +802,7 @@ async def test_process_chat_discards_summary_when_retry_also_invents_references(
 async def test_process_chat_drops_unknown_references_without_retrying_when_flag_disabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    chat = SimpleNamespace(iid="chat-iid", tid=-1001234567890)
+    chat = SimpleNamespace(id="chat-iid", tid=-1001234567890)
     generate_summary_groups = AsyncMock(return_value=_summary_groups([45201, 45202, 999]))
     upsert_for_date, send_summary = _patch_process_chat_dependencies(
         monkeypatch, privacy_enabled=False, generate_summary_groups=generate_summary_groups
@@ -855,8 +855,8 @@ async def test_pin_summary_failure_stays_retryable(monkeypatch: pytest.MonkeyPat
 
 @pytest.mark.asyncio
 async def test_handle_uses_each_chats_latest_completed_schedule_window(monkeypatch: pytest.MonkeyPatch) -> None:
-    morning_chat = SimpleNamespace(iid="morning-iid", tid=-1001, ai_summary_time_utc="07:45")
-    evening_chat = SimpleNamespace(iid="evening-iid", tid=-1002, ai_summary_time_utc="23:30")
+    morning_chat = SimpleNamespace(id="morning-iid", tid=-1001, ai_summary_time_utc="07:45")
+    evening_chat = SimpleNamespace(id="evening-iid", tid=-1002, ai_summary_time_utc="23:30")
 
     async def chats():
         for chat in (morning_chat, evening_chat):
@@ -911,7 +911,7 @@ async def test_existing_summary_retries_unfinished_pin(monkeypatch: pytest.Monke
     monkeypatch.setattr(AIChatSummaryModel, "get_for_date", AsyncMock(return_value=existing_summary))
     retry_pin = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "pin_summary", retry_pin)
-    chat = SimpleNamespace(iid="chat-iid", tid=-1001)
+    chat = SimpleNamespace(id="chat-iid", tid=-1001)
 
     await _summaries().process_chat(
         chat,

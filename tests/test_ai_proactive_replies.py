@@ -291,7 +291,7 @@ async def test_failed_proactive_action_retries_on_the_next_message(
     test_redis: Redis,
 ) -> None:
     chat_tid = -1001234567890
-    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, iid="chat-iid"))
+    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, id="chat-iid"))
     telegram_chat = Chat(id=chat_tid, type="supergroup", title="Group")
     settings = ProactiveReplySettings(min_messages=3, batch_size=3, window_seconds=300)
     failure = TelegramNetworkError(
@@ -333,7 +333,7 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     chat_tid = -1001234567890
-    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, iid="chat-iid"))
+    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, id="chat-iid"))
     missing_target = TelegramBadRequest(
         method=SetMessageReaction(chat_id=chat_tid, message_id=1),
         message="Bad Request: message to react not found",

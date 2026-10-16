@@ -21,7 +21,7 @@ def _join_request_handler(
         date=datetime.now(UTC),
         approve=approve,
     )
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="connection_chat_iid"))
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="connection_chat_iid"))
     handler = ChatJoinRequestHandler(
         event,
         state=SimpleNamespace(),
@@ -40,7 +40,7 @@ async def test_whitelisted_join_request_stays_pending_when_welcome_security_is_d
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     handler, approve, greetings = _join_request_handler(welcome_security_enabled=False)
-    chat = SimpleNamespace(iid="chat_iid", tid=-100123)
+    chat = SimpleNamespace(id="chat_iid", tid=-100123)
     is_whitelisted = AsyncMock(return_value=True)
 
     monkeypatch.setattr(
@@ -71,7 +71,7 @@ async def test_whitelisted_join_request_is_approved_when_captcha_enforcement_is_
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     handler, approve, greetings = _join_request_handler(welcome_security_enabled=True)
-    chat = SimpleNamespace(iid="chat_iid", tid=-100123)
+    chat = SimpleNamespace(id="chat_iid", tid=-100123)
     log_exemption = AsyncMock()
 
     monkeypatch.setattr(
@@ -115,9 +115,9 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
         date=datetime.now(UTC),
         approve=AsyncMock(),
     )
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="connection_chat_iid"))
-    chat = SimpleNamespace(iid="chat_iid", tid=-100123)
-    user = SimpleNamespace(iid="user_iid", tid=123456)
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="connection_chat_iid"))
+    chat = SimpleNamespace(id="chat_iid", tid=-100123)
+    user = SimpleNamespace(id="user_iid", tid=123456)
     greetings = SimpleNamespace(
         welcome_security=SimpleNamespace(enabled=True),
         join_request_message=None,

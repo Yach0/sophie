@@ -65,7 +65,7 @@ async def clean_notes(
     ):
         return
 
-    db_model = await CleanNotesModel.get_by_chat_iid(connection.db_model.iid)
+    db_model = await CleanNotesModel.get_by_chat_iid(connection.db_model.id)
     if not db_model.enabled:
         return
 

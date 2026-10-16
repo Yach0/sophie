@@ -28,12 +28,12 @@ class DeleteWarnCallbackHandler(SophieCallbackQueryHandler):
         callback_data: DeleteWarnCallback = self.data["callback_data"]
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
+        if not await is_user_admin(self.connection.db_model.id, self.data["context"].actor.id):
             await callback.answer(_("Only admins can delete warns!"), show_alert=True)
             return
 
         warn_iid = PydanticObjectId(callback_data.warn_iid)
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         if await delete_warn(warn_iid, chat_iid):
             await log_event(
                 self.connection.tid,
@@ -71,11 +71,11 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
         callback_data: ResetWarnsCallback = self.data["callback_data"]
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
+        if not await is_user_admin(self.connection.db_model.id, self.data["context"].actor.id):
             await callback.answer(_("Only admins can reset warns!"), show_alert=True)
             return None
 
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         target_user_tid = callback_data.user_tid
 
         target_user = await ChatModel.get_by_tid(target_user_tid)
@@ -83,7 +83,7 @@ class ResetWarnsCallbackHandler(SophieCallbackQueryHandler):
             await callback.answer(_("User not found!"), show_alert=True)
             return None
 
-        await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == target_user.iid).delete()
+        await WarnModel.find(WarnModel.chat.id == chat_iid, WarnModel.user.id == target_user.id).delete()
 
         await log_event(
             self.connection.tid,
@@ -112,11 +112,11 @@ class ResetAllWarnsCallbackHandler(SophieCallbackQueryHandler):
             return None
 
         # Check if the user who clicked the button is an admin
-        if not await is_user_admin(self.connection.db_model.iid, self.data["context"].actor.iid):
+        if not await is_user_admin(self.connection.db_model.id, self.data["context"].actor.id):
             await callback.answer(_("Only admins can reset all warns!"), show_alert=True)
             return None
 
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         await WarnModel.find(WarnModel.chat.id == chat_iid).delete()
         await log_event(self.connection.tid, self.event.from_user.id, LogEvent.ALL_WARNS_RESET)
 

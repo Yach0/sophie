@@ -126,16 +126,16 @@ class FederationBanService:
 
             member_chats = [
                 chat
-                for chat in await ChatModel.find(In(ChatModel.iid, sub_chat_iids)).to_list()
+                for chat in await ChatModel.find(In(ChatModel.id, sub_chat_iids)).to_list()
                 if chat.type != ChatType.channel
             ]
-            member_chat_iids = [chat.iid for chat in member_chats]
+            member_chat_iids = [chat.id for chat in member_chats]
             if not member_chat_iids:
                 continue
 
             # Check if user is in any of this federation's chats via UserInGroupModel
             user_in_group = await UserInGroupModel.find(
-                UserInGroupModel.user.id == user.iid,
+                UserInGroupModel.user.id == user.id,
                 In(UserInGroupModel.group.id, member_chat_iids),
             ).first_or_none()
 
@@ -180,10 +180,10 @@ class FederationBanService:
 
         chats = [
             chat
-            for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+            for chat in await ChatModel.find(In(ChatModel.id, chat_iids)).to_list()
             if chat.type != ChatType.channel
         ]
-        chat_iids = [chat.iid for chat in chats]
+        chat_iids = [chat.id for chat in chats]
         if not chat_iids:
             return 0
         user = await ChatModel.get_by_tid(user_tid)
@@ -191,7 +191,7 @@ class FederationBanService:
             return 0
 
         user_in_groups = await UserInGroupModel.find(
-            UserInGroupModel.user.id == user.iid,
+            UserInGroupModel.user.id == user.id,
             In(UserInGroupModel.group.id, chat_iids),
         ).to_list()
         detected_chat_iids = set(
@@ -201,7 +201,7 @@ class FederationBanService:
             detected_chat_iids.add(current_chat_iid)
 
         async def ban_chat(chat: ChatModel) -> PydanticObjectId | None:
-            if chat.iid not in detected_chat_iids:
+            if chat.id not in detected_chat_iids:
                 return None
             result = await execute_restriction(
                 bot,
@@ -209,7 +209,7 @@ class FederationBanService:
                 chat.tid,
                 user_tid,
             )
-            return chat.iid if result.applied else None
+            return chat.id if result.applied else None
 
         banned_chat_iids = await FederationBanService._run_limited_chat_actions(chats, ban_chat)
 
@@ -218,7 +218,7 @@ class FederationBanService:
                 ban.banned_chats = []
             existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
             for chat in chats:
-                if chat.iid in banned_chat_iids and chat.iid not in existing_chat_iids:
+                if chat.id in banned_chat_iids and chat.id not in existing_chat_iids:
                     ban.banned_chats.append(chat)
             await ban.save()
 
@@ -273,7 +273,7 @@ class FederationBanService:
             return 0
         chats = [
             chat
-            for chat in await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
+            for chat in await ChatModel.find(In(ChatModel.id, list(chat_iids))).to_list()
             if chat.type != ChatType.channel
         ]
 
@@ -297,7 +297,7 @@ class FederationBanService:
             return 0
         chats = [
             chat
-            for chat in await ChatModel.find(In(ChatModel.iid, normalized_chat_iids)).to_list()
+            for chat in await ChatModel.find(In(ChatModel.id, normalized_chat_iids)).to_list()
             if chat.type != ChatType.channel
         ]
 

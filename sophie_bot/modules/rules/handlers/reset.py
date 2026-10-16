@@ -21,5 +21,5 @@ class ResetRulesHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        await RulesModel.del_rules(connection.db_model.iid)
+        await RulesModel.del_rules(connection.db_model.id)
         await self.event.reply(_("🗑 Chat rules have been reset."))

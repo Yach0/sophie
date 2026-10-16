@@ -51,7 +51,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         return (F.text.regexp(rf"/start {LEGACY_WELCOME_SECURITY_BUTTON_PREFIX}_(.*)"),)
 
     async def _user_is_still_in_group(self, user_db: ChatModel, group_db: ChatModel) -> bool:
-        if await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid):
+        if await UserInGroupModel.get_user_in_group(user_db.id, group_db.id):
             return True
 
         try:
@@ -59,8 +59,8 @@ class LegacyWSButtonHandler(SophieMessageHandler):
         except TelegramBadRequest as err:
             log.warning(
                 "LegacyWSButtonHandler: failed to validate membership via Telegram",
-                user=user_db.iid,
-                group=group_db.iid,
+                user=user_db.id,
+                group=group_db.id,
                 error=str(err),
             )
             return False
@@ -85,24 +85,24 @@ class LegacyWSButtonHandler(SophieMessageHandler):
             log.warning("LegacyWSButtonHandler: Group not found in DB", chat_id=chat_id)
             return await self.event.reply(_("This group no longer exists or has been removed."))
 
-        log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.iid, chat_id=chat_id)
+        log.debug("LegacyWSButtonHandler: Handling WS button press", group=group_db.id, chat_id=chat_id)
 
         user_db: ChatModel = self.data["context"].actor
 
-        ws_user = await WSUserModel.is_user(user_db.iid, group_db.iid)
+        ws_user = await WSUserModel.is_user(user_db.id, group_db.id)
         if not ws_user:
-            log.warning("LegacyWSButtonHandler: WSUserModel not found", user=user_db.iid, group=group_db.iid)
+            log.warning("LegacyWSButtonHandler: WSUserModel not found", user=user_db.id, group=group_db.id)
             return await self.event.reply(
                 _("It seems like you do not have to pass the welcome security authentication")
             )
 
         if not ws_user.is_join_request and not await self._user_is_still_in_group(user_db, group_db):
-            log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.iid, group=group_db.iid)
+            log.warning("LegacyWSButtonHandler: UserInGroupModel not found", user=user_db.id, group=group_db.id)
             return await self.event.reply(
                 _("It seems like you are not belong to the chat anymore. Are you sure you joined the group?")
             )
 
-        if await is_user_admin(chat_id, user_db.iid):
+        if await is_user_admin(chat_id, user_db.id):
             # Only drop the pending WS record once the unmute succeeds; otherwise the admin
             # would be left muted with no record to re-enter this flow and retry.
             if (
@@ -113,8 +113,8 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                     user_db.tid,
                 )
             ).applied:
-                await WSUserModel.remove_user(user_db.iid, group_db.iid)
-            log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.iid, group=group_db.iid)
+                await WSUserModel.remove_user(user_db.id, group_db.id)
+            log.debug("LegacyWSButtonHandler: User is admin, no need to pass WS", user=user_db.id, group=group_db.id)
             return await self.event.reply(
                 _("You already an admin in the chat, therefore you don't need to pass the authentication!")
             )
@@ -129,7 +129,7 @@ class LegacyWSButtonHandler(SophieMessageHandler):
 
         # Check fedban
         federation = await FederationManageService.get_federation_for_chat(
-            group_db.iid,
+            group_db.id,
             redis=self.services.redis,
         )
         if federation:
@@ -143,13 +143,13 @@ class LegacyWSButtonHandler(SophieMessageHandler):
                     _("You are banned in the federation, so you cannot pass the authentication!")
                 )
 
-        ws_db_item = await GreetingsModel.get_by_chat_iid(group_db.iid)
+        ws_db_item = await GreetingsModel.get_by_chat_iid(group_db.id)
 
         if not ws_db_item.welcome_security or not ws_db_item.welcome_security.enabled:
             # We still allow users to complete it, because it could've been disabled afterwards
             log.warning("LegacyWSButtonHandler: WS is disabled but we still allow users to complete")
 
         # Initialize captcha
-        self.data["ws_chat_iid"] = group_db.iid
+        self.data["ws_chat_iid"] = group_db.id
         self.data["ws_is_join_request"] = ws_user.is_join_request
         return await CaptchaGetHandler(self.event, **self.data).handle()

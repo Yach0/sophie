@@ -15,7 +15,7 @@ async def test_notes_list_falls_back_to_send_message_when_reply_target_is_missin
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     connection = SimpleNamespace(
-        db_model=SimpleNamespace(iid="chat_iid"),
+        db_model=SimpleNamespace(id="chat_iid"),
         tid=-1001483164428,
         title="🔥 Men Dont Fap 🔥",
     )

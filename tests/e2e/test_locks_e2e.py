@@ -41,7 +41,7 @@ async def _group_with_member(test_client: TestClient) -> tuple[object, object, o
 async def _locked_types(group_tid: int) -> set[str]:
     chat = await ChatModel.get_by_tid(group_tid)
     assert chat is not None
-    return (await LocksModel.get_by_chat_iid(chat.iid)).locked_types
+    return (await LocksModel.get_by_chat_iid(chat.id)).locked_types
 
 
 def _deleted(requests: list) -> list:

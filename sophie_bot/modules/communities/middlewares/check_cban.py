@@ -50,7 +50,7 @@ class CommunityBanMiddleware(BaseMiddleware):
         if await is_user_group_whitelisted(chat_id, user_id, redis=data["services"].redis):
             await log_group_whitelist_exemption(chat_id, user_id, "community_ban_enforcement")
             return False
-        if await is_user_admin(chat_db.iid, user_db.iid):
+        if await is_user_admin(chat_db.id, user_db.id):
             return False
 
         ban = await CommunityBanService.is_user_banned(community.community_tid, user_id)
@@ -79,7 +79,7 @@ class CommunityBanMiddleware(BaseMiddleware):
         await common_try(message.reply(str(doc)))
 
         # Record the chat where the ban was now applied.
-        if chat_db.iid not in [banned_chat.to_ref().id for banned_chat in ban.banned_chats]:
+        if chat_db.id not in [banned_chat.to_ref().id for banned_chat in ban.banned_chats]:
             ban.banned_chats.append(chat_db)
             await ban.save()
 

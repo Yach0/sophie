@@ -80,7 +80,7 @@ class FederationManageService:
             return federation
 
         if connection and (connection.is_connected or connection.type != ChatType.private):
-            federation = await FederationManageService.get_federation_for_chat(connection.db_model.iid, redis=redis)
+            federation = await FederationManageService.get_federation_for_chat(connection.db_model.id, redis=redis)
             if federation:
                 return federation
             raise FederationContextError(_("This chat is not in any federation"))
@@ -89,7 +89,7 @@ class FederationManageService:
             user = await ChatModel.get_by_tid(user_id)
             if not user:
                 raise FederationContextError(_("User not found in database"))
-            user_federations = await FederationManageService.get_federations_by_creator(user.iid)
+            user_federations = await FederationManageService.get_federations_by_creator(user.id)
             if len(user_federations) == 1:
                 return user_federations[0]
             if len(user_federations) > 1:

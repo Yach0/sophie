@@ -49,7 +49,7 @@ async def get_chat_logs(
         raise HTTPException(status_code=403, detail="Not authorized")
 
     logs = (
-        await LogModel.find(LogModel.chat.id == target_chat.iid, fetch_links=True)
+        await LogModel.find(LogModel.chat.id == target_chat.id, fetch_links=True)
         .sort("-timestamp")
         .skip(offset)
         .limit(limit)

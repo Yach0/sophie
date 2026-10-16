@@ -34,7 +34,7 @@ async def test_link_query_matches_the_referenced_document(db_init: Any) -> None:
     group = await _chat(-990002, ChatType.supergroup)
     await UserInGroupModel.ensure_user_in_group(user, group)
 
-    found = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+    found = await UserInGroupModel.get_user_in_group(user.id, group.id)
 
     assert found is not None
 
@@ -46,4 +46,4 @@ async def test_link_query_does_not_match_a_different_document(db_init: Any) -> N
     other_group = await _chat(-990005, ChatType.supergroup)
     await UserInGroupModel.ensure_user_in_group(user, group)
 
-    assert await UserInGroupModel.get_user_in_group(user.iid, other_group.iid) is None
+    assert await UserInGroupModel.get_user_in_group(user.id, other_group.id) is None

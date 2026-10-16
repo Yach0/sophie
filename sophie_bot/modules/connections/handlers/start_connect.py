@@ -45,7 +45,7 @@ class StartConnectHandler(SophieMessageHandler):
             return None
 
         # Check permissions
-        if not await check_connection_permissions(chat_db.iid, user_db.iid):
+        if not await check_connection_permissions(chat_db.id, user_db.id):
             return await self.event.reply(_("You are not allowed to connect to this chat."))
 
         await set_connected_chat(user_tid, chat_tid, redis=self.services.redis)

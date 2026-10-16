@@ -72,7 +72,7 @@ async def test_disable_persists_the_key_the_middleware_enforces(test_client: Tes
         chat=group_chat,
     )
     assert any("Command disabled" in (response.text or "") for response in requests)
-    assert await DisablingModel.get_disabled(chat_db.iid) == [TRANSLATE_CANONICAL_NAME]
+    assert await DisablingModel.get_disabled(chat_db.id) == [TRANSLATE_CANONICAL_NAME]
 
     with pytest.raises(SkipHandler):
         await _translate_handler_reached(
@@ -100,7 +100,7 @@ async def test_disable_accepts_the_canonical_name_of_an_aliased_command(test_cli
     chat_db = await ChatModel.get_by_tid(group_chat.id)
     assert chat_db
 
-    assert await DisablingModel.get_disabled(chat_db.iid) == [TRANSLATE_CANONICAL_NAME]
+    assert await DisablingModel.get_disabled(chat_db.id) == [TRANSLATE_CANONICAL_NAME]
 
 
 @pytest.mark.asyncio

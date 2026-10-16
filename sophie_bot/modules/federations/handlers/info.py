@@ -118,7 +118,7 @@ class FederationInfoHandler(SophieMessageHandler):
         if not chat:
             await self.event.reply(_("Chat not found in database"))
             return
-        chat_iid = chat.iid
+        chat_iid = chat.id
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
 
         if not federation:

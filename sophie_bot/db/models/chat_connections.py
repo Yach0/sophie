@@ -37,4 +37,4 @@ class ChatConnectionModel(Document):
         user = await ChatModel.get_by_tid(user_tid)
         if not user:
             return None
-        return await ChatConnectionModel.get_by_user_iid(user.iid)
+        return await ChatConnectionModel.get_by_user_iid(user.id)

@@ -67,10 +67,21 @@ Key points:
 - **Explicit Runtime State**: Runtime resources belong to `ApplicationServices`; per-update state belongs to `RequestContext`. Do not add module-level bot, dispatcher, Redis, or database proxies.
 - **Runtime Configuration**: Use the mode runtime's `config` when initializing its resources. Pass it to database initialization so a custom runtime does not inherit process-global index settings.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
+- **Chat Identity**: `ChatModel.id` is the only internal ID and maps to MongoDB `_id`. Use it for link queries and newly inserted models; no reload or identity synchronization is required.
 
 Each AI context render must build its own context session (`ModernContext` or `OldContext`).
 Lookup caching, message rendering, and tool state remain scoped to that builder rather than
 module globals.
+
+Reactive and proactive chatbot replies share final presentation and length fitting. Research
+progress is a replaceable current stage, not an accumulated activity. New text or tool activity
+clears that stage.
+
+Captcha initialization and redraw share presentation and FSM payload builders. Preserve their
+ordering: initialization writes state before sending; redraw writes state only after a successful send.
+
+Locale lookups use explicit per-chat cache keys. Preserve cached missing values, per-key load
+locking, background refresh, and shutdown ownership when changing the cache.
 
 ---
 

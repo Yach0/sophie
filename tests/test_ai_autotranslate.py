@@ -17,7 +17,7 @@ async def test_disabling_preserves_language_settings(monkeypatch):
         save=AsyncMock(),
     )
     monkeypatch.setattr(AIAutotranslateModel, "find_one", AsyncMock(return_value=model))
-    chat = SimpleNamespace(iid="chat-id")
+    chat = SimpleNamespace(id="chat-id")
 
     await AIAutotranslateModel.set_state(chat, False)
 

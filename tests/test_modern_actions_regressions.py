@@ -10,10 +10,8 @@ from babel.messages.extract import extract_from_file
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.filters.api.utils import build_filter_action_catalog
-from sophie_bot.modules.filters.utils_.handle_action import (
-    EffectiveFilterAction,
-    handle_effective_filter_action,
-)
+from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
+from sophie_bot.modules.filters.utils_.handle_action import handle_filter_action
 from sophie_bot.modules.notes.utils import send as send_module
 from sophie_bot.modules.purges.magic_handlers.modern_filter import DelMsgModern
 from sophie_bot.modules.restrictions.actions import ban as ban_action_module
@@ -26,6 +24,7 @@ from sophie_bot.modules.rules.magic_handlers.modern_filter import SendRulesActio
 from sophie_bot.modules.warns.magic_handlers.modern_action import WarnModernAction
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.actions import RestrictionResult
+from sophie_bot.utils.exception import SophieException
 
 # Actions typed ModernActionABC[None]: they take no data, so data_object must resolve to None
 # rather than raising AttributeError.
@@ -48,8 +47,8 @@ def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
     action = WarnModernAction()
     return {
         "context": SimpleNamespace(
-            event_chat=SimpleNamespace(tid=message.chat.id, iid="chat_iid"),
-            actor=SimpleNamespace(tid=777, iid="user_iid"),
+            event_chat=SimpleNamespace(tid=message.chat.id, id="chat_iid"),
+            actor=SimpleNamespace(tid=777, id="user_iid"),
         ),
         "services": SimpleNamespace(
             redis=AsyncMock(),
@@ -59,6 +58,45 @@ def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
             ),
         ),
     }
+
+
+@pytest.mark.asyncio
+async def test_filter_actions_preserve_order_and_skip_previously_triggered_actions(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    action_result = object()
+    executor = AsyncMock(side_effect=[None, action_result])
+    monkeypatch.setattr("sophie_bot.modules.filters.enforce_middleware.handle_filter_action", executor)
+    filter_item = SimpleNamespace(
+        id="filter_iid",
+        actions={"already_triggered": None, "first": None, "second": {"reason": "spam"}},
+    )
+    message = _make_message()
+    data: dict[str, Any] = {}
+
+    triggered, messages = await EnforceFiltersMiddleware._handle_filter_actions(
+        filter_item, ["already_triggered"], message, data
+    )
+
+    assert triggered == ["first", "second"]
+    assert messages == [action_result]
+    assert [call.args for call in executor.await_args_list] == [
+        (message, "first", None, data),
+        (message, "second", {"reason": "spam"}, data),
+    ]
+    assert data["filter_id"] == "filter_iid"
+
+
+@pytest.mark.asyncio
+async def test_filter_without_actions_is_rejected_without_execution(monkeypatch: pytest.MonkeyPatch) -> None:
+    executor = AsyncMock()
+    monkeypatch.setattr("sophie_bot.modules.filters.enforce_middleware.handle_filter_action", executor)
+    filter_item = SimpleNamespace(action="legacy", actions={})
+
+    with pytest.raises(SophieException):
+        await EnforceFiltersMiddleware()._process_filter(_make_message(), {}, filter_item)
+
+    executor.assert_not_awaited()
 
 
 @pytest.mark.parametrize(
@@ -167,7 +205,7 @@ async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) 
     )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
-        AsyncMock(return_value=SimpleNamespace(tid=1234, iid="bot_iid")),
+        AsyncMock(return_value=SimpleNamespace(tid=1234, id="bot_iid")),
     )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.generate_restriction_reason",
@@ -178,11 +216,11 @@ async def test_warn_filter_action_skips_admins(monkeypatch: pytest.MonkeyPatch) 
     message = _make_message()
     data = _warn_action_data(message)
 
-    result = await handle_effective_filter_action(
+    result = await handle_filter_action(
         message,
-        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        "warn_user",
+        {"reason": None},
         data,
-        SimpleNamespace(id="filter_iid"),
     )
 
     assert result is None
@@ -211,11 +249,11 @@ async def test_warn_filter_action_skips_whitelisted_users(monkeypatch: pytest.Mo
     message = _make_message()
     data = _warn_action_data(message)
 
-    result = await handle_effective_filter_action(
+    result = await handle_filter_action(
         message,
-        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        "warn_user",
+        {"reason": None},
         data,
-        SimpleNamespace(id="filter_iid"),
     )
 
     assert result is None
@@ -226,7 +264,7 @@ async def test_warn_filter_action_skips_whitelisted_users(monkeypatch: pytest.Mo
 @pytest.mark.asyncio
 async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.MonkeyPatch) -> None:
     warn_user_mock = AsyncMock(return_value=(1, 3, None, SimpleNamespace(id="warn_iid")))
-    bot_db = SimpleNamespace(tid=1234, iid="bot_iid")
+    bot_db = SimpleNamespace(tid=1234, id="bot_iid")
 
     monkeypatch.setattr("sophie_bot.modules.warns.magic_handlers.modern_action.warn_user", warn_user_mock)
     monkeypatch.setattr(
@@ -249,11 +287,11 @@ async def test_warn_filter_action_still_warns_non_admins(monkeypatch: pytest.Mon
     message = _make_message()
     data = _warn_action_data(message)
 
-    result = await handle_effective_filter_action(
+    result = await handle_filter_action(
         message,
-        EffectiveFilterAction(name="warn_user", data={"reason": None}),
+        "warn_user",
+        {"reason": None},
         data,
-        SimpleNamespace(id="filter_iid"),
     )
 
     assert result is not None
@@ -280,17 +318,17 @@ async def test_warn_action_data_survives_the_admin_gate(monkeypatch: pytest.Monk
     )
     monkeypatch.setattr(
         "sophie_bot.modules.warns.magic_handlers.modern_action.ChatModel.get_by_tid",
-        AsyncMock(return_value=SimpleNamespace(tid=1234, iid="bot_iid")),
+        AsyncMock(return_value=SimpleNamespace(tid=1234, id="bot_iid")),
     )
 
     message = _make_message()
     data = _warn_action_data(message)
 
-    await handle_effective_filter_action(
+    await handle_filter_action(
         message,
-        EffectiveFilterAction(name="warn_user", data={"reason": "No links"}),
+        "warn_user",
+        {"reason": "No links"},
         data,
-        SimpleNamespace(id="filter_iid"),
     )
 
     assert captured["reason"] == "No links"
@@ -321,7 +359,7 @@ async def test_send_rules_action_processes_fillings_for_text_only_rules(
     )
 
     message = _make_message()
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat_iid", tid=message.chat.id))
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="chat_iid", tid=message.chat.id))
 
     result = await SendRulesAction().handle(
         message,
@@ -354,7 +392,7 @@ async def test_set_rules_rejects_empty_content(
 
     message = _make_message()
     message.reply_to_message = None
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat_iid", tid=message.chat.id), title="Sophie Chat")
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="chat_iid", tid=message.chat.id), title="Sophie Chat")
 
     handler = SetRulesHandler(
         message,

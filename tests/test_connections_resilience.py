@@ -141,7 +141,7 @@ async def test_reconnecting_to_same_chat_does_not_duplicate_history(
     stored_connection = await ChatConnectionModel.get(connection_iid)
     assert stored_connection is not None
     history_iids = [history_chat.to_ref().id for history_chat in stored_connection.history]
-    assert history_iids == [first_group.iid, second_group.iid]
+    assert history_iids == [first_group.id, second_group.id]
 
 
 @pytest.mark.xfail(

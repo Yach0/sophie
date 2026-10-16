@@ -42,14 +42,14 @@ class FedBanMiddleware(BaseMiddleware):
         log.debug(f"Enforcing fban check on {user_id} in {chat_id}")
 
         # Get federation for this chat
-        federation = await FederationManageService.get_federation_for_chat(chat_db.iid, redis=data["services"].redis)
+        federation = await FederationManageService.get_federation_for_chat(chat_db.id, redis=data["services"].redis)
         if not federation:
             return False
 
         if await is_user_group_whitelisted(chat_id, user_id, redis=data["services"].redis):
             await log_group_whitelist_exemption(chat_id, user_id, "federation_ban_enforcement")
             return False
-        if await is_user_admin(chat_db.iid, user_db.iid):
+        if await is_user_admin(chat_db.id, user_db.id):
             return False
 
         # Check if user is banned in this federation or subscription chain
@@ -97,7 +97,7 @@ class FedBanMiddleware(BaseMiddleware):
         # Update banned_chats list
         if not ban.banned_chats:
             ban.banned_chats = []
-        if chat_db.iid not in normalize_chat_iids([banned_chat.to_ref() for banned_chat in ban.banned_chats]):
+        if chat_db.id not in normalize_chat_iids([banned_chat.to_ref() for banned_chat in ban.banned_chats]):
             ban.banned_chats.append(chat_db)
             await ban.save()
 

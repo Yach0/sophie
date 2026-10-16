@@ -268,8 +268,8 @@ async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_un
     monkeypatch.setattr(on_user_passed, "log_group_whitelist_exemption", log_exemption)
     monkeypatch.setattr(on_user_passed, "execute_restriction", record_unmute)
     monkeypatch.setattr(on_user_passed.WSUserModel, "remove_user", record_removal)
-    user = SimpleNamespace(tid=700_000_008, iid="user-iid")
-    group = SimpleNamespace(tid=-1_007_000_000_008, iid="group-iid")
+    user = SimpleNamespace(tid=700_000_008, id="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_008, id="group-iid")
     welcome_mute = SimpleNamespace(enabled=True, time=None)
 
     assert (
@@ -293,8 +293,8 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
     welcome_mute_succeeded: bool,
     test_services: ApplicationServices,
 ) -> None:
-    user = SimpleNamespace(tid=700_000_012, iid="user-iid")
-    group = SimpleNamespace(tid=-1_007_000_000_012, iid="group-iid")
+    user = SimpleNamespace(tid=700_000_012, id="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_012, id="group-iid")
     welcome_mute_time = timedelta(hours=1)
     welcome_mute = SimpleNamespace(enabled=True, time=welcome_mute_time)
     on_welcome_mute = AsyncMock(return_value=welcome_mute_succeeded)
@@ -323,7 +323,7 @@ async def test_captcha_pass_removes_pending_only_after_successful_welcome_mute(
         redis=test_services.redis,
     )
     if welcome_mute_succeeded:
-        remove_user.assert_awaited_once_with(user.iid, group.iid)
+        remove_user.assert_awaited_once_with(user.id, group.id)
     else:
         remove_user.assert_not_awaited()
 
@@ -334,8 +334,8 @@ async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success
     unmute_succeeded: bool,
     test_services: ApplicationServices,
 ) -> None:
-    user = SimpleNamespace(tid=700_000_013, iid="user-iid")
-    group = SimpleNamespace(tid=-1_007_000_000_013, iid="group-iid")
+    user = SimpleNamespace(tid=700_000_013, id="user-iid")
+    group = SimpleNamespace(tid=-1_007_000_000_013, id="group-iid")
     execute_restriction = AsyncMock(
         return_value=RestrictionResult(
             action=RestrictionAction.UNMUTE,
@@ -365,7 +365,7 @@ async def test_admin_captcha_pass_unmutes_and_removes_pending_only_after_success
         user.tid,
     )
     if unmute_succeeded:
-        remove_user.assert_awaited_once_with(user.iid, group.iid)
+        remove_user.assert_awaited_once_with(user.id, group.id)
     else:
         remove_user.assert_not_awaited()
 
@@ -376,8 +376,8 @@ async def test_whitelist_pending_captcha_is_removed_only_after_successful_unmute
     unmute_succeeded: bool,
     test_services: ApplicationServices,
 ) -> None:
-    group = SimpleNamespace(iid="group-iid")
-    user = SimpleNamespace(iid="user-iid")
+    group = SimpleNamespace(id="group-iid")
+    user = SimpleNamespace(id="user-iid")
     monkeypatch.setattr(whitelist_add.ChatModel, "get_by_tid", AsyncMock(side_effect=[group, user]))
     monkeypatch.setattr(whitelist_add.WSUserModel, "is_user", AsyncMock(return_value=object()))
     execute_restriction = AsyncMock(
@@ -403,6 +403,6 @@ async def test_whitelist_pending_captcha_is_removed_only_after_successful_unmute
         700_000_011,
     )
     if unmute_succeeded:
-        remove_user.assert_awaited_once_with(user.iid, group.iid)
+        remove_user.assert_awaited_once_with(user.id, group.id)
     else:
         remove_user.assert_not_awaited()

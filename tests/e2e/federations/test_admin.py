@@ -41,7 +41,7 @@ async def test_promote_admin_via_service(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Promote Test Fed", owner_model)
 
     # Promote user via service
-    await FederationAdminService.promote_admin(federation, target_model.iid)
+    await FederationAdminService.promote_admin(federation, target_model.id)
 
     # Verify admin status
     is_admin = await FederationAdminService.is_admin(federation, 6002)
@@ -78,10 +78,10 @@ async def test_demote_admin_via_service(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Demote Test Fed", owner_model)
 
     # Promote then demote
-    await FederationAdminService.promote_admin(federation, target_model.iid)
+    await FederationAdminService.promote_admin(federation, target_model.id)
     assert await FederationAdminService.is_admin(federation, 6004) is True
 
-    await FederationAdminService.demote_admin(federation, target_model.iid)
+    await FederationAdminService.demote_admin(federation, target_model.id)
     assert await FederationAdminService.is_admin(federation, 6004) is False
 
 
@@ -110,10 +110,10 @@ async def test_promote_duplicate_raises(test_client: TestClient) -> None:
 
     federation = await create_federation_via_command(test_client, owner_user, group, "Dup Promote Fed", owner_model)
 
-    await FederationAdminService.promote_admin(federation, target_model.iid)
+    await FederationAdminService.promote_admin(federation, target_model.id)
 
     with pytest.raises(ValueError, match="already an admin"):
-        await FederationAdminService.promote_admin(federation, target_model.iid)
+        await FederationAdminService.promote_admin(federation, target_model.id)
 
 
 @pytest.mark.asyncio
@@ -141,7 +141,7 @@ async def test_demote_non_admin_raises(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Bad Demote Fed", owner_model)
 
     with pytest.raises(ValueError, match="not an admin"):
-        await FederationAdminService.demote_admin(federation, target_model.iid)
+        await FederationAdminService.demote_admin(federation, target_model.id)
 
 
 @pytest.mark.asyncio

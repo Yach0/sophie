@@ -49,7 +49,7 @@ class AIAutotrans(StatusBoolHandlerABC):
     async def get_status(self) -> bool:
         if not self.connection.db_model:
             return False
-        return await AIAutotranslateModel.get_state(self.connection.db_model.iid)
+        return await AIAutotranslateModel.get_state(self.connection.db_model.id)
 
     async def set_status(self, new_status: bool):
         await AIAutotranslateModel.set_state(self.connection.db_model, new_status)
@@ -64,7 +64,7 @@ class AIAutotrans(StatusBoolHandlerABC):
         await super().display_current_status()
         await self.event.reply(
             _("Languages excluded from auto-translation:"),
-            reply_markup=await _language_markup(self.connection.db_model.iid, code),
+            reply_markup=await _language_markup(self.connection.db_model.id, code),
         )
 
 
@@ -98,5 +98,5 @@ class AutoTranslateLanguageHandler(SophieCallbackQueryHandler):
         await self.event.answer()
         await self.edit_text(
             _("Languages excluded from auto-translation:"),
-            reply_markup=await _language_markup(self.connection.db_model.iid),
+            reply_markup=await _language_markup(self.connection.db_model.id),
         )

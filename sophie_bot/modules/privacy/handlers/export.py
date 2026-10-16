@@ -46,7 +46,7 @@ class TriggerExport(SophieBaseHandler[Message]):
         await self.event.reply(_("Export is started, this may take a while."))
 
         data = self.get_initial_data(connection)
-        modules_data = await self.get_data(connection.db_model.iid)
+        modules_data = await self.get_data(connection.db_model.id)
 
         for module_data in modules_data:
             data.update(module_data)

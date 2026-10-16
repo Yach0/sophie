@@ -34,7 +34,7 @@ class SetJoinRequestMessageHandler(SophieMessageHandler):
             buttons=buttons,
             bot=self.services.bot,
         )
-        await GreetingsModel.change_join_request_message(connection.db_model.iid, saveable)
+        await GreetingsModel.change_join_request_message(connection.db_model.id, saveable)
 
         doc = Doc(
             Template(_("Join request message was saved in {chat_title}."), chat_title=Italic(connection.title)),
@@ -52,7 +52,7 @@ class DelJoinRequestMessageHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
         if not db_model or not db_model.join_request_message:
             return await self.event.reply(
                 Template(

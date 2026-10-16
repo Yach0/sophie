@@ -105,7 +105,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             normalize_chat_iids([chat.to_ref() for chat in federation.chats]) if federation.chats else []
         )
         current_chat = self.connection.db_model
-        chat_part_of_federation: bool = current_chat.iid in federation_chat_iids
+        chat_part_of_federation: bool = current_chat.id in federation_chat_iids
 
         # Unban in the current chat right away; the scheduler propagates to the rest.
         immediate_chat_unbanned = False
@@ -138,9 +138,9 @@ class FederationUnbanHandler(FederationCommandHandler):
             fed_id=federation.fed_id,
             task_type=FederationTaskType.UNBAN,
             target_user_id=user.tid,
-            user=banner.iid,
-            chat=current_chat.iid,
-            current_chat_iid=current_chat.iid if chat_part_of_federation else None,
+            user=banner.id,
+            chat=current_chat.id,
+            current_chat_iid=current_chat.id if chat_part_of_federation else None,
             reply_chat_id=self.event.chat.id,
             reply_message_id=reply_msg.message_id if reply_msg else None,
             unban_chat_iids=unban_chat_iids,
@@ -169,7 +169,7 @@ class FederationUnbanHandler(FederationCommandHandler):
             return
 
         # Format ban date
-        locale_name = await self.services.locales.get_chat_locale(self.connection.db_model.iid)
+        locale_name = await self.services.locales.get_chat_locale(self.connection.db_model.id)
         ban_date = format_date(subscription_ban.time.date(), "short", locale=locale_name)
 
         # Get banner user info - by is now a Link

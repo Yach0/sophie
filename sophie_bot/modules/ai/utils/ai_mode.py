@@ -129,7 +129,7 @@ async def resolve_chat_mode(chat: ChatModel, state: FSMContext | None = None) ->
         help_mode = await is_help_mode(state)
         mode = AIMode.sophie_help if help_mode else AIMode.sophie_pm
         return mode
-    return await get_chat_mode(chat.iid, AIMode.disabled)
+    return await get_chat_mode(chat.id, AIMode.disabled)
 
 
 async def resolve_chat_capabilities(chat: ChatModel, state: FSMContext | None = None) -> ModeCapabilities:

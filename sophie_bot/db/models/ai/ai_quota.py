@@ -36,7 +36,7 @@ class AIQuotaModel(Document):
 
     @staticmethod
     async def get_or_create(chat: ChatModel) -> AIQuotaModel:
-        quota = await AIQuotaModel.find_one(AIQuotaModel.chat.id == chat.iid)
+        quota = await AIQuotaModel.find_one(AIQuotaModel.chat.id == chat.id)
         if quota:
             return quota
 

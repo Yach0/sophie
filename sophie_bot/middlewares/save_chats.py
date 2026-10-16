@@ -30,13 +30,13 @@ class SaveChatsMiddleware(BaseMiddleware):
             # not found - already deleted or didn't exist in a first place
             return
 
-        membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+        membership = await UserInGroupModel.get_user_in_group(user.id, group.id)
         if membership is None or membership.id is None:
             return
         if not await UserInGroupModel.ensure_delete(user, group, membership.id, left_message_id=left_message_id):
             return
 
-        ws_user = await WSUserModel.is_user(user.iid, group.iid)
+        ws_user = await WSUserModel.is_user(user.id, group.id)
         if ws_user and ws_user.id is not None and not ws_user.passed:
             await WSUserModel.remove_unpassed_user(ws_user.id, membership.id, membership.joined_message_id)
 

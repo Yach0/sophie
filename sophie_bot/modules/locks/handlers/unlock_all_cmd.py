@@ -33,7 +33,7 @@ class UnlockAllCmdHandler(SophieMessageHandler):
         if not self.event.from_user:
             return
 
-        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+        model = await LocksModel.get_by_chat_iid(connection.db_model.id)
         locked_types = model.locked_types
 
         if not locked_types:

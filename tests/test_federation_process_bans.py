@@ -32,24 +32,11 @@ REPLY_MESSAGE_ID = 4242
 
 
 async def _make_user(tid: int, name: str) -> ChatModel:
-    """Create a user the way production does, then read it back.
-
-    ChatModel declares both `id` and `iid` against the `_id` alias, so a freshly built
-    instance carries an `iid` that diverges from the `_id` it is actually stored under.
-    Only a model read back from Mongo has `iid == _id`, which is what Link refs resolve
-    against - build one by hand and every `Link` to it silently fails to fetch.
-    """
-    await ChatModel.upsert_user(User(id=tid, is_bot=False, first_name=name))
-    user = await ChatModel.get_by_tid(tid)
-    assert user is not None
-    return user
+    return await ChatModel.upsert_user(User(id=tid, is_bot=False, first_name=name))
 
 
 async def _make_group(tid: int, title: str) -> ChatModel:
-    await ChatModel.upsert_group(Chat(id=tid, type="supergroup", title=title))
-    group = await ChatModel.get_by_tid(tid)
-    assert group is not None
-    return group
+    return await ChatModel.upsert_group(Chat(id=tid, type="supergroup", title=title))
 
 
 async def _make_ban_task(
@@ -66,10 +53,10 @@ async def _make_ban_task(
     await _make_user(TARGET_TID, "nikolia")
     chat = await _make_group(REPLY_CHAT_TID, "Test Group")
 
-    federation = Federation(fed_name="OrangeFoxFed", fed_id="fed-1", creator=banner.iid, chats=[chat])
+    federation = Federation(fed_name="OrangeFoxFed", fed_id="fed-1", creator=banner.id, chats=[chat])
     await federation.insert()
 
-    ban = FederationBan(fed_id="fed-1", user_id=TARGET_TID, time=datetime.now(UTC), by=banner.iid)
+    ban = FederationBan(fed_id="fed-1", user_id=TARGET_TID, time=datetime.now(UTC), by=banner.id)
     await ban.insert()
 
     ban_in_chats = (
@@ -102,9 +89,9 @@ async def _make_ban_task(
         fed_id="fed-1",
         task_type=FederationTaskType.BAN,
         target_user_id=TARGET_TID,
-        user=banner.iid,
-        chat=chat.iid,
-        current_chat_iid=chat.iid,
+        user=banner.id,
+        chat=chat.id,
+        current_chat_iid=chat.id,
         reply_chat_id=REPLY_CHAT_TID,
         reply_message_id=REPLY_MESSAGE_ID,
         reason="cryptoscam",
@@ -181,7 +168,7 @@ async def test_ban_task_restricts_present_users_in_subscribed_federation(
     )
     assert subscriber_ban is not None
     assert subscriber_ban.origin_fed == origin_federation.fed_id
-    assert [chat.to_ref().id for chat in subscriber_ban.banned_chats] == [subscriber_chat.iid]
+    assert [chat.to_ref().id for chat in subscriber_ban.banned_chats] == [subscriber_chat.id]
     assert test_services.bot.ban_chat_member.await_args_list == [
         ((REPLY_CHAT_TID, TARGET_TID), {"until_date": None}),
         ((subscriber_chat.tid, TARGET_TID), {"until_date": None}),

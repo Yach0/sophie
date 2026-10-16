@@ -41,7 +41,7 @@ class FederationAdminsHandler(FederationCommandHandler):
             admin_model = await ChatModel.get_by_iid(admin_link.ref.id)
             if not admin_model:
                 continue
-            if owner and admin_model.iid == owner.iid:
+            if owner and admin_model.id == owner.id:
                 continue
             admin_models.append(admin_model)
 

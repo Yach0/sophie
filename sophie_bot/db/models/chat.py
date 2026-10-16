@@ -32,7 +32,7 @@ class ChatType(Enum):
 
 
 class ChatModel(Document):
-    iid: PydanticObjectId = Field(default_factory=PydanticObjectId, alias="_id")
+    id: Annotated[PydanticObjectId, Field(default_factory=PydanticObjectId, alias="_id")]
     tid: Annotated[int, Indexed(unique=True)] = Field(..., alias="chat_id")
     type: ChatType = Field(..., description="Group type")
     first_name_or_title: str = Field(max_length=128)
@@ -80,27 +80,13 @@ class ChatModel(Document):
         return ChatModel(tid=user.id, **ChatModel._get_user_data(user))
 
     @staticmethod
-    def _with_settled_iid(chat: "ChatModel") -> "ChatModel":
-        """Make `iid` agree with the `_id` that was actually written.
-
-        `iid` and Beanie's `Document.id` both map to `_id`, but they are separate fields, so
-        nothing keeps them equal. When an upsert inserts, Beanie returns the `on_insert`
-        template itself rather than re-reading the document: it sets `.id` to the inserted
-        `_id` and leaves `.iid` holding the unrelated value its default_factory invented.
-        The returned `.iid` then matches no document at all.
-        """
-        if chat.id is not None:
-            chat.iid = chat.id
-        return chat
-
-    @staticmethod
     async def upsert_user(user: User) -> "ChatModel":
         async with upsert_user_lock:
             data = ChatModel._get_user_data(user)
             chat = await ChatModel.find_one(ChatModel.tid == user.id).upsert(
                 Set(data), on_insert=ChatModel(tid=user.id, **data), response_type=UpdateResponse.NEW_DOCUMENT
             )
-            return ChatModel._with_settled_iid(chat)
+            return chat
 
     @staticmethod
     async def upsert_group(chat: Chat) -> "ChatModel":
@@ -110,7 +96,7 @@ class ChatModel(Document):
             group = await ChatModel.find_one(ChatModel.tid == chat.id).upsert(
                 Set(data), on_insert=ChatModel(tid=chat.id, **data), response_type=UpdateResponse.NEW_DOCUMENT
             )
-            return ChatModel._with_settled_iid(group)
+            return group
 
     @staticmethod
     async def do_chat_migrate(old_id: int, new_chat: Chat, *, redis: Redis) -> Optional["ChatModel"]:
@@ -174,7 +160,7 @@ class ChatModel(Document):
 
     @staticmethod
     async def get_by_iid(iid: PydanticObjectId) -> Optional["ChatModel"]:
-        return await ChatModel.find_one(ChatModel.iid == iid)
+        return await ChatModel.find_one(ChatModel.id == iid)
 
     @staticmethod
     async def find_user(user_iid: int) -> "ChatModel":
@@ -246,8 +232,8 @@ class UserInGroupModel(Document):
             updates.append(Max(message_boundaries))
 
         return await UserInGroupModel.find_one(
-            UserInGroupModel.user.id == user.iid,
-            UserInGroupModel.group.id == group.iid,
+            UserInGroupModel.user.id == user.id,
+            UserInGroupModel.group.id == group.id,
         ).upsert(
             *updates,
             on_insert=UserInGroupModel(
@@ -277,8 +263,8 @@ class UserInGroupModel(Document):
     ) -> bool:
         result = await UserInGroupModel.find_one(
             UserInGroupModel.id == membership_id,
-            UserInGroupModel.user.id == user.iid,
-            UserInGroupModel.group.id == group.iid,
+            UserInGroupModel.user.id == user.id,
+            UserInGroupModel.group.id == group.id,
             {
                 "$or": [
                     {"last_message_id": {"$lte": left_message_id}},
@@ -307,7 +293,7 @@ class ChatTopicModel(Document):
     @staticmethod
     async def ensure_topic(group: "ChatModel", thread_id: int, topic_name: str | None):
         model: ChatTopicModel | None = await ChatTopicModel.find_one(
-            ChatTopicModel.group.id == group.iid, ChatTopicModel.thread_id == thread_id
+            ChatTopicModel.group.id == group.id, ChatTopicModel.thread_id == thread_id
         )
 
         if not model:

@@ -28,7 +28,7 @@ from tests.e2e.helpers import (
 async def _clean_notes(chat_tid: int) -> CleanNotesModel:
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    return await CleanNotesModel.get_by_chat_iid(chat.iid)
+    return await CleanNotesModel.get_by_chat_iid(chat.id)
 
 
 def _sends(requests: list[CapturedRequest]) -> list[CapturedRequest]:

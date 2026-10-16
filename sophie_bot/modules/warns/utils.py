@@ -134,15 +134,15 @@ async def warn_user(
     Warns a user in a chat.
     Returns: (current_warns, max_warns, punishment_action_if_any, warn_model)
     """
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
 
     # Create warn record
-    warn = WarnModel(chat=chat.iid, user=user.iid, admin=admin.iid, reason=reason)
+    warn = WarnModel(chat=chat.id, user=user.id, admin=admin.id, reason=reason)
     await warn.save()
     track_moderation_action("warn")
 
     # Check counts
-    current_warns = await WarnModel.count_user_warns(chat.iid, user.iid)
+    current_warns = await WarnModel.count_user_warns(chat.id, user.id)
     max_warns = settings.max_warns
 
     punishment = None
@@ -159,7 +159,7 @@ async def warn_user(
     )
 
     if current_warns >= max_warns:
-        await WarnModel.find(WarnModel.chat.id == chat.iid, WarnModel.user.id == user.iid).delete()
+        await WarnModel.find(WarnModel.chat.id == chat.id, WarnModel.user.id == user.id).delete()
 
         max_actions = settings.on_max_warn_actions
 

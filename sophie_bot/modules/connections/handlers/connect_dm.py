@@ -52,8 +52,8 @@ class ConnectDMCmd(SophieMessageHandler):
 
         # If chat arg is provided
         if chat_arg := self.data.get("chat"):
-            chat_iid = chat_arg.iid
-            if not await check_connection_permissions(chat_iid, user_db.iid):
+            chat_iid = chat_arg.id
+            if not await check_connection_permissions(chat_iid, user_db.id):
                 await self.event.reply(_("You are not allowed to connect to this chat."))
                 return
             await self.do_connect(self.event.from_user.id, chat_arg.tid)
@@ -79,7 +79,7 @@ class ConnectDMCmd(SophieMessageHandler):
         if conn and conn.history:
             # Resolve all references in one query so deleted chats can be removed durably.
             chats_by_iid = {
-                chat.iid: chat
+                chat.id: chat
                 for chat in await ChatModel.find(
                     {"_id": {"$in": [h_chat.to_ref().id for h_chat in conn.history]}}
                 ).to_list()
@@ -133,7 +133,7 @@ class ConnectCallback(SophieCallbackQueryHandler):
             return
 
         # Check permissions
-        if not await check_connection_permissions(chat.iid, user_db.iid):
+        if not await check_connection_permissions(chat.id, user_db.id):
             await self.event.answer(_("You are not allowed to connect to this chat."), show_alert=True)
             return
 

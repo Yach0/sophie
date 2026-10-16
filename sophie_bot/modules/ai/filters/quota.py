@@ -34,13 +34,13 @@ class AIQuotaFilter(Filter):
         if not chat_db:
             raise SkipHandler
 
-        result = await check_quota(chat_db.iid, redis=services.redis)
+        result = await check_quota(chat_db.id, redis=services.redis)
         if result.allowed:
-            quota_info = await get_quota_info(chat_db.iid, redis=services.redis)
+            quota_info = await get_quota_info(chat_db.id, redis=services.redis)
             return {"quota_info": quota_info}
 
         track_ai_quota_exceeded(feature=str(self.feature), chat_type=message.chat.type)
-        quota_info = await get_quota_info(chat_db.iid, redis=services.redis)
+        quota_info = await get_quota_info(chat_db.id, redis=services.redis)
         period_start = quota_info.period_start if quota_info else current_period_start()
         period_end = quota_info.period_end if quota_info else get_period_end(period_start)
 
@@ -49,7 +49,7 @@ class AIQuotaFilter(Filter):
                 str(build_chatbot_quota_exhausted_doc(quota_info.total_credits if quota_info else "?", period_end))
             )
         else:
-            quota_model = await AIQuotaModel.get_for_chat(chat_db.iid)
+            quota_model = await AIQuotaModel.get_for_chat(chat_db.id)
             already_notified = bool(
                 quota_model
                 and quota_model.exhausted_notified_period_start == period_start

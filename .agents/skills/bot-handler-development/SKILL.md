@@ -20,7 +20,7 @@ description: Use when creating or modifying aiogram handlers, bot modules, ASS p
 ## Chat Identifiers
 
 - Explicit naming: `chat_tid` (Telegram integer ID) vs `chat_iid` (database `PydanticObjectId`).
-- Resolve `ChatModel` via `ChatModel.get_by_tid(chat_tid)` before querying `Link[ChatModel]`: `Model.chat.id == chat.iid`.
+- Resolve `ChatModel` via `ChatModel.get_by_tid(chat_tid)` before querying `Link[ChatModel]`: `Model.chat.id == chat.id`.
 
 ## Feature Flags & Tests
 

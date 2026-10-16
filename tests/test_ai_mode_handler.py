@@ -31,7 +31,7 @@ async def test_mode_callback_answers_before_updating_mode_and_keyboard(
         from_user=User(id=42, is_bot=False, first_name="Admin"),
         message=message,
     )
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat-iid"))
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="chat-iid"))
 
     async def set_mode(*args: object, **kwargs: object) -> None:
         timeline.append("set_mode")

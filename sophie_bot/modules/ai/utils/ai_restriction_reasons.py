@@ -77,7 +77,7 @@ async def generate_restriction_reason(
     # Get group rules if needed
     rules_text = ""
     if include_rules:
-        rules = await RulesModel.get_rules(chat_db.iid)
+        rules = await RulesModel.get_rules(chat_db.id)
         if rules:
             # Extract rules text from Saveable model
             rules_content = extract_rules_text(rules)
@@ -105,12 +105,12 @@ async def generate_restriction_reason(
     result = await run_structured_task(
         AIStructuredTask(output_type=AIReasonResponse, name="moderation:reason"),
         await get_moderation_reason_model_plan(
-            chat_db.iid,
+            chat_db.id,
             chat_tid=chat_db.tid,
             redis=services.redis,
         ),
         history,
-        chat_iid=chat_db.iid,
+        chat_iid=chat_db.id,
         chat_tid=chat_db.tid,
         redis=services.redis,
     )

@@ -37,7 +37,7 @@ async def get_user_groups(
 
         response.append(
             GroupResponse(
-                chat_iid=chat.iid,
+                chat_iid=chat.id,
                 chat_tid=chat.tid,
                 title=chat.first_name_or_title,
                 username=chat.username,

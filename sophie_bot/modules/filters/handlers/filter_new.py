@@ -35,7 +35,7 @@ class FilterNewHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         keyword: str = self.data["handler"]
         try:
-            await validate_filter_handler(self.connection.db_model.iid, keyword)
+            await validate_filter_handler(self.connection.db_model.id, keyword)
         except InvalidFilterHandler as error:
             await self.answer_rich(error.document or Template(error.message))
             return

@@ -22,7 +22,7 @@ from tests.e2e.helpers import grant_admin
 async def _greetings(chat_tid: int) -> GreetingsModel:
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    return await GreetingsModel.get_by_chat_iid(chat.iid)
+    return await GreetingsModel.get_by_chat_iid(chat.id)
 
 
 # ---------------------------------------------------------------------------

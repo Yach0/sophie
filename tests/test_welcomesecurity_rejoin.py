@@ -45,10 +45,6 @@ async def _create_user_and_group(user_tid: int, group_tid: int) -> tuple[ChatMod
     )
     await user.insert()
     await group.insert()
-    user.iid = user.id
-    group.iid = group.id
-    await user.save()
-    await group.save()
     return user, group
 
 
@@ -95,7 +91,7 @@ async def test_leave_then_rejoin_gets_a_fresh_welcome_security_deadline(db_init:
 
     assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)
     await _leave_user(user, group, message_id=4)
-    assert await WSUserModel.is_user(user.iid, group.iid) is None
+    assert await WSUserModel.is_user(user.id, group.id) is None
 
 
 @pytest.mark.asyncio
@@ -125,7 +121,7 @@ async def test_passed_user_survives_leave_and_rejoin_without_rewriting_join_requ
     await _join_user(user, group, message_id=3)
     rejoined = await WSUserModel.ensure_user(user, group, is_join_request=False)
 
-    stored_user = await WSUserModel.is_user(user.iid, group.iid)
+    stored_user = await WSUserModel.is_user(user.id, group.id)
     assert stored_user is not None
     assert stored_user.passed is True
     assert rejoined.passed is True
@@ -217,12 +213,12 @@ async def test_old_leave_cannot_delete_a_newer_same_second_rejoin(
         allow_old_leave_to_finish.set()
         await old_leave
 
-    stored_user = await WSUserModel.is_user(user.iid, group.iid)
+    stored_user = await WSUserModel.is_user(user.id, group.id)
     assert stored_user is not None
     assert stored_user.id == rejoined.id
     assert stored_user.membership_join_message_id == 3
     assert stored_user.added_at == rejoined.added_at
-    membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+    membership = await UserInGroupModel.get_user_in_group(user.id, group.id)
     assert membership is not None
     assert membership.joined_message_id == 3
 
@@ -244,10 +240,10 @@ async def test_newer_member_message_survives_older_edit_and_delayed_leave(db_ini
 
     await _leave_user(user, group, message_id=2)
 
-    membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+    membership = await UserInGroupModel.get_user_in_group(user.id, group.id)
     assert membership is not None
     assert membership.last_message_id == 4
-    stored_user = await WSUserModel.is_user(user.iid, group.iid)
+    stored_user = await WSUserModel.is_user(user.id, group.id)
     assert stored_user is not None
     assert stored_user.id == pending.id
 
@@ -328,7 +324,7 @@ async def test_pending_rejoin_initialization_waits_for_inflight_expiry(
             return_exceptions=True,
         )
 
-    rejoined = await WSUserModel.is_user(user.iid, group.iid)
+    rejoined = await WSUserModel.is_user(user.id, group.id)
     assert rejoined is not None
     assert rejoined.membership_join_message_id == 3
     assert rejoined.added_at.replace(tzinfo=UTC) > datetime.now(UTC) - timedelta(minutes=1)

@@ -18,12 +18,12 @@ class CleanWelcomeHandlerABC(StatusBoolHandlerABC):
         return CMDFilter("clean_welcome"), UserRestricting(admin=True)
 
     async def get_status(self) -> bool:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
         return bool((db_model.clean_welcome and db_model.clean_welcome.enabled) if db_model else False)
 
     async def set_status(self, new_status: bool):
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
 
         db_model = await GreetingsModel.get_by_chat_iid(chat_iid)
         await db_model.set_clean_welcome_status(new_status)

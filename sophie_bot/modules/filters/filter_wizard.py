@@ -27,9 +27,9 @@ from sophie_bot.modules.utils_.action_config_wizard import (
 )
 from sophie_bot.modules.utils_.action_config_wizard.config import ActionWizardConfig
 from sophie_bot.modules.utils_.action_config_wizard.views import render_home_view
-from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter, WizardSession, WizardView
+from sophie_bot.modules.utils_.wizard import WizardCallback, WizardFSM, WizardScopeFilter, WizardView
 from sophie_bot.utils.feature_flags import is_enabled
-from sophie_bot.utils.handlers import SophieBaseHandler, SophieCallbackQueryHandler
+from sophie_bot.utils.handlers import SophieBaseHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -135,22 +135,11 @@ class FilterWizard(ActionWizard[FilterDraft]):
             footer=footer,
         )
 
-    async def toggle(self, handler: SophieCallbackQueryHandler, callback: WizardCallback) -> None:
-        session = WizardSession(handler.state, self.config.scope, callback.session_id or None)
-        if not callback.session_id or not await session.is_active(handler.connection.db_model.iid):
-            await handler.event.answer(_("This session has expired. Please run the command again."), show_alert=True)
-            return
-        if callback.arg != "silent":
-            await handler.event.answer(_("Invalid callback data."), show_alert=True)
-            return
-        if await session.get_input_context() is not None:
-            await session.clear_input()
-        draft = self.config.draft_model.model_validate(await session.get_draft() or {})
+    def apply_operation(self, draft: FilterDraft, operation: str, argument: str) -> bool:
+        if operation != "toggle" or argument != "silent":
+            return False
         draft.silent = not draft.silent
-        await session.set_draft(draft.model_dump(mode="json"))
-        view = await self.render_home(handler, draft, session.require_session_id())
-        await handler.answer_rich(view.doc, reply_markup=view.markup)
-        await handler.event.answer()
+        return True
 
 
 FILTER_WIZARD = FilterWizard(FILTER_WIZARD_CONFIG)
@@ -175,7 +164,9 @@ class FilterWizardCallbackHandler(ActionWizardCallbackHandler):
         )
 
 
-class FilterWizardToggleHandler(SophieCallbackQueryHandler):
+class FilterWizardToggleHandler(ActionWizardCallbackHandler):
+    wizard = FILTER_WIZARD
+
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
@@ -183,9 +174,6 @@ class FilterWizardToggleHandler(SophieCallbackQueryHandler):
             *_wizard_filters(notify_callback=True),
             FeatureFlagFilter("filters_silent_mode", notify_callback=True),
         )
-
-    async def handle(self) -> None:
-        await FILTER_WIZARD.toggle(self, self.data["callback_data"])
 
 
 class FilterWizardInputHandler(ActionWizardInputHandler):

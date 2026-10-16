@@ -37,7 +37,7 @@ async def set_category_level(
     category: ModerationCategory,
     level: DetectionLevel,
 ) -> AIModeratorModel:
-    settings = await get_moderator_settings(chat.iid) or AIModeratorModel(chat=chat)
+    settings = await get_moderator_settings(chat.id) or AIModeratorModel(chat=chat)
     setattr(settings, category.value, level)
     await settings.save()
     return settings

@@ -99,7 +99,7 @@ async def test_chatless_updates_follow_the_actors_beta_assignment(
     user = User(id=7_650_321_001, is_bot=False, first_name="Beta user")
     actor = await ChatModel.upsert_user(user)
     try:
-        await BetaModeModel.set_mode(actor.iid, CurrentMode.beta)
+        await BetaModeModel.set_mode(actor.id, CurrentMode.beta)
         if event_type == "inline_query":
             update = Update(
                 update_id=1,
@@ -129,5 +129,5 @@ async def test_chatless_updates_follow_the_actors_beta_assignment(
         forward.assert_awaited_once()
         stable.assert_not_awaited()
     finally:
-        await BetaModeModel.find(BetaModeModel.chat.id == actor.iid).delete()
+        await BetaModeModel.find(BetaModeModel.chat.id == actor.id).delete()
         await actor.delete()

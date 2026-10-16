@@ -100,7 +100,7 @@ async def test_legacy_note_button_renders_migrated_button_rows(
             from_user=user_wrapper.user,
         )
 
-    get_note.assert_awaited_once_with(group_db.iid, ("menu",))
+    get_note.assert_awaited_once_with(group_db.id, ("menu",))
 
     assert requests, "Legacy note deep link should send the note"
     response = requests[-1]
@@ -220,7 +220,7 @@ async def test_legacy_note_button_rejects_users_outside_chat(
 
     outsider_db = await ChatModel.get_by_tid(outsider_wrapper.user.id)
     assert outsider_db is not None
-    assert await UserInGroupModel.get_user_in_group(outsider_db.iid, group_db.iid) is None
+    assert await UserInGroupModel.get_user_in_group(outsider_db.id, group_db.id) is None
 
     assert requests, "Legacy note deep link should explain why access is denied"
     assert "member of this chat" in (requests[-1].text or "")
@@ -247,7 +247,7 @@ async def test_legacy_rules_button_resolves_chat_link(
             from_user=user_wrapper.user,
         )
 
-    get_rules.assert_awaited_once_with(group_db.iid)
+    get_rules.assert_awaited_once_with(group_db.id)
 
     assert requests, "Legacy rules deep link should send rules"
     response_text = requests[-1].text or ""
@@ -282,12 +282,12 @@ async def test_legacy_connect_button_deep_link_connects_user(test_client: TestCl
     matching_connections = [
         raw_connection
         for raw_connection in raw_connections
-        if _link_matches_iid(raw_connection.get("user"), user_db.iid)
+        if _link_matches_iid(raw_connection.get("user"), user_db.id)
     ]
     assert len(matching_connections) == 1
-    assert _link_matches_iid(matching_connections[0].get("chat"), group_db.iid)
+    assert _link_matches_iid(matching_connections[0].get("chat"), group_db.id)
 
-    assert await check_connection_permissions(group_db.iid, user_db.iid)
+    assert await check_connection_permissions(group_db.id, user_db.id)
 
 
 @pytest.mark.asyncio
@@ -382,7 +382,7 @@ async def test_legacy_welcomesecurity_deep_link_still_starts_captcha(
         from_user=user_wrapper.user,
     )
 
-    assert user_db.iid
+    assert user_db.id
     assert requests, "Legacy welcome-security deep link should start captcha"
     assert requests[-1].request_type.value == "sendPhoto"
     assert requests[-1].chat_id == user_wrapper.user.id

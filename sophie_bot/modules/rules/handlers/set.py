@@ -47,7 +47,7 @@ class SetRulesHandler(SophieMessageHandler):
                 _("Please provide the rules text, or reply to the message you want to set as the rules.")
             )
 
-        await RulesModel.set_rules(connection.db_model.iid, saveable)
+        await RulesModel.set_rules(connection.db_model.id, saveable)
 
         await self.event.reply(
             str(

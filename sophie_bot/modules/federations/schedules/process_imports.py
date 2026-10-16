@@ -245,7 +245,7 @@ async def _execute_import_task(services: ApplicationServices, task: FederationTa
                     fed_id=federation.fed_id,
                     user_id=user_id,
                     time=ban_time,
-                    by=by_user.iid,
+                    by=by_user.id,
                     reason=reason,
                 )
 

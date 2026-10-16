@@ -38,7 +38,7 @@ class SubscribeFederationHandler(FederationCommandHandler):
         target_fed_id = target_fed.fed_id
 
         # Get federation for current chat
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))
@@ -108,7 +108,7 @@ class UnsubscribeFederationHandler(FederationCommandHandler):
         fed_id = target_fed.fed_id
 
         # Get federation for current chat
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in a federation."))

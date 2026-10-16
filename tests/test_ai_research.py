@@ -9,7 +9,6 @@ import pytest
 from pydantic_ai.messages import ModelResponse, ToolReturnPart
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
-from stfu_tg import Title
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
@@ -27,14 +26,12 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSearchQuery,
     ResearchSource,
 )
-from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_tool_context import ResearchProgressCallback, ResearchProgressStage
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     _get_search_tool,
     build_chatbot_usage_limits,
 )
-from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings
 from sophie_bot.modules.ai.utils.research import (
     ResearchWorkflowResult,
@@ -55,7 +52,7 @@ async def test_run_research_workflow_runs_followup_searches(
     test_redis: object,
     test_services: ApplicationServices,
 ) -> None:
-    connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
+    connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(id="chat-iid"))
     settings = ResearchWorkflowSettings(max_rounds=3, queries_per_round=2, results_per_query=2, service_tier="flex")
     first_query = ResearchSearchQuery(query="initial query", reason="Start broad")
     followup_query = ResearchSearchQuery(query="followup query", reason="Fill gap")
@@ -134,7 +131,7 @@ async def test_the_reported_research_model_is_the_one_that_summarised(
     test_services: ApplicationServices,
 ) -> None:
     """Failover may move the summary off the plan's first candidate; the report must follow it."""
-    connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(iid="chat-iid"))
+    connection = SimpleNamespace(tid=-100123, db_model=SimpleNamespace(id="chat-iid"))
     settings = ResearchWorkflowSettings(max_rounds=1, queries_per_round=1, results_per_query=1, service_tier="flex")
     source = ResearchSource(title="Only", url="https://example.com/only", snippet="Only snippet")
     final_response = ResearchFinalResponse(research_title="Answer", text="Answer", sources=[source])
@@ -257,21 +254,6 @@ async def test_research_tool_returns_report_and_updates_chatbot_progress(
 
     assert response is expected_response
     assert progress_stages == ["planning", "summarizing"]
-
-
-@pytest.mark.asyncio
-async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: object, test_services: object) -> None:
-    doc = await _build_fitting_reply_doc(
-        Title("AI Chatbot"),
-        "Long answer " * 600,
-        model=None,
-        result=SimpleNamespace(),
-        explicit_debug_mode=False,
-        chat_tid=-100123,
-        services=test_services,
-    )
-
-    assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
 
 
 def test_render_research_markdown_has_metadata_and_sources_without_blockquote() -> None:

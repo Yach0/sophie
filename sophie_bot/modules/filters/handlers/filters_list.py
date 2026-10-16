@@ -62,7 +62,7 @@ class FiltersListHandler(SophieMessageHandler):
         )
 
     async def handle(self) -> Any:
-        filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
+        filters = await FiltersModel.get_filters(self.connection.db_model.id) or []
         await _render_filter_page(
             self.event,
             self.connection.tid,
@@ -84,7 +84,7 @@ class FiltersPageHandler(SophieCallbackQueryHandler):
 
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
-        filters = await FiltersModel.get_filters(self.connection.db_model.iid) or []
+        filters = await FiltersModel.get_filters(self.connection.db_model.id) or []
         await _render_filter_page(
             callback,
             self.connection.tid,
@@ -109,7 +109,7 @@ class FilterEditFromListHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         data: FilterManagementCallback = self.data["callback_data"]
-        filter_model = await _get_owned_filter(self.connection.db_model.iid, data.oid)
+        filter_model = await _get_owned_filter(self.connection.db_model.id, data.oid)
         if filter_model is None:
             await callback.answer(_("Filter not found."), show_alert=True)
             return
@@ -130,7 +130,7 @@ class FilterDeletePromptHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         data: FilterManagementCallback = self.data["callback_data"]
-        filter_model = await _get_owned_filter(self.connection.db_model.iid, data.oid)
+        filter_model = await _get_owned_filter(self.connection.db_model.id, data.oid)
         if filter_model is None:
             await callback.answer(_("Filter not found."), show_alert=True)
             return
@@ -150,7 +150,7 @@ class FilterDeleteConfirmHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         callback: CallbackQuery = self.event
         data: FilterDeleteConfirmCallback = self.data["callback_data"]
-        filter_model = await _get_owned_filter(self.connection.db_model.iid, data.oid)
+        filter_model = await _get_owned_filter(self.connection.db_model.id, data.oid)
         if filter_model is None:
             await callback.answer(_("Filter not found."), show_alert=True)
             return

@@ -43,7 +43,7 @@ async def test_naive_fresh_admin_timestamp_does_not_refresh(
     )
     refresh = AsyncMock()
     monkeypatch.setattr(admin, "refresh_admin_snapshot", refresh)
-    chat = SimpleNamespace(iid=PydanticObjectId(), tid=-1001234567890)
+    chat = SimpleNamespace(id=PydanticObjectId(), tid=-1001234567890)
 
     await ensure_admin_snapshot(chat, bot=object(), redis=test_redis)
 
@@ -64,14 +64,14 @@ async def test_empty_admin_snapshot_is_refreshed_once_per_ttl(
     )
     refresh = AsyncMock()
     monkeypatch.setattr(admin, "refresh_admin_snapshot", refresh)
-    chat = SimpleNamespace(iid=PydanticObjectId(), tid=-1001234567890)
+    chat = SimpleNamespace(id=PydanticObjectId(), tid=-1001234567890)
     bot = object()
 
     for _call_index in range(3):
         await ensure_admin_snapshot(chat, bot=bot, redis=test_redis)
 
     refresh.assert_awaited_once_with(chat, bot=bot)
-    ttl = await test_redis.ttl(f"{REFRESH_MARKER_PREFIX}{chat.iid}")
+    ttl = await test_redis.ttl(f"{REFRESH_MARKER_PREFIX}{chat.id}")
     assert 0 < ttl <= CACHE_ADMIN_TTL_SECONDS
 
 
@@ -95,7 +95,7 @@ async def test_stale_admin_snapshot_refreshes(
     )
     refresh = AsyncMock()
     monkeypatch.setattr(admin, "refresh_admin_snapshot", refresh)
-    chat = SimpleNamespace(iid=PydanticObjectId(), tid=-1001234567890)
+    chat = SimpleNamespace(id=PydanticObjectId(), tid=-1001234567890)
     bot = object()
 
     await ensure_admin_snapshot(chat, bot=bot, redis=test_redis)

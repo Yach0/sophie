@@ -30,13 +30,13 @@ async def update_chat_members(chat: ChatModel, *, bot: Bot) -> None:
             log.debug("user_details: user not found in database", user_id=member.user.id)
             continue
 
-        current_user_iids.add(user.iid)
-        await save_chat_member(chat.iid, user.iid, member)
+        current_user_iids.add(user.id)
+        await save_chat_member(chat.id, user.id, member)
 
     if current_user_iids:
         await ChatAdminModel.find(
-            ChatAdminModel.chat.id == chat.iid,
+            ChatAdminModel.chat.id == chat.id,
             NotIn(ChatAdminModel.user.id, current_user_iids),
         ).delete()
     else:
-        await ChatAdminModel.find(ChatAdminModel.chat.id == chat.iid).delete()
+        await ChatAdminModel.find(ChatAdminModel.chat.id == chat.id).delete()

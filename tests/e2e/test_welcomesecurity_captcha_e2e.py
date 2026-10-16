@@ -54,7 +54,7 @@ async def _enable_ws(group_tid: int, *, note: str | None = None) -> ChatModel:
     chat = await ChatModel.get_by_tid(group_tid)
     assert chat is not None
     greetings = GreetingsModel(
-        chat=chat.iid,
+        chat=chat.id,
         welcome_security=WelcomeSecurity(enabled=True),
         note=Saveable(text=note) if note else None,
     )
@@ -92,7 +92,7 @@ async def test_join_with_ws_mutes_and_prompts(test_client: TestClient) -> None:
     chat = await ChatModel.get_by_tid(group.id)
     user = await ChatModel.get_by_tid(newbie.id)
     assert chat is not None and user is not None
-    assert await WSUserModel.is_user(user.iid, chat.iid) is not None, "The pending user is tracked for autokick"
+    assert await WSUserModel.is_user(user.id, chat.id) is not None, "The pending user is tracked for autokick"
 
 
 # ---------------------------------------------------------------------------
@@ -127,12 +127,12 @@ async def test_correct_captcha_unmutes_and_clears_pending(test_client: TestClien
     _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
     await _solve_fsm_captcha(test_client, user.tid)
 
-    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.id)).pack()
     from_user = User(id=user.tid, is_bot=False, first_name="Solver")
     requests = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
 
     assert _restricts(requests, user.tid), "Passing the captcha should unmute the user"
-    assert await WSUserModel.is_user(user.iid, chat.iid) is None, "The pending row should be cleared on pass"
+    assert await WSUserModel.is_user(user.id, chat.id) is None, "The pending row should be cleared on pass"
 
 
 @pytest.mark.asyncio
@@ -141,7 +141,7 @@ async def test_whitelisted_captcha_pass_unmutes_instead_of_applying_welcome_mute
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Whitelist Pass Group")
     await grant_bot_admin(group.id)
     chat = await _enable_ws(group.id)
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     greetings.welcome_mute = WelcomeMute(enabled=True, time=timedelta(hours=1))
     await greetings.save()
 
@@ -149,14 +149,14 @@ async def test_whitelisted_captcha_pass_unmutes_instead_of_applying_welcome_mute
     await GroupUserWhitelistModel.add_user(group.id, user.tid)
     await _solve_fsm_captcha(test_client, user.tid)
 
-    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.id)).pack()
     from_user = User(id=user.tid, is_bot=False, first_name="Whitelisted Solver")
     requests = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
 
     restrictions = _restricts(requests, user.tid)
     assert restrictions
     assert restrictions[-1].params["permissions"]["can_send_messages"] is True
-    assert await WSUserModel.is_user(user.iid, chat.iid) is None
+    assert await WSUserModel.is_user(user.id, chat.id) is None
 
 
 @pytest.mark.asyncio
@@ -168,12 +168,12 @@ async def test_wrong_captcha_keeps_user_muted(test_client: TestClient) -> None:
     _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
     # Do NOT align the rows: the captcha stays unsolved.
 
-    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.id)).pack()
     from_user = User(id=user.tid, is_bot=False, first_name="Solver")
     requests = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
 
     assert not _restricts(requests, user.tid), "A wrong answer must not unmute the user"
-    assert await WSUserModel.is_user(user.iid, chat.iid) is not None, "The user stays pending after a wrong answer"
+    assert await WSUserModel.is_user(user.id, chat.id) is not None, "The user stays pending after a wrong answer"
 
 
 @pytest.mark.asyncio
@@ -181,23 +181,23 @@ async def test_captcha_with_rules_requires_agreement(test_client: TestClient) ->
     _adder, group, _model = await create_test_user_and_group(test_client, group_title="WS Rules Group")
     await grant_bot_admin(group.id)
     chat = await _enable_ws(group.id)
-    await RulesModel.set_rules(chat.iid, Saveable(text="Be excellent to each other"))
+    await RulesModel.set_rules(chat.id, Saveable(text="Be excellent to each other"))
 
     _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
     await _solve_fsm_captcha(test_client, user.tid)
     from_user = User(id=user.tid, is_bot=False, first_name="Solver")
 
     # Solving the emoji is not enough: rules must be shown, and the user still pending.
-    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid)).pack()
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.id)).pack()
     after_confirm = await test_client.send_callback(confirm, from_user=from_user, message=captcha_message)
     assert not _restricts(after_confirm, user.tid), "The rules gate must hold the unmute"
-    assert await WSUserModel.is_user(user.iid, chat.iid) is not None
+    assert await WSUserModel.is_user(user.id, chat.id) is not None
 
     # Agreeing to the rules completes the pass.
-    agree = WelcomeSecurityRulesAgreeCB(chat_iid=str(chat.iid)).pack()
+    agree = WelcomeSecurityRulesAgreeCB(chat_iid=str(chat.id)).pack()
     after_agree = await test_client.send_callback(agree, from_user=from_user, message=captcha_message)
     assert _restricts(after_agree, user.tid), "Agreeing to the rules should unmute the user"
-    assert await WSUserModel.is_user(user.iid, chat.iid) is None
+    assert await WSUserModel.is_user(user.id, chat.id) is None
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +261,7 @@ async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> No
         for request in requests
         if request.request_type == RequestType.BAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
     ], "The timed-out user must be kicked, never permanently banned"
-    assert await WSUserModel.is_user(stale_model.iid, chat.iid) is None, "The pending row is removed after autokick"
+    assert await WSUserModel.is_user(stale_model.id, chat.id) is None, "The pending row is removed after autokick"
 
 
 @pytest.mark.asyncio
@@ -288,7 +288,7 @@ async def test_autokick_leaves_recent_user_alone(test_client: TestClient) -> Non
         if request.request_type in (RequestType.BAN_CHAT_MEMBER, RequestType.UNBAN_CHAT_MEMBER)
         and request.params.get("user_id") == recent.id
     ], "A user still inside the window must not be kicked"
-    assert await WSUserModel.is_user(recent_model.iid, chat.iid) is not None
+    assert await WSUserModel.is_user(recent_model.id, chat.id) is not None
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,7 @@ async def test_welcomecaptcha_command_persists(test_client: TestClient) -> None:
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     assert greetings.welcome_security is not None and greetings.welcome_security.enabled is True
 
 
@@ -318,7 +318,7 @@ async def test_welcomecaptcha_command_configures_expiry(test_client: TestClient)
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     assert greetings.welcome_security is not None
     assert greetings.welcome_security.enabled is True
     assert greetings.welcome_security.expire == timedelta(hours=6)
@@ -334,11 +334,11 @@ async def test_welcomesecurity_expiry_button_persists_without_enabling_captcha(t
 
     bot_user = UserFactory.create(user_id=CONFIG.bot_id, first_name="Sophie", is_bot=True)
     settings_message = MessageFactory.create(text="Welcome Security", from_user=bot_user, chat=group)
-    callback = WelcomeSecurityExpireCB(seconds=int(timedelta(hours=12).total_seconds()), chat_iid=str(chat.iid)).pack()
+    callback = WelcomeSecurityExpireCB(seconds=int(timedelta(hours=12).total_seconds()), chat_iid=str(chat.id)).pack()
 
     await test_client.send_callback(callback, from_user=admin, message=settings_message)
 
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     assert greetings.welcome_security is not None
     assert greetings.welcome_security.enabled is False
     assert greetings.welcome_security.expire == timedelta(hours=12)
@@ -364,9 +364,9 @@ async def test_welcomesecurity_expiry_bound_connection(test_client: TestClient, 
     if not isinstance(markup, dict):
         markup = markup.model_dump()
     callback = markup["inline_keyboard"][0][0]["callback_data"]
-    assert WelcomeSecurityExpireCB.unpack(callback).chat_iid == str(chat.iid)
+    assert WelcomeSecurityExpireCB.unpack(callback).chat_iid == str(chat.id)
     assert len(callback.encode()) <= 64
-    before = await GreetingsModel.get_by_chat_iid(chat.iid)
+    before = await GreetingsModel.get_by_chat_iid(chat.id)
     original_security = before.welcome_security
     other_chat = None
     actor = admin
@@ -393,7 +393,7 @@ async def test_welcomesecurity_expiry_bound_connection(test_client: TestClient, 
         chat=group if action == "unauthorized" else Chat(id=actor.id, type="private"),
     )
     requests = await test_client.send_callback(callback, from_user=actor, message=settings_message)
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     if action == "unchanged":
         assert greetings.welcome_security is not None
         assert greetings.welcome_security.expire == timedelta(hours=12)
@@ -405,9 +405,9 @@ async def test_welcomesecurity_expiry_bound_connection(test_client: TestClient, 
         if action in {"switch", "disconnect"}:
             assert any("no longer active" in request.params.get("text", "") for request in requests)
         if other_chat:
-            assert await GreetingsModel.find_one(GreetingsModel.chat.id == other_chat.iid) is None
+            assert await GreetingsModel.find_one(GreetingsModel.chat.id == other_chat.id) is None
         if action == "disconnect":
-            assert await GreetingsModel.find_one(GreetingsModel.chat.id == user_model.iid) is None
+            assert await GreetingsModel.find_one(GreetingsModel.chat.id == user_model.id) is None
 
 
 @pytest.mark.asyncio
@@ -430,5 +430,5 @@ async def test_welcomerestrict_command_persists(test_client: TestClient) -> None
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.id)
     assert greetings.welcome_mute is not None and greetings.welcome_mute.enabled is True

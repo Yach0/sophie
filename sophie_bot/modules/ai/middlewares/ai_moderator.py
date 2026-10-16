@@ -91,7 +91,7 @@ class AiModeratorMiddleware(BaseMiddleware):
                 return await handler(event, data)
             if not await is_enabled("ai_moderation", chat_tid=chat_db.tid, redis=data["services"].redis):
                 return await handler(event, data)
-            settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.iid)
+            settings = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat_db.id)
 
             if not (event.text or event.caption or event.photo or event.audio):
                 return await handler(event, data)

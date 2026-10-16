@@ -164,12 +164,12 @@ class ConnectionsMiddleware(BaseMiddleware):
             context.connection = await self.get_current_chat_info(real_chat, context.event_chat)
             return await handler(event, data)
 
-        if not await self._is_permission_cached(user_iid, connection_chat.iid, redis=services.redis):
-            if not await self._check_connection_permissions(connection_chat.iid, user_iid):
+        if not await self._is_permission_cached(user_iid, connection_chat.id, redis=services.redis):
+            if not await self._check_connection_permissions(connection_chat.id, user_iid):
                 log.info(
                     "ConnectionsMiddleware: permission denied on re-check, disconnecting",
                     user_iid=str(user_iid),
-                    chat_iid=str(connection_chat.iid),
+                    chat_iid=str(connection_chat.id),
                 )
                 connection.chat = None
                 connection.expires_at = None
@@ -188,7 +188,7 @@ class ConnectionsMiddleware(BaseMiddleware):
                 )
                 return await handler(event, data)
 
-            await self._cache_permission(user_iid, connection_chat.iid, redis=services.redis)
+            await self._cache_permission(user_iid, connection_chat.id, redis=services.redis)
 
         log.debug("ConnectionsMiddleware: connected!")
         context.connection = ChatConnection(

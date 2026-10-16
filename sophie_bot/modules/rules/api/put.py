@@ -18,7 +18,7 @@ async def set_rules(
     _user: ChangeInfoAdminDep,
 ):
     if not payload.text and not payload.rich_message and not payload.file and not payload.files and not payload.buttons:
-        await RulesModel.del_rules(chat.iid)
+        await RulesModel.del_rules(chat.id)
         return RulesResponse()
 
     saveable = Saveable(
@@ -31,5 +31,5 @@ async def set_rules(
         rich_message=payload.rich_message,
         version=CURRENT_SAVEABLE_VERSION,
     )
-    rules = await RulesModel.set_rules(chat.iid, saveable)
+    rules = await RulesModel.set_rules(chat.id, saveable)
     return RulesResponse.model_validate(rules)

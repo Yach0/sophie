@@ -108,13 +108,15 @@ class ChatbotMessageStreamer:
 
     async def stream_reasoning(self, reasoning_text: str) -> None:
         """Show the first nonempty reasoning pass as a private progress activity."""
-        if self.response_message is None or self.reasoning_seen or not reasoning_text.strip():
+        if self.response_message is None or not reasoning_text.strip():
+            return
+        if self.reasoning_seen:
+            if self.status is not None:
+                self.status = None
+                await self._refresh_progress()
             return
         self.reasoning_seen = True
-        self.activity_started = True
-        self.activity_history.append(_("Reasoning..."))
-        self.status = None
-        await self._refresh_progress()
+        await self.update_processing_activity(_("Reasoning..."))
 
     async def update_thinking_for_tool(self, tool_name: str) -> None:
         tool = AI_TOOLS_BY_NAME.get(tool_name)
@@ -123,19 +125,16 @@ class ChatbotMessageStreamer:
         )
         await self.update_processing_activity(activity)
 
-    async def update_processing_activity(self, activity: str) -> None:
+    async def update_processing_activity(self, activity: Element | str) -> None:
         self.activity_started = True
         self.activity_history.append(activity)
         self.status = None
         await self._refresh_progress()
 
     async def update_retrying(self, attempt: int, total_attempts: int) -> None:
-        self.activity_history.append(
+        await self.update_processing_activity(
             Template(_("Retrying ({attempt}/{total_attempts})..."), attempt=attempt, total_attempts=total_attempts)
         )
-        self.activity_started = True
-        self.status = None
-        await self._refresh_progress()
 
     async def update_research_progress(self, stage: ResearchProgressStage) -> None:
         await self._update_status(Italic(random_research_progress_text(stage)))
@@ -228,6 +227,7 @@ class ChatbotMessageStreamer:
     def _build_progress_doc(self, body: Element | str) -> Doc:
         return build_ai_progress_doc(
             body,
+            status=self.status,
             activity_history=self.activity_history,
         )
 

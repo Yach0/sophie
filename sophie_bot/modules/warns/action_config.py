@@ -34,7 +34,7 @@ async def _on_warn_action_back(handler: SophieCallbackQueryHandler, callback_que
         await callback_query.answer(_("Message not found."))
         return
     document, markup = await WarnActionRenderer.render_warnaction_view(
-        handler.connection.db_model.iid,
+        handler.connection.db_model.id,
         handler.services.modules.actions,
         handler.services.modules.action_handlers,
     )

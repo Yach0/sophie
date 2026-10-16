@@ -323,7 +323,7 @@ async def test_whitelist_unmutes_and_clears_pending_captcha_user(test_client: Te
         and request.params["permissions"]["can_send_messages"] is True
     ]
     assert unmutes
-    assert await WSUserModel.is_user(user_db.iid, group_db.iid) is None
+    assert await WSUserModel.is_user(user_db.id, group_db.id) is None
 
 
 async def test_whitelist_requires_group_admin_permission(test_client: TestClient) -> None:
@@ -420,7 +420,7 @@ async def test_whitelisted_join_request_bypasses_enabled_welcome_security_captch
     _admin, group, _model = await create_test_user_and_group(test_client, group_title="Captcha Approval Group")
     group_db = await ChatModel.get_by_tid(group.id)
     assert group_db is not None
-    await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
+    await GreetingsModel(chat=group_db.id, welcome_security=WelcomeSecurity(enabled=True)).save()
     requester = test_client.create_user(user_id=next_user_id(), first_name="Allowed Requester").user
     await GroupUserWhitelistModel.add_user(group.id, requester.id)
 

@@ -226,9 +226,9 @@ async def run_research_structured_step[ResearchStepT: BaseModel](
         ),
         model_plan,
         history,
-        chat_iid=connection.db_model.iid,
+        chat_iid=connection.db_model.id,
         chat_tid=connection.tid,
-        session_id=f"research:{connection.db_model.iid}:{session_suffix}",
+        session_id=f"research:{connection.db_model.id}:{session_suffix}",
         service_tier=settings.service_tier,
         redis=services.redis,
     )
@@ -368,7 +368,7 @@ async def run_research_workflow(
     chat_tid = connection.tid
     settings = await get_research_workflow_settings(chat_tid, redis=services.redis)
     model_plan = await get_chat_research_model_plan(
-        connection.db_model.iid,
+        connection.db_model.id,
         chat_tid,
         redis=services.redis,
     )

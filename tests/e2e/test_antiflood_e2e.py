@@ -32,7 +32,7 @@ async def _group_with_flood(test_client: TestClient, *, message_count: int) -> t
     await grant_bot_admin(group.id)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await AntifloodModel(chat=chat.iid, enabled=True, message_count=message_count).save()
+    await AntifloodModel(chat=chat.id, enabled=True, message_count=message_count).save()
 
     member = test_client.create_user(user_id=next_user_id(), first_name="Flooder", username="flooder")
     await test_client.send_message(text="init", from_user=member.user, chat=group)
@@ -74,7 +74,7 @@ async def test_admin_is_exempt_from_antiflood(test_client: TestClient) -> None:
     await grant_bot_admin(group.id)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await AntifloodModel(chat=chat.iid, enabled=True, message_count=2).save()
+    await AntifloodModel(chat=chat.id, enabled=True, message_count=2).save()
 
     restricts: list = []
     for index in range(4):
@@ -111,7 +111,7 @@ async def test_antiflood_count_command_persists(test_client: TestClient) -> None
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings = await AntifloodModel.get_by_chat_iid(chat.id)
     assert settings.message_count == 7
 
 
@@ -124,7 +124,7 @@ async def test_enableantiflood_command_persists(test_client: TestClient) -> None
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings = await AntifloodModel.get_by_chat_iid(chat.id)
     assert settings.enabled is True
 
 
@@ -167,7 +167,7 @@ async def test_antiflood_action_configures_action_and_ignores_plain_messages(
         message=wizard_message,
     )
 
-    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings = await AntifloodModel.get_by_chat_iid(chat.id)
     assert settings is not None
     assert [action.name for action in settings.actions] == ["kick_user"]
 
@@ -181,7 +181,7 @@ async def test_antiflood_action_can_be_cleared_to_default(test_client: TestClien
     await grant_admin(group.id, admin.id)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings = await AntifloodModel.get_by_chat_iid(chat.id)
     settings.actions = [StoredAction(name="kick_user")]
     await settings.save()
 
@@ -208,7 +208,7 @@ async def test_antiflood_action_can_be_cleared_to_default(test_client: TestClien
         message=wizard_message,
     )
 
-    saved = await AntifloodModel.get_by_chat_iid(chat.iid)
+    saved = await AntifloodModel.get_by_chat_iid(chat.id)
     assert saved.actions == []
 
 
@@ -221,7 +221,7 @@ async def test_antiflood_info_renders_default_action_data(test_client: TestClien
     await grant_admin(group.id, admin.id)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await AntifloodModel.get_by_chat_iid(chat.iid)
+    settings = await AntifloodModel.get_by_chat_iid(chat.id)
     settings.actions = [StoredAction(name="mute_user")]
     await settings.save()
 

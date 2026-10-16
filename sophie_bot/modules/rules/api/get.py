@@ -15,6 +15,6 @@ async def get_rules(
     chat: ChatDep,
     _user: ReadAdminDep,
 ):
-    if rules := await RulesModel.get_rules(chat.iid):
+    if rules := await RulesModel.get_rules(chat.id):
         return RulesResponse.model_validate(rules)
     return RulesResponse()

@@ -7,7 +7,9 @@ from unittest.mock import AsyncMock
 import pytest
 from aiogram.types import InlineKeyboardButton
 from beanie import PydanticObjectId
+from stfu_tg import Doc
 
+from sophie_bot.modules.filters.filter_wizard import FILTER_WIZARD_CONFIG, FilterDraft, FilterWizard
 from sophie_bot.modules.utils_.action_config_wizard import ActionWizard
 from sophie_bot.modules.utils_.action_config_wizard.config import ActionDraft, ActionWizardConfig
 from sophie_bot.modules.utils_.action_config_wizard.views import render_home_view
@@ -236,7 +238,7 @@ async def test_invalid_wizard_operation_answers_callback_once() -> None:
     callback_query = SimpleNamespace(answer=AsyncMock())
     handler = SimpleNamespace(
         state=state,
-        connection=SimpleNamespace(db_model=SimpleNamespace(iid=chat_iid)),
+        connection=SimpleNamespace(db_model=SimpleNamespace(id=chat_iid)),
         event=callback_query,
     )
 
@@ -272,7 +274,7 @@ async def test_stale_callback_does_not_mutate_newer_same_scope_session() -> None
     callback_query = SimpleNamespace(answer=AsyncMock())
     handler = SimpleNamespace(
         state=state,
-        connection=SimpleNamespace(db_model=SimpleNamespace(iid=chat_iid)),
+        connection=SimpleNamespace(db_model=SimpleNamespace(id=chat_iid)),
         event=callback_query,
     )
 
@@ -287,3 +289,81 @@ async def test_stale_callback_does_not_mutate_newer_same_scope_session() -> None
         "This session has expired. Please run the command again.",
         show_alert=True,
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("initial_silent", [False, True])
+async def test_filter_toggle_persists_and_renders_after_clearing_pending_input(
+    initial_silent: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    wizard = FilterWizard(FILTER_WIZARD_CONFIG)
+    state = DummyFSMContext()
+    chat_iid = PydanticObjectId()
+    session = WizardSession(state, "filter_action")
+    draft = FilterDraft(handler="spam", actions={"kick_user": None}, silent=initial_silent)
+    session_id = await session.start(chat_iid, draft.model_dump(mode="json"))
+    await session.start_input(action_name="ai_text")
+    view = WizardView(Doc("Settings"))
+    render_home = AsyncMock(return_value=view)
+    monkeypatch.setattr(wizard, "render_home", render_home)
+    handler = SimpleNamespace(
+        state=state,
+        connection=SimpleNamespace(db_model=SimpleNamespace(id=chat_iid)),
+        event=SimpleNamespace(answer=AsyncMock()),
+        answer_rich=AsyncMock(),
+    )
+
+    await wizard.handle_callback(
+        handler,
+        WizardCallback(scope="filter_action", op="toggle", session_id=session_id, arg="silent"),
+    )
+
+    restored = FilterDraft.model_validate(await session.get_draft())
+    assert restored.silent is not initial_silent
+    assert restored.handler == draft.handler
+    assert restored.actions == draft.actions
+    assert await session.get_input_context() is None
+    assert state.state is None
+    render_home.assert_awaited_once_with(handler, restored, session_id)
+    handler.answer_rich.assert_awaited_once_with(view.doc, reply_markup=view.markup)
+    handler.event.answer.assert_awaited_once_with()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("expired", [False, True])
+async def test_filter_toggle_rejects_invalid_argument_or_expired_session_once(
+    expired: bool,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    wizard = FilterWizard(FILTER_WIZARD_CONFIG)
+    state = DummyFSMContext()
+    chat_iid = PydanticObjectId()
+    session = WizardSession(state, "filter_action")
+    draft = FilterDraft(handler="spam", actions={"kick_user": None})
+    session_id = await session.start(chat_iid, draft.model_dump(mode="json"))
+    await session.start_input(action_name="ai_text")
+    render_home = AsyncMock()
+    monkeypatch.setattr(wizard, "render_home", render_home)
+    handler = SimpleNamespace(
+        state=state,
+        connection=SimpleNamespace(db_model=SimpleNamespace(id=chat_iid)),
+        event=SimpleNamespace(answer=AsyncMock()),
+    )
+
+    await wizard.handle_callback(
+        handler,
+        WizardCallback(
+            scope="filter_action",
+            op="toggle",
+            session_id="expired" if expired else session_id,
+            arg="silent" if expired else "invalid",
+        ),
+    )
+
+    assert await session.get_draft() == draft.model_dump(mode="json")
+    render_home.assert_not_awaited()
+    handler.event.answer.assert_awaited_once()
+    assert handler.event.answer.await_args.kwargs["show_alert"] is True
+    if expired:
+        assert await session.get_input_context() == {"action_name": "ai_text"}

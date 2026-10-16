@@ -27,7 +27,7 @@ class UnlockAllCallbackHandler(SophieCallbackQueryHandler):
             await self.event.answer(_(str(l_("Only the initiator can confirm this action."))))
             return
 
-        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+        model = await LocksModel.get_by_chat_iid(connection.db_model.id)
         locked_types = model.locked_types
 
         if not locked_types:

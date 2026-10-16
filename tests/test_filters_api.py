@@ -79,7 +79,7 @@ def _services(
 async def test_create_filter_creates_modern_filter() -> None:
     chat_iid = PydanticObjectId()
     user = MagicMock(tid=99)
-    chat = MagicMock(iid=chat_iid, tid=-100123)
+    chat = MagicMock(id=chat_iid, tid=-100123)
     payload = FilterCreate(
         handler="spam",
         actions=[FilterActionPayload(name="dummy", data={})],
@@ -124,7 +124,7 @@ async def test_create_filter_creates_modern_filter() -> None:
 async def test_create_filter_rejects_non_filter_action() -> None:
     chat_iid = PydanticObjectId()
     user = MagicMock()
-    chat = MagicMock(iid=chat_iid)
+    chat = MagicMock(id=chat_iid)
     payload = FilterCreate(
         handler="spam",
         actions=[FilterActionPayload(name="not_filter", data={})],
@@ -156,7 +156,7 @@ async def test_update_filter_updates_modern_filter() -> None:
     chat_iid = PydanticObjectId()
     filter_id = PydanticObjectId()
     user = MagicMock(tid=88)
-    chat = MagicMock(iid=chat_iid, tid=-100456)
+    chat = MagicMock(id=chat_iid, tid=-100456)
     filter_item = MagicMock(
         id=filter_id,
         handler="old",
@@ -233,12 +233,37 @@ def test_build_filter_response_returns_modern_actions() -> None:
     assert response.actions[0].title == "Dummy"
 
 
+
+@pytest.mark.parametrize(
+    "stored_actions",
+    [
+        {},
+        {"missing": None, "dummy": {"label": "custom"}},
+    ],
+)
+def test_filter_response_preserves_action_order_and_normalizes_missing_data(
+    stored_actions: dict[str, dict[str, str] | None],
+) -> None:
+    filter_item = SimpleNamespace(
+        id=PydanticObjectId(),
+        handler="spam",
+        actions=stored_actions,
+        time=None,
+        effective_version=2,
+    )
+
+    response = build_filter_response(filter_item, DUMMY_ACTIONS, DUMMY_HANDLERS)
+
+    assert [(action.name, action.data) for action in response.actions] == [
+        (name, data or {}) for name, data in stored_actions.items()
+    ]
+
 @pytest.mark.asyncio
 async def test_delete_filter_removes_existing_filter() -> None:
     chat_iid = PydanticObjectId()
     filter_id = PydanticObjectId()
     user = MagicMock(tid=77)
-    chat = MagicMock(iid=chat_iid, tid=-100789)
+    chat = MagicMock(id=chat_iid, tid=-100789)
     filter_item = MagicMock(handler="spam", delete=AsyncMock())
     filter_item.chat.id = chat_iid
 

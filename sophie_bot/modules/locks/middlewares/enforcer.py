@@ -47,7 +47,7 @@ class LocksEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
         locked_types = await get_cached_locks(
             message.chat.id,
-            chat_db.iid,
+            chat_db.id,
             redis=data["services"].redis,
         )
         if not locked_types:

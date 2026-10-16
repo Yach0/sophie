@@ -55,14 +55,14 @@ class EnableWelcomeCaptchaHandlerABC(StatusHandlerABC[WelcomeCaptchaStatus]):
         )
 
     async def get_status(self) -> WelcomeCaptchaStatus:
-        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.id)
         if not db_model.welcome_security or not db_model.welcome_security.enabled:
             return False
 
         return db_model.welcome_security.expire or WELCOMESECURITY_EXPIRE_DEFAULT_TIME
 
     async def set_status(self, new_status: WelcomeCaptchaStatus) -> None:
-        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.id)
         expire = new_status if new_status is not False else None
         await db_model.set_status_welcomesecurity(new_status is not False, expire)
 
@@ -72,7 +72,7 @@ class EnableWelcomeCaptchaHandlerABC(StatusHandlerABC[WelcomeCaptchaStatus]):
             return await self.display_current_status()
 
         if new_status is True:
-            db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.iid)
+            db_model = await GreetingsModel.get_by_chat_iid(self.connection.db_model.id)
             configured_expiry = (
                 db_model.welcome_security.expire
                 if db_model.welcome_security and db_model.welcome_security.expire

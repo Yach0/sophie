@@ -42,7 +42,7 @@ class BetaMiddleware(BaseMiddleware):
 
     @staticmethod
     async def is_beta(chat_db: ChatModel) -> bool:
-        model = await BetaModeModel.get_by_chat_iid(chat_db.iid)
+        model = await BetaModeModel.get_by_chat_iid(chat_db.id)
         # Current mode
         if model and model.mode:
             if model.mode == CurrentMode.beta:
@@ -54,7 +54,7 @@ class BetaMiddleware(BaseMiddleware):
         if model:
             # Set the current preferred mode as current
             if model.preferred_mode != PreferredMode.auto:
-                await BetaModeModel.set_mode(chat_iid=chat_db.iid, new_mode=CurrentMode[model.preferred_mode.name])
+                await BetaModeModel.set_mode(chat_iid=chat_db.id, new_mode=CurrentMode[model.preferred_mode.name])
 
             if model.preferred_mode == PreferredMode.beta:
                 return True
@@ -70,7 +70,7 @@ class BetaMiddleware(BaseMiddleware):
 
         new_mode = CurrentMode.beta if randint(0, 100) <= percentage else CurrentMode.stable
         log.debug("Random beta mode generated", chat_id=chat_db.tid, new_mode=new_mode)
-        await BetaModeModel.set_mode(chat_iid=chat_db.iid, new_mode=new_mode)
+        await BetaModeModel.set_mode(chat_iid=chat_db.id, new_mode=new_mode)
 
         return new_mode == CurrentMode.beta
 

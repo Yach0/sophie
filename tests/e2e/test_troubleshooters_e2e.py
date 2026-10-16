@@ -20,8 +20,8 @@ async def test_instance_shows_current_and_preferred_modes(test_client: TestClien
     await grant_admin(group.id, admin.id)
     chat_model = await ChatModel.get_by_tid(group.id)
     assert chat_model is not None
-    await BetaModeModel.set_preferred_mode(chat_model.iid, PreferredMode.stable)
-    await BetaModeModel.set_mode(chat_model.iid, CurrentMode.beta)
+    await BetaModeModel.set_preferred_mode(chat_model.id, PreferredMode.stable)
+    await BetaModeModel.set_mode(chat_model.id, CurrentMode.beta)
 
     requests = await test_client.send_command(command="instance", from_user=admin, chat=group)
 

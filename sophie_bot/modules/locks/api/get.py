@@ -15,5 +15,5 @@ async def get_locked_types(
     chat: ChatDep,
     _user: ReadAdminDep,
 ):
-    locked_types = await LocksModel.get_locked_types(chat.iid)
+    locked_types = await LocksModel.get_locked_types(chat.id)
     return LocksResponse(locked=sorted(locked_types))

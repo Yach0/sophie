@@ -20,7 +20,7 @@ class AIMemoryModel(Document):
 
     @staticmethod
     async def append_line(chat: "ChatModel", new_line: str):
-        model = await AIMemoryModel.find_one(AIMemoryModel.chat.id == chat.iid)
+        model = await AIMemoryModel.find_one(AIMemoryModel.chat.id == chat.id)
         if not model:
             model = AIMemoryModel(chat=chat)
         model.lines.append(new_line)

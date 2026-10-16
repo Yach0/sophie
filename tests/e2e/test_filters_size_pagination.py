@@ -49,7 +49,7 @@ async def test_filters_split_long_entries_and_keep_controls_on_every_page(test_c
     for index in range(11):
         items.append(
             await FiltersModel(
-                chat=chat.iid,
+                chat=chat.id,
                 handler=f"filter-{index:02d}-<script>" + (str(index) * 1200),
                 action=None,
                 actions={"reply": {"text": "response"}},
@@ -100,13 +100,13 @@ async def test_filters_single_oversized_handler_is_excerpted_without_losing_cont
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
     oversized = await FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler="<unsafe>" + "🧪" * 5000,
         action=None,
         actions={"reply": {"text": "response"}},
     ).insert()
     normal = await FiltersModel(
-        chat=chat.iid, handler="next-filter", action=None, actions={"reply": {"text": "response"}}
+        chat=chat.id, handler="next-filter", action=None, actions={"reply": {"text": "response"}}
     ).insert()
 
     requests = await test_client.send_command(command="filters", from_user=user.user, chat=group)

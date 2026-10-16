@@ -48,8 +48,8 @@ class WarnsGroupHandler(SophieMessageHandler):
             return None
 
         # Group: List warns in current chat
-        chat_iid = self.connection.db_model.iid
-        warns = await WarnModel.get_user_warns(chat_iid, target_user_model.iid)
+        chat_iid = self.connection.db_model.id
+        warns = await WarnModel.get_user_warns(chat_iid, target_user_model.id)
         settings = await WarnSettingsModel.get_or_create(chat_iid)
 
         doc = Doc(Bold(Template(_("⚠️ Warnings for {user}"), user=UserLink(target_user_tid, target_user_name))))

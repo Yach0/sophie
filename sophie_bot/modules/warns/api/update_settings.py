@@ -14,7 +14,7 @@ async def update_warn_settings(
     update: WarnSettingsUpdate,
     _current_user: RestrictAdminDep,
 ) -> WarnSettingsResponse:
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
 
     if update.max_warns is not None:
         settings.max_warns = update.max_warns

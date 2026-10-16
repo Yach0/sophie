@@ -26,11 +26,11 @@ class AllowUsersConnectCmd(StatusBoolHandlerABC, ABC):
         )
 
     async def get_status(self) -> bool:
-        settings = await ChatConnectionSettingsModel.get_by_chat_iid(self.connection.db_model.iid)
+        settings = await ChatConnectionSettingsModel.get_by_chat_iid(self.connection.db_model.id)
         return settings.allow_users_connect if settings else False
 
     async def set_status(self, new_status: bool):
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         settings = await ChatConnectionSettingsModel.get_by_chat_iid(chat_iid)
         if not settings:
             settings = ChatConnectionSettingsModel(chat=chat_iid, allow_users_connect=new_status)

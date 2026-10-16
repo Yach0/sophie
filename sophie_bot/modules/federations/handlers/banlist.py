@@ -38,7 +38,7 @@ class FederationBanListHandler(FederationCommandHandler):
         if not user_db:
             return
 
-        user_iid = user_db.iid
+        user_iid = user_db.id
         user_tid = self.event.from_user.id
 
         if not await FederationPermissionService.can_ban_in_federation(federation, user_tid):
@@ -93,7 +93,7 @@ class FederationBanListHandler(FederationCommandHandler):
             fed_id=federation.fed_id,
             task_type=FederationTaskType.EXPORT,
             fed_name=federation.fed_name,
-            chat=self.connection.db_model.iid,
+            chat=self.connection.db_model.id,
             user=user_iid,
             status=TaskStatus.PENDING,
             created_at=datetime.now(UTC),

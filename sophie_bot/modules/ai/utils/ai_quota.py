@@ -198,7 +198,7 @@ async def consume_quota(
 
 
 async def set_monthly_quota(chat: ChatModel, credit_amount: int) -> AIQuotaModel:
-    quota = await get_or_create_quota_model(chat.iid)
+    quota = await get_or_create_quota_model(chat.id)
     if not quota:
         quota = AIQuotaModel(chat=chat, monthly_credits=credit_amount, period_start=current_period_start())
     else:

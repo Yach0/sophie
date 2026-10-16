@@ -10,7 +10,7 @@ from sophie_bot.modules.greetings.middlewares.new_user import NewUserMiddleware
 
 
 def _chat(tid: int, iid: str) -> SimpleNamespace:
-    return SimpleNamespace(tid=tid, iid=iid, is_bot=False)
+    return SimpleNamespace(tid=tid, id=iid, is_bot=False)
 
 
 async def _run_on_captcha(muted: list[bool], new_users: list[SimpleNamespace]):

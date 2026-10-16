@@ -51,7 +51,7 @@ class FederationImportHandler(FederationCommandHandler):
         if not user_db:
             return
 
-        user_iid = user_db.iid
+        user_iid = user_db.id
 
         # Permission check - federation admin or owner
         if not await FederationPermissionService.can_ban_in_federation(federation, self.event.from_user.id):
@@ -62,7 +62,7 @@ class FederationImportHandler(FederationCommandHandler):
         import_task = FederationTask(
             fed_id=federation.fed_id,
             task_type=FederationTaskType.IMPORT,
-            chat=self.connection.db_model.iid,
+            chat=self.connection.db_model.id,
             user=user_iid,
             file_id=document.file_id,
             status=TaskStatus.PENDING,

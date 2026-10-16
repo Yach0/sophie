@@ -28,14 +28,14 @@ class WarnLimitHandler(StatusIntHandlerABC):
         return CMDFilter("warn_limit"), UserRestricting(admin=True)
 
     async def get_status(self) -> int:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         settings = await WarnSettingsModel.find_one(WarnSettingsModel.chat.id == chat_iid)
         if settings is None:
             return self.default_value
         return settings.max_warns
 
     async def set_status(self, new_status: int) -> None:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         settings = await WarnSettingsModel.get_or_create(chat_iid)
         settings.max_warns = new_status
         await settings.save()

@@ -42,7 +42,7 @@ class ConnectGroupCmd(SophieMessageHandler):
             return
 
         # Check permissions
-        if not await check_connection_permissions(self.connection.db_model.iid, user_db.iid):
+        if not await check_connection_permissions(self.connection.db_model.id, user_db.id):
             await self.event.reply(_("You are not allowed to connect to this chat."))
             return
 

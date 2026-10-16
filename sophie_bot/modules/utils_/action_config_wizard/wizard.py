@@ -45,7 +45,7 @@ class ActionWizard[DRAFT: ActionDraft]:
         )
 
     async def start(self, handler: SophieBaseHandler[Any], draft: DRAFT | None = None) -> None:
-        chat_iid = handler.connection.db_model.iid
+        chat_iid = handler.connection.db_model.id
         if draft is None:
             draft = await self.config.load_draft(chat_iid) if self.config.load_draft else self.config.draft_model()
         session = self._session(handler)
@@ -57,7 +57,7 @@ class ActionWizard[DRAFT: ActionDraft]:
         callback_query = handler.event
         if callback.op == "open":
             session = self._session(handler)
-            if await session.is_active(handler.connection.db_model.iid):
+            if await session.is_active(handler.connection.db_model.id):
                 if await session.get_input_context() is not None:
                     await session.clear_input()
                 draft = await self._get_draft(session)
@@ -72,7 +72,7 @@ class ActionWizard[DRAFT: ActionDraft]:
             return
 
         session = self._session(handler, callback.session_id or None)
-        if not callback.session_id or not await session.is_active(handler.connection.db_model.iid):
+        if not callback.session_id or not await session.is_active(handler.connection.db_model.id):
             await callback_query.answer(
                 _("This session has expired. Please run the command again."),
                 show_alert=True,
@@ -104,15 +104,21 @@ class ActionWizard[DRAFT: ActionDraft]:
                 case "back":
                     await self._back(handler, session, draft)
                 case _:
-                    raise _WizardAlert(_("Invalid callback data."))
+                    if not self.apply_operation(draft, callback.op, callback.arg):
+                        raise _WizardAlert(_("Invalid callback data."))
+                    await self._render_home(handler, session, draft)
         except _WizardAlert as error:
             await callback_query.answer(str(error), show_alert=True)
             return
         await callback_query.answer()
 
+    def apply_operation(self, draft: DRAFT, operation: str, argument: str) -> bool:
+        """Apply an extra draft operation; shared callback handling persists and renders it."""
+        return False
+
     async def handle_input(self, handler: SophieBaseHandler[Message]) -> None:
         session = self._session(handler)
-        if not await session.is_active(handler.connection.db_model.iid):
+        if not await session.is_active(handler.connection.db_model.id):
             await session.clear()
             await handler.event.reply(_("This session has expired. Please run the command again."))
             return
@@ -260,7 +266,7 @@ class ActionWizard[DRAFT: ActionDraft]:
         if len(draft.actions) < self.config.min_actions:
             raise _WizardAlert(_("No actions configured."))
         try:
-            await self.config.save_draft(handler.connection.db_model.iid, draft, handler.event, handler.connection)
+            await self.config.save_draft(handler.connection.db_model.id, draft, handler.event, handler.connection)
         except (ValueError, TypeError) as error:
             raise _WizardAlert(str(error)) from error
         await session.clear()

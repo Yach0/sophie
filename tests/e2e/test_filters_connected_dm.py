@@ -92,7 +92,7 @@ async def test_connected_filter_management_uses_group(test_client: TestClient, o
             assert "saved" in rich_html(requests, event_chat.id)
             saved = await FiltersModel.get_by_id(item.id)
             assert saved is not None and saved.silent is True
-            assert saved.chat.ref.id == model.iid
+            assert saved.chat.ref.id == model.id
         else:
             assert await FiltersModel.get_by_id(item.id) is not None
             await test_client.send_callback(
@@ -100,7 +100,7 @@ async def test_connected_filter_management_uses_group(test_client: TestClient, o
             )
     if operation != "edit":
         assert await FiltersModel.get_by_id(item.id) is None
-    private_filters = await FiltersModel.get_filters(user_model.iid)
+    private_filters = await FiltersModel.get_filters(user_model.id)
     assert private_filters is not None and [item.id for item in private_filters] == [dm_item.id]
     assert private_filters[0].silent is False and private_filters[0].actions == {}
 

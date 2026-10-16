@@ -19,9 +19,9 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils import ai_chatbot_reply as chatbot_reply
-from sophie_bot.modules.ai.utils import mention_usernames, proactive_replies
+from sophie_bot.modules.ai.utils import chatbot_response, mention_usernames, proactive_replies
 from sophie_bot.modules.ai.utils.cache_messages import MessageType
-from sophie_bot.modules.ai.utils.chatbot_response import build_reply_doc
+from sophie_bot.modules.ai.utils.chatbot_response import TELEGRAM_MESSAGE_SAFE_LIMIT, build_reply_doc
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 from sophie_bot.modules.ai.utils.mention_usernames import (
     MentionCandidate,
@@ -360,35 +360,46 @@ async def test_alias_only_rendering_never_back_traces_names(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("mention_policy", list(MentionPolicy))
-@pytest.mark.parametrize("render_limit", [3900, 1])
-async def test_fitted_and_last_resort_replies_preserve_mention_policy(
+@pytest.mark.parametrize(
+    ("modern", "mode", "permitted"),
+    [
+        (False, AIMode.support, True),
+        (True, AIMode.entertainment, True),
+        (True, AIMode.support, False),
+    ],
+)
+async def test_long_final_replies_preserve_selected_mention_policy(
     monkeypatch: pytest.MonkeyPatch,
     test_services: Any,
-    render_limit: int,
-    mention_policy: MentionPolicy,
+    modern: bool,
+    mode: AIMode,
+    permitted: bool,
 ) -> None:
     collect = AsyncMock(return_value=(MentionCandidate(display_names=("Alice",), username="alice_real"),))
     monkeypatch.setattr(mention_usernames, "collect_mention_candidates", collect)
     speaker_names, _lookup = _modern_actor_lookup(
         monkeypatch, (MentionCandidate(display_names=("Alice",), username="alice_real"),)
     )
-    monkeypatch.setattr(chatbot_reply, "TELEGRAM_MESSAGE_SAFE_LIMIT", render_limit)
+    monkeypatch.setattr(chatbot_response, "build_chatbot_header", AsyncMock(return_value=Doc("Quota")))
+    monkeypatch.setattr(chatbot_response, "is_enabled", AsyncMock(return_value=False))
 
-    doc = await chatbot_reply._build_fitting_reply_doc(
-        None,
-        "Hi @Alice",
-        None,
-        None,
-        False,
+    doc, output_text = await chatbot_response.build_chatbot_reply_presentation(
+        cast(Any, "chat-iid"),
         CHAT_TID,
-        services=test_services,
-        mention_policy=mention_policy,
+        cast(Any, SimpleNamespace(model_name="test-model")),
+        cast(Any, SimpleNamespace(served_model=None, output="Hi @Alice\n\n" + "**<&>** " * 1000)),
+        (),
+        redis=test_services.redis,
+        modern=modern,
+        mode=mode,
         speaker_names=speaker_names,
+        footer=Doc("Help tip"),
     )
 
-    permitted = mention_policy != MentionPolicy.OPAQUE
     assert ("@alice_real" if permitted else "@Alice") in doc.to_html()
+    assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
+    assert "Help tip" in doc.to_html()
+    assert output_text.startswith("Hi @Alice")
 
 
 _REPLY_MODES = [
@@ -490,6 +501,7 @@ async def test_chatbot_visible_mentions_follow_selected_history_through_model_fa
         return feature in {"ai_chatbot", "ai_chatbot_show_model_name"}
 
     monkeypatch.setattr(chatbot_reply, "is_enabled", enabled)
+    monkeypatch.setattr(chatbot_response, "is_enabled", enabled)
 
     async def run(request: Any) -> Any:
         if request.callbacks.on_text_stream:
@@ -504,13 +516,13 @@ async def test_chatbot_visible_mentions_follow_selected_history_through_model_fa
 
     monkeypatch.setattr(chatbot_reply, "run_chatbot", run)
     monkeypatch.setattr(
-        chatbot_reply, "build_chatbot_header", AsyncMock(side_effect=lambda *args, **kwargs: Doc(kwargs["model_label"]))
+        chatbot_response, "build_chatbot_header", AsyncMock(side_effect=lambda *args, **kwargs: Doc(kwargs["model_label"]))
     )
     monkeypatch.setattr(chatbot_reply, "should_offer_help_mode", AsyncMock(return_value=False))
     monkeypatch.setattr(chatbot_reply, "remember_chatbot_tool_history", AsyncMock())
     send = AsyncMock(return_value=sent)
     monkeypatch.setattr(chatbot_reply, "send_ai_rich_message", send)
-    connection = SimpleNamespace(db_model=SimpleNamespace(iid="chat", tid=CHAT_TID), tid=CHAT_TID)
+    connection = SimpleNamespace(db_model=SimpleNamespace(id="chat", tid=CHAT_TID), tid=CHAT_TID)
 
     await chatbot_reply.ai_chatbot_reply(
         cast(Message, source), connection, mode=mode, services=test_services
@@ -542,6 +554,7 @@ async def test_chatbot_visible_mentions_follow_selected_history_through_model_fa
 @pytest.mark.asyncio
 @pytest.mark.parametrize(("modern", "mode", "ambiguous"), _REPLY_MODES)
 @pytest.mark.parametrize("modern_flag", [False, True])
+@pytest.mark.parametrize("long_output", [False, True])
 async def test_proactive_visible_mentions_follow_selected_history_through_model_fallback(
     monkeypatch: pytest.MonkeyPatch,
     test_services: Any,
@@ -549,6 +562,7 @@ async def test_proactive_visible_mentions_follow_selected_history_through_model_
     mode: AIMode,
     ambiguous: bool,
     modern_flag: bool,
+    long_output: bool,
 ) -> None:
     # The mode is read only when the proactive trigger sees the flag enabled; the history
     # returned afterward is still authoritative for whether legacy mention repair applies.
@@ -563,7 +577,7 @@ async def test_proactive_visible_mentions_follow_selected_history_through_model_
     )
     history = _reply_history(modern, test_services, speaker_names)
     target = SimpleNamespace(message_id=7, message_thread_id=None, text="Say hello", username="user", user_id=1)
-    chat = SimpleNamespace(iid="chat", tid=CHAT_TID, type="group", first_name_or_title="Group")
+    chat = SimpleNamespace(id="chat", tid=CHAT_TID, type="group", first_name_or_title="Group")
     sent = SimpleNamespace(message_id=8, date=datetime.now(UTC), message_thread_id=None)
     monkeypatch.setattr(proactive_replies, "get_chat_mode", AsyncMock(return_value=mode))
     monkeypatch.setattr(
@@ -582,19 +596,24 @@ async def test_proactive_visible_mentions_follow_selected_history_through_model_
     )
     monkeypatch.setattr(proactive_replies, "_build_answer_history", AsyncMock(return_value=history))
     monkeypatch.setattr(
+        chatbot_response,
+        "is_enabled",
+        AsyncMock(side_effect=lambda feature, **kwargs: feature == "ai_chatbot_show_model_name"),
+    )
+    monkeypatch.setattr(
         proactive_replies,
         "run_chatbot",
         AsyncMock(
             return_value=SimpleNamespace(
                 served_model=SimpleNamespace(model_name="fallback-model"),
-                output="Hello @Alice! @publichandle",
+                output="Hello @Alice! @publichandle" + ("\n\n**<&>** " * 1000 if long_output else ""),
                 message_history=[],
                 new_messages=[],
             )
         ),
     )
     monkeypatch.setattr(
-        proactive_replies,
+        chatbot_response,
         "build_chatbot_header",
         AsyncMock(side_effect=lambda *args, **kwargs: Doc(kwargs["model_label"])),
     )
@@ -608,6 +627,7 @@ async def test_proactive_visible_mentions_follow_selected_history_through_model_
     assert expected in final_html
     assert "@publichandle" in final_html
     assert "Fallback Model" in final_html
+    assert len(final_html) <= TELEGRAM_MESSAGE_SAFE_LIMIT
     if not permitted or ambiguous:
         assert "@alice_real" not in final_html
     if modern and permitted and ambiguous:

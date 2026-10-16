@@ -49,12 +49,12 @@ async def test_rules_routing_preserves_admin_filter_bypass(test_client: TestClie
     assert chat is not None
     # If the known-command lookup misses a spelling, the filter consumes the command first.
     await FiltersModel(
-        chat=chat.iid, handler=spelling.lower(), action=None, actions={"reply": {"text": "caught"}}
+        chat=chat.id, handler=spelling.lower(), action=None, actions={"reply": {"text": "caught"}}
     ).insert()
 
     requests = await test_client.send_command(command=spelling, args="Be kind", from_user=admin, chat=group)
 
-    rules = await RulesModel.get_rules(chat.iid)
+    rules = await RulesModel.get_rules(chat.id)
     assert rules is not None and rules.text == "Be kind"
     assert requests
     assert not any("caught" in (request.text or "") for request in requests)
@@ -70,7 +70,7 @@ async def test_admin_command_mention_preserves_filter_enforcement(
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
     await FiltersModel(
-        chat=chat.iid, handler=spelling.lower(), action=None, actions={"reply": {"text": "caught"}}
+        chat=chat.id, handler=spelling.lower(), action=None, actions={"reply": {"text": "caught"}}
     ).insert()
 
     services = test_client.dispatcher.workflow_data["services"]
@@ -82,7 +82,7 @@ async def test_admin_command_mention_preserves_filter_enforcement(
     requests = await test_client.send_message(text=text, from_user=admin, chat=group)
 
     assert any("caught" in (request.text or "") for request in requests) is other_bot
-    rules = await RulesModel.get_rules(chat.iid)
+    rules = await RulesModel.get_rules(chat.id)
     if other_bot:
         assert rules is None
     else:
@@ -97,11 +97,11 @@ async def test_disable_enable_alias_uses_stable_storage_key(test_client: TestCli
     assert chat is not None
 
     requests = await test_client.send_command(command="disable", args=spelling, from_user=admin, chat=group)
-    assert await DisablingModel.get_disabled(chat.iid) == ["notes"]
+    assert await DisablingModel.get_disabled(chat.id) == ["notes"]
     assert any("/notes" in (request.text or "") for request in requests)
 
     await test_client.send_command(command="enable", args=spelling, from_user=admin, chat=group)
-    assert await DisablingModel.get_disabled(chat.iid) == []
+    assert await DisablingModel.get_disabled(chat.id) == []
 
 
 @pytest.mark.parametrize("spelling", ["set_rules", "setrules", "set-rules"])
@@ -112,7 +112,7 @@ async def test_canonical_command_still_requires_admin(test_client: TestClient, s
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    assert await RulesModel.get_rules(chat.iid) is None
+    assert await RulesModel.get_rules(chat.id) is None
     assert requests
 
 
@@ -198,15 +198,15 @@ async def test_enable_resolves_legacy_db_key_after_command_rename(test_client: T
     await grant_admin(group.id, admin.id)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await DisablingModel(chat=chat.iid, cmds=["adminlist"]).insert()
+    await DisablingModel(chat=chat.id, cmds=["adminlist"]).insert()
 
     requests = await test_client.send_command(command="disabled", from_user=admin, chat=group)
     assert any("/admin_list" in (request.text or "") for request in requests)
-    assert await DisablingModel.get_disabled(chat.iid) == ["adminlist"]
+    assert await DisablingModel.get_disabled(chat.id) == ["adminlist"]
 
     requests = await test_client.send_command(command="enable", args=spelling, from_user=admin, chat=group)
     assert requests
-    assert await DisablingModel.get_disabled(chat.iid) == []
+    assert await DisablingModel.get_disabled(chat.id) == []
 
 
 @pytest.mark.usefixtures("allow_ai_moderation")
@@ -271,7 +271,7 @@ async def test_ai_reset_clears_native_history_with_legacy_feature_value(
     context = SophieAIToolContext(
         connection=await ConnectionsMiddleware.get_current_chat_info(group, chat),
         chat_tid=group.id,
-        chat_iid=chat.iid,
+        chat_iid=chat.id,
         user_tid=admin.id,
         mode=AIMode.support,
         services=services,

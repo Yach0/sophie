@@ -38,7 +38,7 @@ class GetNote(SophieMessageHandler):
         chat: ChatConnection = self.connection
 
         note_name: str = self.data["notename"].removeprefix("#")
-        note = await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
+        note = await NoteModel.get_by_notenames(chat.db_model.id, (note_name,))
 
         if not note and self.data.get("get_error_on_404", True):
             return await self.event.reply(
@@ -95,7 +95,7 @@ class HashtagGetNote(SophieMessageHandler):
 
     async def _fine_note(self, note_name: str) -> NoteModel | None:
         chat: ChatConnection = self.connection
-        return await NoteModel.get_by_notenames(chat.db_model.iid, (note_name,))
+        return await NoteModel.get_by_notenames(chat.db_model.id, (note_name,))
 
     @staticmethod
     def _get_note_title(note_model: NoteModel) -> Element:

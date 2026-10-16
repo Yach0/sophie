@@ -68,7 +68,7 @@ class SaveNote(SophieMessageHandler):
             log.warning("SaveNote: validation failed", error="\n".join(str(doc) for doc in exc.docs))
             await self.event.reply("\n".join(str(doc) for doc in exc.docs))
             return
-        is_created = await self.save(saveable, notenames, connection.db_model.iid, self.event.from_user.id, self.data)
+        is_created = await self.save(saveable, notenames, connection.db_model.id, self.event.from_user.id, self.data)
 
         track_note_saved(
             has_media=bool(saveable.file or saveable.files or rich_message_has_media(saveable.rich_message)),

@@ -232,7 +232,7 @@ class AntifloodEnforcerMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         # Get antiflood settings for this chat
-        settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_db.iid)
+        settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_db.id)
         if not settings or not settings.enabled:
             return await handler(event, data)
 

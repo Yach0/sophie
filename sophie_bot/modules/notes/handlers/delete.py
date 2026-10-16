@@ -37,7 +37,7 @@ class DelNote(SophieMessageHandler):
         not_found: list[str] = []
 
         for raw_name in raw_notenames:
-            if note := await NoteModel.get_by_notenames(chat.db_model.iid, (raw_name,)):
+            if note := await NoteModel.get_by_notenames(chat.db_model.id, (raw_name,)):
                 await note.delete()
                 deleted.append(note)
                 await log_event(chat.tid, self.event.from_user.id, LogEvent.NOTE_DELETED, {"note_names": note.names})

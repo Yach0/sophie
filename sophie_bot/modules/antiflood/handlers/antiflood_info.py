@@ -33,7 +33,7 @@ class AntifloodInfoHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         connection = self.connection
-        chat_iid = connection.db_model.iid
+        chat_iid = connection.db_model.id
 
         model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
 

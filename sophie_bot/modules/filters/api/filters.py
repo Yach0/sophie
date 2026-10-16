@@ -54,7 +54,7 @@ async def get_filter(
     _ = user
     chat = await get_chat_or_404(chat_iid)
     filter_item = await FiltersModel.get_by_id(filter_id)
-    if not filter_item or filter_item.chat.id != chat.iid:
+    if not filter_item or filter_item.chat.id != chat.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
     return build_filter_response(
@@ -72,14 +72,14 @@ async def create_filter(
     services: ServicesDep,
 ) -> FilterResponse:
     chat = await get_chat_or_404(chat_iid)
-    await validate_filter_handler(chat.iid, payload.handler)
+    await validate_filter_handler(chat.id, payload.handler)
     validated_actions = validate_filter_actions(
         payload.actions,
         services.modules.actions,
     )
 
     filter_item = FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler=payload.handler.strip(),
         version=2,
         action=None,
@@ -105,11 +105,11 @@ async def update_filter(
 ) -> FilterResponse:
     chat = await get_chat_or_404(chat_iid)
     filter_item = await FiltersModel.get_by_id(filter_id)
-    if not filter_item or filter_item.chat.id != chat.iid:
+    if not filter_item or filter_item.chat.id != chat.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
     if payload.handler is not None:
-        await validate_filter_handler(chat.iid, payload.handler, exclude_filter_id=filter_id)
+        await validate_filter_handler(chat.id, payload.handler, exclude_filter_id=filter_id)
         filter_item.handler = payload.handler.strip()
 
     if payload.actions is not None:
@@ -138,7 +138,7 @@ async def delete_filter(
 ) -> Response:
     chat = await get_chat_or_404(chat_iid)
     filter_item = await FiltersModel.get_by_id(filter_id)
-    if not filter_item or filter_item.chat.id != chat.iid:
+    if not filter_item or filter_item.chat.id != chat.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Filter not found")
 
     handler = filter_item.handler

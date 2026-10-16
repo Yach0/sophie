@@ -38,7 +38,7 @@ class SetQuota(SophieMessageHandler):
 
         await set_monthly_quota(connection.db_model, credit_amount)
         quota_info = await get_quota_info(
-            connection.db_model.iid,
+            connection.db_model.id,
             redis=self.services.redis,
         )
 
@@ -64,10 +64,10 @@ class ResetQuota(SophieMessageHandler):
 
     async def handle(self) -> Any:
         connection = self.connection
-        await reset_period_usage(connection.db_model.iid)
+        await reset_period_usage(connection.db_model.id)
 
         quota_info = await get_quota_info(
-            connection.db_model.iid,
+            connection.db_model.id,
             redis=self.services.redis,
         )
         doc = Doc(

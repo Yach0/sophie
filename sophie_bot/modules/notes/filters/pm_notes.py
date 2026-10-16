@@ -21,6 +21,6 @@ class PMNotesFilter(Filter):
         if not connection.db_model:
             raise ValueError("Missing db_model in connection")
 
-        private_notes_enabled: bool = await PrivateNotesModel.get_state(connection.db_model.iid)
+        private_notes_enabled: bool = await PrivateNotesModel.get_state(connection.db_model.id)
 
         return private_notes_enabled

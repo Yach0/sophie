@@ -30,13 +30,13 @@ class EnableAntifloodHandler(StatusBoolHandlerABC):
     async def get_status(self) -> bool:
         if not self.connection.db_model:
             return False
-        settings = await AntifloodModel.find_one(AntifloodModel.chat.id == self.connection.db_model.iid)
+        settings = await AntifloodModel.find_one(AntifloodModel.chat.id == self.connection.db_model.id)
         return bool(settings and settings.enabled)
 
     async def set_status(self, new_status: bool) -> None:
         if not self.connection.db_model:
             return
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         settings = await AntifloodModel.find_one(AntifloodModel.chat.id == chat_iid)
 
         if settings:

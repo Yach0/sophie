@@ -205,7 +205,7 @@ class AIFilterAddHandler(SophieMessageHandler):
         history.prompt = [prompt]
 
         model_plan = await get_chat_default_model_plan(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             chat_tid=self.connection.db_model.tid,
             redis=self.services.redis,
         )
@@ -219,7 +219,7 @@ class AIFilterAddHandler(SophieMessageHandler):
                 ),
                 model_plan,
                 history,
-                chat_iid=self.connection.db_model.iid,
+                chat_iid=self.connection.db_model.id,
                 chat_tid=self.event.chat.id,
                 redis=self.services.redis,
             )

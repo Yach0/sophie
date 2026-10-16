@@ -13,7 +13,7 @@ async def get_warn_settings(
     chat: ChatDep,
     _current_user: ReadAdminDep,
 ) -> WarnSettingsResponse:
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
     return WarnSettingsResponse(
         max_warns=settings.max_warns,
         actions=[action.model_dump() for action in settings.on_max_warn_actions],

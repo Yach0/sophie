@@ -1,9 +1,7 @@
-from dataclasses import dataclass
 from typing import Any
 
 from aiogram.types import Message
 
-from sophie_bot.db.models import FiltersModel
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.shared.actions import ActionResult, ModernActionABC
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
@@ -11,32 +9,15 @@ from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exempti
 from sophie_bot.utils.logger import log
 
 
-@dataclass(frozen=True)
-class EffectiveFilterAction:
-    name: str
-    data: dict[str, Any] | None = None
-
-
-def get_effective_filter_actions(filter_item: FiltersModel) -> list[EffectiveFilterAction]:
-    if filter_item.actions:
-        return [
-            EffectiveFilterAction(name=action_name, data=action_data)
-            for action_name, action_data in filter_item.actions.items()
-        ]
-
-    return []
-
-
-async def handle_effective_filter_action(
+async def handle_filter_action(
     message: Message,
-    action: EffectiveFilterAction,
+    action_name: str,
+    action_data: dict[str, Any] | None,
     data: dict[str, Any],
-    matched_filter: FiltersModel | None = None,
 ) -> ActionResult | None:
-    del matched_filter
     services = data["services"]
-    action_item: ModernActionABC = services.modules.action_handlers[action.name]
-    definition = services.modules.actions[action.name]
+    action_item: ModernActionABC = services.modules.action_handlers[action_name]
+    definition = services.modules.actions[action_name]
     if definition.skip_for_admins and message.from_user:
         user_tid = message.from_user.id
         if await is_user_group_whitelisted(
@@ -52,5 +33,5 @@ async def handle_effective_filter_action(
                 action=definition.name,
             )
             return None
-    loaded_data = definition.load_data(action.data)
+    loaded_data = definition.load_data(action_data)
     return await action_item.handle(message, data, loaded_data)

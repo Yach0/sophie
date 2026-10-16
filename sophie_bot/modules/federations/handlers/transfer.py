@@ -78,7 +78,7 @@ class TransferOwnershipHandler(FederationCommandHandler):
             await self.event.reply(_("User has not started the bot yet."))
             return
 
-        if not await FederationManageService.can_user_create_federation(new_owner_chat.iid):
+        if not await FederationManageService.can_user_create_federation(new_owner_chat.id):
             await self.event.reply(_("The new owner has reached the maximum number of federations they can own."))
             return
 

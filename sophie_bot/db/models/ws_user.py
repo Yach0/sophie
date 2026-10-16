@@ -24,16 +24,16 @@ class WSUserModel(Document):
 
     @staticmethod
     async def ensure_user(user: "ChatModel", group: "ChatModel", is_join_request: bool) -> "WSUserModel":
-        membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
+        membership = await UserInGroupModel.get_user_in_group(user.id, group.id)
         membership_id = membership.id if membership is not None else None
         joined_message_id = membership.joined_message_id if membership is not None else None
         user_filter = {
-            "user.$id": user.iid,
-            "group.$id": group.iid,
+            "user.$id": user.id,
+            "group.$id": group.id,
         }
         await WSUserModel.find_one(
-            WSUserModel.user.id == user.iid,
-            WSUserModel.group.id == group.iid,
+            WSUserModel.user.id == user.id,
+            WSUserModel.group.id == group.id,
         ).upsert(
             Set({}),
             on_insert=WSUserModel(

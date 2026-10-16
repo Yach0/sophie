@@ -57,7 +57,7 @@ async def test_op_setmode_sets_preferred_mode(test_client: TestClient) -> None:
 
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    assert await _stored_preferred_mode(chat.iid) == PreferredMode.beta
+    assert await _stored_preferred_mode(chat.id) == PreferredMode.beta
 
 
 @pytest.mark.asyncio
@@ -87,7 +87,7 @@ async def test_op_setmode_chat_arg_targets_chat(test_client: TestClient) -> None
 
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    assert await _stored_preferred_mode(chat.iid) == PreferredMode.stable
+    assert await _stored_preferred_mode(chat.id) == PreferredMode.stable
 
 
 @pytest.mark.asyncio

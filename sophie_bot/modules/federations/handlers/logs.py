@@ -38,7 +38,7 @@ class SetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not initialized yet."))
             return
 
-        chat_iid = connection.db_model.iid
+        chat_iid = connection.db_model.id
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
@@ -49,7 +49,7 @@ class SetFederationLogHandler(SophieMessageHandler):
             return
 
         creator = await federation.creator.fetch()
-        if not creator or creator.iid != user_db.iid:
+        if not creator or creator.id != user_db.id:
             await self.event.reply(_("Only the federation owner can set the log channel."))
             return
 
@@ -114,7 +114,7 @@ class UnsetFederationLogHandler(SophieMessageHandler):
             await self.event.reply(_("This chat is not initialized yet."))
             return
 
-        chat_iid = connection.db_model.iid
+        chat_iid = connection.db_model.id
         federation = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if not federation:
             await self.event.reply(_("This chat is not in any federation."))
@@ -125,7 +125,7 @@ class UnsetFederationLogHandler(SophieMessageHandler):
             return
 
         creator = await federation.creator.fetch()
-        if not creator or creator.iid != user_db.iid:
+        if not creator or creator.id != user_db.id:
             await self.event.reply(_("Only the federation owner can remove the log channel."))
             return
 

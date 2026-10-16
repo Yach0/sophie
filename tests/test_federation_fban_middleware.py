@@ -108,4 +108,4 @@ async def test_repeated_messages_from_fbanned_user_do_not_duplicate_banned_chats
     reloaded_ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id)
     assert reloaded_ban is not None
     banned_chat_iids = normalize_chat_iids([banned_chat.to_ref() for banned_chat in reloaded_ban.banned_chats])
-    assert banned_chat_iids == [group_chat.iid]
+    assert banned_chat_iids == [group_chat.id]

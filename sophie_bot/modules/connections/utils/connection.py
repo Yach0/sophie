@@ -38,7 +38,7 @@ async def set_connected_chat(
         return
 
     if chat_tid is None:
-        if conn := await ChatConnectionModel.get_by_user_iid(user.iid):
+        if conn := await ChatConnectionModel.get_by_user_iid(user.id):
             conn.chat = None
             conn.expires_at = None
             await conn.save()
@@ -51,11 +51,11 @@ async def set_connected_chat(
 
     expires_at = datetime.now(UTC) + timedelta(hours=48)
 
-    conn = await ChatConnectionModel.get_by_user_iid(user.iid)
+    conn = await ChatConnectionModel.get_by_user_iid(user.id)
     if conn:
         conn.chat = chat
         conn.expires_at = expires_at
-        if chat.iid not in [history_chat.to_ref().id for history_chat in conn.history]:
+        if chat.id not in [history_chat.to_ref().id for history_chat in conn.history]:
             conn.history.append(chat)
         await conn.save()
     else:

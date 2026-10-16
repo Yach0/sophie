@@ -26,7 +26,7 @@ async def test_disable_command_persists(test_client: TestClient) -> None:
     assert any("disabled" in (request.text or "").lower() for request in requests)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    assert "rules" in await DisablingModel.get_disabled(chat.iid), "The disabled command should be persisted"
+    assert "rules" in await DisablingModel.get_disabled(chat.id), "The disabled command should be persisted"
 
 
 @pytest.mark.asyncio

@@ -80,7 +80,7 @@ async def _complete_captcha(
 
     # Approve join request if applicable
     if is_join_request:
-        await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
+        await redis.set(f"chat_ws_join_request:{group.id}:{user.id}", 1, ex=172800)
         try:
             await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
         except TelegramBadRequest as error:
@@ -101,9 +101,9 @@ async def _complete_captcha(
         return
 
     # Clean up the security note message from the group
-    if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
+    if msg_to_clean := await redis.get(f"chat_ws_message:{group.id}:{user.id}"):
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
-        await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
+        await redis.delete(f"chat_ws_message:{group.id}:{user.id}")
 
-    if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
+    if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.id}:{user.id}")):
         await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))

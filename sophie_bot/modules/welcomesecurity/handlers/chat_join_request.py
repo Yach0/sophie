@@ -97,7 +97,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
 
         # Get greetings model
-        greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+        greetings = await GreetingsModel.get_by_chat_iid(chat.id)
 
         # Check if join request is too old (bot was down/lagging)
         # If too old, skip captcha enforcement and approve immediately
@@ -135,7 +135,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             await _approve_request()
             return
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
-        rules = await RulesModel.get_rules(chat.iid)
+        rules = await RulesModel.get_rules(chat.id)
 
         chat_title = getattr(chat, "first_name_or_title", None) or getattr(chat, "title", None) or str(chat.tid)
         chat_nick = getattr(chat, "username", None) or chat_title
@@ -146,7 +146,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             "chatnick": html.escape(str(chat_nick), quote=False),
         }
 
-        join_request_message_key = f"join_request_message:{chat.iid}:{user.iid}"
+        join_request_message_key = f"join_request_message:{chat.id}:{user.id}"
         try:
             await initiate_captcha(
                 user,
@@ -174,7 +174,7 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
 
         if sent_message:
             await self.services.redis.set(
-                f"chat_ws_message:{chat.iid}:{user.iid}",
+                f"chat_ws_message:{chat.id}:{user.id}",
                 sent_message.message_id,
                 ex=172800,
             )

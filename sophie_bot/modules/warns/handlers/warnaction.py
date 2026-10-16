@@ -119,7 +119,7 @@ class WarnActionHandler(SophieMessageHandler):
         )
 
     async def handle(self) -> Any:
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         document, markup = await WarnActionRenderer.render_warnaction_view(
             chat_iid,
             self.services.modules.actions,

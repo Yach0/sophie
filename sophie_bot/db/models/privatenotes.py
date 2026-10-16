@@ -18,13 +18,15 @@ class PrivateNotesModel(Document):
         return bool(await PrivateNotesModel.find_one(PrivateNotesModel.chat.id == chat_iid))
 
     @staticmethod
-    async def set_state(chat_iid: PydanticObjectId, new_state: bool):
-        model = await PrivateNotesModel.find_one(PrivateNotesModel.chat.id == chat_iid)
-        if model and not new_state:
-            return await model.delete()
+    async def set_state(chat_iid: PydanticObjectId, new_state: bool) -> None:
+        if not new_state:
+            await PrivateNotesModel.find(PrivateNotesModel.chat.id == chat_iid).delete()
+            return
 
-        if model:
-            return model
+        if await PrivateNotesModel.get_state(chat_iid):
+            return
 
-        model = PrivateNotesModel(chat=chat_iid)
-        return await model.save()
+        chat = await ChatModel.get_by_iid(chat_iid)
+        if chat is None:
+            raise ValueError(f"Chat with internal ID {chat_iid!s} not found")
+        await PrivateNotesModel(chat=chat).insert()

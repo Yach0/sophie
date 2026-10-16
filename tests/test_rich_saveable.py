@@ -187,7 +187,7 @@ async def test_note_update_keeps_rich_message_typed_and_clears_legacy_media(
     )
 
     result = await update_module.update_note(
-        SimpleNamespace(tid=-100, iid=PydanticObjectId()),
+        SimpleNamespace(tid=-100, id=PydanticObjectId()),
         note_id,
         NoteUpdate(rich_message=rich_message),
         SimpleNamespace(tid=7),

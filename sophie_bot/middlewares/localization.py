@@ -43,7 +43,7 @@ class LocalizationMiddleware(I18nMiddleware):
             log.debug("LocalizationMiddleware: Chat cannot be found in this event, leaving locale to default")
             return CONFIG.default_locale
 
-        if selected_locale := await self.locales.get_selected_locale(chat_in_db.iid):
+        if selected_locale := await self.locales.get_selected_locale(chat_in_db.id):
             return selected_locale
 
         # Fallback to the locale the user's Telegram client reports, if we can render it

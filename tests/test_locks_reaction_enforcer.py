@@ -32,7 +32,7 @@ def _reaction_event(**kwargs: Any) -> MessageReactionUpdated:
 async def test_reaction_lock_removes_outsider_reaction(monkeypatch: pytest.MonkeyPatch) -> None:
     bot = AsyncMock()
     bot.get_chat_member.return_value = SimpleNamespace(status=ChatMemberStatus.LEFT)
-    chat = SimpleNamespace(iid="chat-db-id")
+    chat = SimpleNamespace(id="chat-db-id")
     handler = AsyncMock()
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))
@@ -59,7 +59,7 @@ async def test_reaction_lock_removes_outsider_reaction(monkeypatch: pytest.Monke
 async def test_reaction_lock_allows_chat_members(monkeypatch: pytest.MonkeyPatch) -> None:
     bot = AsyncMock()
     bot.get_chat_member.return_value = SimpleNamespace(status=ChatMemberStatus.MEMBER)
-    chat = SimpleNamespace(iid="chat-db-id")
+    chat = SimpleNamespace(id="chat-db-id")
     handler = AsyncMock(return_value="handled")
 
     monkeypatch.setattr(reaction_enforcer, "is_enabled", AsyncMock(return_value=True))

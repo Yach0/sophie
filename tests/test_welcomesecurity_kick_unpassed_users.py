@@ -44,8 +44,8 @@ def _patch_module(
         f"{_MODULE}.ChatModel.get_by_iid",
         AsyncMock(
             side_effect=[
-                SimpleNamespace(id=PydanticObjectId(), iid=PydanticObjectId(), tid=123),
-                SimpleNamespace(id=PydanticObjectId(), iid=PydanticObjectId(), tid=-100123),
+                SimpleNamespace(id=PydanticObjectId(), tid=123),
+                SimpleNamespace(id=PydanticObjectId(), tid=-100123),
             ]
         ),
     )

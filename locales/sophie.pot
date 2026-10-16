@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 22:01+0200\n"
+"POT-Creation-Date: 2026-10-17 00:59+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,28 +17,28 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: sophie_bot/args/chats.py:27
+#: sophie_bot/args/chats.py:28
 msgid "Could not find the requested Chat ID in the database."
 msgstr ""
 
-#: sophie_bot/args/chats.py:40 sophie_bot/args/users.py:43
+#: sophie_bot/args/chats.py:41 sophie_bot/args/users.py:43
 msgid "Could not find the requested Username in the database."
 msgstr ""
 
-#: sophie_bot/args/chats.py:53
+#: sophie_bot/args/chats.py:55
 msgid "Chat: 'Chat ID (numeric) / Username (starts with @)'"
 msgstr ""
 
-#: sophie_bot/args/chats.py:54
+#: sophie_bot/args/chats.py:56
 msgid "Chats: 'Chat IDs (numeric) / Usernames (starts with @)'"
 msgstr ""
 
-#: sophie_bot/args/chats.py:60 sophie_bot/modules/op/handlers/op_debug.py:388
+#: sophie_bot/args/chats.py:62 sophie_bot/modules/op/handlers/op_debug.py:388
 #: sophie_bot/modules/op/handlers/preview_chat_summary.py:47
 msgid "Chat ID"
 msgstr ""
 
-#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:78
+#: sophie_bot/args/chats.py:63 sophie_bot/args/users.py:79
 #: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr ""
@@ -49,39 +49,39 @@ msgstr ""
 msgid "Lock type"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:30
+#: sophie_bot/args/lock_type.py:32
 msgid "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:35
+#: sophie_bot/args/lock_type.py:38
 msgid "Lock type (e.g., sticker, url, stickerpack:PACK_ID, language:ru)"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:35
+#: sophie_bot/args/lock_type.py:38
 msgid "Lock types"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:40
+#: sophie_bot/args/lock_type.py:43
 msgid "Block stickers"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:41
+#: sophie_bot/args/lock_type.py:44
 msgid "Block URLs"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:42
+#: sophie_bot/args/lock_type.py:45
 msgid "Block web page previews"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:43
+#: sophie_bot/args/lock_type.py:46
 msgid "Block forwarded messages"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:44
+#: sophie_bot/args/lock_type.py:47
 msgid "Block specific sticker pack"
 msgstr ""
 
-#: sophie_bot/args/lock_type.py:45
+#: sophie_bot/args/lock_type.py:48
 msgid "Block Russian language messages"
 msgstr ""
 
@@ -93,19 +93,19 @@ msgstr ""
 msgid "Could not find the requested User ID in the database."
 msgstr ""
 
-#: sophie_bot/args/users.py:70
+#: sophie_bot/args/users.py:71
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:71
+#: sophie_bot/args/users.py:72
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:77
+#: sophie_bot/args/users.py:78
 msgid "User ID"
 msgstr ""
 
-#: sophie_bot/args/users.py:80
+#: sophie_bot/args/users.py:81
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
@@ -1113,7 +1113,7 @@ msgstr ""
 msgid "By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:400
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:286
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
 #: sophie_bot/modules/ai/utils/research.py:428
 #: sophie_bot/modules/ai/utils/research.py:559
@@ -1133,7 +1133,7 @@ msgid "Thinking..."
 msgstr ""
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:122
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:124
 msgid "Working on it..."
 msgstr ""
 
@@ -1436,11 +1436,11 @@ msgstr ""
 msgid "AI context is not configured correctly. Ask the bot operator to configure context_window_tokens for every chatbot model, including the fallback model."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:115
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:119
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:134
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:136
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -2652,29 +2652,29 @@ msgstr ""
 msgid "Federation ID"
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:28
+#: sophie_bot/modules/federations/args/fed_id.py:29
 #, python-brace-format
 msgid "Invalid federation ID format. Federation IDs must contain exactly {count} hyphens."
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:34
+#: sophie_bot/modules/federations/args/fed_id.py:35
 msgid "Federation ID cannot contain formatting or mentions."
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:45
+#: sophie_bot/modules/federations/args/fed_id.py:47
 #, python-brace-format
 msgid "Federation with ID {fed_id} not found."
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:50
+#: sophie_bot/modules/federations/args/fed_id.py:53
 msgid "Federation ID (format: xxxx-xxxx-xxxx-xxxx)"
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:50
+#: sophie_bot/modules/federations/args/fed_id.py:53
 msgid "Federation IDs"
 msgstr ""
 
-#: sophie_bot/modules/federations/args/fed_id.py:58
+#: sophie_bot/modules/federations/args/fed_id.py:62
 msgid "Federation ID example"
 msgstr ""
 
@@ -2946,7 +2946,7 @@ msgstr ""
 
 #: sophie_bot/modules/federations/handlers/chats.py:126
 #: sophie_bot/modules/federations/handlers/info.py:119
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:80
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:74
 msgid "Chat not found in database"
 msgstr ""
 
@@ -3746,25 +3746,6 @@ msgstr ""
 
 #: sophie_bot/modules/filters/filter_wizard.py:125
 msgid "Filter settings"
-msgstr ""
-
-#: sophie_bot/modules/filters/filter_wizard.py:141
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:77
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:117
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:123
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:167
-msgid "This session has expired. Please run the command again."
-msgstr ""
-
-#: sophie_bot/modules/filters/filter_wizard.py:144
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:68
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:107
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:128
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:136
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:147
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:184
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:236
-msgid "Invalid callback data."
 msgstr ""
 
 #: sophie_bot/modules/filters/handlers/filter_del.py:25
@@ -5258,27 +5239,27 @@ msgstr ""
 msgid "You need to update the data of the chat notes. Generate the note data from the provided note text"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/captcha_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/captcha_button.py:12
 msgid "Captcha Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/captcha_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/captcha_button.py:12
 msgid "Captcha Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/connect_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/connect_button.py:12
 msgid "Connect Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/connect_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/connect_button.py:12
 msgid "Connect Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/delete_button.py:12
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/delete_button.py:13
 msgid "Delete Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/delete_button.py:12
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/delete_button.py:13
 msgid "Delete Buttons"
 msgstr ""
 
@@ -5294,48 +5275,48 @@ msgstr ""
 msgid "Markdown link data cannot contain entities."
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/note_button.py:12
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/note_button.py:13
 msgid "Note Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/note_button.py:12
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/note_button.py:13
 msgid "Note Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/parse_arg.py:32
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/parse_arg.py:33
 #: sophie_bot/modules/notes/utils/buttons_processor/ass_types/text_with_buttons_arg.py:17
 msgid "Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/rules_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/rules_button.py:12
 msgid "Rules Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/rules_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/rules_button.py:12
 msgid "Rules Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/sophie_dm_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/sophie_dm_button.py:12
 msgid "Sophie DM Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/sophie_dm_button.py:11
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/sophie_dm_button.py:12
 msgid "Sophie DM Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:19
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:20
 msgid "URL Button"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:19
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:20
 msgid "URL Buttons"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:37
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:39
 msgid "Button style must be one of: primary, danger, success"
 msgstr ""
 
-#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:52
+#: sophie_bot/modules/notes/utils/buttons_processor/ass_types/url_button.py:54
 msgid "URL must start with http or https"
 msgstr ""
 
@@ -6691,8 +6672,8 @@ msgstr ""
 msgid "Time (e.g., 2h, 7d, 2w)"
 msgstr ""
 
-#: sophie_bot/modules/restrictions/handlers/base.py:171
-#: sophie_bot/modules/restrictions/handlers/base.py:177
+#: sophie_bot/modules/restrictions/handlers/base.py:172
+#: sophie_bot/modules/restrictions/handlers/base.py:178
 #: sophie_bot/modules/users/handlers/info.py:63
 #: sophie_bot/modules/users/handlers/info.py:68
 #: sophie_bot/modules/users/handlers/info.py:77
@@ -7175,7 +7156,7 @@ msgid "Change action"
 msgstr ""
 
 #: sophie_bot/modules/utils_/action_config_wizard/views.py:86
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:261
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:267
 msgid "No actions configured."
 msgstr ""
 
@@ -7203,22 +7184,39 @@ msgstr ""
 msgid "Action setup"
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:199
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:220
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:241
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:254
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:68
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:108
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:134
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:142
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:153
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:190
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:242
+msgid "Invalid callback data."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:77
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:123
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:129
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:173
+msgid "This session has expired. Please run the command again."
+msgstr ""
+
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:205
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:226
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:247
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:260
 msgid "Unknown action."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:202
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:208
 msgid "This action cannot be added."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:244
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:250
 msgid "Unknown setting."
 msgstr ""
 
-#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:272
+#: sophie_bot/modules/utils_/action_config_wizard/wizard.py:278
 msgid "Configuration cancelled."
 msgstr ""
 
@@ -7364,8 +7362,7 @@ msgstr ""
 
 #: sophie_bot/modules/warns/handlers/reset_all_warns.py:33
 #: sophie_bot/modules/warns/handlers/reset_warns.py:49
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:133
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:95
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_presentation.py:66
 msgid "Confirm"
 msgstr ""
 
@@ -7565,18 +7562,8 @@ msgstr ""
 msgid "Captcha expired. Please try again."
 msgstr ""
 
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:67
+#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:61
 msgid "The chat initiated the Welcome Security procedure were not found! Try clicking on the authentication button in the group again."
-msgstr ""
-
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:102
-#: sophie_bot/modules/welcomesecurity/utils_/initiate_captcha.py:72
-#, python-brace-format
-msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
-msgstr ""
-
-#: sophie_bot/modules/welcomesecurity/handlers/captcha_get.py:110
-msgid "❌ Incorrect solution. Please, try again."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/chat_join_request.py:44
@@ -7731,6 +7718,15 @@ msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:154
 msgid "Captcha expiry updated."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_presentation.py:41
+#, python-brace-format
+msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
+msgstr ""
+
+#: sophie_bot/modules/welcomesecurity/utils_/captcha_presentation.py:47
+msgid "❌ Incorrect solution. Please, try again."
 msgstr ""
 
 #: sophie_bot/modules/welcomesecurity/utils_/captcha_rules.py:28

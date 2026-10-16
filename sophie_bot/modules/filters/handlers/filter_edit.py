@@ -35,7 +35,7 @@ class FilterEditHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         keyword: str = self.data["handler"]
-        filter_item = await FiltersModel.get_by_keyword(self.connection.db_model.iid, keyword)
+        filter_item = await FiltersModel.get_by_keyword(self.connection.db_model.id, keyword)
         if filter_item is None:
             return await self.event.reply(
                 str(

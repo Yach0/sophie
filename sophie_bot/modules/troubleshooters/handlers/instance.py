@@ -26,7 +26,7 @@ class InstanceStatus(SophieMessageHandler):
         if self.connection.type == ChatType.private:
             return await self.event.reply(_("You can't use this command in private chats."))
 
-        model = await BetaModeModel.get_by_chat_iid(self.connection.db_model.iid)
+        model = await BetaModeModel.get_by_chat_iid(self.connection.db_model.id)
         preferred_mode = model.preferred_mode if model else PreferredMode.auto
 
         if model and model.mode:

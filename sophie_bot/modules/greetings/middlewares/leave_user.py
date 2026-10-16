@@ -27,7 +27,7 @@ class LeaveUserMiddleware(BaseMiddleware):
                 raise SkipHandler
 
             chat_db = data["context"].event_chat
-            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
+            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.id)
 
             # Cleanservice
             if db_item.clean_service and db_item.clean_service.enabled:

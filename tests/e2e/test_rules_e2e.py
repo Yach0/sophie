@@ -12,7 +12,7 @@ from tests.e2e.helpers import create_test_user_and_group, grant_admin, next_user
 async def _rules_text(group_tid: int) -> str | None:
     chat = await ChatModel.get_by_tid(group_tid)
     assert chat is not None
-    rules = await RulesModel.get_rules(chat.iid)
+    rules = await RulesModel.get_rules(chat.id)
     return rules.text if rules else None
 
 

@@ -10,7 +10,7 @@ description: Use when adding or changing Beanie document links, reference querie
 - Use Beanie `Link[Model]` for relationships. Assign model instances to link fields, not raw IDs.
 - Strict identifier separation: `chat_tid` (`int`) vs `chat_iid` (`PydanticObjectId`).
 - Never query `Link[Model]` directly with a Telegram ID (`tid`).
-- Query link fields using Beanie link syntax: `SomeModel.chat.id == chat.iid`.
+- Query link fields using Beanie link syntax: `SomeModel.chat.id == chat.id`.
 - Never add production fallbacks that scan raw pymongo documents to compensate for bad queries.
 
 ## Lookup Pattern
@@ -19,7 +19,7 @@ description: Use when adding or changing Beanie document links, reference querie
 chat = await ChatModel.get_by_tid(chat_tid)
 if not chat:
     return None
-item = await SomeModel.find_one(SomeModel.chat.id == chat.iid)
+item = await SomeModel.find_one(SomeModel.chat.id == chat.id)
 ```
 
 ## Link Resolution

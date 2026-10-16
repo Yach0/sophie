@@ -112,7 +112,7 @@ class WarnHandler(SophieMessageHandler):
             await message.reply(_("You cannot warn yourself."))
             return
 
-        if await is_user_admin(connection.db_model.iid, target_user.iid):
+        if await is_user_admin(connection.db_model.id, target_user.id):
             await message.reply(_("I cannot warn an admin."))
             return
 
@@ -162,7 +162,7 @@ class WarnHandler(SophieMessageHandler):
         builder = InlineKeyboardBuilder()
 
         # Rules button
-        if await RulesModel.get_rules(connection.db_model.iid):
+        if await RulesModel.get_rules(connection.db_model.id):
             bot_username = (await self.bot.get_me()).username
             builder.row(
                 InlineKeyboardButton(

@@ -31,7 +31,7 @@ class FederationPromoteHandler(FederationPromoteDemoteHandler):
 
     async def _execute_action(self, federation: Federation, user_db: ChatModel) -> None:
         try:
-            await FederationAdminService.promote_admin(federation, user_db.iid)
+            await FederationAdminService.promote_admin(federation, user_db.id)
         except ValueError as e:
             if "already an admin" in str(e):
                 from stfu_tg import Bold, Template, UserLink

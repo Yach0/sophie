@@ -49,12 +49,12 @@ async def test_pressing_a_category_cycles_and_persists_its_level(test_client: Te
 
     # An unconfigured chat starts at NORMAL, so one press moves it to HIGH and the next wraps to OFF.
     await test_client.send_callback(callback_data, from_user=admin, message=picker)
-    levels = get_levels(await get_moderator_settings(chat.iid))
+    levels = get_levels(await get_moderator_settings(chat.id))
     assert levels[ModerationCategory.PII] == DetectionLevel.HIGH
     assert levels[ModerationCategory.SEXUAL] == DetectionLevel.NORMAL
 
     await test_client.send_callback(callback_data, from_user=admin, message=picker)
-    levels = get_levels(await get_moderator_settings(chat.iid))
+    levels = get_levels(await get_moderator_settings(chat.id))
     assert levels[ModerationCategory.PII] == DetectionLevel.OFF
 
 
@@ -88,4 +88,4 @@ async def test_non_admin_cannot_change_a_category(test_client: TestClient) -> No
         message=picker,
     )
 
-    assert await get_moderator_settings(chat.iid) is None, "A non-admin press must not persist anything"
+    assert await get_moderator_settings(chat.id) is None, "A non-admin press must not persist anything"

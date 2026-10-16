@@ -42,7 +42,7 @@ from tests.e2e.helpers import (
 async def _greetings(chat_tid: int) -> GreetingsModel:
     chat = await ChatModel.get_by_tid(chat_tid)
     assert chat is not None
-    return await GreetingsModel.get_by_chat_iid(chat.iid)
+    return await GreetingsModel.get_by_chat_iid(chat.id)
 
 
 def _sends(requests: list) -> list:
@@ -82,7 +82,7 @@ async def test_custom_welcome_text_is_sent(test_client: TestClient) -> None:
     _adder, group = await _setup_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await GreetingsModel.change_welcome_message(chat.iid, Saveable(text="Bienvenue les amis"))
+    await GreetingsModel.change_welcome_message(chat.id, Saveable(text="Bienvenue les amis"))
 
     newbie = User(id=next_user_id(), is_bot=False, first_name="Newbie")
     requests = await join_group(test_client, group, newbie)
@@ -95,7 +95,7 @@ async def test_welcome_disabled_sends_nothing(test_client: TestClient) -> None:
     _adder, group = await _setup_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await GreetingsModel.change_state_welcome(chat.iid, False)
+    await GreetingsModel.change_state_welcome(chat.id, False)
 
     newbie = User(id=next_user_id(), is_bot=False, first_name="Newbie")
     requests = await join_group(test_client, group, newbie)
@@ -120,7 +120,7 @@ async def test_welcome_carries_the_rules_button(test_client: TestClient) -> None
     _adder, group = await _setup_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    await RulesModel.set_rules(chat.iid, Saveable(text="Be nice to each other"))
+    await RulesModel.set_rules(chat.id, Saveable(text="Be nice to each other"))
 
     requests = await join_group(test_client, group, User(id=next_user_id(), is_bot=False, first_name="Newbie"))
 
@@ -223,7 +223,7 @@ async def test_departed_welcome_recipient_is_skipped_without_public_resend(
     await greetings.set_clean_welcome_status(True)
     rich_message = RichMessage(blocks=[RichBlockParagraph(text="Private greeting")]) if rich_welcome else None
     await GreetingsModel.change_welcome_message(
-        chat_model.iid,
+        chat_model.id,
         Saveable(text="Private greeting", rich_message=rich_message, version=3 if rich_welcome else 2),
     )
     departed = User(id=next_user_id(), is_bot=False, first_name="Departed")
@@ -318,7 +318,7 @@ async def test_join_request_joiner_only_cleans_service(
     user = await ChatModel.get_by_tid(newbie.id)
     assert user is not None
     await test_services.redis.set(
-        f"chat_ws_join_request:{chat.iid}:{user.iid}",
+        f"chat_ws_join_request:{chat.id}:{user.id}",
         "1",
     )
 
@@ -351,8 +351,8 @@ async def test_leave_removes_user_in_group_row(test_client: TestClient) -> None:
     chat = await ChatModel.get_by_tid(group.id)
     user = await ChatModel.get_by_tid(newbie.id)
     assert chat is not None and user is not None
-    assert await UserInGroupModel.get_user_in_group(user.iid, chat.iid) is not None
+    assert await UserInGroupModel.get_user_in_group(user.id, chat.id) is not None
 
     await leave_group(test_client, group, newbie)
 
-    assert await UserInGroupModel.get_user_in_group(user.iid, chat.iid) is None
+    assert await UserInGroupModel.get_user_in_group(user.id, chat.id) is None

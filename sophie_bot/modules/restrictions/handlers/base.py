@@ -94,7 +94,7 @@ class BaseRestrictionHandler(SophieMessageHandler):
 
         federation_ban_info: FederationBanInfo | None = None
         if self.check_federation_ban:
-            federation_ban_info = await get_user_federation_ban_info(connection.db_model.iid, user.chat_id)
+            federation_ban_info = await get_user_federation_ban_info(connection.db_model.id, user.chat_id)
 
         until_date = self.data.get("time") if self.with_duration else None
         restriction_result = await execute_restriction(

@@ -25,7 +25,7 @@ class AIAutotranslateModel(Document):
 
     @staticmethod
     async def set_state(chat: ChatModel, new_state: bool):
-        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.iid)
+        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.id)
         if not model:
             model = AIAutotranslateModel(chat=chat, enabled=new_state)
         else:
@@ -44,7 +44,7 @@ class AIAutotranslateModel(Document):
 
     @staticmethod
     async def record_recent_language(chat: ChatModel, language_code: str) -> None:
-        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.iid)
+        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.id)
         if not model:
             model = AIAutotranslateModel(chat=chat)
         model.recent_languages = [code for code in model.recent_languages if code != language_code]
@@ -54,7 +54,7 @@ class AIAutotranslateModel(Document):
 
     @staticmethod
     async def toggle_excluded_language(chat: ChatModel, language_code: str) -> set[str]:
-        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.iid)
+        model = await AIAutotranslateModel.find_one(AIAutotranslateModel.chat.id == chat.id)
         if not model:
             model = AIAutotranslateModel(chat=chat)
         model.excluded_languages.symmetric_difference_update({language_code})

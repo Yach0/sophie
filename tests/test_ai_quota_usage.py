@@ -46,13 +46,13 @@ async def test_charge_ai_usage_weights_credits_by_model_price(db_init: object, t
             AsyncMock(side_effect=[(0.15, 0.60), (0.40, 4.00)]),
         )
 
-        await charge_ai_usage(cheap_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage, redis=test_redis)
-        await charge_ai_usage(expensive_chat.iid, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="openai/gpt-5-mini"), usage, redis=test_redis)
+        await charge_ai_usage(cheap_chat.id, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="mistralai/mistral-small-2603"), usage, redis=test_redis)
+        await charge_ai_usage(expensive_chat.id, AI_FEATURE_CHATBOT, SimpleNamespace(model_name="openai/gpt-5-mini"), usage, redis=test_redis)
 
     all_quotas = await AIQuotaModel.find_all().to_list()
     quotas_by_chat = {str(quota.chat.ref.id): quota for quota in all_quotas}
-    cheap_quota = quotas_by_chat[str(cheap_chat.iid)]
-    expensive_quota = quotas_by_chat[str(expensive_chat.iid)]
+    cheap_quota = quotas_by_chat[str(cheap_chat.id)]
+    expensive_quota = quotas_by_chat[str(expensive_chat.id)]
     assert cheap_quota.used_credits == 2
     assert expensive_quota.used_credits == 10
 
@@ -162,14 +162,14 @@ async def test_charge_ai_usage_records_requests_and_credits(db_init: object, tes
             AsyncMock(return_value=(0.15, 0.60)),
         )
         await charge_ai_usage(
-            chat.iid,
+            chat.id,
             AI_FEATURE_CHATBOT,
             SimpleNamespace(model_name="mistralai/mistral-small-2603"),
             usage,
             redis=test_redis,
         )
 
-    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.iid)
+    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.id)
     assert ai_usage is not None
 
     month_key = datetime.now(UTC).date().strftime("%Y-%m")
@@ -200,15 +200,15 @@ async def test_charge_ai_usage_bills_input_only_and_output_only_runs(
     )
 
     await charge_ai_usage(
-        chat.iid,
+        chat.id,
         AI_FEATURE_CHATBOT,
         SimpleNamespace(model_name="test/zero-counts"),
         usage,
         redis=test_redis,
     )
 
-    quota = await AIQuotaModel.find_one(AIQuotaModel.chat.id == chat.iid)
-    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.iid)
+    quota = await AIQuotaModel.find_one(AIQuotaModel.chat.id == chat.id)
+    ai_usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat.id)
     assert quota is not None
     assert ai_usage is not None
     assert quota.used_credits == expected_credits

@@ -105,7 +105,7 @@ class FederationBanHandler(FederationCommandHandler):
             ban = await FederationBanService.ban_user(
                 federation,
                 user_tid,
-                banner.iid,
+                banner.id,
                 reason,
                 original_message_text,
                 redis=self.services.redis,
@@ -118,7 +118,7 @@ class FederationBanHandler(FederationCommandHandler):
         federation_chat_iids = (
             normalize_chat_iids([chat.to_ref() for chat in federation.chats]) if federation.chats else []
         )
-        chat_part_of_federation: bool = current_chat.iid in federation_chat_iids
+        chat_part_of_federation: bool = current_chat.id in federation_chat_iids
 
         # Ban in the current chat right away so a spamming user is stopped on the spot,
         # before the scheduler propagates the ban across the rest of the federation.
@@ -134,7 +134,7 @@ class FederationBanHandler(FederationCommandHandler):
             ).applied
             if immediate_chat_banned:
                 existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
-                if current_chat.iid not in existing_chat_iids:
+                if current_chat.id not in existing_chat_iids:
                     ban.banned_chats.append(current_chat)
                     await ban.save()
 
@@ -171,9 +171,9 @@ class FederationBanHandler(FederationCommandHandler):
             fed_id=federation.fed_id,
             task_type=FederationTaskType.BAN,
             target_user_id=user_tid,
-            user=banner.iid,
-            chat=current_chat.iid,
-            current_chat_iid=current_chat.iid if chat_part_of_federation else None,
+            user=banner.id,
+            chat=current_chat.id,
+            current_chat_iid=current_chat.id if chat_part_of_federation else None,
             reply_chat_id=self.event.chat.id,
             reply_message_id=reply_msg.message_id if reply_msg else None,
             reason=reason,
@@ -217,7 +217,7 @@ class FederationBanHandler(FederationCommandHandler):
             await self.event.reply(_("Anonymous admin must have a custom admin title to use this command."))
             return None
 
-        candidates = await resolve_anonymous_admin_candidates(current_chat.iid, title)
+        candidates = await resolve_anonymous_admin_candidates(current_chat.id, title)
         if not candidates:
             await self.event.reply(
                 _("Could not resolve this anonymous admin title. Refresh admin cache or use a unique title.")

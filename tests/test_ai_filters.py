@@ -12,7 +12,6 @@ from aiogram.types import Message
 from sophie_bot.constants import AI_FILTER_DAILY_LIMIT_PER_CHAT, AI_FILTER_NEW_USER_MAX_AGE_HOURS
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
-from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.filters.utils_.match_handler import (
     consume_ai_filter_daily_quota,
     match_ai_handler,
@@ -281,7 +280,7 @@ async def test_enforce_filters_evaluates_only_one_ai_filter_per_message(monkeypa
     message = AsyncMock(spec=Message)
     message.chat = SimpleNamespace(id=-100123)
 
-    chat_db = SimpleNamespace(iid="chat-iid")
+    chat_db = SimpleNamespace(id="chat-iid")
     filters = [
         SimpleNamespace(handler="ai:first prompt", effective_version=1, silent=False),
         SimpleNamespace(handler="ai:second prompt", effective_version=1, silent=False),
@@ -313,7 +312,7 @@ async def test_enforce_filters_skips_ai_when_deterministic_filter_matches(monkey
     message = AsyncMock(spec=Message)
     message.chat = SimpleNamespace(id=-100124)
 
-    chat_db = SimpleNamespace(iid="chat-iid")
+    chat_db = SimpleNamespace(id="chat-iid")
     filters = [
         SimpleNamespace(handler="ai:first prompt", effective_version=1, silent=False),
         SimpleNamespace(handler="exact:spam", effective_version=1, silent=False),
@@ -342,19 +341,3 @@ async def test_enforce_filters_skips_ai_when_deterministic_filter_matches(monkey
     assert match_mock.await_args.args[1] == "exact:spam"
 
 
-def test_get_effective_filter_actions_returns_modern_actions() -> None:
-    filter_item = SimpleNamespace(action="legacy", actions={"modern": {"enabled": True}})
-
-    actions = get_effective_filter_actions(filter_item)
-
-    assert len(actions) == 1
-    assert actions[0].name == "modern"
-    assert actions[0].data == {"enabled": True}
-
-
-def test_get_effective_filter_actions_returns_empty_without_actions() -> None:
-    filter_item = SimpleNamespace(action="legacy", actions={})
-
-    actions = get_effective_filter_actions(filter_item)
-
-    assert actions == []

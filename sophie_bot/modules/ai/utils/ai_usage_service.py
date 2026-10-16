@@ -183,8 +183,8 @@ async def get_operator_ai_stats() -> OperatorAIStats:
     chat_by_id: dict[str, ChatModel] = {}
     if iids_needed:
         ids = [PydanticObjectId(value) for value in iids_needed]
-        chat_models = await ChatModel.find(In(ChatModel.iid, ids)).to_list()
-        chat_by_id = {str(chat.iid): chat for chat in chat_models}
+        chat_models = await ChatModel.find(In(ChatModel.id, ids)).to_list()
+        chat_by_id = {str(chat.id): chat for chat in chat_models}
 
     def _filter_by_types(data: dict[str, int], allowed_types: set[ChatType]) -> dict[str, int]:
         filtered: dict[str, int] = {}

@@ -42,7 +42,7 @@ class JoinFederationHandler(SophieMessageHandler):
         fed_id: Federation = self.data["fed_id"]
 
         # Check if chat is already in a federation
-        chat_iid = self.connection.db_model.iid
+        chat_iid = self.connection.db_model.id
         existing_fed = await FederationManageService.get_federation_for_chat(chat_iid, redis=self.services.redis)
         if existing_fed:
             if existing_fed.fed_id == fed_id.fed_id:

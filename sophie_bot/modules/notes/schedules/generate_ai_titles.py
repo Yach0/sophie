@@ -74,7 +74,7 @@ class GenerateAITitles:
             if not note.text:
                 log.debug("generate_ai_titles: note has no text, skipping...", note=note)
 
-            generated_data = await self.generate_data(note, chat.iid, chat_tid=chat.tid)
+            generated_data = await self.generate_data(note, chat.id, chat_tid=chat.tid)
             await self.update_note(note, generated_data)
 
     async def handle(self) -> None:

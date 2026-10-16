@@ -55,7 +55,7 @@ async def test_selecting_a_language_persists(
 
     await test_client.send_callback(SelectLangCb(code=target_locale).pack(), from_user=admin, message=picker)
 
-    assert await test_services.locales.get_selected_locale(chat.iid) == target_locale
+    assert await test_services.locales.get_selected_locale(chat.id) == target_locale
 
 
 @pytest.mark.asyncio

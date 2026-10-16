@@ -20,7 +20,7 @@ async def get_disabled_commands(
     chat: ChatDep,
     _user: ReadAdminDep,
 ):
-    disabled = await DisablingModel.get_disabled(chat.iid)
+    disabled = await DisablingModel.get_disabled(chat.id)
     return DisabledResponse(disabled=disabled)
 
 

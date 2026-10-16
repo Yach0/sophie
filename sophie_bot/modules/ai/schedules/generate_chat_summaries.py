@@ -255,10 +255,10 @@ class GenerateChatSummaries:
         message, so the whole run is discarded rather than published when a retry does not fix it.
         """
         if not strict:
-            return await self.generate_summary_groups(transcript, chat.iid, chat.tid)
+            return await self.generate_summary_groups(transcript, chat.id, chat.tid)
 
         for attempt in range(1, SUMMARY_GENERATION_ATTEMPTS + 1):
-            groups = await self.generate_summary_groups(transcript, chat.iid, chat.tid)
+            groups = await self.generate_summary_groups(transcript, chat.id, chat.tid)
             unknown_refs = _collect_unknown_refs(groups, transcript.messages_by_reference)
             if not unknown_refs:
                 return groups
@@ -323,7 +323,7 @@ class GenerateChatSummaries:
         window_start: datetime | None = None,
         window_end: datetime | None = None,
     ) -> None:
-        existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
+        existing_summary = None if force else await AIChatSummaryModel.get_for_date(chat.id, summary_date)
         if existing_summary:
             log.debug(
                 "generate_chat_summaries: summary already exists for date, skipping",
@@ -427,7 +427,7 @@ class GenerateChatSummaries:
                 continue
 
             summary_date, window_start, window_end = _build_chat_summary_window(current_time, chat.ai_summary_time_utc)
-            async with UseChatLanguage(chat.iid, locales=self.services.locales):
+            async with UseChatLanguage(chat.id, locales=self.services.locales):
                 await self.process_chat(
                     chat,
                     summary_date,

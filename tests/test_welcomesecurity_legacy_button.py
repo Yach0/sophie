@@ -14,8 +14,8 @@ async def test_legacy_ws_button_allows_join_request_user_without_group_membershi
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     message = SimpleNamespace(text="/start btnwelcomesecuritystart_-100123")
-    user_db = SimpleNamespace(iid="user_iid", tid=123)
-    group_db = SimpleNamespace(iid="group_iid")
+    user_db = SimpleNamespace(id="user_iid", tid=123)
+    group_db = SimpleNamespace(id="group_iid")
     ws_user = SimpleNamespace(is_join_request=True)
     greetings = SimpleNamespace(welcome_security=SimpleNamespace(enabled=True))
     bot = AsyncMock()
@@ -76,8 +76,8 @@ async def test_legacy_ws_button_unmutes_admin_user(
 ) -> None:
     reply = AsyncMock(return_value=None)
     message = SimpleNamespace(text="/start btnwelcomesecuritystart_-100123", reply=reply)
-    user_db = SimpleNamespace(iid="user_iid", tid=123)
-    group_db = SimpleNamespace(iid="group_iid", tid=-100123)
+    user_db = SimpleNamespace(id="user_iid", tid=123)
+    group_db = SimpleNamespace(id="group_iid", tid=-100123)
     ws_user = SimpleNamespace(is_join_request=True)
     bot = AsyncMock()
 
@@ -123,7 +123,7 @@ async def test_legacy_ws_button_unmutes_admin_user(
 
     await handler.handle()
 
-    remove_user.assert_awaited_once_with(user_db.iid, group_db.iid)
+    remove_user.assert_awaited_once_with(user_db.id, group_db.id)
     execute_restriction.assert_awaited_once_with(
         bot,
         RestrictionAction.UNMUTE,
@@ -140,8 +140,8 @@ async def test_legacy_ws_button_keeps_ws_record_when_admin_unmute_fails(
 ) -> None:
     reply = AsyncMock(return_value=None)
     message = SimpleNamespace(text="/start btnwelcomesecuritystart_-100123", reply=reply)
-    user_db = SimpleNamespace(iid="user_iid", tid=123)
-    group_db = SimpleNamespace(iid="group_iid", tid=-100123)
+    user_db = SimpleNamespace(id="user_iid", tid=123)
+    group_db = SimpleNamespace(id="group_iid", tid=-100123)
     ws_user = SimpleNamespace(is_join_request=True)
     bot = AsyncMock()
 

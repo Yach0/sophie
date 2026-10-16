@@ -106,7 +106,7 @@ class KickUnpassedUsers:
         added_at = ws_user.added_at or ws_user.id.generation_time
         if added_at.tzinfo is None:
             added_at = added_at.replace(tzinfo=UTC)
-        greetings = await GreetingsModel.get_by_chat_iid(group.iid)
+        greetings = await GreetingsModel.get_by_chat_iid(group.id)
         expiry = (
             greetings.welcome_security.expire
             if greetings.welcome_security and greetings.welcome_security.expire

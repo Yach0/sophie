@@ -31,12 +31,12 @@ class FederationDemoteHandler(FederationPromoteDemoteHandler):
 
     async def _execute_action(self, federation: Federation, user_db: ChatModel) -> None:
         creator = await federation.creator.fetch()
-        if creator and creator.iid == user_db.iid:
+        if creator and creator.id == user_db.id:
             await self.event.reply(_("Cannot demote the federation owner."))
             return
 
         try:
-            await FederationAdminService.demote_admin(federation, user_db.iid)
+            await FederationAdminService.demote_admin(federation, user_db.id)
         except ValueError as e:
             if "not an admin" in str(e):
                 from stfu_tg import Bold, Template, UserLink

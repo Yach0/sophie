@@ -151,7 +151,7 @@ async def test_anonymous_admin_title_detection_normalizes_whitespace(
                 custom_title="Moderator",
                 can_restrict_members=True,
             ),
-            user=FakeUserLink(user_model=SimpleNamespace(iid="resolved_admin_iid", tid=111111)),
+            user=FakeUserLink(user_model=SimpleNamespace(id="resolved_admin_iid", tid=111111)),
         )
     ]
 
@@ -183,7 +183,7 @@ async def test_anonymous_admin_duplicate_title_all_have_permissions(
                 custom_title="Moderator",
                 can_restrict_members=True,
             ),
-            user=FakeUserLink(user_model=SimpleNamespace(iid="resolved_admin_iid", tid=111111)),
+            user=FakeUserLink(user_model=SimpleNamespace(id="resolved_admin_iid", tid=111111)),
         ),
         FakeAdminEntry(
             member=SimpleNamespace(
@@ -261,7 +261,7 @@ class FakeAdminTable:
         self.rows: dict[tuple[ObjectId, ObjectId], ChatAdminModel] = {}
 
     def add(self, chat: ChatModel, user: ChatModel, member: ResultChatMemberUnion) -> None:
-        self.rows[(chat.iid, user.iid)] = ChatAdminModel(chat=chat, user=user, member=member)
+        self.rows[(chat.id, user.id)] = ChatAdminModel(chat=chat, user=user, member=member)
 
     async def find_one(self, *args: Any, **kwargs: Any) -> ChatAdminModel | None:
         query: dict[str, Any] = {}

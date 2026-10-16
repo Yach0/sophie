@@ -77,8 +77,8 @@ async def test_welcome_mute_restricts_the_new_member_not_the_adder(monkeypatch: 
     """An admin adding a user must not get welcome-muted themselves; the joiner must."""
     joiner = _make_user(JOINER_TID, "Joiner")
     event = _make_event([joiner])
-    chat_db = SimpleNamespace(iid=PydanticObjectId(), tid=CHAT_TID)
-    new_users = [SimpleNamespace(iid=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
+    chat_db = SimpleNamespace(id=PydanticObjectId(), tid=CHAT_TID)
+    new_users = [SimpleNamespace(id=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
     greetings = _make_greetings(welcome_mute=SimpleNamespace(enabled=True, time="1h"))
 
     on_welcomemute = AsyncMock()
@@ -109,11 +109,11 @@ async def test_welcome_mute_restricts_every_joining_human(monkeypatch: pytest.Mo
     joiners = [_make_user(JOINER_TID, "Joiner"), _make_user(333, "Second"), _make_user(444, "SomeBot")]
     joiners[2].is_bot = True
     event = _make_event(joiners)
-    chat_db = SimpleNamespace(iid=PydanticObjectId(), tid=CHAT_TID)
+    chat_db = SimpleNamespace(id=PydanticObjectId(), tid=CHAT_TID)
     new_users = [
-        SimpleNamespace(iid=PydanticObjectId(), tid=JOINER_TID, is_bot=False),
-        SimpleNamespace(iid=PydanticObjectId(), tid=333, is_bot=False),
-        SimpleNamespace(iid=PydanticObjectId(), tid=444, is_bot=True),
+        SimpleNamespace(id=PydanticObjectId(), tid=JOINER_TID, is_bot=False),
+        SimpleNamespace(id=PydanticObjectId(), tid=333, is_bot=False),
+        SimpleNamespace(id=PydanticObjectId(), tid=444, is_bot=True),
     ]
     greetings = _make_greetings(welcome_mute=SimpleNamespace(enabled=True, time="1h"))
 
@@ -139,8 +139,8 @@ async def test_welcome_fillings_resolve_to_the_joiner_not_the_adder(monkeypatch:
     """send_saveable must receive the joiner, otherwise it falls back to message.from_user (the adder)."""
     joiner = _make_user(JOINER_TID, "Joiner")
     event = _make_event([joiner])
-    chat_db = SimpleNamespace(iid=PydanticObjectId(), tid=CHAT_TID)
-    new_users = [SimpleNamespace(iid=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
+    chat_db = SimpleNamespace(id=PydanticObjectId(), tid=CHAT_TID)
+    new_users = [SimpleNamespace(id=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
     greetings = _make_greetings()
 
     send_saveable = AsyncMock(return_value=None)
@@ -162,8 +162,8 @@ async def test_welcome_fillings_resolve_to_the_joiner_not_the_adder(monkeypatch:
 async def test_security_note_fillings_resolve_to_the_joiner(monkeypatch: pytest.MonkeyPatch) -> None:
     joiner = _make_user(JOINER_TID, "Joiner")
     event = _make_event([joiner])
-    chat_db = SimpleNamespace(iid=PydanticObjectId(), tid=CHAT_TID)
-    new_users = [SimpleNamespace(iid=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
+    chat_db = SimpleNamespace(id=PydanticObjectId(), tid=CHAT_TID)
+    new_users = [SimpleNamespace(id=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
     greetings = _make_greetings(
         welcome_security=SimpleNamespace(enabled=True),
         security_note=SimpleNamespace(text="Hi {first}, prove you are human", file=None, files=None, buttons=[]),
@@ -189,8 +189,8 @@ async def test_security_note_fillings_resolve_to_the_joiner(monkeypatch: pytest.
 async def test_join_request_joins_are_still_cleaned_up(monkeypatch: pytest.MonkeyPatch) -> None:
     joiner = _make_user(JOINER_TID, "Joiner")
     event = _make_event([joiner])
-    chat_db = SimpleNamespace(iid=PydanticObjectId(), tid=CHAT_TID)
-    new_users = [SimpleNamespace(iid=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
+    chat_db = SimpleNamespace(id=PydanticObjectId(), tid=CHAT_TID)
+    new_users = [SimpleNamespace(id=PydanticObjectId(), tid=JOINER_TID, is_bot=False)]
     greetings = _make_greetings(clean_service=SimpleNamespace(enabled=True))
 
     delete_messages = AsyncMock()

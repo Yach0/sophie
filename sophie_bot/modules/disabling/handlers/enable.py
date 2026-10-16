@@ -42,11 +42,11 @@ class EnableHandler(SophieMessageHandler):
 
         cmd_key, handler = resolved
 
-        if cmd_key not in await DisablingModel.get_disabled(connection.db_model.iid):
+        if cmd_key not in await DisablingModel.get_disabled(connection.db_model.id):
             await self.event.reply(str(Template(_("Command {cmd} is not disabled."), cmd=Code("/" + cmd_name))))
             return
 
-        await self.enable_cmd(connection.db_model.iid, cmd_key)
+        await self.enable_cmd(connection.db_model.id, cmd_key)
 
         await self.event.reply(
             str(

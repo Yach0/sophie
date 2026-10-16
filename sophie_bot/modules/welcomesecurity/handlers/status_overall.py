@@ -100,16 +100,16 @@ class WelcomeSecuritySettingsShowHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
 
         await self.event.reply(
             str(_settings_text(db_item, self.current_locale)),
-            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.iid),
+            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.id),
         )
 
         title = Bold(Title(_("Welcome Security message")))
 
-        rules = await RulesModel.get_rules(connection.db_model.iid)
+        rules = await RulesModel.get_rules(connection.db_model.id)
         additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
 
         welcome = db_item.security_note or get_default_security_message()
@@ -135,7 +135,7 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
 
     async def handle(self) -> Any:
         connection = self.connection
-        if connection.type == "private" or self.callback_data.chat_iid != str(connection.db_model.iid):
+        if connection.type == "private" or self.callback_data.chat_iid != str(connection.db_model.id):
             return await self.event.answer(
                 _("These settings are no longer active. Open /welcome_security again for the intended chat."),
                 show_alert=True,
@@ -146,7 +146,7 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
         if seconds not in allowed_seconds:
             return await self.event.answer(_("This expiry option is no longer available."), show_alert=True)
 
-        db_item = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_item = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
         await db_item.set_status_welcomesecurity(
             bool(db_item.welcome_security and db_item.welcome_security.enabled),
             timedelta(seconds=seconds),
@@ -154,5 +154,5 @@ class WelcomeSecurityExpireHandler(SophieCallbackQueryHandler):
         await self.event.answer(_("Captcha expiry updated."))
         return await self.edit_text(
             _settings_text(db_item, self.current_locale),
-            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.iid),
+            reply_markup=_expiry_keyboard(db_item, self.current_locale, connection.db_model.id),
         )

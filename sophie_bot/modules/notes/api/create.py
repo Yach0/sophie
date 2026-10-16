@@ -23,7 +23,7 @@ async def create_note(
     if not note_data.names:
         raise HTTPException(status_code=400, detail="Note names cannot be empty")
 
-    existing = await NoteModel.get_by_notenames(chat.iid, note_data.names)
+    existing = await NoteModel.get_by_notenames(chat.id, note_data.names)
     if existing:
         raise HTTPException(status_code=400, detail=f"One of the names is already taken: {existing.names}")
 

@@ -44,9 +44,9 @@ async def test_ban_user_in_community_chats_ignores_channel(test_services: object
     user_iid = PydanticObjectId("507f1f77bcf86cd799439101")
     group_iid = PydanticObjectId("507f1f77bcf86cd799439102")
     channel_iid = PydanticObjectId("507f1f77bcf86cd799439103")
-    group = MagicMock(iid=group_iid, tid=-100100, type=ChatType.supergroup)
-    channel = MagicMock(iid=channel_iid, tid=-100200, type=ChatType.channel)
-    user = MagicMock(iid=user_iid)
+    group = MagicMock(id=group_iid, tid=-100100, type=ChatType.supergroup)
+    channel = MagicMock(id=channel_iid, tid=-100200, type=ChatType.channel)
+    user = MagicMock(id=user_iid)
     group_membership = MagicMock()
     group_membership.group.to_ref.return_value = group_iid
     channel_membership = MagicMock()

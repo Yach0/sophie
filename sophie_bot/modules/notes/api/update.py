@@ -70,7 +70,7 @@ async def update_note(
 
         update_dict["names"] = normalize_notenames(update_dict["names"])
 
-        existing = await NoteModel.get_by_notenames(chat.iid, update_dict["names"])
+        existing = await NoteModel.get_by_notenames(chat.id, update_dict["names"])
         if existing and existing.id != note.id:
             raise HTTPException(status_code=400, detail=f"One of the names is already taken: {existing.names}")
 

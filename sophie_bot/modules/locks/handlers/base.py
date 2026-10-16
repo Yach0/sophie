@@ -37,7 +37,7 @@ class BaseLockToggleHandler(SophieMessageHandler):
 
         lock_type = lock_type.lower()
 
-        existing_owner = await get_lock_type_owner(connection.db_model.iid, lock_type)
+        existing_owner = await get_lock_type_owner(connection.db_model.id, lock_type)
         if existing_owner == "filters":
             await message.reply(
                 Doc(
@@ -47,7 +47,7 @@ class BaseLockToggleHandler(SophieMessageHandler):
             )
             return
 
-        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+        model = await LocksModel.get_by_chat_iid(connection.db_model.id)
         changed = await self._toggle_lock(model, lock_type)
 
         await invalidate_locks_cache(connection.tid, redis=self.services.redis)

@@ -56,7 +56,7 @@ class LockMutedUsers(BaseMiddleware):
         if await is_user_admin(chat_db.tid, user_db.tid):
             return False
 
-        ws_user = await WSUserModel.is_user(user_db.iid, chat_db.iid)
+        ws_user = await WSUserModel.is_user(user_db.id, chat_db.id)
         return ws_user is not None and not ws_user.passed
 
     async def __call__(

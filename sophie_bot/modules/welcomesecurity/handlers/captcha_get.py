@@ -1,10 +1,7 @@
-from typing import Any, NamedTuple
+from typing import Any
 
 from aiogram import Router
-from aiogram.types import BufferedInputFile, InlineKeyboardButton
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
-from stfu_tg import Bold, Italic, Template
 
 from sophie_bot.db.models import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
@@ -14,6 +11,11 @@ from sophie_bot.modules.welcomesecurity.callbacks import (
     WelcomeSecurityMoveCB,
 )
 from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
+from sophie_bot.modules.welcomesecurity.utils_.captcha_presentation import (
+    CaptchaTarget,
+    build_captcha_presentation,
+    build_captcha_state,
+)
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
@@ -21,18 +23,10 @@ from sophie_bot.utils.handlers import SophieMessageCallbackQueryHandler
 from sophie_bot.utils.i18n import gettext as _
 
 
-class CaptchaTarget(NamedTuple):
-    """Which chat a captcha belongs to. Kept as a unit so the chat and its join-request
-    flag can never be taken from different sources."""
-
-    chat_iid: str
-    is_join_request: bool
-
-
 @flags.handler_help(exclude=True)
 class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
     @classmethod
-    def register(cls, router: Router):
+    def register(cls, router: Router) -> None:
         router.message.register(cls, CMDFilter("captcha"), IsOP(True))
         router.callback_query.register(cls, WelcomeSecurityMoveCB.filter())
 
@@ -86,8 +80,6 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         # Restore from state or generate new
         captcha = EmojiCaptcha(data=state_data.get("captcha") if not shuffle else None)
 
-        is_join_request = target.is_join_request
-
         cb_data = self.callback_data
         if isinstance(cb_data, WelcomeSecurityMoveCB):
             if cb_data.direction == "left":
@@ -97,58 +89,12 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
             else:
                 raise SophieException("Invalid direction")
 
-        text = Template(
-            _(
-                "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
-            ),
-            emoji_name=Bold(captcha.data.base_emoji),
-            group_name=Italic(chat_db.first_name_or_title),
-        )
-
-        if shuffle:
-            text += ""
-            text += Bold(_("❌ Incorrect solution. Please, try again."))
-
-        buttons = InlineKeyboardBuilder()
-        buttons.row(
-            InlineKeyboardButton(
-                text="⬅️",
-                callback_data=WelcomeSecurityMoveCB(
-                    direction="left",
-                    chat_iid=str(chat_db.iid),
-                    is_join_request=is_join_request,
-                ).pack(),
-            ),
-            InlineKeyboardButton(
-                text="▶️",
-                callback_data=WelcomeSecurityMoveCB(
-                    direction="right",
-                    chat_iid=str(chat_db.iid),
-                    is_join_request=is_join_request,
-                ).pack(),
-            ),
-        )
-        buttons.row(
-            InlineKeyboardButton(
-                text=f"☑️ {_('Confirm')}",
-                callback_data=WelcomeSecurityConfirmCB(
-                    chat_iid=str(chat_db.iid),
-                    is_join_request=is_join_request,
-                ).pack(),
-            )
-        )
-
+        presentation = build_captcha_presentation(captcha, chat_db.first_name_or_title, target, incorrect=shuffle)
         await self.answer_media(
-            BufferedInputFile(captcha.image, "captcha.jpeg"),
-            caption=str(text),
-            reply_markup=buttons.as_markup(),
+            presentation.photo,
+            caption=presentation.caption,
+            reply_markup=presentation.reply_markup,
         )
 
         await self.state.set_state(WelcomeSecurityFSM.captcha)
-        await self.state.update_data(
-            {
-                "captcha": captcha.data.model_dump(),
-                "ws_chat_iid": str(chat_db.iid),
-                "ws_is_join_request": is_join_request,
-            }
-        )
+        await self.state.update_data(build_captcha_state(captcha, target))

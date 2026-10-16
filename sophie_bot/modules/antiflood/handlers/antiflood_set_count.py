@@ -51,7 +51,7 @@ class AntifloodSetCountHandler(SophieMessageHandler):
             await self.event.reply(_("Number must be between 1 and 100"))
             return
 
-        model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat.iid)
+        model = await AntifloodModel.find_one(AntifloodModel.chat.id == chat.id)
         if not model:
             model = AntifloodModel(chat=chat, enabled=True, message_count=count)
             await model.save()

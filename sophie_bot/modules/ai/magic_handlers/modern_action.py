@@ -113,7 +113,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         await messages.add_from_message(message)
         messages.apply_context_block()
         model_plan = await get_chat_default_model_plan(
-            connection.db_model.iid,
+            connection.db_model.id,
             chat_tid=connection.db_model.tid,
             redis=data["services"].redis,
         )
@@ -122,13 +122,13 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             Agent(model_plan.primary, name="filter:ai_response", output_type=str),
             user_prompt=messages.prompt,
             message_history=messages.message_history,
-            request_options=AIRequestOptions(user_tracking_id=chat_db.iid),
+            request_options=AIRequestOptions(user_tracking_id=chat_db.id),
             model_plan=model_plan,
         )
 
         if result.usage and result.usage.total_tokens:
             await charge_ai_usage(
-                chat_db.iid,
+                chat_db.id,
                 AI_FEATURE_FILTER,
                 result.served_model or model_plan.primary,
                 result.usage,

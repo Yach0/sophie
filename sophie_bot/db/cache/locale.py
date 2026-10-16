@@ -8,22 +8,24 @@ from beanie.odm.operators.update.general import Set
 from sophie_bot.constants import CACHE_LANGUAGE_TTL_SECONDS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.language import LanguageModel
-from sophie_bot.utils.cached import Cached, CachedFunction, RedisCache
+from sophie_bot.utils.cached import Cached, RedisCache
 from sophie_bot.utils.i18n import I18nNew
 
-_CACHE_KEY = "sophie_bot.db.cache.locale:_cached_stored_locale"
+
+def _stored_locale_cache_key(chat_iid: PydanticObjectId) -> str:
+    return f"sophie_bot.db.cache.locale:_cached_stored_locale(chat_iid={chat_iid!r})"
 
 
 class LocaleStore:
     def __init__(self, cache: RedisCache, i18n: I18nNew, default_locale: str) -> None:
-        self.cache = cache
         self.i18n = i18n
         self.default_locale = default_locale
-        self._cached_stored_locale: CachedFunction[[PydanticObjectId], str | None] = Cached(
+        self._cached_stored_locale: Cached[PydanticObjectId, str | None] = Cached(
             cache,
+            self._load_stored_locale,
             ttl=CACHE_LANGUAGE_TTL_SECONDS,
-            key=_CACHE_KEY,
-        )(self._load_stored_locale)
+            key=_stored_locale_cache_key,
+        )
 
     @staticmethod
     async def _load_stored_locale(chat_iid: PydanticObjectId) -> str | None:
@@ -38,8 +40,8 @@ class LocaleStore:
         return await self.get_selected_locale(chat_iid) or self.default_locale
 
     async def set_selected_locale(self, chat: ChatModel, locale_name: str) -> None:
-        await LanguageModel.find_one(LanguageModel.chat.id == chat.iid).upsert(
+        await LanguageModel.find_one(LanguageModel.chat.id == chat.id).upsert(
             Set({LanguageModel.lang: locale_name}),
             on_insert=LanguageModel(chat=chat, lang=locale_name),
         )
-        await self._cached_stored_locale.reset_cache(chat.iid)
+        await self._cached_stored_locale.reset_cache(chat.id)

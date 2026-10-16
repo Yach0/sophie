@@ -259,7 +259,7 @@ class AiTranslate(SophieMessageHandler):
         log.debug("AiTranslate", ai_context=ai_context.history_debug())
 
         model_plan = await get_chat_translations_model_plan(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             chat_tid=self.connection.db_model.tid,
             mode=self.data.get("ai_mode"),
             redis=self.services.redis,
@@ -282,7 +282,7 @@ class AiTranslate(SophieMessageHandler):
                 ),
                 model_plan,
                 ai_context,
-                chat_iid=self.connection.db_model.iid,
+                chat_iid=self.connection.db_model.id,
                 chat_tid=self.event.chat.id,
                 service_tier=service_tier,
                 redis=self.services.redis,
@@ -310,7 +310,7 @@ class AiTranslate(SophieMessageHandler):
             return
 
         quota_info = await get_quota_info(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             redis=self.services.redis,
         )
         quota_header = None

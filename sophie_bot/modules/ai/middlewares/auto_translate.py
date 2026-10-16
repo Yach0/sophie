@@ -34,9 +34,9 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
             and (capabilities := data.get("ai_capabilities"))
             and capabilities.ai_enabled
             and isinstance(event, Message)
-            and await AIAutotranslateModel.get_state(chat_db.iid)
+            and await AIAutotranslateModel.get_state(chat_db.id)
         ):
-            quota_check = await check_quota(chat_db.iid, redis=data["services"].redis)
+            quota_check = await check_quota(chat_db.id, redis=data["services"].redis)
             if not quota_check.allowed:
                 return result
 
@@ -64,7 +64,7 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
 
             excluded_languages = {
                 lang_code_to_language(language_code)
-                for language_code in await AIAutotranslateModel.get_excluded_languages(chat_db.iid)
+                for language_code in await AIAutotranslateModel.get_excluded_languages(chat_db.id)
             }
             detected_languages = detect_languages(text_to_detect)
             if detected_languages:

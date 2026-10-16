@@ -54,7 +54,7 @@ class OperatorLoginRequest(BaseModel):
 
 async def create_tokens(user: ChatModel, scopes: list[str] | None = None) -> dict:
     access_token_expires = timedelta(minutes=CONFIG.api_jwt_expire_minutes)
-    data: dict[str, Any] = {"sub": str(user.iid)}
+    data: dict[str, Any] = {"sub": str(user.id)}
     if scopes:
         data["scopes"] = scopes
     access_token = create_access_token(data=data, expires_delta=access_token_expires)
@@ -146,7 +146,7 @@ async def refresh_token(data: RefreshRequest):
 
     expires_at = token.expires_at.replace(tzinfo=UTC)
     if expires_at < datetime.now(UTC):
-        security_log.warning("auth.refresh.token_expired", token_iid=token.iid)
+        security_log.warning("auth.refresh.token_expired", token_iid=token.id)
         await token.delete()  # Clean up expired token
         raise HTTPException(status_code=401, detail="Refresh token expired")
 

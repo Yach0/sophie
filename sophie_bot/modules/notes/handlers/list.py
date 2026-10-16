@@ -64,7 +64,7 @@ class NotesList(SophieMessageHandler):
         search: str | None = self.data.get("search")
         state = self.data.get("state")
         notes = await _query_notes(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             self.connection.tid,
             search,
             redis=self.services.redis,
@@ -78,7 +78,7 @@ class NotesList(SophieMessageHandler):
                 state,
                 _NotesListContext(
                     search=search,
-                    chat_iid=self.connection.db_model.iid,
+                    chat_iid=self.connection.db_model.id,
                     chat_tid=self.connection.tid,
                     chat_title=self.connection.title or _("Unknown"),
                     started_at=time.time(),

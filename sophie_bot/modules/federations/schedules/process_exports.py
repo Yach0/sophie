@@ -94,14 +94,14 @@ class ProcessFederationExports:
         # Bulk load "by" users
         users_cache = {}
         if by_user_iids:
-            by_users = await ChatModel.find(In(ChatModel.iid, list(by_user_iids))).to_list()
-            users_cache = {user.iid: user for user in by_users}
+            by_users = await ChatModel.find(In(ChatModel.id, list(by_user_iids))).to_list()
+            users_cache = {user.id: user for user in by_users}
 
         # Bulk load chats
         chats_cache = {}
         if chat_iids:
-            chats = await ChatModel.find(In(ChatModel.iid, list(chat_iids))).to_list()
-            chats_cache = {chat.iid: chat for chat in chats}
+            chats = await ChatModel.find(In(ChatModel.id, list(chat_iids))).to_list()
+            chats_cache = {chat.id: chat for chat in chats}
 
         ban_count = 0
         for ban in bans:
@@ -132,7 +132,7 @@ class ProcessFederationExports:
     @staticmethod
     def _extract_chat_iid(chat_link: object) -> object | None:
         """Extract ChatModel internal ID from either a fetched model or a Link object."""
-        direct_iid = getattr(chat_link, "iid", None)
+        direct_iid = getattr(chat_link, "id", None)
         if direct_iid is not None:
             return direct_iid
 

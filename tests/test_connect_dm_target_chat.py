@@ -93,7 +93,7 @@ async def test_connect_cmd_checks_permissions_for_the_user_not_the_connected_cha
 
     await handler.handle()
 
-    assert permission_probe == [(chat_b.iid, user.iid)]
+    assert permission_probe == [(chat_b.id, user.id)]
     connect_dm.set_connected_chat.assert_awaited_once_with(
         USER_TID,
         CHAT_B_TID,
@@ -130,7 +130,7 @@ async def test_connect_callback_checks_permissions_for_the_user_not_the_connecte
 
     await handler.handle()
 
-    assert permission_probe == [(chat_b.iid, user.iid)]
+    assert permission_probe == [(chat_b.id, user.id)]
     connect_dm.set_connected_chat.assert_awaited_once_with(
         USER_TID,
         CHAT_B_TID,

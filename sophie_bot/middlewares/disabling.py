@@ -20,7 +20,7 @@ class DisablingMiddleware(BaseMiddleware):
     ) -> Any:
         if isinstance(event, Message):
             chat_db = data["context"].event_chat
-            disabled = await DisablingModel.get_disabled(chat_db.iid)
+            disabled = await DisablingModel.get_disabled(chat_db.id)
 
             data["disabled"] = disabled
             log.debug("DisablingMiddleware", chat_id=chat_db.tid, disabled=disabled)
@@ -28,7 +28,7 @@ class DisablingMiddleware(BaseMiddleware):
             if disableable_name := get_disableable_name(data):
                 if event.from_user:
                     user_id = event.from_user.id
-                    is_admin = await is_user_admin(chat_db.iid, user_id)
+                    is_admin = await is_user_admin(chat_db.id, user_id)
                 else:
                     is_admin = False
 

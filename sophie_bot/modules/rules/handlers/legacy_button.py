@@ -26,7 +26,7 @@ class LegacyRulesButton(SophieMessageHandler):
         chat_tid = int(regex.group(1))
 
         chat = await ChatModel.get_by_tid(chat_tid)
-        rules = await RulesModel.get_rules(chat.iid) if chat else None
+        rules = await RulesModel.get_rules(chat.id) if chat else None
 
         if not rules:
             return await self.event.reply(

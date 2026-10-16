@@ -74,7 +74,7 @@ async def ban_user(
     ban = await FederationBanService.ban_user(
         federation,
         payload.user_id,
-        user.iid,
+        user.id,
         payload.reason,
         redis=services.redis,
     )

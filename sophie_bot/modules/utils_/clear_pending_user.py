@@ -10,6 +10,6 @@ async def clear_pending_user(user_tid: int, group_tid: int) -> None:
     if user is None or group is None:
         return
 
-    ws_user = await WSUserModel.is_user(user.iid, group.iid)
+    ws_user = await WSUserModel.is_user(user.id, group.id)
     if ws_user is not None and not ws_user.passed:
-        await WSUserModel.remove_user(user.iid, group.iid)
+        await WSUserModel.remove_user(user.id, group.id)

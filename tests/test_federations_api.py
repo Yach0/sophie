@@ -82,9 +82,9 @@ async def test_list_federations_queries_owned_and_admined(db_init: object) -> No
     with patch.object(Federation, "find", _find):
         response = await list_federations(owner)
 
-    assert queries == [{"creator.$id": owner.iid}, {"admins.$id": owner.iid}]
+    assert queries == [{"creator.$id": owner.id}, {"admins.$id": owner.id}]
     assert {item.fed_id for item in response} == {owned.fed_id, admined.fed_id}
-    assert {item.creator_iid for item in response} == {owner.iid, other_owner.iid}
+    assert {item.creator_iid for item in response} == {owner.id, other_owner.id}
 
 
 @pytest.mark.asyncio
@@ -94,7 +94,7 @@ async def test_create_federation_returns_summary(db_init: object) -> None:
     response = await create_federation(FederationCreate(name="Created"), user)
 
     assert response.fed_name == "Created"
-    assert response.creator_iid == user.iid
+    assert response.creator_iid == user.id
     assert response.log_chat_iid is None
 
 
@@ -108,6 +108,6 @@ async def test_get_federation_detail_resolves_links(db_init: object) -> None:
 
     response = await get_federation(federation.fed_id, owner)
 
-    assert response.creator_iid == owner.iid
-    assert response.log_chat_iid == log_chat.iid
-    assert response.chat_iids == [member_chat.iid]
+    assert response.creator_iid == owner.id
+    assert response.log_chat_iid == log_chat.id
+    assert response.chat_iids == [member_chat.id]

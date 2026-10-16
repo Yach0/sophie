@@ -111,7 +111,7 @@ class NewUserMiddleware(BaseMiddleware):
         *,
         services: ApplicationServices,
     ) -> bool:
-        key = f"chat_ws_join_request:{chat_db.iid}:{user_db.iid}"
+        key = f"chat_ws_join_request:{chat_db.id}:{user_db.id}"
         join_request = await services.redis.get(key)
         if join_request:
             await services.redis.delete(key)
@@ -183,7 +183,7 @@ class NewUserMiddleware(BaseMiddleware):
                 await self.self_welcome(event)
                 return await handler(event, data)
 
-            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
+            db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.id)
 
             # Check if any of the new users was from a join request
             # Join request users already got their greeting from the captcha flow, but their
@@ -209,11 +209,11 @@ class NewUserMiddleware(BaseMiddleware):
 
             cleanservice_enabled = bool(db_item.clean_service and db_item.clean_service.enabled)
 
-            is_adder_admin = await is_user_admin(chat_db.iid, adder_id)
+            is_adder_admin = await is_user_admin(chat_db.id, adder_id)
 
             sent_message: Message | None = None
 
-            chat_rules = await RulesModel.get_rules(chat_db.iid)
+            chat_rules = await RulesModel.get_rules(chat_db.id)
             welcomecaptcha_enabled = await is_enabled(
                 "welcomecaptcha", chat_tid=chat_db.tid, redis=data["services"].redis
             )

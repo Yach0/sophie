@@ -56,7 +56,7 @@ class ModeWorld:
                 db_model=self.chat_model,
             ),
             chat_tid=self.chat.id,
-            chat_iid=self.chat_model.iid,
+            chat_iid=self.chat_model.id,
             services=self.services,
             mode=mode,
             user_tid=user.id,
@@ -95,7 +95,7 @@ async def mode_world(test_services: ApplicationServices) -> AsyncIterator[ModeWo
         yield ModeWorld(test_services, chat, chat_model, users, datetime.now(UTC))
     finally:
         if documents:
-            await AIMemoryModel.clear(documents[0].iid)
+            await AIMemoryModel.clear(documents[0].id)
         for feature in await list_chat_overrides(chat.id, redis=test_services.redis):
             await delete_chat_override(feature, chat.id, redis=test_services.redis)
         await ModernContext.reset(chat.id, redis=test_services.redis)
@@ -329,7 +329,7 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
         result = await run_chatbot(ChatbotRunRequest(
             context=first_context, history=first, model_plan=plan, use_base_tools=True,
         ))
-        stored = await AIMemoryModel.get_lines(world.chat_model.iid)
+        stored = await AIMemoryModel.get_lines(world.chat_model.id)
         assert stored == [f"tg://user?id={alice.id}" + fact]
         assert str(bob.id) not in stored[0]
         assert any(
@@ -365,7 +365,7 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
             context=second_context, history=second, model_plan=plan, use_base_tools=True,
         ))
         assert second_result.output == f"{new_alice_anchor} ({alice.first_name}) remembers Wonderland."
-        assert await AIMemoryModel.get_lines(world.chat_model.iid) == stored
+        assert await AIMemoryModel.get_lines(world.chat_model.id) == stored
         await second.finish_run(
             second_result.new_messages,
             world.message(User(id=CONFIG.bot_id, is_bot=True, first_name="Sophie"), second_result.output),

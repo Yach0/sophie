@@ -42,8 +42,8 @@ async def test_legacy_welcomesecurity_start_uses_live_membership_check(
     assert user_db is not None
     assert group_db is not None
 
-    await GreetingsModel(chat=group_db.iid, welcome_security=WelcomeSecurity(enabled=True)).save()
-    membership = await UserInGroupModel.get_user_in_group(user_db.iid, group_db.iid)
+    await GreetingsModel(chat=group_db.id, welcome_security=WelcomeSecurity(enabled=True)).save()
+    membership = await UserInGroupModel.get_user_in_group(user_db.id, group_db.id)
     assert membership is not None
     assert membership.id is not None
     await membership.delete()
@@ -91,11 +91,11 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert group_db is not None
 
     greetings = GreetingsModel(
-        chat=group_db.iid,
+        chat=group_db.id,
         welcome_security=WelcomeSecurity(enabled=True),
         note=Saveable(text="Welcome to the group\n{rules}"),
     )
-    rules = RulesModel(chat=group_db.iid, text="Be nice to each other.")
+    rules = RulesModel(chat=group_db.id, text="Be nice to each other.")
 
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.captcha_confirm.RulesModel.get_rules",
@@ -126,14 +126,14 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     captcha_data["front_row"] = list(captcha_data["back_row"])
     await state.update_data(captcha=captcha_data)
 
-    confirm_data = WelcomeSecurityConfirmCB(chat_iid=str(group_db.iid), is_join_request=True).pack()
+    confirm_data = WelcomeSecurityConfirmCB(chat_iid=str(group_db.id), is_join_request=True).pack()
     confirm_requests = await test_client.send_callback(
         confirm_data, from_user=user_wrapper.user, message=captcha_message
     )
 
     assert confirm_requests, "Confirming a solved captcha should update the DM captcha message"
 
-    agree_data = WelcomeSecurityRulesAgreeCB(chat_iid=str(group_db.iid), is_join_request=True).pack()
+    agree_data = WelcomeSecurityRulesAgreeCB(chat_iid=str(group_db.id), is_join_request=True).pack()
     completion_requests = await test_client.send_callback(
         agree_data, from_user=user_wrapper.user, message=captcha_message
     )
@@ -145,4 +145,4 @@ async def test_join_request_captcha_e2e_preserves_state_across_rules_agreement(
     assert not any("Be nice to each other." in (request.text or "") for request in group_messages)
     assert not any("Welcome to the group" in (request.text or "") for request in group_messages)
 
-    await test_services.redis.delete(f"chat_ws_join_request:{group_db.iid}:{user_db.iid}")
+    await test_services.redis.delete(f"chat_ws_join_request:{group_db.id}:{user_db.id}")

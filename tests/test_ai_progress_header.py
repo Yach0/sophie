@@ -32,6 +32,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
 )
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
 from sophie_bot.modules.ai.utils.old_context import OldContext
+from sophie_bot.modules.ai.utils.research import ResearchProgressStage
 
 pytestmark = pytest.mark.usefixtures("db_init")
 
@@ -163,6 +164,102 @@ async def test_draft_displays_action_below_body_and_removes_it_after_new_text(
     html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "Searching the web..." not in html
     assert _custom_emoji_ids(html) == [AI_GENERATING_EMOJI_ID, *ANIMATED_LINE_IDS]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_draft", [False, True])
+@pytest.mark.parametrize("next_event", ["activity", "retry", "reasoning", "repeated_reasoning", "text", "same_text"])
+async def test_research_stages_replace_each_other_and_clear_on_next_activity(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: object,
+    with_draft: bool,
+    next_event: str,
+) -> None:
+    stages: dict[ResearchProgressStage, str] = {
+        "planning": "Research planning",
+        "searching": "Research searching",
+        "reviewing": "Research reviewing",
+        "summarizing": "Research summarizing",
+    }
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_streaming.random_research_progress_text",
+        stages.__getitem__,
+    )
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Initial placeholder",
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    if next_event == "repeated_reasoning":
+        await streamer.stream_reasoning("Initial private reasoning")
+    if with_draft:
+        await streamer.stream("Draft answer")
+    await streamer.update_processing_activity("Research tool")
+
+    for stage, stage_text in stages.items():
+        await streamer.update_research_progress(stage)
+        html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert f"<i>{stage_text}</i>" in html
+        assert all(other_text not in html for other_stage, other_text in stages.items() if other_stage != stage)
+        assert "Research tool" in html
+        assert "Initial placeholder" not in html
+        assert ("Draft answer" in html) is with_draft
+
+    if next_event == "activity":
+        await streamer.update_processing_activity("Next activity")
+    elif next_event == "retry":
+        await streamer.update_retrying(1, 2)
+    elif next_event in {"reasoning", "repeated_reasoning"}:
+        await streamer.stream_reasoning("Private reasoning")
+    else:
+        await streamer.stream("Draft answer" if next_event == "same_text" else "Final answer")
+
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert all(stage_text not in html for stage_text in stages.values())
+    assert "Private reasoning" not in html
+    if next_event in {"text", "same_text"}:
+        assert "Research tool" not in html
+    else:
+        assert "Research tool" in html
+
+
+@pytest.mark.asyncio
+async def test_research_progress_preserves_a_throttled_draft(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_streaming.random_research_progress_text",
+        lambda stage: "Research reviewing",
+    )
+    response_message = _response_message()
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()),
+        status="Initial placeholder",
+        throttle_seconds=0,
+        redis=test_redis,
+    )
+    streamer.response_message = cast(Message, response_message)
+    try:
+        await streamer.stream("Original draft")
+        streamer.throttle_seconds = 3600
+        await streamer.stream("Latest draft")
+        assert response_message.bot.edit_message_text.await_count == 1
+
+        await streamer.update_research_progress("reviewing")
+        html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert "Latest draft" in html
+        assert "Original draft" not in html
+        assert "<i>Research reviewing</i>" in html
+
+        await streamer.stream("Latest draft")
+        html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+        assert "Latest draft" in html
+        assert "Research reviewing" not in html
+    finally:
+        await streamer.stop()
 
 
 @pytest.mark.asyncio

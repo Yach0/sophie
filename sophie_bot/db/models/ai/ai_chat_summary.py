@@ -53,7 +53,7 @@ class AIChatSummaryModel(Document):
         chat: ChatModel, summary_date: date, overview: str, lines: list[AIChatSummaryLine]
     ) -> AIChatSummaryModel:
         model = await AIChatSummaryModel.find_one(
-            AIChatSummaryModel.chat.id == chat.iid,
+            AIChatSummaryModel.chat.id == chat.id,
             AIChatSummaryModel.summary_date == summary_date,
         )
         if model:

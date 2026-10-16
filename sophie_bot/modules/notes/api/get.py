@@ -19,7 +19,7 @@ async def list_notes(
     _user: ReadAdminDep,
     services: ServicesDep,
 ) -> NotesListResponse:
-    notes = await NoteModel.get_chat_notes(chat.iid)
+    notes = await NoteModel.get_chat_notes(chat.id)
 
     texts = [note.text for note in notes]
     media_service = TelegramMediaService(services.bot, services.redis)
@@ -38,7 +38,7 @@ async def get_note(
     services: ServicesDep,
 ) -> NoteResponse:
     note = await NoteModel.get(note_id)
-    if not note or (note.chat and note.chat.ref.id != chat.iid) or (not note.chat and note.chat_tid != chat.tid):
+    if not note or (note.chat and note.chat.ref.id != chat.id) or (not note.chat and note.chat_tid != chat.tid):
         raise HTTPException(status_code=404, detail="Note not found")
 
     media_service = TelegramMediaService(services.bot, services.redis)

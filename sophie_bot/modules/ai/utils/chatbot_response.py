@@ -343,6 +343,89 @@ def truncate_output(header: Element | str | None, output_text: str) -> str:
     return output_text
 
 
+def _truncate_to_boundary(text: str, max_length: int) -> str:
+    if len(text) <= max_length:
+        return text
+    if max_length <= 3:
+        return text[:max_length]
+
+    truncated_text = text[: max_length - 3]
+    split_index = max(
+        truncated_text.rfind("\n\n"),
+        truncated_text.rfind("\n"),
+        truncated_text.rfind(". "),
+        truncated_text.rfind(" "),
+    )
+    if split_index >= max_length // 2:
+        truncated_text = truncated_text[:split_index]
+    return truncated_text.rstrip() + "..."
+
+
+async def build_chatbot_reply_presentation(
+    chat_iid: PydanticObjectId,
+    chat_tid: int,
+    model: Model,
+    result: AIAgentResult[str],
+    new_messages: Sequence[ModelRequest | ModelResponse],
+    *,
+    redis: Redis,
+    modern: bool,
+    mode: AIMode,
+    speaker_names: Sequence[tuple[int, str]] = (),
+    explicit_debug_mode: bool = False,
+    strip_alien_html_tags: bool | None = None,
+    footer: Element | None = None,
+) -> tuple[Doc, str]:
+    """Render a bounded final reply, retaining the output used for context persistence."""
+    served_model = result.served_model or model
+    show_model_name = await is_enabled("ai_chatbot_show_model_name", chat_tid=chat_tid, redis=redis)
+    header = await build_chatbot_header(
+        chat_iid,
+        model_label=model_display_name(served_model) if show_model_name else None,
+        redis=redis,
+    )
+    if strip_alien_html_tags is None:
+        strip_alien_html_tags = await is_enabled("ai_chatbot_strip_alien_html_tags", chat_tid=chat_tid, redis=redis)
+    mention_policy = select_mention_policy(modern=modern, mode=mode)
+    mention_index = (
+        await resolve_reply_mention_index(
+            chat_tid,
+            redis=redis,
+            mention_policy=mention_policy,
+            speaker_names=speaker_names,
+        )
+        if mention_policy != MentionPolicy.OPAQUE and "@" in str(result.output)
+        else None
+    )
+    tool_labels = used_tool_labels(new_messages)
+    output_text = truncate_output(header, str(result.output))
+    fitted_output_text = output_text
+    while True:
+        doc = await build_reply_doc(
+            header,
+            fitted_output_text,
+            served_model,
+            result,
+            explicit_debug_mode,
+            chat_tid=chat_tid,
+            mention_index=mention_index,
+            redis=redis,
+            tool_labels=tool_labels,
+            strip_alien_html_tags=strip_alien_html_tags,
+            mention_policy=mention_policy,
+            speaker_names=speaker_names,
+        )
+        if footer is not None:
+            doc += footer
+        overflow = len(doc.to_rich()) - TELEGRAM_MESSAGE_SAFE_LIMIT
+        if overflow <= 0 or not fitted_output_text:
+            return doc, output_text
+        next_length = len(fitted_output_text) - overflow - 128
+        if next_length <= 0:
+            next_length = len(fitted_output_text) // 2
+        fitted_output_text = _truncate_to_boundary(fitted_output_text, next_length)
+
+
 async def build_reply_doc(
     header: Element | str | None,
     output_text: str,

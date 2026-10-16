@@ -96,7 +96,7 @@ class AIModeratorSetting(SophieMessageHandler):
         return CMDFilter("ai_moderator"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
-        await _send_picker(self.event, await get_moderator_settings(self.connection.db_model.iid))
+        await _send_picker(self.event, await get_moderator_settings(self.connection.db_model.id))
 
 
 class AIModeratorCategoryToggle(SophieCallbackQueryHandler):
@@ -116,7 +116,7 @@ class AIModeratorCategoryToggle(SophieCallbackQueryHandler):
         category = ModerationCategory(self.callback_data.category)
 
         chat = self.connection.db_model
-        levels = get_levels(await get_moderator_settings(chat.iid))
+        levels = get_levels(await get_moderator_settings(chat.id))
         level = next_level(levels[category])
         levels = {**levels, category: level}
         await set_category_level(chat, category, level)

@@ -70,7 +70,7 @@ class DelAllNotesCallbackHandler(SophieCallbackQueryHandler):
         if user_id != data.user_id:
             return await self.event.answer(_("Only the initiator can confirm deleting all notes"))
 
-        deleted = await NoteModel.delete_all_notes(connection.db_model.iid)
+        deleted = await NoteModel.delete_all_notes(connection.db_model.id)
         await log_event(connection.tid, user_id, LogEvent.ALL_NOTES_DELETED)
 
         text = Template(

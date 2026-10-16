@@ -50,7 +50,7 @@ async def test_locked_later_album_item_deletes_whole_album(monkeypatch: pytest.M
     handler = AsyncMock()
     data = {
         "context": SimpleNamespace(
-            event_chat=SimpleNamespace(iid="chat-db-id")
+            event_chat=SimpleNamespace(id="chat-db-id")
         ),
         "services": SimpleNamespace(redis=object()),
         "album": album,
@@ -74,7 +74,7 @@ async def test_album_without_locked_items_passes_through(monkeypatch: pytest.Mon
     handler = AsyncMock(return_value="handled")
     data = {
         "context": SimpleNamespace(
-            event_chat=SimpleNamespace(iid="chat-db-id")
+            event_chat=SimpleNamespace(id="chat-db-id")
         ),
         "services": SimpleNamespace(redis=object()),
         "album": album,

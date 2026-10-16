@@ -46,9 +46,9 @@ class WhitelistUserHandler(BaseWhitelistMutationHandler):
 async def _release_pending_captcha_user(chat_tid: int, user_tid: int, *, bot: Bot) -> None:
     group = await ChatModel.get_by_tid(chat_tid)
     user = await ChatModel.get_by_tid(user_tid)
-    if group is None or user is None or await WSUserModel.is_user(user.iid, group.iid) is None:
+    if group is None or user is None or await WSUserModel.is_user(user.id, group.id) is None:
         return
 
     result = await execute_restriction(bot, RestrictionAction.UNMUTE, chat_tid, user_tid)
     if result.applied:
-        await WSUserModel.remove_user(user.iid, group.iid)
+        await WSUserModel.remove_user(user.id, group.id)

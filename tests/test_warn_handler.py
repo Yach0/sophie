@@ -14,9 +14,9 @@ from sophie_bot.modules.warns.handlers.warn import WarnHandler
 async def test_warn_handler_falls_back_to_send_message_when_reply_target_is_missing(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    target_user = SimpleNamespace(iid="target_iid", tid=7860164386, first_name_or_title="Ajay")
-    admin_user = SimpleNamespace(iid="admin_iid", tid=6023245799, first_name_or_title="Billy")
-    chat_model = SimpleNamespace(iid="chat_iid")
+    target_user = SimpleNamespace(id="target_iid", tid=7860164386, first_name_or_title="Ajay")
+    admin_user = SimpleNamespace(id="admin_iid", tid=6023245799, first_name_or_title="Billy")
+    chat_model = SimpleNamespace(id="chat_iid")
     connection = SimpleNamespace(db_model=chat_model, tid=-1001483164428)
     warn_entry = SimpleNamespace(id="warn_iid")
 

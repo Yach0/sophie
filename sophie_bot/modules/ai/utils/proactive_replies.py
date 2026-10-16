@@ -35,14 +35,7 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
     run_chatbot,
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
-from sophie_bot.modules.ai.utils.chatbot_response import (
-    build_chatbot_header,
-    build_reply_doc,
-    model_display_name,
-    select_mention_policy,
-    truncate_output,
-    used_tool_labels,
-)
+from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_reply_presentation
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.modern_context import (
     DecisionMessage,
@@ -250,7 +243,7 @@ async def _generate_decision(
     decision_messages: Sequence[MessageType | DecisionMessage] = messages
     if modern:
         decision_messages, message_ids = await ModernContext.private_batch(
-            messages, services=services, mode=await get_chat_mode(chat.iid)
+            messages, services=services, mode=await get_chat_mode(chat.id)
         )
     history = OldContext(services=services)
     history.add_system(build_proactive_decision_instructions())
@@ -263,9 +256,9 @@ async def _generate_decision(
         ),
         model_plan,
         history,
-        chat_iid=chat.iid,
+        chat_iid=chat.id,
         chat_tid=chat_tid,
-        session_id=f"proactive:{chat.iid}",
+        session_id=f"proactive:{chat.id}",
         service_tier=service_tier,
         redis=services.redis,
     )
@@ -429,8 +422,8 @@ async def _answer_message(
             db_model=chat,
         )
         modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
-        mode = await get_chat_mode(chat.iid) if modern else AIMode.support
-        model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
+        mode = await get_chat_mode(chat.id) if modern else AIMode.support
+        model_plan = await get_chat_default_model_plan(chat.id, chat_tid=chat_tid, redis=services.redis)
         model = model_plan.primary
         service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat_tid=chat_tid, redis=services.redis)
         _log_proactive_info(
@@ -443,7 +436,7 @@ async def _answer_message(
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=chat_tid,
-            chat_iid=chat.iid,
+            chat_iid=chat.id,
             mode=mode,
             user_text=target_message.text,
             user_tid=None,
@@ -456,7 +449,7 @@ async def _answer_message(
             cleanup.push_async_callback(history.abort)
         previous_history = list(history.message_history)
         async with track_ai_conversation():
-            set_conversation_id(f"{chat.iid}:proactive")
+            set_conversation_id(f"{chat.id}:proactive")
             result = await run_chatbot(
                 ChatbotRunRequest(
                     context=context,
@@ -464,49 +457,22 @@ async def _answer_message(
                     model_plan=model_plan,
                     service_tier=service_tier,
                     thread_id=target_message.message_thread_id,
-                    session_id=f"{chat.iid}:{target_message.message_thread_id or 'proactive'}",
+                    session_id=f"{chat.id}:{target_message.message_thread_id or 'proactive'}",
                     use_base_tools=True,
                 )
             )
-        model = result.served_model or model
-        # Proactive answers are chatbot replies selected by a different trigger. They must use the
-        # same per-chat rendering contract as commands, reply-to-AI, streaming, and model fallback.
-        show_model_name = await is_enabled(
-            "ai_chatbot_show_model_name",
-            chat_tid=chat_tid,
-            redis=services.redis,
-        )
-        header = await build_chatbot_header(
-            chat.iid,
-            model_label=model_display_name(model) if show_model_name else None,
-            redis=services.redis,
-        )
-        output_text = truncate_output(header, str(result.output))
-        tool_labels = used_tool_labels(
-            result.new_messages
-            if isinstance(history, ModernContext)
-            else result.message_history[len(previous_history) :]
-        )
-        doc = await build_reply_doc(
-            header,
-            output_text,
+        doc, output_text = await build_chatbot_reply_presentation(
+            chat.id,
+            chat_tid,
             model,
             result,
-            False,
-            chat_tid=chat_tid,
-            mention_policy=select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode),
-            speaker_names=(
-                history.mention_speaker_names
-                if isinstance(history, ModernContext) and context.mode == AIMode.entertainment
-                else ()
-            ),
+            result.new_messages
+            if isinstance(history, ModernContext)
+            else result.message_history[len(previous_history) :],
             redis=services.redis,
-            tool_labels=tool_labels,
-            strip_alien_html_tags=await is_enabled(
-                "ai_chatbot_strip_alien_html_tags",
-                chat_tid=chat_tid,
-                redis=services.redis,
-            ),
+            modern=isinstance(history, ModernContext),
+            mode=context.mode,
+            speaker_names=history.mention_speaker_names if isinstance(history, ModernContext) else (),
         )
         _log_proactive_info(
             "Proactive AI answer send started",
@@ -610,7 +576,7 @@ async def maybe_run_proactive_reply(
     if message.chat.type not in {"group", "supergroup"}:
         _log_proactive_info("Proactive AI skipped outside group chat", chat_id=chat_tid, chat_type=message.chat.type)
         return
-    quota_result = await check_quota(chat.iid, redis=services.redis)
+    quota_result = await check_quota(chat.id, redis=services.redis)
     if not quota_result.allowed:
         track_ai_proactive_event("quota_exhausted", _METRIC_ATTRIBUTES)
         _log_proactive_info("Proactive AI skipped because quota is exhausted", chat_id=chat_tid)

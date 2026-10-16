@@ -53,7 +53,7 @@
 - Keep chat identifiers explicit:
   - `chat_tid`: Telegram chat ID (`int`)
   - `chat_iid`: database object ID (`PydanticObjectId`)
-- For `Link[ChatModel]` queries, resolve the chat model first (for example with `ChatModel.get_by_tid(...)`) and then use `chat.iid`.
+- For `Link[ChatModel]` queries, resolve the chat model first (for example with `ChatModel.get_by_tid(...)`) and then use `chat.id`.
 
 ### Local ASS/STFU development
 

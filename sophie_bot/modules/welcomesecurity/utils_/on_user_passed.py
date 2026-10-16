@@ -39,7 +39,7 @@ async def _ws_on_user_passed(
             user.tid,
         )
         if result.applied:
-            await WSUserModel.remove_user(user.iid, group.iid)
+            await WSUserModel.remove_user(user.id, group.id)
         return result.applied
 
     # Unmute / restrict user
@@ -72,7 +72,7 @@ async def _ws_on_user_passed(
     # Keep the pending record until the old CAPTCHA mute has been released or
     # replaced with the configured welcome restriction.
     if restriction_succeeded:
-        await WSUserModel.remove_user(user.iid, group.iid)
+        await WSUserModel.remove_user(user.id, group.id)
 
     return restriction_succeeded
 

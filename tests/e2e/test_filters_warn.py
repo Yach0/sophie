@@ -29,7 +29,7 @@ async def test_filter_warn_and_delete_message_warns_user(test_client: TestClient
     assert user is not None
 
     filter_item = FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler="spam",
         action=None,
         actions={
@@ -59,7 +59,7 @@ async def test_filter_actions_ignore_bot_authored_messages(test_client: TestClie
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
     filter_item = FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler="spam",
         action=None,
         actions={"warn_user": {"reason": "No spam"}, "delmsg": None},
@@ -84,7 +84,7 @@ async def test_filter_restrictive_actions_skip_group_whitelisted_user(test_clien
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
     filter_item = FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler="spam",
         action=None,
         actions={"warn_user": {"reason": "No spam"}, "delmsg": None, "mute_user": None},
@@ -121,7 +121,7 @@ async def test_warn_user_executes_each_and_max_actions(test_client: TestClient) 
     assert chat is not None
     assert user is not None
 
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
     settings.max_warns = 2
     settings.on_each_warn_actions = [StoredAction(name="kick_user", data={})]
     settings.on_max_warn_actions = [

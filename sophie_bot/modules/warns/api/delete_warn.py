@@ -18,7 +18,7 @@ async def delete_warn(
     except Exception:  # noqa: BLE001  # any parse failure is an invalid id -> 400
         raise HTTPException(status_code=400, detail="Invalid warn_iid")
 
-    warn = await WarnModel.find_one(WarnModel.id == warn_obj_id, WarnModel.chat.id == chat.iid)
+    warn = await WarnModel.find_one(WarnModel.id == warn_obj_id, WarnModel.chat.id == chat.id)
     if not warn:
         raise HTTPException(status_code=404, detail="Warning not found")
 

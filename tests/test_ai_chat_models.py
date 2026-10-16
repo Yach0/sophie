@@ -294,7 +294,7 @@ class _FakeState:
 
 
 def _private_chat() -> SimpleNamespace:
-    return SimpleNamespace(type=ChatType.private, tid=1, iid=PydanticObjectId())
+    return SimpleNamespace(type=ChatType.private, tid=1, id=PydanticObjectId())
 
 
 async def test_private_chats_use_the_pm_assistant(test_redis: object, test_services: object) -> None:

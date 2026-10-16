@@ -22,7 +22,7 @@ class ListDisabled(SophieMessageHandler):
 
     async def handle(self) -> Any:
         disabled = await get_disabled_handlers(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             self.services.modules.disableable_commands,
         )
 

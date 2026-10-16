@@ -154,7 +154,7 @@ async def grant_admin(
             **{right: rights.get(right, True) for right in _ADMIN_RIGHTS},
         )
 
-    return await ChatAdminModel.upsert_admin(chat.iid, user.iid, member)
+    return await ChatAdminModel.upsert_admin(chat.id, user.id, member)
 
 
 async def grant_bot_admin(chat_tid: int, **rights: bool) -> ChatAdminModel:

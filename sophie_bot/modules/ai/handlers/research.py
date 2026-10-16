@@ -103,7 +103,7 @@ class ResearchCmd(SophieMessageHandler):
             await self.event.reply(**ai_request_failed_message(error=exc, title=_("Could not complete research")))
             return None
         header = await build_chatbot_header(
-            self.connection.db_model.iid,
+            self.connection.db_model.id,
             redis=self.services.redis,
         )
         current_locale = self.data["i18n"].current_locale

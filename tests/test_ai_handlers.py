@@ -25,7 +25,7 @@ def _build_ai_usage_handler(
     handler.data = {
         "context": SimpleNamespace(
             connection=SimpleNamespace(
-                db_model=SimpleNamespace(iid="chat_iid")
+                db_model=SimpleNamespace(id="chat_iid")
             )
         ),
         "services": test_services,

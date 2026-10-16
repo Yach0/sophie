@@ -175,7 +175,7 @@ async def test_unmute_clears_pending_welcome_security_user_after_success(test_cl
     requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
 
     assert any(request.request_type == _RESTRICT for request in requests)
-    assert await WSUserModel.is_user(target_model.iid, group_model.iid) is None
+    assert await WSUserModel.is_user(target_model.id, group_model.id) is None
 
 
 async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fails(
@@ -195,7 +195,7 @@ async def test_unmute_preserves_pending_welcome_security_user_when_telegram_fail
     requests = await test_client.send_command(command="unmute", from_user=admin_user, args=str(target_id), chat=group)
 
     assert any("failed to unmute" in (request.text or "").lower() for request in requests)
-    assert await WSUserModel.is_user(target_model.iid, group_model.iid) is not None
+    assert await WSUserModel.is_user(target_model.id, group_model.id) is not None
 
 
 async def test_tmute_expiry_restores_previous_permissions(test_client: TestClient) -> None:

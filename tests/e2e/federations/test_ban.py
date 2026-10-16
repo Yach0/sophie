@@ -72,7 +72,7 @@ async def test_fban_user_via_service(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Ban Test Fed", owner_model)
 
     # Ban user via service
-    ban = await FederationBanService.ban_user(federation, 4002, owner_model.iid, reason="test ban reason", redis=test_client.dispatcher.workflow_data["services"].redis)
+    ban = await FederationBanService.ban_user(federation, 4002, owner_model.id, reason="test ban reason", redis=test_client.dispatcher.workflow_data["services"].redis)
     assert ban is not None
     assert ban.user_id == 4002
     assert ban.fed_id == federation.fed_id
@@ -117,8 +117,8 @@ async def test_sfban_reply_records_banner_as_command_sender(test_client: TestCli
 
     ban = await FederationBan.find_one(FederationBan.fed_id == federation.fed_id, FederationBan.user_id == 4051)
     assert ban is not None
-    assert ban.by.to_ref().id == owner_model.iid
-    assert ban.by.to_ref().id != target_model.iid
+    assert ban.by.to_ref().id == owner_model.id
+    assert ban.by.to_ref().id != target_model.id
 
 
 @pytest.mark.asyncio
@@ -146,7 +146,7 @@ async def test_fban_and_unfban_via_service(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Unban Test Fed", owner_model)
 
     # Ban user
-    await FederationBanService.ban_user(federation, 4004, owner_model.iid, reason="temp ban", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 4004, owner_model.id, reason="temp ban", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     # Unban user
     success, origin_ban = await FederationBanService.unban_user(federation.fed_id, 4004, redis=test_client.dispatcher.workflow_data["services"].redis)
@@ -183,10 +183,10 @@ async def test_fban_updates_reason_on_reban(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Reban Test Fed", owner_model)
 
     # Ban user with first reason
-    await FederationBanService.ban_user(federation, 4006, owner_model.iid, reason="first reason", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 4006, owner_model.id, reason="first reason", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     # Ban again with updated reason
-    updated_ban = await FederationBanService.ban_user(federation, 4006, owner_model.iid, reason="updated reason", redis=test_client.dispatcher.workflow_data["services"].redis)
+    updated_ban = await FederationBanService.ban_user(federation, 4006, owner_model.id, reason="updated reason", redis=test_client.dispatcher.workflow_data["services"].redis)
     assert updated_ban.reason == "updated reason"
 
     # Should still only have one ban record
@@ -245,7 +245,7 @@ async def test_fban_cannot_ban_federation_owner(test_client: TestClient) -> None
 
     # Try to ban the federation owner
     with pytest.raises(FederationBanValidationError, match="Cannot ban the federation owner"):
-        await FederationBanService.ban_user(federation, 4008, admin_model.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
+        await FederationBanService.ban_user(federation, 4008, admin_model.id, redis=test_client.dispatcher.workflow_data["services"].redis)
 
 
 @pytest.mark.asyncio
@@ -268,7 +268,7 @@ async def test_fban_cannot_ban_self(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Self Ban Fed 2", owner_model)
 
     with pytest.raises(FederationBanValidationError, match="You cannot ban yourself"):
-        await FederationBanService.ban_user(federation, 4010, owner_model.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
+        await FederationBanService.ban_user(federation, 4010, owner_model.id, redis=test_client.dispatcher.workflow_data["services"].redis)
 
 
 @pytest.mark.asyncio
@@ -298,9 +298,9 @@ async def test_ban_count_tracking(test_client: TestClient) -> None:
     federation = await create_federation_via_command(test_client, owner_user, group, "Count Test Fed", owner_model)
 
     # Ban three users
-    await FederationBanService.ban_user(federation, 4012, owner_model.iid, reason="ban 1", redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationBanService.ban_user(federation, 4013, owner_model.iid, reason="ban 2", redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationBanService.ban_user(federation, 4014, owner_model.iid, reason="ban 3", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 4012, owner_model.id, reason="ban 1", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 4013, owner_model.id, reason="ban 2", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(federation, 4014, owner_model.id, reason="ban 3", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     bans = await FederationBanService.get_federation_bans(federation.fed_id)
     assert len(bans) == 3, "Should have 3 bans"
@@ -350,8 +350,8 @@ async def test_ban_in_subscription_chain(test_client: TestClient) -> None:
     group_model_b = await ChatModel.get_by_tid(group_b.id)
     assert group_model_a is not None
     assert group_model_b is not None
-    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.id, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.id, redis=test_client.dispatcher.workflow_data["services"].redis)
     fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
     fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
     assert fed_a is not None
@@ -363,7 +363,7 @@ async def test_ban_in_subscription_chain(test_client: TestClient) -> None:
     assert success is True, "Subscription should succeed"
 
     # Ban user in Fed B
-    await FederationBanService.ban_user(fed_b, 4022, model_b.iid, reason="chain ban", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(fed_b, 4022, model_b.id, reason="chain ban", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     # Check that Fed A's chain detects the ban
     result = await FederationBanService.is_user_banned_in_chain(fed_a.fed_id, 4022, redis=test_client.dispatcher.workflow_data["services"].redis)
@@ -429,9 +429,9 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     assert group_model_a is not None
     assert group_model_b is not None
     assert group_model_c is not None
-    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationChatService.add_chat_to_federation(fed_c, group_model_c.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.id, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.id, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_c, group_model_c.id, redis=test_client.dispatcher.workflow_data["services"].redis)
     fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
     fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
     fed_c = await FederationManageService.get_federation_by_id(fed_c.fed_id)
@@ -481,12 +481,12 @@ async def test_lazy_ban_transitive_subscription_chain(test_client: TestClient) -
     assert fed_a.fed_id in reverse_fed_ids, "Fed C should have Fed A in reverse chain via B"
 
     # Ban user in Fed C (the "root" of the chain)
-    ban_c = await FederationBanService.ban_user(fed_c, 4033, model_c.iid, reason="transitive lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
+    ban_c = await FederationBanService.ban_user(fed_c, 4033, model_c.id, reason="transitive lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
     assert ban_c is not None
     assert ban_c.fed_id == fed_c.fed_id
 
     # Trigger lazy-ban in subscribing federations.
-    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(fed_c, 4033, model_c.iid, reason="transitive lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(fed_c, 4033, model_c.id, reason="transitive lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     # Should have banned in Fed B and Fed A (2 lazy bans)
     assert len(lazy_bans) == 2, f"Expected 2 lazy bans (B and A), got {len(lazy_bans)}"
@@ -552,8 +552,8 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     group_model_b = await ChatModel.get_by_tid(group_b.id)
     assert group_model_a is not None
     assert group_model_b is not None
-    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
-    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.iid, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_a, group_model_a.id, redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationChatService.add_chat_to_federation(fed_b, group_model_b.id, redis=test_client.dispatcher.workflow_data["services"].redis)
     fed_a = await FederationManageService.get_federation_by_id(fed_a.fed_id)
     fed_b = await FederationManageService.get_federation_by_id(fed_b.fed_id)
     assert fed_a is not None
@@ -577,11 +577,11 @@ async def test_lazy_ban_only_bans_if_user_present(test_client: TestClient) -> No
     assert success is True, "Fed A should subscribe to Fed B"
 
     # Ban user in Fed B
-    ban_b = await FederationBanService.ban_user(fed_b, 4042, model_b.iid, reason="selective lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
+    ban_b = await FederationBanService.ban_user(fed_b, 4042, model_b.id, reason="selective lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
     assert ban_b is not None
 
     # Trigger lazy-ban
-    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(fed_b, 4042, model_b.iid, reason="selective lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
+    lazy_bans = await FederationBanService.lazy_ban_in_subscribing_federations(fed_b, 4042, model_b.id, reason="selective lazy ban test", redis=test_client.dispatcher.workflow_data["services"].redis)
 
     # Should have banned ONLY in Fed A where user is NOT present
     # So actually 0 lazy bans since user isn't in Fed A's chats
@@ -658,7 +658,7 @@ async def test_unfban_blocked_while_origin_subscription_is_live(test_client: Tes
         name_prefix="LiveSub",
     )
 
-    await FederationBanService.ban_user(fed_b, 4062, model_b.iid, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(fed_b, 4062, model_b.id, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
     await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4062, model_b)
 
     success, blocking_ban = await FederationBanService.unban_user(fed_a.fed_id, 4062, redis=test_client.dispatcher.workflow_data["services"].redis)
@@ -680,7 +680,7 @@ async def test_unfban_allowed_after_unsubscribing_from_origin_federation(test_cl
         name_prefix="Unsub",
     )
 
-    await FederationBanService.ban_user(fed_b, 4065, model_b.iid, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(fed_b, 4065, model_b.id, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
     await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4065, model_b)
 
     unsubscribed = await FederationManageService.unsubscribe_from_federation(fed_a, fed_b.fed_id)
@@ -704,7 +704,7 @@ async def test_unfban_allowed_after_origin_ban_is_lifted(test_client: TestClient
         name_prefix="OriginLifted",
     )
 
-    await FederationBanService.ban_user(fed_b, 4068, model_b.iid, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
+    await FederationBanService.ban_user(fed_b, 4068, model_b.id, reason="origin ban", redis=test_client.dispatcher.workflow_data["services"].redis)
     await _insert_inherited_ban(fed_a.fed_id, fed_b.fed_id, 4068, model_b)
 
     origin_unbanned, _blocking = await FederationBanService.unban_user(fed_b.fed_id, 4068, redis=test_client.dispatcher.workflow_data["services"].redis)
@@ -865,7 +865,7 @@ async def test_fban_anonymous_admin_resolves_real_banner_and_anonymizes_reply(te
         FederationBan.fed_id == federation.fed_id, FederationBan.user_id == target.user.id
     )
     assert ban is not None, "the anonymous fed admin should be permitted to ban"
-    assert ban.by.to_ref().id == owner_model.iid, "the ban must record the real admin behind the anonymous sender"
+    assert ban.by.to_ref().id == owner_model.id, "the ban must record the real admin behind the anonymous sender"
 
     assert any("Anonymous admin" in (request.text or "") for request in requests), (
         "the public reply must anonymise the banner"
@@ -881,7 +881,7 @@ async def test_fban_anonymous_admin_resolves_real_banner_and_anonymizes_reply(te
     )
     assert task is not None
     assert task.banner_anonymous is True, "the propagation task must carry the anonymisation flag"
-    assert task.user.to_ref().id == owner_model.iid, "the task must record the real admin as the banner"
+    assert task.user.to_ref().id == owner_model.id, "the task must record the real admin as the banner"
 
 @pytest.mark.asyncio
 async def test_fban_anonymous_admin_ambiguous_title_reports_error(test_client: TestClient) -> None:

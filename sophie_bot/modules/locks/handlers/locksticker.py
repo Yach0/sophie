@@ -57,7 +57,7 @@ class LockStickerHandler(SophieMessageHandler):
             await message.reply(doc.to_html())
             return
         lock_type = f"stickerpack:{pack_name}"
-        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+        model = await LocksModel.get_by_chat_iid(connection.db_model.id)
         added = await model.lock(lock_type)
         await invalidate_locks_cache(connection.tid, redis=self.services.redis)
         if added:

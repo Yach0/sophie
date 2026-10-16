@@ -90,7 +90,7 @@ async def test_channel_cannot_become_dm_connection_target(test_client: TestClien
 async def test_command_in_dm_targets_the_connected_group(test_client: TestClient) -> None:
     admin, group, model = await _connectable_group(test_client, username="rulesgroup", title="Connect Rules Group")
     await grant_admin(group.id, admin.id)
-    await RulesModel.set_rules(model.iid, Saveable(text="Connected-group rules"))
+    await RulesModel.set_rules(model.id, Saveable(text="Connected-group rules"))
 
     await test_client.send_command(command="connect", from_user=admin, args="@rulesgroup")
 
@@ -161,8 +161,8 @@ async def test_disconnect_without_connection(test_client: TestClient) -> None:
 async def test_non_admin_cannot_connect_when_disabled(test_client: TestClient) -> None:
     _admin, _group, model = await _connectable_group(test_client, username="lockedgroup", title="Connect Locked Group")
     # Disable open connections; only admins may connect now.
-    settings = await ChatConnectionSettingsModel.get_by_chat_iid(model.iid) or ChatConnectionSettingsModel(
-        chat=model.iid
+    settings = await ChatConnectionSettingsModel.get_by_chat_iid(model.id) or ChatConnectionSettingsModel(
+        chat=model.id
     )
     settings.allow_users_connect = False
     await settings.save()

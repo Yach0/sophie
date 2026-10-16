@@ -71,7 +71,7 @@ class CommunityBanService:
             for chat in await ChatModel.find(ChatModel.community_tid == community_tid).to_list()
             if chat.type != ChatType.channel
         ]
-        chat_iids = [chat.iid for chat in chats]
+        chat_iids = [chat.id for chat in chats]
         if current_chat_iid and current_chat_iid not in chat_iids:
             extra_chat = await ChatModel.get_by_iid(current_chat_iid)
             if extra_chat and extra_chat.type != ChatType.channel:
@@ -86,7 +86,7 @@ class CommunityBanService:
             return 0
 
         user_in_groups = await UserInGroupModel.find(
-            UserInGroupModel.user.id == user.iid,
+            UserInGroupModel.user.id == user.id,
             In(UserInGroupModel.group.id, chat_iids),
         ).to_list()
         detected_chat_iids = set(
@@ -96,17 +96,17 @@ class CommunityBanService:
             detected_chat_iids.add(current_chat_iid)
 
         async def ban_chat(chat: ChatModel) -> PydanticObjectId | None:
-            if chat.iid not in detected_chat_iids:
+            if chat.id not in detected_chat_iids:
                 return None
             result = await execute_restriction(bot, RestrictionAction.BAN, chat.tid, user_tid)
-            return chat.iid if result.applied else None
+            return chat.id if result.applied else None
 
         banned_chat_iids = await CommunityBanService._run_limited_chat_actions(chats, ban_chat)
 
         if banned_chat_iids:
             existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
             for chat in chats:
-                if chat.iid in banned_chat_iids and chat.iid not in existing_chat_iids:
+                if chat.id in banned_chat_iids and chat.id not in existing_chat_iids:
                     ban.banned_chats.append(chat)
             await ban.save()
 
@@ -134,7 +134,7 @@ class CommunityBanService:
             return 0
         chats = [
             chat
-            for chat in await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+            for chat in await ChatModel.find(In(ChatModel.id, chat_iids)).to_list()
             if chat.type != ChatType.channel
         ]
 

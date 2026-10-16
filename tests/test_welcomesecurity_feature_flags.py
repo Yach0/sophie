@@ -27,8 +27,8 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
         date=None,
         message_id=77,
     )
-    chat_db = SimpleNamespace(iid=chat_iid, tid=event.chat.id)
-    new_users = [SimpleNamespace(iid=user_iid, tid=123, is_bot=False)]
+    chat_db = SimpleNamespace(id=chat_iid, tid=event.chat.id)
+    new_users = [SimpleNamespace(id=user_iid, tid=123, is_bot=False)]
     greetings = SimpleNamespace(
         welcome_disabled=False,
         welcome_security=SimpleNamespace(enabled=True),
@@ -110,14 +110,8 @@ async def test_lock_muted_users_skips_enforcement_when_captcha_flag_disabled(
         event,
         {
             "context": SimpleNamespace(
-                event_chat=SimpleNamespace(
-                    tid=-100123,
-                    iid=PydanticObjectId(),
-                ),
-                actor=SimpleNamespace(
-                    tid=123,
-                    iid=PydanticObjectId(),
-                ),
+                event_chat=SimpleNamespace(tid=-100123, id=PydanticObjectId(), ),
+                actor=SimpleNamespace(tid=123, id=PydanticObjectId(), ),
             ),
             "services": test_services,
         },

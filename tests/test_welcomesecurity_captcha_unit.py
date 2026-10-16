@@ -227,8 +227,8 @@ async def test_lock_muted_users_middleware_skips_passed_users(
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
     data = _lock_data(
-        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
-        SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+        SimpleNamespace(tid=-100123, id=PydanticObjectId()),
+        SimpleNamespace(tid=12345, id=PydanticObjectId()),
         test_services,
     )
 
@@ -263,8 +263,8 @@ async def test_lock_muted_users_middleware_blocks_unpassed_users(
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
     data = _lock_data(
-        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
-        SimpleNamespace(tid=12345, iid=PydanticObjectId()),
+        SimpleNamespace(tid=-100123, id=PydanticObjectId()),
+        SimpleNamespace(tid=12345, id=PydanticObjectId()),
         test_services,
     )
 
@@ -372,7 +372,7 @@ async def test_lock_muted_users_middleware_ignores_anonymous_admins(
     handler = AsyncMock(return_value="handler_result")
     message = _group_message(-100123, 12345)
     data = _lock_data(
-        SimpleNamespace(tid=-100123, iid=PydanticObjectId()),
+        SimpleNamespace(tid=-100123, id=PydanticObjectId()),
         None,
         test_services,
     )

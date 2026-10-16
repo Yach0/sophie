@@ -50,7 +50,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
             return
 
         try:
-            if await is_user_admin(chat_db.iid, user_id):
+            if await is_user_admin(chat_db.id, user_id):
                 return
         except (PyMongoError, TelegramAPIError):
             return

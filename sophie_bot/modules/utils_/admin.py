@@ -49,8 +49,8 @@ async def get_admin_record(chat: ChatRef, user: ChatRef) -> ChatAdminModel | Non
     if chat_model is None or user_model is None:
         return None
     return await ChatAdminModel.find_one(
-        ChatAdminModel.chat.id == chat_model.iid,
-        ChatAdminModel.user.id == user_model.iid,
+        ChatAdminModel.chat.id == chat_model.id,
+        ChatAdminModel.user.id == user_model.id,
     )
 
 
@@ -59,7 +59,7 @@ async def get_chat_admins(chat: ChatRef, *, fetch_links: bool = False) -> list[C
     if chat_model is None:
         return []
     return await ChatAdminModel.find(
-        ChatAdminModel.chat.id == chat_model.iid,
+        ChatAdminModel.chat.id == chat_model.id,
         fetch_links=fetch_links,
     ).to_list()
 
@@ -69,7 +69,7 @@ async def get_user_adminships(user: ChatRef, *, fetch_links: bool = False) -> li
     if user_model is None:
         return []
     return await ChatAdminModel.find(
-        ChatAdminModel.user.id == user_model.iid,
+        ChatAdminModel.user.id == user_model.id,
         fetch_links=fetch_links,
     ).to_list()
 
@@ -142,7 +142,7 @@ async def refresh_admin_snapshot(chat: ChatModel, *, bot: Bot) -> None:
 
 async def ensure_admin_snapshot(chat: ChatModel, *, bot: Bot, redis: Redis) -> None:
     oldest_admin = await (
-        ChatAdminModel.find(ChatAdminModel.chat.id == chat.iid).sort(ChatAdminModel.last_updated).first_or_none()
+        ChatAdminModel.find(ChatAdminModel.chat.id == chat.id).sort(ChatAdminModel.last_updated).first_or_none()
     )
     if oldest_admin is not None:
         last_updated = oldest_admin.last_updated
@@ -152,7 +152,7 @@ async def ensure_admin_snapshot(chat: ChatModel, *, bot: Bot, redis: Redis) -> N
             return
 
     claimed = await redis.set(
-        f"{REFRESH_MARKER_PREFIX}{chat.iid}",
+        f"{REFRESH_MARKER_PREFIX}{chat.id}",
         "1",
         ex=CACHE_ADMIN_TTL_SECONDS,
         nx=True,

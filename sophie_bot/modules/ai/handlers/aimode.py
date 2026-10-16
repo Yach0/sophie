@@ -84,7 +84,7 @@ class AIModeSetting(SophieMessageHandler):
         return CMDFilter("ai_mode"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
-        await _send_picker(self.event, await get_chat_mode(self.connection.db_model.iid, AIMode.disabled))
+        await _send_picker(self.event, await get_chat_mode(self.connection.db_model.id, AIMode.disabled))
 
 
 class AIModeSelectCallback(SophieCallbackQueryHandler):
@@ -109,7 +109,7 @@ class AIModeSelectCallback(SophieCallbackQueryHandler):
 
         # Re-selecting the current mode would rebuild a byte-identical keyboard, which Telegram
         # rejects with "message is not modified"; nothing changed, so only acknowledge the tap.
-        current_mode: AIMode = await get_chat_mode(self.connection.db_model.iid, AIMode.disabled)
+        current_mode: AIMode = await get_chat_mode(self.connection.db_model.id, AIMode.disabled)
         if mode == current_mode:
             return answer_result
 

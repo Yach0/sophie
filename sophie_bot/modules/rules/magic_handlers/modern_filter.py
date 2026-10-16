@@ -28,7 +28,7 @@ class SendRulesAction(ModernActionABC[None]):
     async def handle(self, message: Message, data: dict, filter_data: None) -> ActionResult | None:
         connection: ChatConnection = data["context"].connection
 
-        rules = await RulesModel.get_rules(connection.db_model.iid)
+        rules = await RulesModel.get_rules(connection.db_model.id)
 
         if not rules:
             return await message.reply(

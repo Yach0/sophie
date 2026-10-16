@@ -115,7 +115,7 @@ class OpTaskHandler(SophieMessageHandler):
         history.add_custom("\n\n".join(prompt_parts), name="OperatorTask")
 
         model_plan = await get_chat_summary_model_plan(
-            chat_model.iid,
+            chat_model.id,
             chat_tid=chat_tid,
             redis=self.services.redis,
         )
@@ -128,7 +128,7 @@ class OpTaskHandler(SophieMessageHandler):
                 ),
                 model_plan,
                 history,
-                chat_iid=chat_model.iid,
+                chat_iid=chat_model.id,
                 chat_tid=chat_tid,
                 redis=self.services.redis,
             )

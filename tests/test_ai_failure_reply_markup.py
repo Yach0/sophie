@@ -120,7 +120,7 @@ async def test_missing_context_capacity_sends_reported_failure_before_model_requ
     message = _message(bot, 1)
     connection = MagicMock(spec=ChatConnection)
     connection.tid = message.chat.id
-    connection.db_model = MagicMock(iid=PydanticObjectId())
+    connection.db_model = MagicMock(id=PydanticObjectId())
     primary = TestModel(model_name="unregistered/model")
     plan = AIModelPlan(
         candidates=(

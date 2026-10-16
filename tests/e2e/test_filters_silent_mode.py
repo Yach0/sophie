@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
+from aiogram_test_framework.types import RequestType
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
@@ -25,7 +26,7 @@ async def _create_filter(test_client: TestClient, *, group_tid: int, user_tid: i
         await grant_admin(group.id, user_tid)
 
     filter_item = FiltersModel(
-        chat=chat.iid,
+        chat=chat.id,
         handler="spam",
         action=None,
         actions={"reply": {"text": "no spam please"}},
@@ -140,7 +141,7 @@ async def test_filter_wizard_real_silent_flow_persists_prompt_and_toggle(test_cl
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    saved = await FiltersModel.get_by_keyword(chat.iid, "spam")
+    saved = await FiltersModel.get_by_keyword(chat.id, "spam")
     assert saved is not None
     assert saved.actions == {"ai_text": {"prompt": "contains crypto scams"}}
     assert saved.silent is True
@@ -278,6 +279,26 @@ async def test_filter_wizard_hides_silent_control_when_flag_is_disabled(test_cli
     try:
         requests = await test_client.send_message(text="/addfilter spam", from_user=user_wrapper.user, chat=group)
         session_id = await get_wizard_session_id(test_client, group.id, user_wrapper.user.id)
+        state = test_client.dispatcher.fsm.get_context(
+            bot=test_client.bot, chat_id=group.id, user_id=user_wrapper.user.id
+        )
+        draft_before = (await state.get_data())["wizard"]["draft"]
+        wizard_message = MessageFactory.create(
+            text="Filter setup", from_user=UserFactory.create(is_bot=True), chat=group
+        )
+        callback_requests = await test_client.send_callback(
+            WizardCallback(
+                scope="filter_action", op="toggle", session_id=session_id, arg="silent"
+            ).pack(),
+            from_user=user_wrapper.user,
+            message=wizard_message,
+        )
+        acknowledgements = [
+            request for request in callback_requests if request.request_type == RequestType.ANSWER_CALLBACK_QUERY
+        ]
+        assert len(acknowledgements) == 1
+        assert acknowledgements[0].params.get("show_alert") is True
+        assert (await state.get_data())["wizard"]["draft"] == draft_before
     finally:
         await set_feature(test_client, "filters_silent_mode", True)
 

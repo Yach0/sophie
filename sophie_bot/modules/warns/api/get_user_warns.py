@@ -19,7 +19,7 @@ async def get_user_warns(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    warns = await WarnModel.get_user_warns(chat.iid, user.iid)
+    warns = await WarnModel.get_user_warns(chat.id, user.id)
 
     return [
         WarnResponse(

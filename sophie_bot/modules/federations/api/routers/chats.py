@@ -36,10 +36,10 @@ async def list_federation_chats(
         return []
 
     chat_iids = [chat_link.to_ref().id for chat_link in federation.chats]
-    chats = await ChatModel.find(In(ChatModel.iid, chat_iids)).to_list()
+    chats = await ChatModel.find(In(ChatModel.id, chat_iids)).to_list()
     return [
         FederationChatResponse(
-            chat_iid=chat_model.iid,
+            chat_iid=chat_model.id,
             title=chat_model.first_name_or_title,
             username=chat_model.username,
         )
@@ -62,7 +62,7 @@ async def add_chat_to_federation(
     # Verify the caller is the federation owner (operators bypass this check)
     if user.tid not in CONFIG.operators:
         creator = await federation.creator.fetch()
-        if creator is None or creator.iid != user.iid:
+        if creator is None or creator.id != user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be the federation owner to add chats",
@@ -85,13 +85,13 @@ async def add_chat_to_federation(
                 detail="You must be the chat owner to add it to a federation",
             )
 
-    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid, redis=services.redis)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.id, redis=services.redis)
     if existing_federation:
         if existing_federation.fed_id == federation.fed_id:
             raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in another federation")
 
-    joined = await FederationChatService.add_chat_to_federation(federation, chat.iid, redis=services.redis)
+    joined = await FederationChatService.add_chat_to_federation(federation, chat.id, redis=services.redis)
     if not joined:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Chat already in this federation")
 
@@ -110,7 +110,7 @@ async def remove_chat_from_federation(
     # Verify the caller is the federation owner (operators bypass this check)
     if user.tid not in CONFIG.operators:
         creator = await federation.creator.fetch()
-        if creator is None or creator.iid != user.iid:
+        if creator is None or creator.id != user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You must be the federation owner to remove chats",
@@ -120,10 +120,10 @@ async def remove_chat_from_federation(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    existing_federation = await FederationManageService.get_federation_for_chat(chat.iid, redis=services.redis)
+    existing_federation = await FederationManageService.get_federation_for_chat(chat.id, redis=services.redis)
     if not existing_federation or existing_federation.fed_id != federation.fed_id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")
 
-    removed = await FederationChatService.remove_chat_from_federation(federation, chat.iid, redis=services.redis)
+    removed = await FederationChatService.remove_chat_from_federation(federation, chat.id, redis=services.redis)
     if not removed:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat is not in this federation")

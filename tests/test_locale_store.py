@@ -15,9 +15,11 @@ from types import SimpleNamespace
 from typing import Any
 
 import pytest
+import ujson
 from aiogram.types import User
 from beanie import PydanticObjectId
 from beanie.odm.operators.find.comparison import In
+from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.cache.locale import LocaleStore
@@ -57,7 +59,7 @@ class _ChatFactory:
         self._iids: list[PydanticObjectId] = []
 
     async def group(self, chat_tid: int, language_code: str | None = None) -> ChatModel:
-        await ChatModel(
+        chat = await ChatModel(
             tid=chat_tid,
             type=ChatType.supergroup,
             first_name_or_title="Test group",
@@ -66,23 +68,17 @@ class _ChatFactory:
             language_code=language_code,
             last_saw=datetime.now(UTC),
         ).insert()
-
-        chat = await ChatModel.get_by_tid(chat_tid)
-        assert chat  # Re-read: ChatModel.iid is only trustworthy on a document loaded from the DB
-        self._iids.append(chat.iid)
+        self._iids.append(chat.id)
         return chat
 
     async def user(self, user_tid: int, language_code: str | None = _CLIENT_LOCALE) -> ChatModel:
-        await ChatModel.upsert_user(_telegram_user(user_tid, language_code))
-
-        chat = await ChatModel.get_by_tid(user_tid)
-        assert chat
-        self._iids.append(chat.iid)
+        chat = await ChatModel.upsert_user(_telegram_user(user_tid, language_code))
+        self._iids.append(chat.id)
         return chat
 
     async def cleanup(self) -> None:
         await LanguageModel.find(In(LanguageModel.chat.id, self._iids)).delete()
-        await ChatModel.find(In(ChatModel.iid, self._iids)).delete()
+        await ChatModel.find(In(ChatModel.id, self._iids)).delete()
 
 
 @pytest.fixture
@@ -95,12 +91,11 @@ async def chats(db_init: Any) -> AsyncGenerator[_ChatFactory]:
 
 
 @pytest.fixture
-def locales(test_redis: object) -> LocaleStore:
-    return LocaleStore(
-        RedisCache(test_redis),
-        i18n,
-        CONFIG.default_locale,
-    )
+async def locales(test_redis: FakeAsyncRedis) -> AsyncGenerator[LocaleStore]:
+    cache = RedisCache(test_redis)
+    yield LocaleStore(cache, i18n, CONFIG.default_locale)
+    await cache.close()
+
 
 class _FakeMessage:
     def __init__(self) -> None:
@@ -190,11 +185,11 @@ async def test_scheduler_and_fed_unban_readers_see_the_selection(
     await _select_language_via_handler(chat, _SELECTED_LOCALE, locales)
 
     # The path fed-unban uses to format its ban date
-    assert await locales.get_chat_locale(chat.iid) == _SELECTED_LOCALE
+    assert await locales.get_chat_locale(chat.id) == _SELECTED_LOCALE
 
     # The path UseChatLanguage sets i18n.ctx_locale from. Read inside, assert outside:
     # __aexit__ returns True, so an assertion raised inside the block would be swallowed.
-    async with UseChatLanguage(chat.iid, locales=locales):
+    async with UseChatLanguage(chat.id, locales=locales):
         scheduler_locale = i18n.ctx_locale.get()
 
     assert scheduler_locale == _SELECTED_LOCALE
@@ -206,7 +201,7 @@ async def test_get_chat_locale_defaults_when_no_selection(
 ) -> None:
     chat = await chats.group(-100778)
 
-    assert await locales.get_chat_locale(chat.iid) == CONFIG.default_locale
+    assert await locales.get_chat_locale(chat.id) == CONFIG.default_locale
 
 
 # --- Validation: an unknown locale must never reach gettext ---
@@ -219,8 +214,8 @@ async def test_unknown_stored_locale_is_rejected(
     chat = await chats.group(-100779)
     await LanguageModel(chat=chat, lang="not_a_locale").insert()
 
-    assert await locales.get_selected_locale(chat.iid) is None
-    assert await locales.get_chat_locale(chat.iid) == CONFIG.default_locale
+    assert await locales.get_selected_locale(chat.id) is None
+    assert await locales.get_chat_locale(chat.id) == CONFIG.default_locale
 
 
 async def test_middleware_rejects_a_client_locale_stored_as_a_selection(
@@ -277,11 +272,11 @@ async def test_selection_change_is_visible_immediately(
     chat = await chats.group(-100781)
 
     await locales.set_selected_locale(chat, _SELECTED_LOCALE)
-    assert await locales.get_selected_locale(chat.iid) == _SELECTED_LOCALE
+    assert await locales.get_selected_locale(chat.id) == _SELECTED_LOCALE
 
     await locales.set_selected_locale(chat, "uk_UA")
 
-    assert await locales.get_selected_locale(chat.iid) == "uk_UA"
+    assert await locales.get_selected_locale(chat.id) == "uk_UA"
 
 
 async def test_cached_miss_is_invalidated_by_a_later_write(
@@ -291,11 +286,47 @@ async def test_cached_miss_is_invalidated_by_a_later_write(
     """A chat read before it had any selection must not stay cached as "no selection"."""
     chat = await chats.group(-100782)
 
-    assert await locales.get_selected_locale(chat.iid) is None
+    assert await locales.get_selected_locale(chat.id) is None
 
     await locales.set_selected_locale(chat, _SELECTED_LOCALE)
 
-    assert await locales.get_selected_locale(chat.iid) == _SELECTED_LOCALE
+    assert await locales.get_selected_locale(chat.id) == _SELECTED_LOCALE
+
+
+async def test_missing_selection_is_cached(
+    chats: _ChatFactory,
+    locales: LocaleStore,
+) -> None:
+    chat = await chats.group(-100787)
+    assert await locales.get_selected_locale(chat.id) is None
+
+    await LanguageModel(chat=chat, lang=_SELECTED_LOCALE).insert()
+
+    assert await locales.get_selected_locale(chat.id) is None
+
+
+@pytest.mark.parametrize("stored_locale", (None, _SELECTED_LOCALE))
+async def test_existing_cached_selections_are_read(
+    chats: _ChatFactory,
+    locales: LocaleStore,
+    test_redis: FakeAsyncRedis,
+    stored_locale: str | None,
+) -> None:
+    chat = await chats.group(-100788)
+    await LanguageModel(chat=chat, lang="uk_UA").insert()
+    cache_key = f"sophie_bot.db.cache.locale:_cached_stored_locale(chat_iid={chat.id!r})"
+    await test_redis.set(
+        cache_key,
+        ujson.dumps(
+            {
+                "v": stored_locale,
+                "s": "__sophie_not_set__" if stored_locale is None else None,
+                "exp": None,
+            }
+        ),
+    )
+
+    assert await locales.get_selected_locale(chat.id) == stored_locale
 
 
 async def test_different_chats_do_not_share_a_cache_entry(
@@ -308,8 +339,8 @@ async def test_different_chats_do_not_share_a_cache_entry(
     await locales.set_selected_locale(first, _SELECTED_LOCALE)
     await locales.set_selected_locale(second, "uk_UA")
 
-    assert await locales.get_selected_locale(first.iid) == _SELECTED_LOCALE
-    assert await locales.get_selected_locale(second.iid) == "uk_UA"
+    assert await locales.get_selected_locale(first.id) == _SELECTED_LOCALE
+    assert await locales.get_selected_locale(second.id) == "uk_UA"
 
 
 
@@ -327,8 +358,8 @@ async def test_lang_while_connected_sets_the_group_language(
     # The connection middleware hands the handler the *connected* chat
     await _select_language_via_handler(group, _SELECTED_LOCALE, locales)
 
-    assert await locales.get_selected_locale(group.iid) == _SELECTED_LOCALE
-    assert await locales.get_selected_locale(user.iid) is None
+    assert await locales.get_selected_locale(group.id) == _SELECTED_LOCALE
+    assert await locales.get_selected_locale(user.id) is None
 
 
 async def test_lang_reselecting_the_active_language_does_not_re_edit(

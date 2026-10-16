@@ -64,7 +64,7 @@ async def _run_process_filters(
             message,
             {
                 "context": SimpleNamespace(
-                    event_chat=SimpleNamespace(iid="chat-iid"),
+                    event_chat=SimpleNamespace(id="chat-iid"),
                     user_in_group=None,
                 ),
                 "services": services,

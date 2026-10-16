@@ -34,7 +34,7 @@ class SetSecurityMessageHandler(SophieMessageHandler):
             buttons=buttons,
             bot=self.services.bot,
         )
-        await GreetingsModel.change_security_message(connection.db_model.iid, saveable)
+        await GreetingsModel.change_security_message(connection.db_model.id, saveable)
 
         doc = Doc(
             Template(_("Welcome security message was saved in {chat_title}."), chat_title=Italic(connection.title)),
@@ -52,7 +52,7 @@ class DelSecurityMessageHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
         if not db_model or not db_model.security_note:
             return await self.event.reply(
                 Template(

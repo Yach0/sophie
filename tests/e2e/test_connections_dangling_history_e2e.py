@@ -41,7 +41,7 @@ async def test_connect_history_removes_deleted_chat_and_keeps_surviving_choice(t
 
     connection = await ChatConnectionModel.get_by_user_tid(admin.id)
     assert connection is not None
-    assert [link.to_ref().id for link in connection.history] == [surviving_chat.iid]
+    assert [link.to_ref().id for link in connection.history] == [surviving_chat.id]
 
     # The invalid choice must not return on subsequent reads of persisted history.
     again = await test_client.send_command(command="connect", from_user=admin)

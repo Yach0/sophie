@@ -14,10 +14,7 @@ from sophie_bot.db.models import FiltersModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.filters.utils_.handle_action import (
-    get_effective_filter_actions,
-    handle_effective_filter_action,
-)
+from sophie_bot.modules.filters.utils_.handle_action import handle_filter_action
 from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -91,17 +88,17 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         # Inject filter ID into data for logging purposes
         data["filter_id"] = str(filter_item.id)
 
-        for action in get_effective_filter_actions(filter_item):
-            if action.name in triggered_actions:
+        for action_name, action_data in filter_item.actions.items():
+            if action_name in triggered_actions:
                 log.debug("EnforceFiltersMiddleware: already triggered action, dropping...")
                 continue
 
-            log.debug("EnforceFiltersMiddleware: handling action", action=action.name)
+            log.debug("EnforceFiltersMiddleware: handling action", action=action_name)
 
-            action_message = await handle_effective_filter_action(message, action, data, filter_item)
+            action_message = await handle_filter_action(message, action_name, action_data, data)
             if action_message:
                 messages.append(action_message)
-            triggered.append(action.name)
+            triggered.append(action_name)
 
         return triggered, messages
 
@@ -157,7 +154,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
     ) -> tuple[list[str], list[ActionResult]]:
         if triggered_groups is None:
             triggered_groups = []
-        if get_effective_filter_actions(matched_filter):
+        if matched_filter.actions:
             return await self._handle_filter_actions(matched_filter, triggered_groups, message, data)
         raise SophieException("EnforceFiltersMiddleware: no actions found")
 
@@ -167,7 +164,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             log.debug("EnforceFiltersMiddleware: chat_db is None, skipping...")
             return
 
-        all_filters = await FiltersModel.get_filters(chat_db.iid)
+        all_filters = await FiltersModel.get_filters(chat_db.id)
         if not all_filters:
             return
 
@@ -184,7 +181,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 filter_item.handler,
                 user_in_group=user_in_group,
                 enable_lock_types=filter_item.effective_version >= 2,
-                chat_iid=chat_db.iid,
+                chat_iid=chat_db.id,
                 services=data["services"],
             )
             if matched:
@@ -196,7 +193,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 ai_filters[0].handler,
                 user_in_group=user_in_group,
                 enable_lock_types=ai_filters[0].effective_version >= 2,
-                chat_iid=chat_db.iid,
+                chat_iid=chat_db.id,
                 services=data["services"],
             )
             if matched:

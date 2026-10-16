@@ -43,7 +43,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             buttons=buttons,
             bot=self.services.bot,
         )
-        await GreetingsModel.change_welcome_message(connection.db_model.iid, saveable)
+        await GreetingsModel.change_welcome_message(connection.db_model.id, saveable)
 
         doc = Doc(
             Template(
@@ -51,7 +51,7 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             ),
             Template(_("Use {cmd} to retrieve the welcome message."), cmd=Italic("/welcome")),
         )
-        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_model = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
         if db_model and db_model.welcome_disabled:
             doc += " "
             doc += Template(

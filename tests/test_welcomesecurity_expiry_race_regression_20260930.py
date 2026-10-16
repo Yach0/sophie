@@ -48,8 +48,8 @@ def _patch_expired_user(monkeypatch: pytest.MonkeyPatch, *, current_record: obje
         f"{_MODULE}.ChatModel.get_by_iid",
         AsyncMock(
             side_effect=[
-                SimpleNamespace(id=PydanticObjectId(), iid=PydanticObjectId(), tid=123),
-                SimpleNamespace(id=PydanticObjectId(), iid=PydanticObjectId(), tid=-100123),
+                SimpleNamespace(id=PydanticObjectId(), tid=123),
+                SimpleNamespace(id=PydanticObjectId(), tid=-100123),
             ]
         ),
     )
@@ -119,8 +119,8 @@ async def test_captcha_pass_lifecycle_holds_lock_before_visible_actions(
     monkeypatch: pytest.MonkeyPatch,
     test_services: object,
 ) -> None:
-    user = SimpleNamespace(iid=PydanticObjectId(), id=PydanticObjectId(), tid=123)
-    group = SimpleNamespace(iid=PydanticObjectId(), id=PydanticObjectId(), tid=-100123)
+    user = SimpleNamespace(id=PydanticObjectId(), tid=123)
+    group = SimpleNamespace(id=PydanticObjectId(), tid=-100123)
     ws_user = _make_ws_user(is_join_request=False)
     current_record: list[object | None] = [ws_user]
     visible_action_started = asyncio.Event()
@@ -205,15 +205,15 @@ async def test_contended_pending_user_does_not_starve_later_expired_users(
 ) -> None:
     contended_user = _make_ws_user(is_join_request=False)
     expired_user = _make_ws_user(is_join_request=False)
-    group = SimpleNamespace(id=contended_user.group.ref.id, iid=contended_user.group.ref.id, tid=-100123)
+    group = SimpleNamespace(id=contended_user.group.ref.id, tid=-100123)
     users = [
-        SimpleNamespace(id=contended_user.user.ref.id, iid=contended_user.user.ref.id, tid=123),
-        SimpleNamespace(id=expired_user.user.ref.id, iid=expired_user.user.ref.id, tid=124),
+        SimpleNamespace(id=contended_user.user.ref.id, tid=123),
+        SimpleNamespace(id=expired_user.user.ref.id, tid=124),
     ]
     expired_user.group.ref.id = contended_user.group.ref.id
     linked_chats = {
-        users[0].iid: users[0],
-        users[1].iid: users[1],
+        users[0].id: users[0],
+        users[1].id: users[1],
         contended_user.group.ref.id: group,
     }
 

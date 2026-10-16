@@ -62,7 +62,7 @@ class UserInfoHandler(SophieMessageHandler):
         if await is_user_admin(chat_tid, user_tid):
             doc += KeyValue(_("Notice"), _("This user is an admin in this chat."))
 
-        federation_ban_info = await get_user_federation_ban_info(self.connection.db_model.iid, user_tid)
+        federation_ban_info = await get_user_federation_ban_info(self.connection.db_model.id, user_tid)
         if federation_ban_info and federation_ban_info.scope == "current":
             doc += KeyValue(
                 _("Notice"),
@@ -84,7 +84,7 @@ class UserInfoHandler(SophieMessageHandler):
 
         # Count shared groups
         # We search for UserInGroupModel entries where the user is the target user
-        shared_chats_count = await UserInGroupModel.find(UserInGroupModel.user.id == target_user.iid).count()
+        shared_chats_count = await UserInGroupModel.find(UserInGroupModel.user.id == target_user.id).count()
 
         doc += KeyValue(_("Shared Chats"), shared_chats_count)
 

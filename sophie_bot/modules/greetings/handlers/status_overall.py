@@ -26,7 +26,7 @@ class WelcomeSettingsShowHandler(SophieMessageHandler):
     async def handle(self) -> Any:
         connection = self.connection
 
-        db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(connection.db_model.iid)
+        db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(connection.db_model.id)
 
         doc = Doc(
             Section(
@@ -50,7 +50,7 @@ class WelcomeSettingsShowHandler(SophieMessageHandler):
 
         title = Bold(Title(_("Welcome Message")))
 
-        rules = await RulesModel.get_rules(chat_iid=connection.db_model.iid)
+        rules = await RulesModel.get_rules(chat_iid=connection.db_model.id)
         additional_fillings = {"rules": rules.text or "" if rules else _("No chat rules, have fun!")}
 
         welcome = db_item.note or get_default_welcome_message(bool(rules))

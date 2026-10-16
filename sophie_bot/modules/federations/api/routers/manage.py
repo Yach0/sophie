@@ -49,11 +49,11 @@ def _federation_detail(federation: Federation) -> FederationDetailResponse:
 async def list_federations(
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> list[FederationSummaryResponse]:
-    owned_federations = await Federation.find(Federation.creator.id == user.iid).to_list()
+    owned_federations = await Federation.find(Federation.creator.id == user.id).to_list()
     # `admins` holds DBRefs, so the filter must address `admins.$id`; comparing the field to a bare
     # ObjectId renders `{"admins": ...}` and never matches. The `Link[T] = T` alias hides the
     # class-level ExpressionField from the checker, which sees a plain list here.
-    admin_federations = await Federation.find(Federation.admins.id == user.iid).to_list()  # ty: ignore[unresolved-attribute]
+    admin_federations = await Federation.find(Federation.admins.id == user.id).to_list()  # ty: ignore[unresolved-attribute]
 
     unique_federations: dict[str, Federation] = {federation.fed_id: federation for federation in owned_federations}
     for federation in admin_federations:
@@ -68,7 +68,7 @@ async def create_federation(
     payload: FederationCreate,
     user: Annotated[ChatModel, Depends(get_current_user)],
 ) -> FederationSummaryResponse:
-    federation = await FederationManageService.create_federation(payload.name, user.iid)
+    federation = await FederationManageService.create_federation(payload.name, user.id)
     if not federation:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unable to create federation")
     return _federation_summary(federation)
@@ -138,7 +138,7 @@ async def set_federation_log_channel(
     if not chat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat not found")
 
-    await FederationManageService.set_federation_log_channel(federation, chat.iid)
+    await FederationManageService.set_federation_log_channel(federation, chat.id)
 
 
 @router.delete("/{fed_id}/log_channel", status_code=status.HTTP_204_NO_CONTENT)

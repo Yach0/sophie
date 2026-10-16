@@ -36,7 +36,7 @@ async def _warn_count(group_tid: int, user_tid: int) -> int:
     chat = await ChatModel.get_by_tid(group_tid)
     user = await ChatModel.get_by_tid(user_tid)
     assert chat is not None and user is not None
-    return await WarnModel.count_user_warns(chat.iid, user.iid)
+    return await WarnModel.count_user_warns(chat.id, user.id)
 
 
 def _last_markup(requests: list) -> InlineKeyboardMarkup | None:
@@ -114,7 +114,7 @@ async def test_warnlimit_persists(test_client: TestClient) -> None:
 
     chat = await ChatModel.get_by_tid(group.id)
     assert chat is not None
-    settings = await WarnSettingsModel.get_or_create(chat.iid)
+    settings = await WarnSettingsModel.get_or_create(chat.id)
     assert settings.max_warns == 5
 
 

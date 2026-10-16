@@ -94,7 +94,7 @@ class CommunityBanHandler(SophieMessageHandler):
         # proactively bans the user across the rest of the community's chats).
         try:
             ban = await CommunityBanService.ban_user(
-                community.community_tid, user_tid, banner.iid, reason, original_message_text
+                community.community_tid, user_tid, banner.id, reason, original_message_text
             )
         except CommunityBanValidationError as err:
             await self.event.reply(str(err))
@@ -111,7 +111,7 @@ class CommunityBanHandler(SophieMessageHandler):
         ).applied
         if immediate_chat_banned:
             existing_chat_iids = set(normalize_chat_iids([chat.to_ref() for chat in ban.banned_chats]))
-            if current_chat.iid not in existing_chat_iids:
+            if current_chat.id not in existing_chat_iids:
                 ban.banned_chats.append(current_chat)
                 await ban.save()
 
@@ -145,9 +145,9 @@ class CommunityBanHandler(SophieMessageHandler):
             community_tid=community.community_tid,
             task_type=CommunityTaskType.BAN,
             target_user_id=user_tid,
-            user=banner.iid,
-            chat=current_chat.iid,
-            current_chat_iid=current_chat.iid,
+            user=banner.id,
+            chat=current_chat.id,
+            current_chat_iid=current_chat.id,
             reply_chat_id=self.event.chat.id,
             reply_message_id=reply_msg.message_id if reply_msg else None,
             reason=reason,

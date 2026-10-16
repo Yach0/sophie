@@ -54,7 +54,7 @@ class PrivateNotesConnectHandler(SophieMessageHandler):
 
         chat = await ChatModel.get_by_tid(chat_id)
         user = self.data["context"].actor
-        if not chat or not await check_connection_permissions(chat.iid, user.iid):
+        if not chat or not await check_connection_permissions(chat.id, user.id):
             return await self.event.reply(_("You are not allowed to connect to this chat."))
 
         # Connect to the chat

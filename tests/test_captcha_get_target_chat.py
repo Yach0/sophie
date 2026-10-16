@@ -9,6 +9,7 @@ import pytest
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityConfirmCB, WelcomeSecurityMoveCB
+from sophie_bot.modules.welcomesecurity.fsm import WelcomeSecurityFSM
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
 from sophie_bot.modules.welcomesecurity.utils_.emoji_captcha import EmojiCaptcha
 
@@ -17,8 +18,7 @@ GROUP_B_TID = -1006002
 
 
 async def _insert_group(tid: int, title: str) -> ChatModel:
-    """Insert and re-fetch: Beanie assigns `_id` on insert, so the in-memory `iid` is stale until reloaded."""
-    await ChatModel(
+    return await ChatModel(
         tid=tid,
         type=ChatType.supergroup,
         first_name_or_title=title,
@@ -27,10 +27,6 @@ async def _insert_group(tid: int, title: str) -> ChatModel:
         last_saw=datetime.now(UTC),
     ).insert()
 
-    group = await ChatModel.get_by_tid(tid)
-    assert group is not None
-    return group
-
 
 class FakeState:
     """Minimal FSMContext stand-in that records what the handler persists."""
@@ -38,13 +34,13 @@ class FakeState:
     def __init__(self, data: dict[str, Any]) -> None:
         self._data = dict(data)
         self.cleared = False
+        self.current_state: Any = None
 
     async def get_data(self) -> dict[str, Any]:
         return dict(self._data)
 
-    @staticmethod
-    async def set_state(_state: Any) -> None:
-        return None
+    async def set_state(self, state: Any) -> None:
+        self.current_state = state
 
     async def update_data(self, data: dict[str, Any]) -> None:
         self._data.update(data)
@@ -65,7 +61,7 @@ def _abandoned_state(group_a: ChatModel) -> FakeState:
     """State left behind by an abandoned captcha for group A."""
     return FakeState(
         {
-            "ws_chat_iid": str(group_a.iid),
+            "ws_chat_iid": str(group_a.id),
             "ws_is_join_request": True,
             "captcha": EmojiCaptcha().data.model_dump(),
         }
@@ -85,7 +81,7 @@ async def test_legacy_button_request_beats_stale_state(db_init: Any, monkeypatch
     handler = CaptchaGetHandler(
         SimpleNamespace(),
         state=state,
-        ws_chat_iid=group_b.iid,
+        ws_chat_iid=group_b.id,
         ws_is_join_request=False,
     )
     await handler.handle()
@@ -94,12 +90,12 @@ async def test_legacy_button_request_beats_stale_state(db_init: Any, monkeypatch
     assert group_b.first_name_or_title in caption
     assert group_a.first_name_or_title not in caption
 
-    assert state._data["ws_chat_iid"] == str(group_b.iid)
+    assert state._data["ws_chat_iid"] == str(group_b.id)
     assert state._data["ws_is_join_request"] is False
 
     markup = answer_media.await_args.kwargs["reply_markup"]
     confirm = WelcomeSecurityConfirmCB.unpack(markup.inline_keyboard[1][0].callback_data)
-    assert confirm.chat_iid == str(group_b.iid)
+    assert confirm.chat_iid == str(group_b.id)
     assert confirm.is_join_request is False
 
 
@@ -113,7 +109,7 @@ async def test_legacy_button_does_not_reuse_other_chats_captcha(db_init: Any, mo
 
     monkeypatch.setattr(CaptchaGetHandler, "answer_media", AsyncMock())
 
-    handler = CaptchaGetHandler(SimpleNamespace(), state=state, ws_chat_iid=group_b.iid)
+    handler = CaptchaGetHandler(SimpleNamespace(), state=state, ws_chat_iid=group_b.id)
     await handler.handle()
 
     assert state._data["captcha"] != stale_captcha
@@ -132,13 +128,13 @@ async def test_move_callback_request_beats_stale_state(db_init: Any, monkeypatch
     handler = CaptchaGetHandler(
         SimpleNamespace(),
         state=state,
-        callback_data=WelcomeSecurityMoveCB(direction="right", chat_iid=str(group_b.iid), is_join_request=False),
+        callback_data=WelcomeSecurityMoveCB(direction="right", chat_iid=str(group_b.id), is_join_request=False),
     )
     await handler.handle()
 
     caption = answer_media.await_args.kwargs["caption"]
     assert group_b.first_name_or_title in caption
-    assert state._data["ws_chat_iid"] == str(group_b.iid)
+    assert state._data["ws_chat_iid"] == str(group_b.id)
 
 
 @pytest.mark.asyncio
@@ -159,3 +155,115 @@ async def test_state_is_used_when_no_chat_is_requested(db_init: Any, monkeypatch
     assert group_a.first_name_or_title in caption
     assert state._data["captcha"] == in_progress_captcha
     assert state._data["ws_is_join_request"] is True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("is_join_request", [False, True])
+async def test_same_chat_callback_keeps_its_join_request_mode(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, is_join_request: bool
+) -> None:
+    del db_init
+    group, _other_group = await _build_groups()
+    state = _abandoned_state(group)
+    state._data["ws_is_join_request"] = not is_join_request
+    previous_data = await state.get_data()
+    expected_captcha = EmojiCaptcha(data=previous_data["captcha"])
+    expected_captcha.data.move_to_left()
+
+    async def answer_media(*_args: Any, **kwargs: Any) -> None:
+        # A failed Telegram edit must leave the previous progress available for retry.
+        assert await state.get_data() == previous_data
+        assert state.current_state is None
+        markup = kwargs["reply_markup"]
+        for button in markup.inline_keyboard[0]:
+            movement = WelcomeSecurityMoveCB.unpack(button.callback_data)
+            assert movement.chat_iid == str(group.id)
+            assert movement.is_join_request is is_join_request
+        confirm = WelcomeSecurityConfirmCB.unpack(markup.inline_keyboard[1][0].callback_data)
+        assert confirm.chat_iid == str(group.id)
+        assert confirm.is_join_request is is_join_request
+
+    monkeypatch.setattr(CaptchaGetHandler, "answer_media", AsyncMock(side_effect=answer_media))
+    handler = CaptchaGetHandler(
+        SimpleNamespace(),
+        state=state,
+        callback_data=WelcomeSecurityMoveCB(
+            direction="left", chat_iid=str(group.id), is_join_request=is_join_request
+        ),
+    )
+    await handler.handle()
+
+    assert state._data["captcha"] == expected_captcha.data.model_dump()
+    assert state._data["ws_chat_iid"] == str(group.id)
+    assert state._data["ws_is_join_request"] is is_join_request
+    assert state.current_state == WelcomeSecurityFSM.captcha
+
+
+@pytest.mark.asyncio
+async def test_explicit_target_does_not_inherit_callback_join_request_mode(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del db_init
+    group_a, group_b = await _build_groups()
+    state = _abandoned_state(group_a)
+    answer_media = AsyncMock()
+    monkeypatch.setattr(CaptchaGetHandler, "answer_media", answer_media)
+
+    handler = CaptchaGetHandler(
+        SimpleNamespace(),
+        state=state,
+        ws_chat_iid=group_b.id,
+        callback_data=WelcomeSecurityMoveCB(
+            direction="right", chat_iid=str(group_a.id), is_join_request=True
+        ),
+    )
+    await handler.handle()
+
+    assert state._data["ws_chat_iid"] == str(group_b.id)
+    assert state._data["ws_is_join_request"] is False
+    markup = answer_media.await_args.kwargs["reply_markup"]
+    confirm = WelcomeSecurityConfirmCB.unpack(markup.inline_keyboard[1][0].callback_data)
+    assert confirm.chat_iid == str(group_b.id)
+    assert confirm.is_join_request is False
+
+
+@pytest.mark.asyncio
+async def test_wrong_answer_redraw_keeps_target_and_displays_retry_message(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del db_init
+    group, _other_group = await _build_groups()
+    state = _abandoned_state(group)
+    answer_media = AsyncMock()
+    monkeypatch.setattr(CaptchaGetHandler, "answer_media", answer_media)
+
+    await CaptchaGetHandler(SimpleNamespace(), state=state, ws_shuffle=True).handle()
+
+    assert "❌ Incorrect solution. Please, try again." in answer_media.await_args.kwargs["caption"]
+    assert group.first_name_or_title in answer_media.await_args.kwargs["caption"]
+    assert state._data["ws_chat_iid"] == str(group.id)
+    assert state._data["ws_is_join_request"] is True
+    markup = answer_media.await_args.kwargs["reply_markup"]
+    confirm = WelcomeSecurityConfirmCB.unpack(markup.inline_keyboard[1][0].callback_data)
+    assert confirm.chat_iid == str(group.id)
+    assert confirm.is_join_request is True
+
+
+@pytest.mark.asyncio
+async def test_failed_redraw_keeps_previous_captcha_state(
+    db_init: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    del db_init
+    group_a, group_b = await _build_groups()
+    state = _abandoned_state(group_a)
+    previous_data = await state.get_data()
+    monkeypatch.setattr(
+        CaptchaGetHandler, "answer_media", AsyncMock(side_effect=RuntimeError("Telegram edit failed"))
+    )
+
+    handler = CaptchaGetHandler(SimpleNamespace(), state=state, ws_chat_iid=group_b.id)
+    with pytest.raises(RuntimeError, match="Telegram edit failed"):
+        await handler.handle()
+
+    assert await state.get_data() == previous_data
+    assert state.current_state is None

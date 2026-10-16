@@ -39,7 +39,7 @@ class AIModeratorModel(Document):
 
     @staticmethod
     async def set_state(chat: ChatModel, new_state: bool):
-        model = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat.iid)
+        model = await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat.id)
         if model:
             model.enabled = new_state
             return await model.save()

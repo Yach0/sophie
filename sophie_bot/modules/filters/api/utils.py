@@ -13,7 +13,6 @@ from sophie_bot.constants import AI_FILTER_LIMIT_PER_CHAT, FILTER_MAX_ACTIONS
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.filters import FiltersModel
 from sophie_bot.db.models.notes import CURRENT_SAVEABLE_VERSION, Saveable
-from sophie_bot.modules.filters.utils_.handle_action import get_effective_filter_actions
 from sophie_bot.modules.locks.utils.conflicts import get_lock_type_owner
 from sophie_bot.modules.locks.utils.lock_types import is_supported_lock_type
 from sophie_bot.modules.notes.utils.rich import rich_message_to_html_fallback, validate_rich_message_api
@@ -195,12 +194,12 @@ def build_filter_response(
         version=filter_item.effective_version,
         actions=[
             build_filter_action_response(
-                action.name,
-                action.data or {},
+                action_name,
+                action_data or {},
                 actions,
                 handlers,
             )
-            for action in get_effective_filter_actions(filter_item)
+            for action_name, action_data in filter_item.actions.items()
         ],
         time=filter_item.time,
     )

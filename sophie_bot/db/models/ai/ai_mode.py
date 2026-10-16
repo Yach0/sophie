@@ -46,7 +46,7 @@ class AIModeModel(Document):
 
     @staticmethod
     async def set_mode(chat: ChatModel, mode: AIMode) -> AIModeModel:
-        model = await AIModeModel.find_one(AIModeModel.chat.id == chat.iid)
+        model = await AIModeModel.find_one(AIModeModel.chat.id == chat.id)
         if model:
             model.mode = mode
             return await model.save()

@@ -35,9 +35,9 @@ class LocksListHandler(SophieMessageHandler):
         message: Message = self.event
         connection = self.connection
 
-        model = await LocksModel.get_by_chat_iid(connection.db_model.iid)
+        model = await LocksModel.get_by_chat_iid(connection.db_model.id)
         locked_types = model.locked_types
-        filter_lock_types = await get_filter_lock_types(connection.db_model.iid)
+        filter_lock_types = await get_filter_lock_types(connection.db_model.id)
 
         if not locked_types and not filter_lock_types:
             doc = Doc(
