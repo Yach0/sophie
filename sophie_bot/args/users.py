@@ -69,7 +69,7 @@ class SophieUserArg(OrArg):
     @staticmethod
     def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"), l_(
-            "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
+            "Users: 'User IDs (numeric) / Usernames (start with @) / Mentions (links to users)'"
         )
 
     @property
@@ -78,6 +78,6 @@ class SophieUserArg(OrArg):
             "1111224224": l_("User ID"),
             "@ofoxr_bot": l_("Username"),
             UserLink(user_id=1111224224, name="OrangeFox BOT"): l_(
-                "A link to user, usually creates by mentioning a user without username."
+                "A link to a user, usually created by mentioning a user without a username."
             ),
         }  # ty:ignore[invalid-return-type]

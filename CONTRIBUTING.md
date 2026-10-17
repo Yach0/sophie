@@ -78,6 +78,8 @@ module globals.
 
 Sophie uses a translation system based on Gettext and Crowdin. All user-facing text **MUST** be translatable using the i18n system. For details on how to use `gettext` and `lazy_gettext`, please see the [AGENTS.md](AGENTS.md#translation-system) section.
 
+When an English correction does not change the meaning, preserve the existing translations under the corrected message IDs.
+
 ---
 
 ## Testing

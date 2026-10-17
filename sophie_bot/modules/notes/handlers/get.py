@@ -42,7 +42,7 @@ class GetNote(SophieMessageHandler):
 
         if not note and self.data.get("get_error_on_404", True):
             return await self.event.reply(
-                Template(_("No note was found with {name} name."), name=Italic(note_name)).to_html()
+                Template(_("No note was found with the name {name}."), name=Italic(note_name)).to_html()
             )
         if not note:
             return None

@@ -113,5 +113,5 @@ def describe_filter_handler(keyword: str) -> Element | str | LazyProxy | BabelLa
     if keyword.startswith("ai:"):
         return Template(_("When AI detects: {prompt}"), prompt=Code(keyword[3:]))
     if keyword.startswith("re:"):
-        return Template(_("When messages matches the regex pattern {pattern}"), pattern=Code(keyword[3:]))
+        return Template(_("When messages match the regex pattern {pattern}"), pattern=Code(keyword[3:]))
     return Template(_("When {handler} in message"), handler=Code(keyword))

@@ -97,7 +97,7 @@ module_manifest = ModuleManifest(
                 "If you want to save some frequently-used content in your chat, such as a FAQ, response templates, your favourite stickers or the whole interactive menu, you can do that with notes."
             ),
             l_(
-                "Notes allows saving different kind of content, from normal text messages to stickers and audio messages, notes also support adding inline message buttons."
+                "Notes allow saving different kinds of content, from normal text messages to stickers and audio messages; notes also support adding inline message buttons."
             ),
         )
     ),

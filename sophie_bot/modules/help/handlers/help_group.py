@@ -21,7 +21,7 @@ class HelpGroupHandler(SophieMessageHandler):
         return CMDFilter("help"), ~ChatTypeFilter("private")
 
     async def handle(self) -> Any:
-        text = _("The help information available in the private messages with Sophie")
+        text = _("The help information is available in the private messages with Sophie")
 
         buttons = InlineKeyboardBuilder()
         buttons.add(InlineKeyboardButton(text=f"ℹ️ {_('Help')}", url=PMHelpStartUrlCallback().pack()))
