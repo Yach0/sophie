@@ -6,16 +6,16 @@ from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
 from pydantic_ai import Agent
 from stfu_tg import Italic, Section, Template, Title
-from stfu_tg.doc import Doc, Element, PreformattedHTML
+from stfu_tg.doc import Doc, Element
 
 from sophie_bot.constants import AI_EMOJI
 from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
+from sophie_bot.modules.ai.utils.ai_response import render_ai_response
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
@@ -137,5 +137,5 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
 
         return Doc(
             Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
-            PreformattedHTML(ai_markdown_to_html(str(result.output))),
+            render_ai_response(None, str(result.output)),
         )
