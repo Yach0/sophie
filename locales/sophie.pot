@@ -38,8 +38,6 @@ msgstr ""
 msgid "Chat ID"
 msgstr ""
 
-#: sophie_bot/args/chats.py:61 sophie_bot/args/users.py:78
-#: sophie_bot/modules/users/handlers/info.py:53
 msgid "Username"
 msgstr ""
 
@@ -93,19 +91,15 @@ msgstr ""
 msgid "Could not find the requested User ID in the database."
 msgstr ""
 
-#: sophie_bot/args/users.py:70
 msgid "User: 'User ID (numeric) / Username (starts with @) / Mention (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:71
 msgid "Users: 'User IDs (numeric) / Usernames (starts with @) / Mentions (links to users)'"
 msgstr ""
 
-#: sophie_bot/args/users.py:77
 msgid "User ID"
 msgstr ""
 
-#: sophie_bot/args/users.py:80
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
 
@@ -1053,11 +1047,6 @@ msgstr ""
 
 #: sophie_bot/modules/ai/magic_handlers/modern_action.py:92
 msgid "Send an AI Respond with prompt"
-msgstr ""
-
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
 msgstr ""
 
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
@@ -8297,4 +8286,3 @@ msgstr ""
 
 msgid "A link to user, usually creates by mentioning a user without username."
 msgstr ""
-

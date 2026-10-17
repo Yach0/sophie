@@ -1055,11 +1055,6 @@ msgstr ""
 msgid "Send an AI Respond with prompt"
 msgstr ""
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr ""
-
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
 msgid "✋ AI Moderator"
 msgstr ""
@@ -8078,4 +8073,3 @@ msgstr ""
 #: sophie_bot/utils/pagination.py:54
 msgid "Next ▶️"
 msgstr ""
-

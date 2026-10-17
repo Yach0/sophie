@@ -1078,11 +1078,6 @@ msgstr "AI Response"
 msgid "Send an AI Respond with prompt"
 msgstr "Send an AI response with prompt"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr "{ai_emoji} AI Response"
-
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
 msgid "✋ AI Moderator"
 msgstr "✋ AI Moderator"
@@ -8830,4 +8825,3 @@ msgstr "Could not find the user mention."
 
 #~ msgid "Invalid {action} duration, please try again."
 #~ msgstr "Invalid {action} duration, please try again."
-

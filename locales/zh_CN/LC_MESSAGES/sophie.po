@@ -1076,11 +1076,6 @@ msgstr "AI 响应"
 msgid "Send an AI Respond with prompt"
 msgstr "发送 AI 响应与提示"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr "{ai_emoji} AI 响应"
-
 #: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
 msgid "✋ AI Moderator"
 msgstr "✋ AI 版主"
@@ -8818,4 +8813,3 @@ msgstr "未找到用户提及"
 
 #~ msgid "Invalid {action} duration, please try again."
 #~ msgstr "无效的 {action} 时长，请再试一次。"
-
