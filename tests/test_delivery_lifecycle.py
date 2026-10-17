@@ -674,11 +674,25 @@ async def test_delivery_normalizes_paired_surrogates_without_losing_markup(
 @pytest.mark.asyncio(loop_scope="session")
 @pytest.mark.parametrize("mode", ["html", "rich"])
 @pytest.mark.parametrize("allow_short_rich", [False, True])
-@pytest.mark.parametrize("invalid", ["high \ud800", "low \udc00", "reversed \udc00\ud800", "mixed \ud83c\udf0d\ud800"])
+@pytest.mark.parametrize(
+    ("prefix", "codepoints"),
+    [
+        pytest.param("high ", (0xD800,), id="lone-high"),
+        pytest.param("low ", (0xDC00,), id="lone-low"),
+        pytest.param("reversed ", (0xDC00, 0xD800), id="reversed-pair"),
+        pytest.param("mixed ", (0xD83C, 0xDF0D, 0xD800), id="paired-and-lone-high"),
+    ],
+)
 async def test_delivery_rejects_unpaired_surrogates_before_transport(
-    transport: Transport, mode: Literal["html", "rich"], allow_short_rich: bool, invalid: str
+    transport: Transport,
+    mode: Literal["html", "rich"],
+    allow_short_rich: bool,
+    prefix: str,
+    codepoints: tuple[int, ...],
 ) -> None:
     bot, calls = transport
+    # Allure writes string parameters verbatim, so construct invalid Unicode only at the delivery boundary.
+    invalid = prefix + "".join(chr(codepoint) for codepoint in codepoints)
     with pytest.raises(ValueError, match="unpaired surrogates"):
         await deliver_doc(bot, -100123, Doc(Bold(invalid)), mode=mode, allow_short_rich=allow_short_rich)
     assert calls == []

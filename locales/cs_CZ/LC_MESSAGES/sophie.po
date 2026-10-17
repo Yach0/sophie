@@ -1154,6 +1154,10 @@ msgstr "🤖 Požadavek na AI selhal"
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "Poskytovatel AI nedokončil požadavek. Zkuste to prosím za chvíli."
 
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:72
+msgid "LLM History"
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/ai_progress.py:11
 msgid "Thinking..."
 msgstr "Přemýšlím..."

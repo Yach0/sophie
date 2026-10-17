@@ -1151,6 +1151,10 @@ msgstr "🤖 Solicitação à IA falhou"
 msgid "The AI provider did not complete the request. Please try again in a moment."
 msgstr "O provedor de IA não completou a solicitação. Por favor, tente novamente em um momento."
 
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:72
+msgid "LLM History"
+msgstr ""
+
 #: sophie_bot/modules/ai/utils/ai_progress.py:11
 msgid "Thinking..."
 msgstr "Pensando..."

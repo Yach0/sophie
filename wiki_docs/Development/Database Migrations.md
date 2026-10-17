@@ -40,7 +40,7 @@ This creates a file like: `sophie_bot/db/migrations/20240125_120000_add_user_pre
 2. Define old and new model structures if needed
 3. Implement Forward and Backward migration classes
 4. Test migration locally
-5. Add tests to `tests/test_migrations.py`
+5. Add tests to `tests/test_migration_helper.py`
 
 ## Migration Examples
 
@@ -460,18 +460,14 @@ class Forward:
 ### Running Tests
 
 ```bash
-make test_migrations
+uv run pytest tests/test_migration_helper.py -v
 ```
 
-Or:
-
-```bash
-pytest tests/test_migrations.py -v
-```
+CI runs this file in its dedicated migration check and excludes it from the unit check.
 
 ### Writing Tests
 
-Add tests to `tests/test_migrations.py`:
+Add tests to `tests/test_migration_helper.py`:
 
 ```python
 import pytest
@@ -508,7 +504,7 @@ async def test_migration_applies_correctly(test_services: ApplicationServices) -
 
 1. **Create migration** on development branch
 2. **Test locally**: `make migrate_up`
-3. **Add tests** to `tests/test_migrations.py`
+3. **Add tests** to `tests/test_migration_helper.py`
 4. **Test in staging** (beta instance)
 5. **Verify status**: `make migrate_status`
 6. **Open merge request** with migration details
@@ -656,7 +652,7 @@ CONFIG.migration_batch_size = 5000  # Adjust based on testing
 - [ ] Migration file created with proper naming
 - [ ] Forward and Backward classes implemented
 - [ ] Docstring with description and impact
-- [ ] Tests written in `tests/test_migrations.py`
+- [ ] Tests written in `tests/test_migration_helper.py`
 - [ ] Code reviewed by team
 - [ ] Tested locally with `make migrate_up`
 - [ ] Tested in staging environment
