@@ -78,6 +78,8 @@ module globals.
 
 Sophie uses a translation system based on Gettext and Crowdin. All user-facing text **MUST** be translatable using the i18n system. For details on how to use `gettext` and `lazy_gettext`, please see the [AGENTS.md](AGENTS.md#translation-system) section.
 
+When an English correction does not change the meaning, preserve the existing translations under the corrected message IDs.
+
 ---
 
 ## Testing
@@ -87,7 +89,7 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **Bug Fixes**: Must include a reproduction test that failed before the fix and passes after.
 - **Running Tests**: Use `make run_tests` or `make commit`.
 - **Isolated Feature-Flag Tests**: Patch the flag resolver explicitly when testing one context mode without a database fixture.
-- **Migration Checks**: CI runs `tests/test_migration_helper.py` separately from unit tests; use `uv run pytest tests/test_migration_helper.py -v` to run that suite locally.
+- **Migration Checks**: CI runs `tests/test_migration_helper.py` separately and excludes it from the unit-test job; use `uv run pytest tests/test_migration_helper.py -v` to run that suite locally.
 
 ---
 

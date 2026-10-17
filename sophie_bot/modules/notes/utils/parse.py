@@ -169,7 +169,7 @@ async def parse_saveable(
         raise SophieException(
             Section(
                 Template(_("The maximum length of the note is {limit} characters."), limit=text_limit).to_html(),
-                _("Please try to reduce the length of note."),
+                _("Please try to reduce the length of the note."),
                 title=_("Note is too long."),
             )
         )
