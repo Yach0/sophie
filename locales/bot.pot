@@ -471,12 +471,40 @@ msgstr ""
 msgid "🔴 High"
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:45
-msgid "Category"
+#: sophie_bot/modules/ai/handlers/aimoderator.py:48
+msgid "Explicit sexual content and services."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:45
-msgid "What it detects"
+#: sophie_bot/modules/ai/handlers/aimoderator.py:49
+msgid "Prejudice and discrimination."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:50
+msgid "Threats and glorified violence."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:51
+msgid "Crime and hazardous instructions."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:52
+msgid "Suicide and deliberate self-injury."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:53
+msgid "Tailored medical advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:54
+msgid "Tailored financial advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:55
+msgid "Tailored legal advice."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:56
+msgid "Requests for or sharing of personal data."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:59
@@ -487,12 +515,50 @@ msgstr ""
 msgid "Sophie deletes messages that cross a category's detection level."
 msgstr ""
 
-#: sophie_bot/modules/ai/handlers/aimoderator.py:62
-msgid "Press a category to walk it through Off, Low, Medium and High."
+#: sophie_bot/modules/ai/handlers/aimoderator.py:66
+msgid "Setting"
+msgstr ""
+
+#: sophie_bot/modules/op/handlers/stfu_gallery.py:131
+#: sophie_bot/modules/op/handlers/stfu_gallery.py:136
+#: sophie_bot/modules/op/handlers/stfu_gallery.py:137
+#: sophie_bot/modules/op/handlers/stfu_gallery.py:193
+msgid "Value"
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
+#: sophie_bot/modules/utils_/status_handler.py:85
+#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
+msgid "Enabled"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:70
+msgid "✅ On"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:96
+msgid "Tap a value to change it. Category levels cycle through Off, Low, Medium and High."
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/aimoderator.py:92
 msgid "Tune what the AI moderator detects in this chat."
+msgstr ""
+
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:47
+#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:61
+msgid "New state"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:122
+msgid "Enable or disable the AI moderator in this chat."
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:181
+msgid "AI moderator enabled"
+msgstr ""
+
+#: sophie_bot/modules/ai/handlers/aimoderator.py:181
+msgid "AI moderator disabled"
 msgstr ""
 
 #: sophie_bot/modules/ai/handlers/autotranslate_setting.py:34
@@ -5109,12 +5175,6 @@ msgstr ""
 msgid "Disabled"
 msgstr ""
 
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:38
-#: sophie_bot/modules/utils_/status_handler.py:85
-#: sophie_bot/modules/welcomesecurity/handlers/status_overall.py:46
-msgid "Enabled"
-msgstr ""
-
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:39
 msgid "Private Notes"
 msgstr ""
@@ -5124,11 +5184,6 @@ msgstr ""
 #: sophie_bot/modules/utils_/status_handler.py:49
 #, python-brace-format
 msgid "Use '{cmd}' to change it."
-msgstr ""
-
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:47
-#: sophie_bot/modules/notes/handlers/pmnotes_setting.py:61
-msgid "New state"
 msgstr ""
 
 #: sophie_bot/modules/notes/handlers/pmnotes_setting.py:48
@@ -6040,13 +6095,6 @@ msgstr ""
 
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:131
 msgid "Key"
-msgstr ""
-
-#: sophie_bot/modules/op/handlers/stfu_gallery.py:131
-#: sophie_bot/modules/op/handlers/stfu_gallery.py:136
-#: sophie_bot/modules/op/handlers/stfu_gallery.py:137
-#: sophie_bot/modules/op/handlers/stfu_gallery.py:193
-msgid "Value"
 msgstr ""
 
 #: sophie_bot/modules/op/handlers/stfu_gallery.py:132
@@ -8078,4 +8126,3 @@ msgstr ""
 #: sophie_bot/utils/pagination.py:54
 msgid "Next ▶️"
 msgstr ""
-
