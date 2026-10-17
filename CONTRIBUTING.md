@@ -97,6 +97,7 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **New Features**: Must include new tests covering core logic and edge cases.
 - **Bug Fixes**: Must include a reproduction test that failed before the fix and passes after.
 - **Running Tests**: Use `make run_tests` or `make commit`.
+- **Migration Checks**: CI runs `tests/test_migration_helper.py` separately and excludes it from the unit-test job.
 
 ---
 
