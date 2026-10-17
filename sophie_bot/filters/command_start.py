@@ -32,16 +32,11 @@ class CmdStartFilter(Filter):
         )
         command: CommandObject | None = command_data.get("command") if isinstance(command_data, dict) else None
 
-        if not command:
-            return False
-
-        args = command.args
-
-        if not args:
+        if not command or not command.args:
             return False
 
         try:
-            unpacked = self.cmd_start.unpack(args)
+            unpacked = self.cmd_start.unpack(command.args)
         except (TypeError, ValueError):
             return False
 

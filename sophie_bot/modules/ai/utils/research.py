@@ -21,7 +21,6 @@ from stfu_tg import (
     Doc,
     Italic,
     KeyValue,
-    PreformattedHTML,
     Section,
     Template,
     Title,
@@ -42,12 +41,11 @@ from sophie_bot.modules.ai.json_schemas.research import (
     ResearchSource,
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_research_model_plan
-from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
+from sophie_bot.modules.ai.utils.ai_response import render_ai_response
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.feature_settings import ResearchWorkflowSettings, get_research_workflow_settings
-from sophie_bot.modules.ai.utils.markdown_to_html import ai_markdown_to_html
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
@@ -554,14 +552,14 @@ def build_research_doc(
     header: Element | str | None = None,
     current_locale: str = "en_US",
 ) -> Doc:
-    return build_ai_message_doc(
+    doc = render_ai_response(
         header,
-        Title(_("Research")) if header is None else None,
-        PreformattedHTML(ai_markdown_to_html(response.text, extract_headings=True)),
+        response.text,
         BlockQuote(_build_research_sources_section(response.sources, current_locale), expandable=True)
         if response.sources
         else Section(Code(_("No sources."))),
     )
+    return Doc(Title(_("Research")), doc) if header is None else doc
 
 
 def build_research_file_doc(response: ResearchFinalResponse, current_locale: str = "en_US") -> Doc:

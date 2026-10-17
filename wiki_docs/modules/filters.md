@@ -2,8 +2,8 @@
 title: Filters
 icon: 🪄
 ---
-> Filters allows to invoke different actions for different messages. \
-> For example muting the users when they mention crypto. \
+> Filters allow invoking different actions for different messages. \
+> For example, muting the users when they mention crypto. \
 > Sophie supports many different actions you can configure to automatize chat moderation in many different ways.
 
 ## Available commands
@@ -257,8 +257,8 @@ filter.
 
 Sophie supports having many filter actions for one filter handler.
 This means you can trigger complicated actions like warning users and deleting the user's message.
-Or triggering the AI Respond with a prompt that will try to describe users why is it bad to tag admins in chats, while
-in the same time deleting the trigger message and muting the user.
+Or triggering the AI Respond with a prompt that will try to describe to users why it is bad to tag admins in chats, while
+at the same time deleting the trigger message and muting the user.
 
 However, limits exist.
 The maximum number of actions per filter is currently three, and Sophie will only trigger the first two of matching

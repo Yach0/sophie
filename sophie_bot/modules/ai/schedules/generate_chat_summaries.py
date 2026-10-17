@@ -50,7 +50,7 @@ def _build_chat_summary_window(now: datetime, summary_time_utc: str) -> tuple[da
     if current_time < window_end:
         window_end -= timedelta(days=1)
     window_start = window_end - timedelta(days=1)
-    return window_start.date(), window_start, window_end
+    return window_end.date(), window_start, window_end
 
 
 def _build_summary_prompt(transcript: SummaryTranscript, instructions: str) -> str:

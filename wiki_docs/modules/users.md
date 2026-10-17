@@ -16,6 +16,6 @@ icon: 🫂
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/id` | `<User>` | Shows your Telegram ID, chat IDs, and the replied or specified user's ID. |  |
-| `/admin_list` `/admins` | - | Lists all the chats admins. | *Disable-able* |
+| `/admin_list` `/admins` | - | Lists all the chat's admins. | *Disable-able* |
 | `/info` | `<User>` | Shows the additional information about the user. | *Disable-able* |
 {.card-view-on-mobile}
