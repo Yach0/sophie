@@ -20,7 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 from sophie_bot.utils.logger import log
 
 
-@flags.handler_help(description=l_("Purges all messages after replied message (including the replied message)."))
+@flags.handler_help(description=l_("Purges all messages after the replied message (including the replied message)."))
 class PurgeMessagesHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -42,7 +42,7 @@ class PurgeMessagesHandler(SophieMessageHandler):
         if reply_to_message.date <= datetime.now(tz=UTC) - timedelta(days=2):
             return await self.event.reply(
                 _(
-                    "Couldn't delete the messages older than 48 hours (2 days). You can delete it nevertheless using the Telegram's admin tools."
+                    "Couldn't delete the messages older than 48 hours (2 days). You can delete them nevertheless using Telegram's admin tools."
                 )
             )
 

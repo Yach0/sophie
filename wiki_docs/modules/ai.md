@@ -8,7 +8,7 @@ icon: ✨
 > Sophie supports quite a few ways to use AI features. \
 > From a simple chat-bot, to the automatic translator. Have fun. \
 >   \
-> By using AI features you agree to the our Privacy Policy (/privacy) and third party AI services used. \
+> By using AI features you agree to our Privacy Policy (/privacy) and third party AI services used. \
 > Please note that each chat has a limited monthly AI quota. \
 > Use /ai_usage to check your remaining quota.
 
@@ -37,7 +37,7 @@ icon: ✨
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/ai_mode` | - | Select what the AI does in this chat. |  |
-| `/ai_moderator` `/aimoderator` | `<?on / off>` | Enable, disable or tune the AI moderator in this chat. | Each value has a button in its table row. |
+| `/ai_moderator` | - | Tune what the AI moderator detects in this chat. |  |
 | `/ai_auto_translate` `/auto_translate` | `<?New status>` `<?Language code>` | Controls AI Auto translator. |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries. |  |
 | `/ai_summaries_pin` | `<?New status>` | Controls automatic pinning of AI chat summaries. |  |

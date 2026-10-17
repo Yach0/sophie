@@ -291,35 +291,8 @@ The two providers report different categories, and Sophie normalises them onto i
 
 ### Per-chat detection levels
 
-Chat admins run `/ai_moderator` (or `/aimoderator`) to open a compact rich table. Each row
-contains its own value button, including **Enabled**; there is no separate keyboard. Pressing a
-category's value walks it through Off → Low → Medium → High. Callback clicks refresh the table.
-
-Use `/aimoderator on` or `/aimoderator off`, or tap **Enabled**, to persist the chat's moderator
-switch. Without an explicit switch, moderation defaults to off in Entertainment and on in
-Moderation and Support. Editing a category alone preserves that mode default. Explicit on enables
-moderation in Entertainment; explicit off survives mode changes. New boolean settings are
-explicit overrides; an unset (`null`) switch follows the mode default.
-
-When upgrading, stop bot/API writers while migration
-`20261014_024240_normalize_ai_moderator_settings` runs. Startup runs migrations before index
-synchronization. If automatic migrations are disabled, run `make migrate_up` before starting this
-version; the migration helper skips index creation until the data has been repaired. Keep index
-synchronization enabled (`MONGO_SKIP_INDEXES=false`) to enforce one moderator record per chat.
-
-Old category-only records stored `enabled=True` by default. The old REST API could also write
-`True` explicitly, with no provenance to distinguish it from that default. The migration changes
-ambiguous legacy `True` (and missing enabled fields) to `null`, so they follow the mode default
-and never become an accidental Entertainment opt-in. Legacy `False` overrides are preserved.
-Known explicit legacy `True` controls must be reapplied with `/aimoderator on` after upgrading.
-For duplicate records, the newest ObjectId's category settings are retained and any legacy
-`False` override is preserved. Original records
-are archived in `ai_moderator_upgrade_backup`. With writers stopped, rollback drops the unique
-index and restores those snapshots, including duplicates; it replaces subsequent edits to
-archived records. Run the old version after rollback to avoid recreating the unique index.
-
-AI mode Disabled and the global `ai_moderation` feature flag still gate moderation. An off moderator
-skips moderation classification entirely and does not change `/tr` translation access.
+Chat admins run `/ai_moderator` to get a table of the nine categories and a button for each one.
+Pressing a button walks that category through Off → Low → Medium → High.
 
 The level multiplies the classifier's score before it is compared to the threshold, so a chat can be
 made more or less sensitive without an operator retuning anything. The factors are feature flags:

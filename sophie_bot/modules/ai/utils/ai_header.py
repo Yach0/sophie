@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any, Final
 
-from stfu_tg import CustomEmoji, Doc, HList, Italic, Paragraph
+from stfu_tg import CustomEmoji, Doc, HList, Italic
 from stfu_tg.doc import Element
 
 from sophie_bot.constants import AI_EMOJI
@@ -92,7 +92,7 @@ def build_ai_message_doc(
                 divider=" ",
             ),
             _LineBreak(),
-            Paragraph(header),
+            header,
             divider="",
         )
     )

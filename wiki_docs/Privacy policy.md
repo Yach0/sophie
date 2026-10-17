@@ -29,16 +29,16 @@ Configurations and content such as notes, filters, etc.
 - If AI Features are explicitly activated, the bot caches* the text of messages and their author IDs (for the past 48
   hours).
 
-*Caching refers to storing data for a limited time, which in Sophie's case, does not exceed 7 days.
+*Caching refers to storing data for a limited time, which, in Sophie's case, does not exceed 7 days.
 
 # How we use the data
 
-We are processing, storing, managing all the data strictly only on the Sophie's virtual machines, with all the latest
+We are processing, storing, managing all the data strictly only on Sophie's virtual machines, with all the latest
 security updates automatically installed weekly.
 
 For some AI Features, with the direct user consent of enabling AI Features,
 Sophie could provide some of the saved data to OpenAI
-(see the OpenAI's privacy policy - https://openai.com/enterprise-privacy/)
+(see OpenAI's privacy policy - https://openai.com/enterprise-privacy/)
 
 # Rights to process
 
@@ -54,7 +54,7 @@ You can withdraw your consent and request deletion of your data at any time.
 * To delete saved content: Remove any previously saved content within Sophie, such as notes and filters.
 * Automatic deletion: Non-essential information is automatically deleted after 7 days of inactivity.
 
-We have legitimate interest to store the essential information (Warnings, Federation Bans, User ID, and Names)
+We have a legitimate interest to store the essential information (Warnings, Federation Bans, User ID, and Names)
 indefinitely to maintain platform security and protect our users.
 This is necessary for the proper functioning of Sophie and its ability to protect chats/groups/channels.
 
@@ -98,11 +98,6 @@ What Sophie's AI does in a chat, and what it is given, depends on the mode chose
 * **Support** — the chatbot answers questions using the chat's notes, and the AI moderator runs.
   Recent messages are cached to provide conversation context.
 
-Chat admins can turn the AI moderator on or off with /aimoderator. It defaults to off in
-Entertainment and on in Moderation and Support; an explicit chat setting overrides that default.
-When off, messages are not sent to the moderation classifier. Other AI features keep their own
-mode and feature settings.
-
 Cached message history is held for at most 48 hours and can be cleared at any time with /ai_reset.
 
 When using certain AI-assisted features, user-saved data (including notes, filters, and settings)
@@ -133,5 +128,5 @@ By using Sophie, you agree to Sentry's privacy policy: https://sentry.io/privacy
 # Changes to This Policy
 
 We may update this Privacy Policy from time to time.
-We will notify you of any significant changes by sending a message in the Sophie's NEWS Telegram channel
+We will notify you of any significant changes by sending a message in Sophie's NEWS Telegram channel
 (https://t.me/SophieNEWS).

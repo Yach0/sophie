@@ -55,8 +55,8 @@ test:
     - run ruff-format uv run ruff format sophie_bot/ --check
     - run ruff-check uv run ruff check .
     - run types uv run ty check
-    - run unit uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migrations.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
-    - run migrations env RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run pytest tests/test_migrations.py -v --alluredir=allure_results/migrations
+    - run unit uv run pytest tests/ -v --ignore=tests/e2e --ignore=tests/test_migration_helper.py --alluredir=allure_results/unit -x -n auto --cov=sophie_bot --cov-report=xml:coverage.xml --cov-report=term-missing:skip-covered
+    - run migrations env RUN_MIGRATIONS_ON_STARTUP=true MONGO_DB=sophie_test_migrations uv run pytest tests/test_migration_helper.py -v --alluredir=allure_results/migrations
     - run e2e uv run pytest tests/e2e -v -n auto --alluredir=allure_results/e2e
     - |
       if [ -f coverage.xml ] && [ -n "$DEEPSOURCE_DSN" ]; then
@@ -78,23 +78,3 @@ test:
         coverage_format: cobertura
         path: coverage.xml
     expire_in: 1 day
-
-test-qodana:
-  stage: test
-  interruptible: true
-  needs: []
-  image:
-    name: jetbrains/qodana-python-community:2026.2
-    entrypoint: [""]
-  cache:
-    - key: qodana-2026.1-$CI_DEFAULT_BRANCH-$CI_COMMIT_REF_SLUG
-      fallback_keys:
-        - qodana-2026.1-$CI_DEFAULT_BRANCH-
-        - qodana-2026.1-
-      paths:
-        - .qodana/cache
-  variables:
-    QODANA_TOKEN: $QODANA_TOKEN
-    QODANA_ENDPOINT: "https://qodana.cloud"
-  script:
-    - qodana --cache-dir=$CI_PROJECT_DIR/.qodana/cache
