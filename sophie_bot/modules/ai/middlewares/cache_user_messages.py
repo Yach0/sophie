@@ -53,6 +53,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         if isinstance(event, Message) and chat_db and capabilities.message_cache:
             expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
         result = await handler(event, data)
+        if data.get("ai_moderation_blocked"):
+            return result
 
         if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
             text = event.text or event.caption

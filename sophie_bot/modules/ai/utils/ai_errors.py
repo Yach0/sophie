@@ -174,8 +174,10 @@ def _error_details(
         "primary_model": context.primary_model_name,
         "error_type": type(error).__name__,
         "status_code": _get_status_code(error),
-        "provider_message": _get_error_message(error)[:_PROVIDER_MESSAGE_LIMIT],
     }
+    # Moderation failures can echo private input in their body or exception text.
+    if context.operation != "moderation":
+        details["provider_message"] = _get_error_message(error)[:_PROVIDER_MESSAGE_LIMIT]
     if user_facing_message is not None:
         details["user_facing_message"] = user_facing_message
     return details
@@ -213,7 +215,12 @@ def capture_ai_error(
             scope.set_tag("ai.status_code", str(details["status_code"]))
         if message_str is not None:
             scope.set_tag("ai.user_facing_error", message_str)
-        event_id = sentry_sdk.capture_exception(error)
+        if context.operation == "moderation":
+            # SDK exceptions retain the request and classifier input in traceback locals.
+            # Keep attribution and grouping, without sending that exception or its payload.
+            event_id = sentry_sdk.capture_message("AI moderation provider request failed", level=level)
+        else:
+            event_id = sentry_sdk.capture_exception(error)
         if event_id is not None:
             # The SDK returns the ID before its background transport has handed the envelope off.
             # Flush before exposing the ID to the user so a short-lived worker/restart cannot leave
