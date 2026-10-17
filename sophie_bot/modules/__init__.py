@@ -156,9 +156,9 @@ async def assemble_bot_modules(dispatcher: Dispatcher, services: ApplicationServ
         router = manifest.bot_router_factory()
         for handler in manifest.handlers:
             handler.register(router)
+        dispatcher.include_router(router)
         if manifest.setup_bot is not None:
             await manifest.setup_bot(router, services)
-        dispatcher.include_router(router)
         if manifest.build_action_wizards is not None:
             services.modules.action_wizards.update(manifest.build_action_wizards())
 

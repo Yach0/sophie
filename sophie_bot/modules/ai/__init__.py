@@ -47,9 +47,7 @@ from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMidd
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
     CacheBotMessagesMiddleware,
 )
-from sophie_bot.modules.ai.middlewares.cache_user_messages import (
-    CacheUserMessagesMiddleware,
-)
+from sophie_bot.modules.ai.middlewares.cache_user_messages import CacheUserMessagesMiddleware
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
@@ -69,9 +67,12 @@ async def initialize(services: ApplicationServices) -> None:
 
 
 async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
+    parent_router = bot_router.parent_router
+    if parent_router is None:
+        raise RuntimeError("Attach the AI router before setting up its middleware")
     cache_user_messages = CacheUserMessagesMiddleware()
-    bot_router.message.outer_middleware(cache_user_messages)
-    bot_router.message.middleware(cache_user_messages.capture_command)
+    parent_router.message.outer_middleware(cache_user_messages)
+    parent_router.message.middleware(cache_user_messages.capture_handler)
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())

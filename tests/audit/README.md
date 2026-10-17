@@ -14,21 +14,31 @@ Pydantic AI FunctionModel providers. Socket connections are denied. Sync aiogram
 callbacks and the Mongo mock executor execute immediately to avoid worker-thread
 scheduling; the unrelated spam classifier returns zero probabilities.
 
-Each scenario asserts one source delivery and one cache write for the current
-Telegram identity. Cache read observations and provider occurrences are:
+Each scenario asserts one source delivery, one cache write and one persisted cache
+entry for the current Telegram identity. Cache reads and provider occurrences are:
 
 | Scenario | Current identity per cache read | Provider calls | Current input per call |
 | --- | --- | --- | --- |
-| Lexical filter | 1 | reply | 1 |
-| AI filter | 1 | matching, reply | 1, 1 |
+| Lexical filter | 0 | reply | 1 |
+| AI filter | 0 | matching, reply | 1, 1 |
 | Proactive batch | 1, 1 | decision, answer | 1, 1 |
 | `/ai` | 0 | command | 1 |
+| Earlier `users` router `/id` command | no reads | none | — |
 
-The proactive batch naturally accumulates 15 messages; both cache reads retain
-all 15 identities, and both providers see each once. The command is cached after
-its provider call. Filter replies retain their configured system prompt, while
-matching, proactive and command providers retain their respective system prompts
-or dynamic instructions.
+Incoming messages are cached only after all module routing finishes. Filter and
+`/ai` requests therefore read history without the current identity; their tests
+assert that the current user's single cache write follows every provider call and
+precedes dispatcher return. The real `/id` handler runs on the earlier `users`
+router, produces its Telegram response without an AI provider call, and still
+persists the incoming command once after handling.
+
+The proactive batch naturally accumulates 15 messages before its decision and
+answer providers run; both cache reads retain all 15 identities, and both providers
+see each once. Only proactive answers exclude their selected cached target from
+rendered history, because that target may be an older message and is supplied
+separately as the answer input. Filter replies retain their configured system
+prompt, while matching, proactive and command providers retain their respective
+system prompts or dynamic instructions.
 
 Provider text has no general Telegram identity field. These controlled scenarios
 correlate complete rendered lines with source and cache metadata, and independently

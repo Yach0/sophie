@@ -113,7 +113,6 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             message.chat.id,
             limit=CHATBOT_CACHE_MESSAGE_LIMIT,
             fold_background=True,
-            exclude_message=(message.chat.id, message.message_id),
         )
         await messages.add_from_message(message)
         messages.apply_context_block()

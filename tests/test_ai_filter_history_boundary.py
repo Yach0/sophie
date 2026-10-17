@@ -28,6 +28,7 @@ from tenacity import wait_none
 from sophie_bot.db.models import FiltersModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.magic_handlers import modern_action
+from sophie_bot.modules.ai.middlewares.cache_user_messages import MessageCacheState
 from sophie_bot.modules.ai.utils import ai_errors, ai_run, chatbot_context, modern_context
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
@@ -109,7 +110,7 @@ async def test_filter_action_provider_gets_trigger_once_and_system(
     test_services: ApplicationServices,
 ) -> None:
     if cache_state != "miss":
-        await _cache(test_services, 30, "trigger", handled_by_ai=cache_state == "dialogue")
+        await _cache(test_services, 29, "earlier", handled_by_ai=cache_state == "dialogue")
     before = await get_cached_messages(CHAT_TID, redis=test_services.redis)
     requests: list[list[ModelMessage]] = []
 
@@ -146,6 +147,7 @@ async def test_filter_action_provider_gets_trigger_once_and_system(
     monkeypatch.setattr(match_handler, "match_ai_handler", ai_match)
     sent = AsyncMock(return_value=[31])
     monkeypatch.setattr(EnforceFiltersMiddleware, "_handle_action_messages", sent)
+    message_cache_state = MessageCacheState()
     data = {
         "context": SimpleNamespace(
             connection=SimpleNamespace(tid=CHAT_TID, db_model=chat_db),
@@ -153,18 +155,20 @@ async def test_filter_action_provider_gets_trigger_once_and_system(
             user_in_group=None,
         ),
         "services": test_services,
+        "ai_message_cache_state": message_cache_state,
     }
     with pytest.raises(SkipHandler):
         await EnforceFiltersMiddleware()._process_filters(_message(30, "trigger"), data)
 
     assert ai_match.await_count == int(handler.startswith("ai:"))
-    assert data["ai_filter_handled"] == handler.startswith("ai:")
+    assert message_cache_state.is_ai_filter_reply == handler.startswith("ai:")
     sent.assert_awaited_once()
     assert sent.await_args is not None
     assert "Answer" in str(sent.await_args.args[1][0])
     assert len(requests) == 2
     for request in requests:
         assert _user_text(request).count("Alice: trigger") == 1
+        assert _user_text(request).count("Alice: earlier") == int(cache_state != "miss")
         assert _systems(request) == ["Filter instruction"]
     assert await get_cached_messages(CHAT_TID, redis=test_services.redis) == before
 
@@ -206,10 +210,9 @@ async def test_filter_reply_context_preserves_same_text_with_different_ids(
 ) -> None:
     if cached_reply:
         await _cache(test_services, 29, "same text")
-    await _cache(test_services, 30, "same text")
     history = OldContext(services=test_services)
     history.add_system("Filter instruction")
-    await history.add_from_cache(CHAT_TID, fold_background=True, exclude_message=(CHAT_TID, 30))
+    await history.add_from_cache(CHAT_TID, fold_background=True)
     await history.add_from_message(_message(30, "same text", reply=_message(29, "same text")))
     history.apply_context_block()
 
@@ -224,18 +227,14 @@ async def test_filter_reply_context_preserves_same_text_with_different_ids(
 
 
 @pytest.mark.parametrize("cache_hit", [False, True])
-@pytest.mark.parametrize("cached_current", [False, True])
 async def test_normal_chatbot_provider_history_and_retry(
     cache_hit: bool,
-    cached_current: bool,
     names: None,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
     if cache_hit:
         await _cache(test_services, 29, "earlier")
-    if cached_current:
-        await _cache(test_services, 30, "latest", handled_by_ai=True)
     before = await get_cached_messages(CHAT_TID, redis=test_services.redis)
     monkeypatch.setattr(chatbot_context, "get_value", AsyncMock(return_value=0))
     monkeypatch.setattr(chatbot_context, "get_tool_exchanges", AsyncMock(return_value={}))

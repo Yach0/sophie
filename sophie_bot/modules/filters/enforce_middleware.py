@@ -229,7 +229,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 services=data["services"],
                 ai_matched=ai_matched,
             )
-            data["ai_filter_handled"] = ai_matched
+            cache_state = data.get("ai_message_cache_state")
+            if cache_state is not None:
+                cache_state.is_ai_filter_reply = ai_matched
 
         # A single reply aggregates every triggered filter, so one silent filter makes the whole exchange silent
         if silent and await is_enabled(

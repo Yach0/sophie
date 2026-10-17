@@ -618,8 +618,8 @@ def assert_no_duplicate(runtime: AuditRuntime, purpose: str, *, cache_read_recor
     )
 
 
-def assert_source_and_cache_counts(runtime: AuditRuntime, *, read_counts: list[int]) -> None:
-    """The source and cache retain the current identity; only provider history excludes it."""
+async def assert_source_and_cache_counts(runtime: AuditRuntime, *, read_counts: list[int]) -> None:
+    """The current identity is persisted once, with scenario-specific read visibility."""
     current_id = runtime.current_message_id
     assert sum(message.message_id == current_id for message in runtime.inputs) == 1
     feeds = [entry for entry in runtime.timeline if entry["kind"] == "feed_update"]
@@ -628,6 +628,28 @@ def assert_source_and_cache_counts(runtime: AuditRuntime, *, read_counts: list[i
     assert sum(entry["message_id"] == current_id for entry in feeds) == 1
     assert sum(entry["message"]["message_id"] == current_id for entry in writes) == 1
     assert [sum(message["message_id"] == current_id for message in entry["messages"]) for entry in reads] == read_counts
+    stored = [json.loads(raw) for raw in await runtime.services.redis.zrange(get_message_cache_key(CHAT_TID), 0, -1)]
+    assert sum(message["message_id"] == current_id and message["user_id"] == USER_TID for message in stored) == 1
+
+
+def assert_current_cached_after_providers(runtime: AuditRuntime) -> None:
+    current_writes = [
+        entry
+        for entry in runtime.timeline
+        if entry["kind"] == "cache_write"
+        and entry["message"]["message_id"] == runtime.current_message_id
+        and entry["message"]["user_id"] == USER_TID
+    ]
+    assert len(current_writes) == 1
+    provider_sequences = [entry["sequence"] for entry in runtime.timeline if entry["kind"] == "provider"]
+    assert provider_sequences
+    assert current_writes[0]["sequence"] > max(provider_sequences)
+    feed_return = next(
+        entry
+        for entry in runtime.timeline
+        if entry["kind"] == "feed_return" and entry["message_id"] == runtime.current_message_id
+    )
+    assert current_writes[0]["sequence"] < feed_return["sequence"]
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -639,26 +661,53 @@ async def test_filter_first_delivery_no_duplicate(audit_runtime: AuditRuntime, h
     assert [call["purpose"] for call in audit_runtime.calls] == (
         ["matching", "filter_reply"] if scenario == "ai_filter" else ["filter_reply"]
     )
-    assert_source_and_cache_counts(audit_runtime, read_counts=[1])
+    await assert_source_and_cache_counts(audit_runtime, read_counts=[0])
+    assert_current_cached_after_providers(audit_runtime)
     assert_telegram_boundary(audit_runtime)
     if scenario == "ai_filter":
         assert_no_duplicate(audit_runtime, "matching", cache_read_records=0)
-    assert_no_duplicate(audit_runtime, "filter_reply", cache_read_records=1)
+    assert_no_duplicate(audit_runtime, "filter_reply", cache_read_records=0)
 
 
 @pytest.mark.asyncio(loop_scope="session")
 async def test_ai_command_first_delivery_no_duplicate(audit_runtime: AuditRuntime) -> None:
     await audit_runtime.feed(102, f"/ai {SENTINEL}", command=True)
     assert [call["purpose"] for call in audit_runtime.calls] == ["command"]
-    assert_source_and_cache_counts(audit_runtime, read_counts=[0])
+    await assert_source_and_cache_counts(audit_runtime, read_counts=[0])
+    assert_current_cached_after_providers(audit_runtime)
     reads = [entry for entry in audit_runtime.timeline if entry["kind"] == "cache_read"]
     assert reads and all(not entry["messages"] for entry in reads)
     assert_telegram_boundary(audit_runtime)
     assert_no_duplicate(audit_runtime, "command", cache_read_records=0)
-    provider_sequence = next(entry["sequence"] for entry in audit_runtime.timeline if entry["kind"] == "provider")
-    assert all(
-        entry["sequence"] > provider_sequence for entry in audit_runtime.timeline if entry["kind"] == "cache_write"
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_earlier_module_command_cached_after_handling(audit_runtime: AuditRuntime) -> None:
+    routers = [router.name for router in audit_runtime.dispatcher.sub_routers]
+    assert routers.index("users") < routers.index("ai")
+    request_offset = len(audit_runtime.capture_requests.all_requests)
+    await audit_runtime.feed(103, "/id", command=True)
+    assert audit_runtime.errors == [], f"Harness/dispatch errors: {audit_runtime.errors}"
+    assert audit_runtime.calls == []
+    responses = [
+        request.response
+        for request in audit_runtime.capture_requests.all_requests[request_offset:]
+        if isinstance(request.response, Message)
+    ]
+    assert len(responses) == 1
+    assert str(USER_TID) in message_text(responses[0])
+    assert str(CHAT_TID) in message_text(responses[0])
+    await assert_source_and_cache_counts(audit_runtime, read_counts=[])
+    current_write = next(
+        entry
+        for entry in audit_runtime.timeline
+        if entry["kind"] == "cache_write" and entry["message"]["message_id"] == 103
     )
+    response_sequence = max(
+        entry["sequence"] for entry in audit_runtime.timeline if entry["kind"] == "telegram_response"
+    )
+    assert current_write["sequence"] > response_sequence
+    assert current_write["sequence"] < audit_runtime.timeline[-1]["sequence"]
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -675,7 +724,7 @@ async def test_natural_proactive_batch_no_duplicate(audit_runtime: AuditRuntime)
             assert audit_runtime.calls == []
     assert [call["purpose"] for call in audit_runtime.calls] == ["decision", "proactive_answer"]
     writes = [entry for entry in audit_runtime.timeline if entry["kind"] == "cache_write"]
-    assert_source_and_cache_counts(audit_runtime, read_counts=[1, 1])
+    await assert_source_and_cache_counts(audit_runtime, read_counts=[1, 1])
     reads = [entry for entry in audit_runtime.timeline if entry["kind"] == "cache_read"]
     for message_id in range(201, 216):
         assert sum(message.message_id == message_id for message in audit_runtime.inputs) == 1
