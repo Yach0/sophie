@@ -74,6 +74,6 @@ module_manifest = ModuleManifest(
     emoji="🛡️",
     description=l_("Protect your chat from bots and verify new users"),
     info=l_(
-        "Welcome Security contains a bunch of tools that can help filter bots that tries to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
+        "Welcome Security contains a bunch of tools that can help filter bots that try to join your groups, as well as make sure the new users acknowledged the chat rules before being able to speak"
     ),
 )
