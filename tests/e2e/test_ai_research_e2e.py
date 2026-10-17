@@ -15,7 +15,12 @@ from aiogram_test_framework.types import CapturedRequest, RequestType
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.json_schemas.research import ResearchFinalResponse, ResearchSource
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
-from sophie_bot.modules.ai.utils.ai_header import AI_GENERATING_EMOJI_ID, AI_PROGRESS_LINE_EMOJI_IDS
+from sophie_bot.modules.ai.utils.ai_header import (
+    AI_CHATBOT_CUSTOM_EMOJI_ID,
+    AI_CUSTOM_EMOJI_ID,
+    AI_GENERATING_EMOJI_ID,
+    AI_PROGRESS_LINE_EMOJI_IDS,
+)
 from sophie_bot.modules.ai.utils.research import ResearchProgressCallback, ResearchWorkflowResult
 
 
@@ -53,12 +58,13 @@ def _rich_html(request: CapturedRequest) -> str:
 
 
 @pytest.mark.asyncio
-async def test_research_command_returns_summary_and_sources(test_client: TestClient) -> None:
+@pytest.mark.parametrize("include_sources", [True, False])
+async def test_research_command_returns_summary_and_sources(test_client: TestClient, include_sources: bool) -> None:
     group_chat = ChatFactory.create_group(chat_id=-1002910000002, title="Research Enabled Group")
     user_wrapper = test_client.create_user(user_id=929100002, first_name="ResearchUser", username="research_enabled")
     response = ResearchFinalResponse(
         research_title="Telegram bot research",
-        text="Sophie can now research topics.",
+        text="**Sophie** can now research topics.\n\nSecond paragraph with *details*.\n\nThird paragraph.",
         sources=[
             ResearchSource(
                 title="Research source",
@@ -66,7 +72,9 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
                 snippet="Evidence snippet",
                 published="2026-06-01",
             )
-        ],
+        ]
+        if include_sources
+        else [],
     )
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
@@ -88,7 +96,9 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
         _apply_ai_research_patches(stack, test_client)
         stack.enter_context(patch("sophie_bot.modules.ai.utils.research.choice", side_effect=lambda texts: texts[0]))
         workflow_mock = stack.enter_context(
-            patch("sophie_bot.modules.ai.handlers.research.run_research_workflow", AsyncMock(side_effect=finish_research))
+            patch(
+                "sophie_bot.modules.ai.handlers.research.run_research_workflow", AsyncMock(side_effect=finish_research)
+            )
         )
         requests = await test_client.send_command(
             command="research",
@@ -116,10 +126,22 @@ async def test_research_command_returns_summary_and_sources(test_client: TestCli
         assert not any(suffix in html for suffix in ("🧑‍🔬", "🔎", "🧐", "🧾"))
 
     response_text = _rich_html(edits[-1])
-    assert "Research" in response_text
-    assert "Sophie can now research topics." in response_text
-    assert "Research source" in response_text
-    assert "https://example.com/research" in response_text
+    assert response_text.startswith(f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">')
+    assert AI_CUSTOM_EMOJI_ID not in response_text
+    assert " <b>Sophie</b> can now research topics.\n<p>Second paragraph with <i>details</i>.</p>" in response_text
+    assert "\n<p>Third paragraph.</p>" in response_text
+    assert "🔋" in response_text
+    if include_sources:
+        assert "Research source" in response_text
+        assert "https://example.com/research" in response_text
+        assert "Evidence snippet" in response_text
+        assert "June 1, 2026" in response_text
+        assert "<blockquote expandable>" in response_text
+    else:
+        assert "No sources." in response_text
+        assert "<blockquote" not in response_text
+    assert edits[-1].params["chat_id"] == progress[0].params["chat_id"]
+    assert edits[-1].params["disable_web_page_preview"] is True
     assert all(emoji_id not in response_text for emoji_id in AI_PROGRESS_LINE_EMOJI_IDS)
     workflow_mock.assert_awaited_once()
 
