@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import json
 import sys
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -11,15 +13,23 @@ from unittest.mock import AsyncMock
 
 import pytest
 from beanie import free_fall_migration
+from beanie.migrations.controllers.base import BaseMigrationController
+from bson import DBRef, ObjectId
 from fakeredis import FakeAsyncRedis, FakeRedis, FakeServer
-from pymongo.errors import InvalidName
+from pymongo.errors import DuplicateKeyError, InvalidName
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.migrations import MigrationState
+from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
+from sophie_bot.modules.ai.utils.moderation.settings import get_enabled, set_category_level
 from sophie_bot.services import db as database_service
 from sophie_bot.services import migrations as migration_service
-from sophie_bot.services.migrations import MigrationResources
-from tests.utils.db_fixture import initialize_beanie
+from sophie_bot.services.db import DatabaseResources
+from sophie_bot.services.migrations import MigrationResources, _bind_migration_resources
+from tests.utils.db_fixture import MOCK_MONGO, initialize_beanie
 from tests.utils.mongo_mock import AsyncMongoMockClient
 from tools import migration_helper
 
@@ -153,11 +163,13 @@ def test_database_command_failures_close_every_acquired_client(
 ) -> None:
     scenario = cli_scenario
     if failure == "database":
+
         def fail_database(_mongo: ClosingMongo, _name: str) -> None:
             raise InvalidName("invalid database name")
 
         monkeypatch.setattr(ClosingMongo, "__getitem__", fail_database)
     elif failure == "redis":
+
         def fail_redis(_config: Any) -> None:
             raise RuntimeError("Redis creation failed")
 
@@ -173,8 +185,136 @@ def test_database_command_failures_close_every_acquired_client(
 
     assert error.value.code == 1
     assert scenario.mongo.close_count == 1
-    assert [redis.close_count for redis in scenario.redis_clients] == (
-        [] if failure in {"database", "redis"} else [1]
-    )
+    assert [redis.close_count for redis in scenario.redis_clients] == ([] if failure in {"database", "redis"} else [1])
     assert asyncio.run(scenario.database["migration_states"].find_one({"name": scenario.migration_name})) is None
     assert asyncio.run(scenario.database["cli_probe"].find_one({"_id": "probe"})) is None
+
+
+async def _run_migration(
+    controller: BaseMigrationController,
+    db_init: Any,
+    test_redis: FakeAsyncRedis,
+) -> None:
+    resources = MigrationResources(
+        database=DatabaseResources(mongo=MOCK_MONGO, database=db_init, initialized=True),
+        redis=test_redis,
+    )
+    await _bind_migration_resources(controller, resources).run(None)
+
+
+def _moderator_settings_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20261014_024240_normalize_ai_moderator_settings")
+
+
+@pytest.mark.parametrize("enabled", [None, "missing", True, False])
+async def test_moderator_rollback_after_first_category_configuration(
+    db_init: Any, test_redis: FakeAsyncRedis, enabled: bool | str | None
+) -> None:
+    migration = _moderator_settings_migration()
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
+    await collection.delete_many({})
+    await backup.delete_many({})
+    originals = [
+        {"_id": ObjectId(), "chat": DBRef("chats", ObjectId()), "enabled": True},
+        {"_id": ObjectId(), "chat": DBRef("chats", ObjectId()), "enabled": False},
+        {"_id": ObjectId(), "chat": DBRef("chats", ObjectId()), "enabled": None},
+        {"_id": ObjectId(), "chat": DBRef("chats", ObjectId())},
+    ]
+    await collection.insert_many(originals)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+
+    await ChatModel(
+        tid=987654321,
+        type=ChatType.private,
+        first_name_or_title="Moderator migration",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    ).insert()
+    chat = await ChatModel.get_by_tid(987654321)
+    assert chat is not None
+    assert await AIModeratorModel.find_one(AIModeratorModel.chat.id == chat.iid) is None
+    settings = await set_category_level(chat, ModerationCategory.PII, DetectionLevel.HIGH)
+    assert settings.enabled is None
+    assert await backup.find_one({"_id": settings.id}) is None
+    if enabled == "missing":
+        await collection.update_one({"_id": settings.id}, {"$unset": {"enabled": ""}})
+    elif isinstance(enabled, bool):
+        await AIModeratorModel.set_state(chat, enabled)
+    configured = await collection.find_one({"_id": settings.id})
+    assert configured is not None
+
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
+
+    expected_enabled = enabled if isinstance(enabled, bool) else True
+    assert await collection.find_one({"_id": settings.id}) == {**configured, "enabled": expected_enabled}
+    assert (
+        await collection.find({"_id": {"$in": [document["_id"] for document in originals]}}).to_list(None) == originals
+    )
+    assert await backup.count_documents({}) == 0
+    await collection.delete_many({})
+    await chat.delete()
+
+
+async def test_moderator_migration_normalizes_legacy_defaults_and_preserves_false(
+    db_init: Any, test_redis: FakeAsyncRedis
+) -> None:
+    migration = _moderator_settings_migration()
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
+    await collection.delete_many({})
+    await backup.delete_many({})
+    legacy_true = {"chat": DBRef("chats", ObjectId()), "enabled": True, "pii": "high"}
+    legacy_false = {"chat": DBRef("chats", ObjectId()), "enabled": False, "pii": "low"}
+    missing_enabled = {"chat": DBRef("chats", ObjectId()), "sexual": "off"}
+    inserted = await collection.insert_many([legacy_true, legacy_false, missing_enabled])
+    originals = await collection.find({}).to_list(None)
+    # Retry after a process stopped between archiving and applying the change.
+    await backup.insert_one({"_id": inserted.inserted_ids[0], "original": originals[0], "applied": False})
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+    assert (await collection.find_one({"_id": inserted.inserted_ids[0]}))["enabled"] is None
+    assert (await collection.find_one({"_id": inserted.inserted_ids[1]}))["enabled"] is False
+    assert (await collection.find_one({"_id": inserted.inserted_ids[2]})).get("enabled") is None
+    migrated_default = await AIModeratorModel.get(inserted.inserted_ids[0])
+    migrated_off = await AIModeratorModel.get(inserted.inserted_ids[1])
+    assert migrated_default is not None and migrated_default.pii.value == "high"
+    assert not get_enabled(migrated_default, AIMode.entertainment)
+    assert get_enabled(migrated_default, AIMode.support)
+    assert migrated_off is not None and not get_enabled(migrated_off, AIMode.support)
+    # A genuinely explicit control written after upgrade must survive a retry.
+    await collection.update_one({"_id": inserted.inserted_ids[0]}, {"$set": {"enabled": True}})
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+    assert (await collection.find_one({"_id": inserted.inserted_ids[0]}))["enabled"] is True
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
+    assert await collection.find({}).to_list(None) == originals
+    assert await backup.count_documents({}) == 0
+    await collection.delete_many({})
+
+
+async def test_moderator_migration_repairs_duplicates_before_unique_index_and_rolls_back(
+    db_init: Any, test_redis: FakeAsyncRedis
+) -> None:
+    migration = _moderator_settings_migration()
+    collection = db_init["ai_moderator"]
+    backup = db_init["ai_moderator_upgrade_backup"]
+    await collection.delete_many({})
+    await backup.delete_many({})
+    chat_ref = DBRef("chats", ObjectId())
+    older_id, newer_id = ObjectId(), ObjectId()
+    originals = [
+        {"_id": older_id, "chat": chat_ref, "enabled": False, "pii": "low"},
+        {"_id": newer_id, "chat": chat_ref, "enabled": True, "pii": "high"},
+    ]
+    await collection.insert_many(originals)
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+    assert await collection.find({"chat": chat_ref}).to_list(None) == [{**originals[1], "enabled": False}]
+    await collection.create_index("chat", unique=True, name="moderator_chat_unique")
+    with pytest.raises(DuplicateKeyError):
+        await collection.insert_one({"chat": chat_ref})
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
+    assert await collection.find({}, sort=[("_id", 1)]).to_list(None) == originals
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
+    assert await collection.count_documents({}) == 2
+    await collection.delete_many({})
