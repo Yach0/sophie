@@ -5,7 +5,7 @@ from typing import Any
 from aiogram.types import CallbackQuery, Message
 from pydantic import BaseModel
 from pydantic_ai import Agent
-from stfu_tg import Italic, Section, Template, Title
+from stfu_tg import Italic, Section
 from stfu_tg.doc import Doc, Element
 
 from sophie_bot.constants import AI_EMOJI
@@ -13,9 +13,17 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
-from sophie_bot.modules.ai.utils.ai_response import render_ai_response
-from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_text
+from sophie_bot.modules.ai.utils.ai_chatbot_reply import (
+    _build_fitting_reply_doc,
+    _cache_chatbot_reply,
+    _send_chatbot_ai_failure_reply,
+)
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_stream, run_ai_text
+from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, model_display_name, truncate_output
+from sophie_bot.modules.ai.utils.chatbot_streaming import build_message_streamer, chatbot_streaming_session
 from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
 from sophie_bot.modules.utils_.action_config_wizard import (
     ActionSetupTryAgainException,
@@ -25,6 +33,7 @@ from sophie_bot.modules.utils_.action_config_wizard import (
 from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -91,7 +100,9 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
     def description(data: AIReplyActionDataModel) -> Element | str:
         return Section(Italic(data.prompt), title=_("Send an AI Respond with prompt"), title_underline=False)
 
-    async def handle(self, message: Message, data: dict, filter_data: AIReplyActionDataModel) -> Element | None:
+    async def handle(
+        self, message: Message, data: dict[str, Any], filter_data: AIReplyActionDataModel
+    ) -> Message | None:
         connection: ChatConnection = data["context"].connection
 
         if not (chat_db := await ChatModel.get_by_tid(connection.tid)):
@@ -112,30 +123,78 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
         messages.apply_context_block()
+        previous_history = list(messages.message_history)
         model_plan = await get_chat_default_model_plan(
             connection.db_model.iid,
             chat_tid=connection.db_model.tid,
             redis=data["services"].redis,
         )
 
-        result = await run_ai_text(
-            Agent(model_plan.primary, name="filter:ai_response", output_type=str),
-            user_prompt=messages.prompt,
-            message_history=messages.message_history,
-            request_options=AIRequestOptions(user_tracking_id=chat_db.iid),
-            model_plan=model_plan,
+        services = data["services"]
+        strip_alien_html_tags = await is_enabled(
+            "ai_chatbot_strip_alien_html_tags", chat_tid=message.chat.id, redis=services.redis
         )
+        message_streamer = await build_message_streamer(
+            message, False, redis=services.redis, strip_alien_html_tags=strip_alien_html_tags
+        )
+        async with chatbot_streaming_session(message_streamer):
+            agent = Agent(model_plan.primary, name="filter:ai_response", output_type=str)
+            request_options = AIRequestOptions(user_tracking_id=chat_db.iid)
+            try:
+                if message_streamer:
+                    result = await run_ai_stream(
+                        agent,
+                        user_prompt=messages.prompt,
+                        message_history=messages.message_history,
+                        request_options=request_options,
+                        model_plan=model_plan,
+                        on_text_stream=message_streamer.stream,
+                        on_reasoning_stream=message_streamer.stream_reasoning,
+                        on_retry=message_streamer.update_retrying,
+                    )
+                else:
+                    result = await run_ai_text(
+                        agent,
+                        user_prompt=messages.prompt,
+                        message_history=messages.message_history,
+                        request_options=request_options,
+                        model_plan=model_plan,
+                    )
+            except AIRequestFailed as error:
+                return await _send_chatbot_ai_failure_reply(message, message_streamer, error)
 
-        if result.usage and result.usage.total_tokens:
-            await charge_ai_usage(
-                chat_db.iid,
-                AI_FEATURE_FILTER,
-                result.served_model or model_plan.primary,
-                result.usage,
-                redis=data["services"].redis,
+            if result.usage and result.usage.total_tokens:
+                await charge_ai_usage(
+                    chat_db.iid,
+                    AI_FEATURE_FILTER,
+                    result.served_model or model_plan.primary,
+                    result.usage,
+                    redis=data["services"].redis,
+                )
+
+            model = result.served_model or model_plan.primary
+            show_model_name = await is_enabled(
+                "ai_chatbot_show_model_name", chat_tid=message.chat.id, redis=services.redis
             )
-
-        return Doc(
-            Title(Template(_("{ai_emoji} AI Response"), ai_emoji=AI_EMOJI)),
-            render_ai_response(None, str(result.output)),
-        )
+            header = await build_chatbot_header(
+                connection.db_model.iid,
+                model_label=model_display_name(model) if show_model_name else None,
+                redis=services.redis,
+            )
+            output_text = truncate_output(header, str(result.output))
+            doc = await _build_fitting_reply_doc(
+                header,
+                output_text,
+                model,
+                result,
+                False,
+                chat_tid=message.chat.id,
+                services=services,
+                strip_alien_html_tags=strip_alien_html_tags,
+            )
+            if message_streamer:
+                final_message = await message_streamer.send_final(doc)
+            else:
+                final_message = await send_ai_rich_message(message, doc)
+            await _cache_chatbot_reply(message, final_message, output_text, result, previous_history, services=services)
+            return final_message

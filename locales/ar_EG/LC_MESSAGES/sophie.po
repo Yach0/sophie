@@ -1066,58 +1066,53 @@ msgstr "لا توجد بيانات استخدام رصيد متاحة بعد"
 msgid "Quota exhausted! AI features are disabled until {date}."
 msgstr "انتهت الحصة! ميزات الذكاء الاصطناعي معطلة حتى {date}."
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:43
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:52
 msgid "Please enter AI prompt"
 msgstr "يرجى إدخال إيعاز الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:50
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:59
 msgid "Please send me the AI instruction to proceed!"
 msgstr "يرجى إرسال تعليمات الذكاء الاصطناعي للمتابعة!"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:51
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:60
 msgid "The AI will try to remember the chat context and will respond accordingly!"
 msgstr "سوف يحاول الذكاء الاصطناعي تذكر سياق الدردشة وسيستجيب وفقًا لذلك!"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:52
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:61
 msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
 msgstr "على سبيل المثال، يمكنك دمجه مع فلتر التحذير: 'أخبر المستخدم بمدى سوء التحدث بالشتائم'"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:58
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:43
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:62
 msgid "Reply to message"
 msgstr "الرد على الرسالة"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:76
 msgid "Change AI prompt"
 msgstr "تغيير موجه الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:80
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:89
 msgid "AI Response"
 msgstr "استجابة الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:92
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:101
 msgid "Send an AI Respond with prompt"
 msgstr "أرسل استجابة الذكاء الاصطناعي مع الإيعاز"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr "{ai_emoji} استجابة الذكاء الاصطناعي"
-
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
 msgid "✋ AI Moderator"
 msgstr "✋ مُعدِّل الذكاء الاصطناعي"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr "هذه الرسالة تنتهك سياسة مُعدِّل الذكاء الاصطناعي وبالتالي تم حذفها."
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:54
 msgid "Message author"
 msgstr "مؤلف الرسالة"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:59
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:60
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:44
@@ -1140,7 +1135,7 @@ msgstr[3] "أسباب"
 msgstr[4] "أسباب"
 msgstr[5] "أسباب"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:64
 msgid "This message will be deleted shortly."
 msgstr ""
 
@@ -1164,10 +1159,10 @@ msgstr "أنت تلخص مناقشات مجموعات تيليجرام في سط
 msgid "By using AI features you agree to our Privacy Policy (/privacy) and third party AI services used."
 msgstr "باستخدام ميزات الذكاء الاصطناعي، أنت توافق على سياسة الخصوصية الخاصة بنا (/privacy) وخدمات الذكاء الاصطناعي من الأطراف الثالثة المستخدمة."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:400
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:428
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
-#: sophie_bot/modules/ai/utils/research.py:428
-#: sophie_bot/modules/ai/utils/research.py:559
+#: sophie_bot/modules/ai/utils/research.py:426
+#: sophie_bot/modules/ai/utils/research.py:562
 msgid "Research"
 msgstr "بحث"
 
@@ -1184,7 +1179,7 @@ msgid "Thinking..."
 msgstr "أفكّر..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:122
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
 msgid "Working on it..."
 msgstr "أعمل على ذلك..."
 
@@ -1295,7 +1290,7 @@ msgid "Searching the web..."
 msgstr "جارٍ البحث على الويب..."
 
 #: sophie_bot/modules/ai/utils/ai_tool.py:29
-#: sophie_bot/modules/ai/utils/research.py:75
+#: sophie_bot/modules/ai/utils/research.py:73
 msgid "Looking it up online..."
 msgstr "أبحث عنها على الإنترنت..."
 
@@ -1487,11 +1482,11 @@ msgstr ""
 msgid "AI context is not configured correctly. Ask the bot operator to configure context_window_tokens for every chatbot model, including the fallback model."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:115
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:118
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:134
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:137
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -1683,87 +1678,87 @@ msgstr ""
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "أنت تنضم بشكل استباقي إلى دردشة مجموعة على تيليجرام. اجعل الرد موجزًا وعفويًا وسريعًا: 1-2 جملة قصيرة. لا تدرج شروحات طويلة أو قوائم نقطية أو تفاصيل تشبه الأدوات ما لم تطلب الرسالة المستهدفة ذلك صراحة. إذا انتقل الموضوع أو كان الرد سيبدو مجحفًا، اجعل الإجابة مختصرة بدلاً من محاولة تغطية كل شيء."
 
-#: sophie_bot/modules/ai/utils/research.py:69
+#: sophie_bot/modules/ai/utils/research.py:67
 msgid "Preparing search queries..."
 msgstr "إعداد استعلامات البحث..."
 
-#: sophie_bot/modules/ai/utils/research.py:70
+#: sophie_bot/modules/ai/utils/research.py:68
 msgid "Planning the research..."
 msgstr "تخطيط البحث..."
 
-#: sophie_bot/modules/ai/utils/research.py:71
+#: sophie_bot/modules/ai/utils/research.py:69
 msgid "Choosing what to search for..."
 msgstr "اختيار ما الذي نبحث عنه..."
 
-#: sophie_bot/modules/ai/utils/research.py:74
+#: sophie_bot/modules/ai/utils/research.py:72
 msgid "Searching the internet..."
 msgstr "البحث في الإنترنت..."
 
-#: sophie_bot/modules/ai/utils/research.py:76
+#: sophie_bot/modules/ai/utils/research.py:74
 msgid "Gathering sources from the web..."
 msgstr "جمع المصادر من الويب..."
 
-#: sophie_bot/modules/ai/utils/research.py:79
+#: sophie_bot/modules/ai/utils/research.py:77
 msgid "Reviewing search results..."
 msgstr "مراجعة نتائج البحث..."
 
-#: sophie_bot/modules/ai/utils/research.py:80
+#: sophie_bot/modules/ai/utils/research.py:78
 msgid "Checking if more searches are needed..."
 msgstr "التحقق مما إذا كانت هناك حاجة لمزيد من عمليات البحث..."
 
-#: sophie_bot/modules/ai/utils/research.py:81
+#: sophie_bot/modules/ai/utils/research.py:79
 msgid "Reading through the sources..."
 msgstr "قراءة المصادر..."
 
-#: sophie_bot/modules/ai/utils/research.py:84
+#: sophie_bot/modules/ai/utils/research.py:82
 msgid "Summarizing the research..."
 msgstr "تلخيص البحث..."
 
-#: sophie_bot/modules/ai/utils/research.py:85
+#: sophie_bot/modules/ai/utils/research.py:83
 msgid "Putting the findings together..."
 msgstr "تجميع النتائج..."
 
-#: sophie_bot/modules/ai/utils/research.py:86
+#: sophie_bot/modules/ai/utils/research.py:84
 msgid "Preparing the final answer..."
 msgstr "إعداد الإجابة النهائية..."
 
-#: sophie_bot/modules/ai/utils/research.py:152
+#: sophie_bot/modules/ai/utils/research.py:150
 msgid "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:157
+#: sophie_bot/modules/ai/utils/research.py:155
 msgid "Research requires a configured TinyFish API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:161
+#: sophie_bot/modules/ai/utils/research.py:159
 msgid "Research requires a configured Kagi API key."
 msgstr "يتطلب البحث وجود مفتاح API لـ Kagi مُعدّ."
 
-#: sophie_bot/modules/ai/utils/research.py:366
+#: sophie_bot/modules/ai/utils/research.py:364
 msgid "Research requires a saved chat context."
 msgstr "يتطلب البحث وجود سياق دردشة محفوظ."
 
-#: sophie_bot/modules/ai/utils/research.py:429
+#: sophie_bot/modules/ai/utils/research.py:427
 msgid "I could not find enough search results to research this topic."
 msgstr "لم أجد نتائج بحث كافية لإجراء بحث حول هذا الموضوع."
 
-#: sophie_bot/modules/ai/utils/research.py:527
+#: sophie_bot/modules/ai/utils/research.py:525
 msgid "No snippet available."
 msgstr "لا توجد مقتطفات متاحة."
 
-#: sophie_bot/modules/ai/utils/research.py:549
+#: sophie_bot/modules/ai/utils/research.py:547
 msgid "Sources"
 msgstr "المصادر"
 
-#: sophie_bot/modules/ai/utils/research.py:563
+#: sophie_bot/modules/ai/utils/research.py:560
 msgid "No sources."
 msgstr "لا توجد مصادر."
 
-#: sophie_bot/modules/ai/utils/research.py:570
+#: sophie_bot/modules/ai/utils/research.py:568
 msgid "Original request"
 msgstr "الطلب الأصلي"
 
-#: sophie_bot/modules/ai/utils/research.py:571
+#: sophie_bot/modules/ai/utils/research.py:569
 msgid "Research model"
 msgstr "نموذج البحث"
 
@@ -8949,4 +8944,7 @@ msgstr "رابط إلى المستخدم، يتم إنشاؤه عادةً عن �
 
 #~ msgid "The chat initiated the Welcome Security procedure were not found! Try clicking on the authentication button in the group again."
 #~ msgstr ""
+
+#~ msgid "{ai_emoji} AI Response"
+#~ msgstr "{ai_emoji} استجابة الذكاء الاصطناعي"
 

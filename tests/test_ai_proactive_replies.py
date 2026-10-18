@@ -101,6 +101,7 @@ async def test_proactive_answer_history_keeps_reply_title(
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
 ) -> None:
+    monkeypatch.setattr(proactive_replies, "is_enabled", AsyncMock(return_value=False))
     monkeypatch.setattr(OldContext, "add_from_cache", AsyncMock())
     target = MessageType(
         user_id=1,
