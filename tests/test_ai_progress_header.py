@@ -478,7 +478,7 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     assert rendered_html.startswith(
         f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> (Search)'
     )
-    assert "Fallback answer<br><p>" in rendered_html
+    assert f"Fallback answer<br>{final_header.to_rich()}" in rendered_html
     assert rendered_html.count(BATTERY_EMOJI) == 1
     assert "50% (fallback-model)" in rendered_html
     assert rendered_html.count("Fallback answer") == 1

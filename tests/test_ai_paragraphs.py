@@ -46,8 +46,8 @@ def test_header_preserves_later_paragraphs_and_inline_markup(with_header: bool, 
     if with_header:
         assert root.findtext("b/i") == "italic"
         assert "".join(paragraphs[0].itertext()) == "Second link & code."
-        assert "".join(paragraphs[-1].itertext()).endswith("50%")
-        assert paragraphs[-1].find("tg-emoji") is not None
+        assert "".join(root.itertext()).endswith("50%")
+        assert root.findall("tg-emoji")[-1].text == "🔋"
         second = paragraphs[0]
     else:
         assert "".join(paragraphs[0].itertext()) == "Hello bold and italic text."

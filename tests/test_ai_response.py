@@ -36,7 +36,7 @@ def test_shared_composition_keeps_paragraphs_metadata_and_trailing_blocks(header
     else:
         assert rich.startswith(f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">')
         assert "(Search) <b>First</b> &amp; <code>code</code>.\n" in rich
-        assert rich.endswith("<br><p>quota</p>")
+        assert rich.endswith("<br>quota")
     assert "<p>" not in doc.to_html()
     assert "**First**" in doc.to_md()
 
