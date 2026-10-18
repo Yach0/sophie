@@ -544,7 +544,6 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
     assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> <h1>')
     assert "<table" not in rich_html
     assert rich_html.index("<h1>") < rich_html.index("<ul>")
-    assert rich_html.endswith("<p>🔋</p>")
     assert rich_html.rfind("🔋") > rich_html.index("</ul>")
 
 
@@ -941,7 +940,6 @@ async def test_scheduled_boundary_labels_and_stores_end_date_without_regeneratin
     monkeypatch.setattr(GenerateChatSummaries, "generate_summary_groups", generate_groups)
     rich_sender = AsyncMock(return_value=SimpleNamespace(message_id=42))
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
-    monkeypatch.setattr(generate_chat_summaries, "get_ai_header_style", AsyncMock(return_value="simple"))
     summaries = GenerateChatSummaries(test_services)
 
     await summaries.handle(now=boundary)

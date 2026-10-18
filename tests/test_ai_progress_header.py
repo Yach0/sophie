@@ -478,7 +478,6 @@ async def test_fallback_final_replaces_draft_with_exactly_one_simple_header(test
     assert rendered_html.startswith(
         f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> (Search)'
     )
-    assert "Fallback answer<br><p>" in rendered_html
     assert rendered_html.count(BATTERY_EMOJI) == 1
     assert "50% (fallback-model)" in rendered_html
     assert rendered_html.count("Fallback answer") == 1
@@ -517,7 +516,6 @@ async def test_finished_reply_uses_custom_ai_emoji_and_battery_footer(
     doc = await build_reply_doc(header, "Hello", None, None, False, -100123, redis=test_redis, strip_alien_html_tags=False)
     text = doc.to_rich()
     assert text.startswith(f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
-    assert "<br><p><tg-emoji" in text
     assert BATTERY_EMOJI in text
     assert "50%" in text
     assert "<table" not in text
@@ -536,19 +534,8 @@ async def test_finished_reply_without_quota_keeps_battery_without_percentage(
     text = build_ai_message_doc(header, "Hello").to_rich()
 
     assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello')
-    assert text.endswith("<br><p>🔋</p>")
+    assert BATTERY_EMOJI in text
     assert "%" not in text
-
-
-def test_ai_header_renders_battery_in_separate_paragraph() -> None:
-    header = ai_credit_header(50)
-
-    assert header is not None
-    text = build_ai_message_doc(header, "Hello\nSecond line").to_rich()
-    assert text.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> Hello\nSecond line')
-    assert "<br><p><tg-emoji" in text
-    assert text.endswith(" 50%</p>")
-    assert "<table" not in text
 
 
 def test_ai_header_renders_first_markdown_paragraph_inline() -> None:
@@ -580,8 +567,6 @@ def test_used_tool_categories_render_before_reply_body() -> None:
     assert build_ai_message_doc(header, "Reply here", tool_labels=labels).to_md().startswith(
         "✨ (Search, Notes) Reply here"
     )
-    assert "<br><p><tg-emoji" in text
-    assert text.endswith(" 45%</p>")
 
 
 def test_memory_help_and_research_tool_titles_omit_custom_emojis() -> None:

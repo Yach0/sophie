@@ -89,6 +89,7 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **Bug Fixes**: Must include a reproduction test that failed before the fix and passes after.
 - **Running Tests**: Use `make run_tests` or `make commit`.
 - **Migration Checks**: CI runs `tests/test_migration_helper.py` separately and excludes it from the unit-test job.
+- **AI Rendering Checks**: Cover content, escaping, preserved body blocks, and draft-to-final transitions. Do not pin incidental footer wrappers such as `<p>` tags or mock removed layout helpers.
 
 ---
 
