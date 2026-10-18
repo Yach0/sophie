@@ -67,11 +67,14 @@ DUMMY_HANDLERS = {"dummy": DUMMY_HANDLER}
 
 
 def _services(
-    actions: dict[str, ActionDefinition[DummyActionData]] = DUMMY_ACTIONS,
-    handlers: dict[str, ModernActionABC[DummyActionData]] = DUMMY_HANDLERS,
+    actions: dict[str, ActionDefinition[DummyActionData]] | None = None,
+    handlers: dict[str, ModernActionABC[DummyActionData]] | None = None,
 ) -> SimpleNamespace:
     return SimpleNamespace(
-        modules=SimpleNamespace(actions=actions, action_handlers=handlers)
+        modules=SimpleNamespace(
+            actions=actions if actions is not None else DUMMY_ACTIONS,
+            action_handlers=handlers if handlers is not None else DUMMY_HANDLERS,
+        )
     )
 
 

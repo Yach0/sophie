@@ -33,7 +33,8 @@ def _handler_data(help_modules: dict[str, ModuleHelp]) -> dict[str, object]:
 
 def _button_module_names(handler: PMModulesList) -> list[str]:
     doc = handler.answer_rich.await_args.args[0]
-    button_group = next(element for element in doc if isinstance(element, Buttons))
+    button_group = next((element for element in doc if isinstance(element, Buttons)), None)
+    assert button_group is not None
     return [
         PMHelpModule.unpack(button.callback_data).module_name
         for row in button_group.rows
@@ -131,7 +132,8 @@ async def test_module_wiki_is_embedded_as_rich_button(
     await handler.handle()
 
     doc = handler.answer_rich.await_args.args[0]
-    button_group = next(element for element in doc if isinstance(element, Buttons))
+    button_group = next((element for element in doc if isinstance(element, Buttons)), None)
+    assert button_group is not None
     assert (
         button_group.rows[0].buttons[0].url
         == "https://sophie-wiki.orangefox.tech/modules/notes"

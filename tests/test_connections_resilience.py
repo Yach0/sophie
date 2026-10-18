@@ -6,6 +6,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 from aiogram.types import Chat
 from beanie.odm.fields import Link as BeanieLink
 from bson import DBRef
@@ -47,12 +49,9 @@ async def build_group_chat_model(chat_tid: int, title: str) -> ChatModel:
     return group_model
 
 
-@pytest.mark.asyncio
 async def test_connections_middleware_disconnects_dangling_chat_link(
-    db_init: Any,
     test_services: object,
 ) -> None:
-    del db_init
     await ChatConnectionModel.delete_all()
     await ChatModel.delete_all()
 
@@ -96,13 +95,10 @@ async def test_connections_middleware_disconnects_dangling_chat_link(
     bot_mock.send_message.assert_awaited_once()
 
 
-@pytest.mark.asyncio
 async def test_reconnecting_to_same_chat_does_not_duplicate_history(
-    db_init: Any,
     monkeypatch: pytest.MonkeyPatch,
     test_redis: object,
 ) -> None:
-    del db_init
     await ChatConnectionModel.delete_all()
     await ChatModel.delete_all()
 
@@ -153,9 +149,7 @@ async def test_reconnecting_to_same_chat_does_not_duplicate_history(
         "referencing it; the fix lives in fix/chatmodel-delete-leaves-dangling-connections."
     ),
 )
-@pytest.mark.asyncio
-async def test_delete_chat_removes_related_connection_records(db_init: Any) -> None:
-    del db_init
+async def test_delete_chat_removes_related_connection_records() -> None:
     await ChatConnectionModel.delete_all()
     await ChatModel.delete_all()
 

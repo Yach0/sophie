@@ -35,7 +35,11 @@ from tests.utils.rich_html import parse_rich_html
 
 
 def _callbacks(requests: list[CapturedRequest]) -> list[str]:
-    rich = next(request.params["rich_message"]["html"] for request in requests if request.params.get("rich_message"))
+    rich = next(
+        (request.params["rich_message"]["html"] for request in requests if request.params.get("rich_message")),
+        None,
+    )
+    assert rich is not None
     root = parse_rich_html(rich)
     return [
         button.attrib["data"]

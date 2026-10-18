@@ -355,11 +355,19 @@ def test_picker_shows_every_category_with_its_inline_level() -> None:
     buttons = table.findall(".//tg-button")
     assert len(buttons) == len(ModerationCategory) + 1
     pii_button = next(
-        button
-        for button in buttons
-        if button.get("data") == AIModeratorCategoryCallback(category=ModerationCategory.PII.value).pack()
+        (
+            button
+            for button in buttons
+            if button.get("data") == AIModeratorCategoryCallback(category=ModerationCategory.PII.value).pack()
+        ),
+        None,
     )
+    assert pii_button is not None
     assert "Off" in "".join(pii_button.itertext())
+
+
+def test_picker_table_describes_every_category() -> None:
+    rendered = _build_doc(None, True).to_rich()
     for category in ModerationCategory:
         assert str(CATEGORY_DESCRIPTIONS[category]) in rendered
 

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -37,9 +36,9 @@ async def test_filter_save_revalidates_before_persisting() -> None:
     validate.assert_awaited_once_with(chat_iid, "spam", None)
 
 
+@pytest.mark.usefixtures("db_init")
 @pytest.mark.asyncio
-async def test_invalid_filter_id_is_rejected_without_loading_model(db_init: Any) -> None:
-    del db_init
+async def test_invalid_filter_id_is_rejected_without_loading_model() -> None:
     draft = FilterDraft(filter_id="invalid", handler="spam", actions={"kick_user": None})
     with (
         patch("sophie_bot.modules.filters.filter_wizard.validate_filter_handler", AsyncMock()),

@@ -70,9 +70,9 @@ class OldContext:
         )
 
     async def _format_context_line(self, chat_id: int, msg: MessageType) -> str:
-        user = await modern_context._get_chat_model(msg.user_id, self._chat_models)
+        user = await modern_context.get_chat_model(msg.user_id, self._chat_models)
         first_name = user.first_name_or_title if user else "Unknown"
-        from_user_name = await modern_context._admin_context_name(
+        from_user_name = await modern_context.admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
@@ -111,13 +111,13 @@ class OldContext:
 
     async def _cache_transform_msg(self, chat_id: int, msg: MessageType) -> ModelResponse | ModelRequest:
         """Transforms a message from the cache to a message that can be sent to the AI."""
-        user = await modern_context._get_chat_model(msg.user_id, self._chat_models)
+        user = await modern_context.get_chat_model(msg.user_id, self._chat_models)
         first_name = user.first_name_or_title if user else "Unknown"
 
         if msg.is_bot or msg.user_id == CONFIG.bot_id:
             return ModelResponse(parts=[TextPart(content=msg.text)])
 
-        from_user_name = await modern_context._admin_context_name(
+        from_user_name = await modern_context.admin_context_name(
             chat_id,
             msg.user_id,
             first_name,
@@ -209,10 +209,10 @@ class OldContext:
 
         is_sophie = message.from_user.id == CONFIG.bot_id
 
-        content_text = modern_context._extract_message_content(message, custom_text, normalize_texts, is_sophie)
+        content_text = modern_context.extract_message_content(message, custom_text, normalize_texts, is_sophie)
 
         prompt: list[UserContent] = self.prompt or []
-        from_user_name = await modern_context._admin_context_name(
+        from_user_name = await modern_context.admin_context_name(
             message.chat.id,
             message.from_user.id,
             message.from_user.full_name,
@@ -220,7 +220,7 @@ class OldContext:
             chat_models=self._chat_models,
         )
         prompt.extend(
-            await modern_context._build_message_parts(
+            await modern_context.build_message_parts(
                 message,
                 content_text,
                 from_user_name,
@@ -282,7 +282,7 @@ class OldContext:
                         # TextPart is from assistant responses
                         moderation_content.append({"role": "assistant", "content": part.content})
                     elif isinstance(part, UserPromptPart) and (
-                        content_str := modern_context._user_prompt_text(part.content)
+                        content_str := modern_context.user_prompt_text(part.content)
                     ):
                         moderation_content.append({"role": "user", "content": content_str})
 

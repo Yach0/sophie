@@ -192,7 +192,7 @@ class TestMetricsMiddleware:
 
         # Test with function name
         def test_handler():
-            pass
+            """Test handler."""
 
         name = middleware._get_handler_name(test_handler, None)
         assert name == "test_handler"
@@ -200,7 +200,7 @@ class TestMetricsMiddleware:
         # Test with class method (should return class name, not method name)
         class TestHandler:
             def handle(self):
-                pass
+                """Test handle method."""
 
         handler_instance = TestHandler()
         name = middleware._get_handler_name(handler_instance.handle, None)
@@ -211,7 +211,7 @@ class TestMetricsMiddleware:
 
         class AiPmStop:
             def handle(self):
-                pass
+                """Test handle method."""
 
         handler_instance = AiPmStop()
         partial_handler = partial(handler_instance.handle)
@@ -221,7 +221,7 @@ class TestMetricsMiddleware:
         # Test middleware object with memory address (the main issue we're fixing)
         class MockMiddleware:
             def __call__(self):
-                pass  # Make it callable
+                """Make callable."""
 
             def __str__(self):
                 return "<sophie_bot.middlewares.connections.ConnectionsMiddleware object at 0x7fa6c518c380>"
@@ -233,7 +233,7 @@ class TestMetricsMiddleware:
         # Test another middleware object format
         class MockMiddleware2:
             def __call__(self):
-                pass
+                """Make callable."""
 
             def __str__(self):
                 return "<MyCustomMiddleware object at 0x12345678>"

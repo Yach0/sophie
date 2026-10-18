@@ -68,7 +68,6 @@ async def test_captcha_rules_preserve_join_request_context(
         chat_iid,
         True,
         bot=test_services.bot,
-        redis=test_services.redis,
     )
 
     reply_markup = send_captcha_message.await_args.kwargs["reply_markup"]
@@ -116,10 +115,7 @@ async def test_complete_captcha_does_not_send_welcome_or_rules_to_group(
     # complete_captcha should only update the captcha image in DM and unmute the user;
     # it must NOT send any welcome or rules messages to the group.
     bot_mock.edit_message_media.assert_awaited_once()
-    # No messages sent to the group chat
-    for call in bot_mock.delete_message.await_args_list:
-        # delete_message calls are cleanup, not sending new messages — that's fine
-        pass
+    # delete_message calls are cleanup, not sending new messages — that's fine
 
 
 @pytest.mark.asyncio

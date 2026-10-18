@@ -7,6 +7,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
+
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.welcomesecurity.callbacks import WelcomeSecurityConfirmCB, WelcomeSecurityMoveCB
 from sophie_bot.modules.welcomesecurity.handlers.captcha_get import CaptchaGetHandler
@@ -72,10 +74,8 @@ def _abandoned_state(group_a: ChatModel) -> FakeState:
     )
 
 
-@pytest.mark.asyncio
-async def test_legacy_button_request_beats_stale_state(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_button_request_beats_stale_state(monkeypatch: pytest.MonkeyPatch) -> None:
     """A validated ws_chat_iid must win over a leftover captcha for another chat."""
-    del db_init
     group_a, group_b = await _build_groups()
     state = _abandoned_state(group_a)
 
@@ -103,10 +103,8 @@ async def test_legacy_button_request_beats_stale_state(db_init: Any, monkeypatch
     assert confirm.is_join_request is False
 
 
-@pytest.mark.asyncio
-async def test_legacy_button_does_not_reuse_other_chats_captcha(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_legacy_button_does_not_reuse_other_chats_captcha(monkeypatch: pytest.MonkeyPatch) -> None:
     """The abandoned chat's captcha progress must not be carried into the requested chat."""
-    del db_init
     group_a, group_b = await _build_groups()
     state = _abandoned_state(group_a)
     stale_captcha = state._data["captcha"]
@@ -119,10 +117,8 @@ async def test_legacy_button_does_not_reuse_other_chats_captcha(db_init: Any, mo
     assert state._data["captcha"] != stale_captcha
 
 
-@pytest.mark.asyncio
-async def test_move_callback_request_beats_stale_state(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_move_callback_request_beats_stale_state(monkeypatch: pytest.MonkeyPatch) -> None:
     """An arrow tapped on group B's captcha must not be answered with group A's captcha."""
-    del db_init
     group_a, group_b = await _build_groups()
     state = _abandoned_state(group_a)
 
@@ -141,10 +137,8 @@ async def test_move_callback_request_beats_stale_state(db_init: Any, monkeypatch
     assert state._data["ws_chat_iid"] == str(group_b.iid)
 
 
-@pytest.mark.asyncio
-async def test_state_is_used_when_no_chat_is_requested(db_init: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_state_is_used_when_no_chat_is_requested(monkeypatch: pytest.MonkeyPatch) -> None:
     """With no explicit request (/captcha), the in-progress captcha is resumed unchanged."""
-    del db_init
     group_a, _group_b = await _build_groups()
     state = _abandoned_state(group_a)
     in_progress_captcha = state._data["captcha"]

@@ -31,7 +31,7 @@ def rich_block_text(block: object, *, table_cell_separator: str = " | ") -> str:
     # AI context keeps the full visible projection, including nested blocks,
     # captions, and labels. Locks request cell boundaries without display markup.
     if table_cell_separator == " | " and isinstance(block, RichBlock):
-        return rich_message_to_plain_text(RichMessage(blocks=[cast("RichBlockUnion", block)]))
+        return rich_message_to_plain_text(RichMessage(blocks=[cast(RichBlockUnion, block)]))
 
     cells = getattr(block, "cells", None)
     if isinstance(cells, list):
@@ -45,11 +45,11 @@ def rich_block_text(block: object, *, table_cell_separator: str = " | ") -> str:
 def message_text(message: Message | object, *, table_cell_separator: str = " | ") -> str:
     rich = getattr(message, "rich_message", None)
     if rich is not None:
-        rich_text = "\n".join(
+        extracted_rich_text = "\n".join(
             text for block in rich.blocks if (text := rich_block_text(block, table_cell_separator=table_cell_separator))
         )
-        if rich_text:
-            return rich_text
+        if extracted_rich_text:
+            return extracted_rich_text
 
     text = getattr(message, "text", None)
     return text if isinstance(text, str) else ""
