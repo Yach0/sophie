@@ -1,100 +1,156 @@
-Use `/filters` to browse filters with Previous and Next buttons. Sophie keeps each page within Telegram's message limit; very long handlers are shortened in the list, but the saved filter and its edit/delete controls are unchanged.
+Use `/filters` to browse filters along with the `Previous` and `Next` buttons. Sophie keeps each page within Telegram's message limit; very long handlers are shortened in the list, but the saved filter and its edit/delete controls are unchanged.
 
 ## Filter handlers
 
-When you create a filter with `/add_filter`, the first argument is the **handler**.
-The handler tells Sophie what kind of message should trigger the filter.
+When you create a filter with `/add_filter`, the first argument is the **handler**. The handler tells Sophie what kind of message should trigger the filter.
 
-It helps to think of handlers in two families:
-- text matchers: plain text, `word:`, `exact:`, `re:`, `ai:`
-- built-in detectors: lock-based handlers such as `url`, `photo`, `language:ru`, `stickerpack:FunnyCats`, `cyrillic` (The full list obtainable by writing `/lockable`)
+Handlers come in two groups:
 
-### Plain text handlers
+- **Text matchers**: plain text, `word:`, `exact:`, `re:`, `ai:`
+- **Built-in detectors**: lock types like `url`, `photo`, `language:ru`, `stickerpack:FunnyCats`, `cyrillic` (see `/lockable` for the full list)
 
-Plain text is the default matcher.
-If you do not add a prefix, Sophie performs a loose text match against normalized message text.
+### What is text normalization?
 
-Examples:
+Some text matchers clean up text before checking it. This is called **normalization**.
+
+Special characters are stripped from **both** your filter keyword and the incoming message.
+
+When normalization is active:
+
+- **Capitalization does not matter**: `CRYPTO`, `Crypto`, and `crypto` all match.
+- **Accents do not matter**: Accents are turned into plain letters (e.g. `crýptò` matches `crypto`).
+- **Fancy fonts do not matter**: Decorative Unicode letters (like `𝓬𝓻𝔂𝓹𝓽𝓸` or `𝗰𝗿𝘆𝗽𝘁𝗼`, often used by spammers) are turned into regular letters.
+- **Punctuation and symbols are stripped**: Characters like `!`, `?`, `,`, and `@` are removed, while dots, hyphens, and slashes (`.`, `-`, `/`) become spaces.
+- **Extra spaces are cleaned up**: Multiple spaces, tabs, or newlines are shrunk into a single space.
+
+> **Common gotcha:** Because symbols are removed from both your filter and the incoming message (when you're using the plain/default or `word:` matchers), `/add_filter @Raccoon` turns into a search for `raccoon`. It will accidentally trigger on someone saying `"I saw 3 raccoons today."` even though they didn't use an `@` sign! To match a specific handle with `@`, use a regex filter instead: `/add_filter re:(?i)@Raccoon\b`.
+
+### Quick comparison table
+
+| Matcher | Example | Cleans text? | Whole words only? | What part of the message it checks |
+|---|---|:---:|:---:|---|
+| **Plain text** | `/add_filter crypto` | **Yes** | **No** (matches inside longer words) | Matches anywhere in the message |
+| **`word:`** | `/add_filter word:crypto` | **Yes** | **Yes** (only full words or phrases) | Matches complete words anywhere in the message |
+| **`exact:`** | `/add_filter exact:hello` | **No** | **N/A** | The whole message must be an identical match |
+| **`re:`** | `/add_filter re:(?i)crypto` | **No** | **No** (unless you add `\b` boundaries) | Matches your regex pattern anywhere in the message |
+| **`ai:`** | `/add_filter ai:crypto scam` | **No** | **N/A** | Evaluates the overall meaning (new users only) |
+
+### 1. Plain text handlers (Default)
+
+Plain text is the default matcher when you don't use any prefix.
+
+It cleans up the text and checks if your keyword appears **anywhere** inside the message, even as part of a longer word.
+
+**Example**:
 
 ```
 /add_filter crypto
-/add_filter t.me
-/add_filter free nitro
 ```
 
-Use plain text when you want a simple substring match and do not care about exact wording.
-This is usually the easiest option for common spam phrases.
+**Will match**:
+  - `"Buy crypto now"` (standard message)
+  - `"BUY CRYPTO NOW"` (capital letters still match)
+  - `"crýptò"` (accents still match)
+  - `"𝓬𝓻𝔂𝓹𝓽𝓸"` (fancy spam fonts still match)
+  - `"free cryptocurrency"` (matches because `crypto` is part of `cryptocurrency`)
 
-Remarks:
+**Won't match**:
+  - `"c r y p t o"` (spaced-out letters remain separate words)
+  - `"decryption"` (does not contain `crypto`)
+  - `"bitcoin"` (different word)
 
-- Sophie normalizes message text before matching
-- This helps catch spacing tricks and Unicode decoration
-- It can be broader than you expect if the text appears inside a larger phrase
+> **Best for**: Common spam keywords where you want to catch all variations, including longer compound words.
 
-### `word:` handlers
+### 2. `word:` handlers (Whole word or phrase)
 
-Use `word:` when you want to match a whole word, or an exact tokenized phrase, without matching partial words.
+Use `word:` when you want to match a full word or phrase without triggering on longer words that happen to contain those letters.
+It cleans up text just like plain text, but splits the message into separate words. Punctuation at the end of a sentence is stripped, so it still matches.
 
-Examples:
-
+**Single-word example**:
 ```
 /add_filter word:crypto
-/add_filter word:free money
 ```
 
-This is useful when plain text would be too broad.
-For example, `word:crypto` is safer than plain `crypto` if you do not want partial-word false positives.
+**Will match**:
+  - `"Buy crypto today"` (matches the full word)
+  - `"CRYPTO is great"` (capital letters still match)
+  - `"crýptò is here"` (accents and fancy fonts still match)
+  - `"Need crypto?"` (question mark is stripped, so it matches)
 
-Remarks:
+**Won't match**:
+  - `"free cryptocurrency"` (blocked: `crypto` is only part of a longer word)
+  - `"cryptography basics"` (blocked: part of a longer word)
 
-- Good for whole words and short phrases
-- Helps avoid partial-word false positives
-- Less flexible than regex for more advanced patterns
+**Multi-word phrase example**:
+```
+/add_filter word:free nitro
+```
 
-### `exact:` handlers
+**Will match**:
+  - `"Get free nitro now"` (the words appear side by side)
+  - `"Free Nitro."` (capital letters match and the period is stripped)
 
-Use `exact:` when the entire message must match exactly.
+**Won't match**:
+  - `"free discord nitro"` (the words must appear together in order)
 
-Examples:
+> **Best for**: Short words or phrases that might accidentally match innocent longer words.
 
+### 3. `exact:` handlers (Entire message)
+
+Use `exact:` when the **entire message** must match your text from start to finish.
+
+Sophie does **not** clean up the text for `exact:`. Capitals, punctuation, and spacing must match letter-for-letter.
+
+**Example**:
 ```
 /add_filter exact:hello
-/add_filter exact:t.me/+
 ```
 
-This is the strictest text matcher.
-It only triggers when the full message text is exactly the same as the handler.
+**Will match**:
+  - `"hello"` (only this exact text)
+**Won't match**:
+  - `"Hello"` (capital `H` does not match lowercase `h`)
+  - `"hello world"` (has extra words)
+  - `"hello!"` (has punctuation)
+  - `" hello "` (has leading or trailing spaces)
 
-Remarks:
+> **Best for**: Canned spam messages, repeated bot commands, or specific invite links where users send the exact same text every time.
 
-- Best when users repeatedly send the exact same message
-- Useful for very specific invite links or canned spam messages
-- Too strict for most varied spam patterns
+### 4. `re:` handlers (Regular expressions)
 
-### `re:` handlers
+Use `re:` for regular expressions when you need advanced pattern matching.
 
-Use `re:` for regular expressions when simple text matching is not enough.
+Sophie runs the regex directly on the raw message without cleaning it up.
 
-Examples:
+By default, regex is **case-sensitive**. Add `(?i)` at the start if you want it to match both uppercase and lowercase.
+
+**Matching a list of words (e.g. swear words)**:
+
+To match several different words in a single filter without matching partial words, combine `(?i)`, word boundaries (`\b`), and `|` (OR):
 
 ```
-/add_filter re:@\w+
-/add_filter re:crypto|btc|bitcoin
+/add_filter re:(?i)\b(wordA|wordB|wordC)\b
 ```
 
-Regex is powerful, but should be used carefully.
-It is best when you need to match several variants or a structured pattern.
+**Matching usernames or channels**:
 
-Some regex could be very slow to handle,
-the [DoS practice](https://en.wikipedia.org/wiki/ReDoS) of invoking slow regex patterns exists,
-therefore, Sophie will test the entered regex against the speed of execution.
-In the case the pattern is too slow, it'll be rejected from adding to filters.
+Because plain text filters strip the `@` symbol, use regex if you want to strictly match messages containing the handle:
 
-Remarks:
+```
+/add_filter re:(?i)@channelname\b
+```
 
-- Best for advanced text patterns
-- Good for multiple variants in one handler
-- Harder to read and maintain than plain text or `word:`
+**Matching specific links or domains**:
+
+```
+/add_filter re:(?i)badsite\.com
+/add_filter re:(?i)t\.me/(\+|joinchat/)
+```
+
+**Safety check**:
+Sophie tests your pattern when you add it. If it takes longer than 0.2 seconds to run, Sophie rejects it to protect the bot from slow patterns (ReDoS attacks). During live chats, regex matching has a 0.5-second timeout.
+
+> **Best for**: Channel names with `@`, specific website domains, or matching lists of words in a single rule.
 
 ## AI Filter handlers
 
@@ -119,22 +175,14 @@ Examples:
 /add_filter ai:Has anything regarding money or cryptocurrency
 /add_filter ai:Message contains scam or phishing attempt
 /add_filter ai:Promotion or advertisement content
+/add_filter ai:Spam or unsolicited messages
+/add_filter ai:Political content
 ```
 
 Choose `ai:` when the intent matters more than the exact words.
 For example, it can help with scammy wording that changes often but keeps the same meaning.
 
 Avoid `ai:` when a plain text, `word:`, `exact:`, `re:`, or lock-based handler would already solve the problem.
-
-### Examples
-
-```
-/add_filter ai:Has anything regarding money or cryptocurrency
-/add_filter ai:Message contains scam or phishing attempt
-/add_filter ai:Promotion or advertisement content
-/add_filter ai:Spam or unsolicited messages
-/add_filter ai:Political content
-```
 
 ### Supported Content Types
 
@@ -163,20 +211,19 @@ Examples:
 /add_filter language:ru
 /add_filter url
 /add_filter stickerpack:FunnyCats
+/add_filter cyrillic
 ```
 
-The full list is obtainable by using `/lockable` command.
+The full list is obtainable by using the `/lockable` command.
 
 When you use a lock-based handler, Sophie does not match literal text.
 Instead, it checks the message the same way the `Locks` module does.
 
 Lock-based handlers are best when you are targeting message structure or Telegram-specific content rather than an
-arbitrary text phrase.
-
-Examples:
+arbitrary text phrase:
 
 - `sticker` matches messages with stickers
-- `url` matches messages containing URL entities
+- `url` matches messages containing any web link
 - `language:ru` matches messages detected as Russian
 - `stickerpack:FunnyCats` matches stickers from that sticker pack
 - `cyrillic` matches text containing Cyrillic characters using the built-in lock detector
@@ -188,12 +235,12 @@ instead of only deleting the message.
 
 Use this rule of thumb:
 
-- use plain text for a simple loose phrase match
-- use `word:` when partial-word matches would be annoying
+- use **plain text** for a simple loose phrase match
+- use `word:` when partial-word matches would cause false positives
 - use `exact:` when the whole message must be identical
-- use `re:` when you need a structured or multi-variant pattern
+- use `re:` for usernames (`@channel`), specific web domains, word lists (`wordA|wordB`), or other complex patterns
 - use `ai:` when the meaning matters more than the exact wording
-- use a lock type when you are targeting message structure or Telegram content types rather than free-form text
+- use a **lock type** (like `url`, `photo`, or `cyrillic`) when you are targeting message types rather than text
 
 ## Using `/ai_add_filter`
 
@@ -201,7 +248,9 @@ If you are not sure which handler to use, Sophie can suggest one for you.
 
 Use:
 
-`/ai_add_filter <describe what you want to catch>`
+```
+/ai_add_filter <describe what you want to catch>
+```
 
 Examples:
 
@@ -223,45 +272,51 @@ filter.
 ## Multiple filter actions and multiple filters
 
 Sophie supports having many filter actions for one filter handler.
-This means you can trigger complicated actions like warning users and deleting the user's message.
-Or triggering the AI Respond with a prompt that will try to describe to users why it is bad to tag admins in chats, while
-at the same time deleting the trigger message and muting the user.
 
-However, limits exist.
-The maximum number of actions per filter is currently three, and Sophie will only trigger the first two of matching
-filters.
+
+This means you can trigger combined actions like warning a user and deleting their message at the same time.
+
+However, limits exist:
+The maximum number of actions per filter is currently three, and Sophie will only trigger the first two matching filters on any single message.
 
 ## Silent mode
 
 Filters can be switched to **silent mode** from the filter setup screen of `/add_filter` and `/edit_filter`.
+
 The 🔊 / 🔇 button toggles it, and the setting is saved together with the rest of the filter.
 
-When a silent filter triggers, Sophie cleans up after itself 30 seconds later by deleting:
+When a filter includes reply actions (such as sending a note, warning the user, muting them, or providing an AI response), Sophie normally leaves those notices in the chat permanently.
 
-- the message that triggered the filter
-- every message Sophie sent in response to it
+When **silent mode** is enabled, Sophie waits 30 seconds after triggering, then cleans up the chat by deleting:
 
-This keeps the chat tidy for noisy filters, where the reply is only meant for the person who tripped it.
-It behaves like the silent restriction commands (`/sban`, `/smute`, and friends), which remove their own traces too.
+- **the user's message that triggered the filter** (even if the filter did not have the "Delete the message" action attached!)
+- **every response message Sophie sent in reply to it** (such as warning or mute notices)
+
+This ensures the user sees the warning or note, but the exchange is completely removed 30 seconds later without cluttering the chat. It behaves like the silent restriction commands (`/sban`, `/smute`, and friends), which remove their own traces too.
 
 Remarks:
 
 - Sophie needs the *Delete messages* admin right, otherwise the cleanup is silently skipped
-- The deletion is scheduled in memory, so a bot restart within those 30 seconds cancels the pending cleanup
-- When several filters match one message, a single silent filter makes the whole exchange silent, because Sophie
-  aggregates all filter replies into one message
+- If a filter's only action is *Delete the message*, Sophie already deletes the message immediately without sending a reply
+- The 30-second cleanup is scheduled in memory, so a bot restart within those 30 seconds cancels the pending cleanup
+- When several filters match one message, a single silent filter makes the whole exchange silent, because Sophie aggregates all filter replies into one message
 
 # How the Filters Engine Works for Admins vs. Non-Admins
 
-To enable admins to manage the bot's settings, Sophie ignores filters for known commands (listed in /help) when they're
-used by admins.
+To enable admins to manage the bot's settings, Sophie ignores filters for known commands (listed in `/help`) when they are used by admins.
 For regular users, filters apply to all messages, even overriding known commands.
+
 If a filter is triggered, Sophie skips executing any part of the command.
 
-For example, if the command is `/notes`, a regular user will trigger a filter action (like message deletion) instead of
-getting the notes list.
-But admins? They get the list of notes instead.
-Also, filters don't apply in PMs, regardless of user status, even if using chat connections.
+For example, if the command is `/notes`, a regular user will trigger a filter action (like message deletion) instead of getting the notes list. Admins get the list of notes instead.
+
+Filters do not apply in private messages (PMs), regardless of user status, even if using chat connections.
+
+### Admin exemptions and linked announcement channels
+
+- **Personal admin accounts**: Human administrators sending messages from their personal accounts are exempt from restrictive filter actions (like deleting messages, warnings, mutes, kicks, and bans).
+
+- **Linked announcement channels**: If your discussion group is linked to a broadcast channel (for comments threads), Telegram delivers auto-posted channel messages as **channel posts** rather than user messages. Because channel posts do not carry a regular user account, Sophie's admin exemption does not apply to them. Any words in an announcement post that match active filters will trigger those filter actions.
 
 ## Remarks about AI Response filter action
 
