@@ -464,10 +464,14 @@ async def test_notes_pagination_keeps_each_list_search_context(test_client: Test
             for button in row
         ]
         first_next_callback = next(
-            button["callback_data"]
-            for button in first_buttons
-            if "▶️" in button.get("text", "") or button.get("text") == "Next"
+            (
+                button["callback_data"]
+                for button in first_buttons
+                if "▶️" in button.get("text", "") or button.get("text") == "Next"
+            ),
+            None,
         )
+        assert first_next_callback is not None
 
         await test_client.send_command(
             command="notes",

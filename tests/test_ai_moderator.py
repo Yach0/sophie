@@ -352,7 +352,8 @@ def test_keyboard_shows_every_category_with_its_level() -> None:
     buttons = [button for row in _build_keyboard(levels).inline_keyboard for button in row]
 
     assert len(buttons) == len(ModerationCategory)
-    pii_button = next(button for button in buttons if "Personal data" in button.text)
+    pii_button = next((button for button in buttons if "Personal data" in button.text), None)
+    assert pii_button is not None
     assert "Off" in pii_button.text
     assert AIModeratorCategoryCallback.unpack(pii_button.callback_data).category == ModerationCategory.PII.value
 

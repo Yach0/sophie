@@ -35,7 +35,7 @@ class ShowIDHandler(SophieMessageHandler):
 
     async def handle(self) -> Any:
         chat: ChatConnection = self.connection
-        user: ChatModel | None = self.data.get("user", None)
+        user: ChatModel | None = self.data.get("user")
 
         doc = Doc()
 

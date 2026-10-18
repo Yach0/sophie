@@ -235,7 +235,7 @@ async def test_contended_pending_user_does_not_starve_later_expired_users(
     clock = iter((0.0, 31.0, 31.0))
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.utils_.pending_user_lock.monotonic",
-        lambda: next(clock),
+        lambda: next(clock, 31.0),
     )
 
     await KickUnpassedUsers(test_services).handle()
