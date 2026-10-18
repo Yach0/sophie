@@ -44,7 +44,6 @@ async def _get_value(
     chat_tid: int | None = None,
     **kwargs: Any,
 ) -> float:
-    del name, chat_tid, kwargs
     return 0.5
 
 

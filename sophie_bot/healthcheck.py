@@ -21,13 +21,21 @@ from sophie_bot.services.redis import create_redis
 HTTP_TIMEOUT_SECONDS = 5.0
 
 # api_listen is a bind address; the probe runs inside the same container and must
-# connect over loopback. A wildcard bind (0.0.0.0 / ::) is not a valid connect target.
-_WILDCARD_BINDS = {"0.0.0.0", "::", ""}
+# connect over loopback. An unspecified/wildcard bind is not a valid connect target.
 _LOOPBACK_HOST = "127.0.0.1"
 
 
+def _is_wildcard_bind(host: str) -> bool:
+    if not host:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_unspecified
+    except ValueError:
+        return False
+
+
 def _rest_probe_host() -> str:
-    return _LOOPBACK_HOST if CONFIG.api_listen in _WILDCARD_BINDS else CONFIG.api_listen
+    return _LOOPBACK_HOST if _is_wildcard_bind(CONFIG.api_listen) else CONFIG.api_listen
 
 
 def _format_host(host: str) -> str:

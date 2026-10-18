@@ -41,7 +41,6 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
                 group.iid,
                 is_join_request,
                 bot=self.services.bot,
-                redis=self.services.redis,
             )
 
         await self.state.clear()

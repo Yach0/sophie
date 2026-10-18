@@ -296,7 +296,7 @@ def extract_markdown_entities(
             i += increment
             continue
 
-        elif url_re:
+        if url_re:
             text, increment = _process_url_match(text, i, url_re, result)
             if increment != 1:
                 i = increment

@@ -13,7 +13,6 @@ class PMNotesFilter(Filter):
         event: TelegramObject,
         context: RequestContext,
     ) -> bool:
-        del event
         connection = context.connection
         if not connection:
             raise ValueError("Missing connection in request context")

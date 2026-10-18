@@ -6,6 +6,8 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 from aiogram.types import User
 from beanie import PydanticObjectId
 
@@ -71,13 +73,10 @@ def permission_probe(monkeypatch: pytest.MonkeyPatch) -> list[tuple[PydanticObje
     return calls
 
 
-@pytest.mark.asyncio
 async def test_connect_cmd_checks_permissions_for_the_user_not_the_connected_chat(
-    db_init: Any,
     permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]],
     test_redis: Any,
 ) -> None:
-    del db_init
     user, chat_a, chat_b = await _build_scenario()
 
     event = SimpleNamespace(from_user=User(id=USER_TID, is_bot=False, first_name="Connector"), reply=AsyncMock())
@@ -104,13 +103,10 @@ async def test_connect_cmd_checks_permissions_for_the_user_not_the_connected_cha
     assert not any("not allowed to connect" in reply for reply in replies), replies
 
 
-@pytest.mark.asyncio
 async def test_connect_callback_checks_permissions_for_the_user_not_the_connected_chat(
-    db_init: Any,
     permission_probe: list[tuple[PydanticObjectId, PydanticObjectId]],
     test_redis: Any,
 ) -> None:
-    del db_init
     user, chat_a, chat_b = await _build_scenario()
 
     event = SimpleNamespace(

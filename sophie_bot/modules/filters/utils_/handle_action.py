@@ -33,7 +33,6 @@ async def handle_effective_filter_action(
     data: dict[str, Any],
     matched_filter: FiltersModel | None = None,
 ) -> ActionResult | None:
-    del matched_filter
     services = data["services"]
     action_item: ModernActionABC = services.modules.action_handlers[action.name]
     definition = services.modules.actions[action.name]

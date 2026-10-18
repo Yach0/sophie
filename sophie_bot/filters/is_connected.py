@@ -22,12 +22,12 @@ class IsConnectedFilter(Filter):
 
 
 class GroupOrConnectedFilter(Filter):
+    """Filters cases when it's a group or connected to a group in PM."""
+
     def __init__(self, allow_abort: bool = True, require_admin: bool = False):
         self.allow_abort = allow_abort
         self.require_admin = require_admin
         super().__init__()
-
-    """Filters cases when it's a group or connected to a group in PM."""
 
     async def __call__(
         self, event: Message | CallbackQuery, context: RequestContext, *args: Any, **kwargs: Any
