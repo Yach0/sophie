@@ -115,6 +115,7 @@ async def test_expiry_scheduler_keeps_join_request_when_decline_fails(
 
 
 @pytest.mark.asyncio
+
 async def test_expiry_action_timeout_is_not_mistaken_for_lock_contention(
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,

@@ -356,10 +356,14 @@ async def test_welcomesecurity_expiry_bound_connection(test_client: TestClient, 
     await test_client.send_command(command="connect", from_user=admin, args="@expiry_group_a")
     requests = await test_client.send_command(command="welcomesecurity", from_user=admin)
     settings = next(
-        request
-        for request in requests
-        if request.request_type == RequestType.SEND_MESSAGE and request.params.get("reply_markup")
+        (
+            request
+            for request in requests
+            if request.request_type == RequestType.SEND_MESSAGE and request.params.get("reply_markup")
+        ),
+        None,
     )
+    assert settings is not None
     markup = settings.params["reply_markup"]
     if not isinstance(markup, dict):
         markup = markup.model_dump()

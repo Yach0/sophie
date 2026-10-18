@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 from datetime import timedelta
 from types import SimpleNamespace
-from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
 
+pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
 from sophie_bot.modules.welcomesecurity.utils_ import on_user_passed
 from sophie_bot.modules.whitelist.handlers import add as whitelist_add
@@ -26,10 +26,8 @@ from sophie_bot.utils.group_whitelist import (
 
 
 async def test_group_whitelist_is_ignored_when_feature_is_disabled(
-    db_init: Any,
     test_services: ApplicationServices,
 ) -> None:
-    del db_init
     chat_tid = -1_007_000_000_000
     user_tid = 700_000_000
     await GroupUserWhitelistModel.add_user(chat_tid, user_tid)
@@ -38,10 +36,8 @@ async def test_group_whitelist_is_ignored_when_feature_is_disabled(
 
 
 async def test_group_whitelist_add_check_remove_is_idempotent(
-    db_init: Any,
     test_services: ApplicationServices,
 ) -> None:
-    del db_init
     first_chat_tid = -1_007_000_000_001
     second_chat_tid = -1_007_000_000_002
     user_tid = 700_000_001
@@ -104,11 +100,9 @@ async def test_group_whitelist_mutations_invalidate_membership_cache(
 
 
 async def test_mutation_started_before_migration_is_transferred(
-    db_init: Any,
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
 ) -> None:
-    del db_init
     old_chat_tid = -1_007_000_000_009
     new_chat_tid = -1_007_000_000_010
     user_tid = 700_000_009
@@ -121,7 +115,6 @@ async def test_mutation_started_before_migration_is_transferred(
         chat_tid: int,
         added_user_tid: int,
     ) -> bool:
-        del model
         if chat_tid == old_chat_tid and added_user_tid == user_tid:
             mutation_started.set()
             await release_mutation.wait()
@@ -173,7 +166,6 @@ async def test_cache_miss_cannot_restore_stale_value_after_mutation(
         return await redis_set(name, value, nx=nx, ex=ex)
 
     async def stale_find_one(*args: object, **kwargs: object) -> None:
-        del args, kwargs
         lookup_started.set()
         await release_lookup.wait()
 
@@ -206,7 +198,6 @@ async def test_cache_miss_cannot_restore_present_value_after_removal(
     release_lookup = asyncio.Event()
 
     async def present_find_one(*args: object, **kwargs: object) -> object:
-        del args, kwargs
         lookup_started.set()
         await release_lookup.wait()
         return object()
@@ -250,7 +241,6 @@ async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_un
     events: list[str] = []
 
     async def record_unmute(*args: object, **kwargs: object) -> RestrictionResult:
-        del args, kwargs
         events.append("unmute")
         return RestrictionResult(
             action=RestrictionAction.UNMUTE,
@@ -258,7 +248,6 @@ async def test_whitelisted_captcha_pass_removes_pending_only_after_successful_un
         )
 
     async def record_removal(*args: object, **kwargs: object) -> object:
-        del args, kwargs
         events.append("remove")
         return object()
 

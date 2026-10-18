@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from threading import Lock
-from typing import Final
+from typing import Any, Final
 
 import sentry_sdk
 
@@ -36,7 +36,10 @@ def distribution_metric(
     if not sentry_metrics_enabled():
         return
 
-    sentry_sdk.metrics.distribution(name, value, attributes=_normalize_attributes(attributes), unit=unit)
+    kwargs: dict[str, Any] = {"attributes": _normalize_attributes(attributes)}
+    if unit is not None:
+        kwargs["unit"] = unit
+    sentry_sdk.metrics.distribution(name, value, **kwargs)
 
 
 def set_gauge_metric(
@@ -50,7 +53,10 @@ def set_gauge_metric(
 
     normalized_attributes = _normalize_attributes(attributes)
     _set_gauge_state(name, value, normalized_attributes)
-    sentry_sdk.metrics.gauge(name, value, attributes=normalized_attributes, unit=unit)
+    kwargs: dict[str, Any] = {"attributes": normalized_attributes}
+    if unit is not None:
+        kwargs["unit"] = unit
+    sentry_sdk.metrics.gauge(name, value, **kwargs)
 
 
 def change_gauge_metric(
@@ -64,7 +70,10 @@ def change_gauge_metric(
 
     normalized_attributes = _normalize_attributes(attributes)
     next_value = _change_gauge_state(name, delta, normalized_attributes)
-    sentry_sdk.metrics.gauge(name, next_value, attributes=normalized_attributes, unit=unit)
+    kwargs: dict[str, Any] = {"attributes": normalized_attributes}
+    if unit is not None:
+        kwargs["unit"] = unit
+    sentry_sdk.metrics.gauge(name, next_value, **kwargs)
 
 
 def reset_gauge_metrics() -> None:

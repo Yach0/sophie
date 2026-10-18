@@ -49,15 +49,18 @@ def enable_middlewares(
     # Album aggregation must precede FSM isolation or sibling album updates deadlock.
     outer_middlewares = dispatcher.update.outer_middleware
     fsm_index = next(
-        index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)
+        (index for index, middleware in enumerate(outer_middlewares) if isinstance(middleware, FSMContextMiddleware)),
+        None,
     )
-    trailing_middlewares = tuple(outer_middlewares[fsm_index:])
-    for middleware in trailing_middlewares:
-        outer_middlewares.unregister(middleware)
-    outer_middlewares(MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)))
-    for middleware in trailing_middlewares:
-        outer_middlewares(middleware)
-
+    if fsm_index is not None:
+        trailing_middlewares = tuple(outer_middlewares[fsm_index:])
+        for middleware in trailing_middlewares:
+            outer_middlewares.unregister(middleware)
+        outer_middlewares(MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)))
+        for middleware in trailing_middlewares:
+            outer_middlewares(middleware)
+    else:
+        outer_middlewares(MediaGroupAggregatorMiddleware(RedisMediaGroupAggregator(services.redis)))
     if CONFIG.sentry_url:
         dispatcher.update.middleware(SentryTracingMiddleware())
 

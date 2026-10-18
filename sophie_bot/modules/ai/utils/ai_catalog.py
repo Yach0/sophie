@@ -241,10 +241,10 @@ async def get_catalog(*, redis: Redis) -> AICatalog:
     with sentry_sdk.start_span(op="ai.cache", name="Look up AI catalog") as span:
         changed = _catalog.version != await _current_version(redis=redis)
         span.set_data("ai.cache.hit", not changed)
-        catalog = await load_catalog(redis=redis) if changed else _catalog
-        span.set_data("ai.catalog.provider_count", len(catalog.providers))
-        span.set_data("ai.catalog.model_count", len(catalog.models))
-        return catalog
+        current_catalog = await load_catalog(redis=redis) if changed else _catalog
+        span.set_data("ai.catalog.provider_count", len(current_catalog.providers))
+        span.set_data("ai.catalog.model_count", len(current_catalog.models))
+        return current_catalog
 
 
 async def get_openrouter_api_key(*, redis: Redis) -> str | None:

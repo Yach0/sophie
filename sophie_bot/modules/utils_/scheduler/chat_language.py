@@ -15,6 +15,8 @@ class UseChatLanguage:
     def __init__(self, chat_iid: PydanticObjectId, *, locales: LocaleStore) -> None:
         self.chat_iid = chat_iid
         self.locales = locales
+        self.ctx_token = None
+        self.token = None
 
     async def __aenter__(self) -> Self:
         chat_language = await self.locales.get_chat_locale(self.chat_iid)
@@ -30,7 +32,7 @@ class UseChatLanguage:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        # Returning None (not True): restoring the locale must not decide whether the
-        # caller's exception is worth seeing.
-        i18n.ctx_locale.reset(self.ctx_token)
-        i18n.reset_current(self.token)
+        if self.ctx_token is not None:
+            i18n.ctx_locale.reset(self.ctx_token)
+        if self.token is not None:
+            i18n.reset_current(self.token)

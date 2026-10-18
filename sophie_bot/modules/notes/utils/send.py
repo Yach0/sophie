@@ -303,9 +303,8 @@ async def send_saveable(
     is_album = len(saveable.files) > 1
     single_file = None if is_album else (saveable.file or (saveable.files[0] if saveable.files else None))
 
-    # Note - the order of those operations are actually more important than whatd you think
-    # We want to extract the buttons as the very first, since laterly, the markdown convertor would convert them to the normal URLs, which we don't want!
-    # And we want to process the fillings the last, as they produce formatting HTML formatting that would be escaped.
+    # Extract buttons first so markdown conversion does not turn them into URLs.
+    # Fillings are processed last because they inject pre-formatted HTML.
 
     # Extract buttons
     inline_markup = InlineKeyboardMarkup(inline_keyboard=[])
