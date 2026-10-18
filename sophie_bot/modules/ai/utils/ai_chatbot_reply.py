@@ -40,8 +40,16 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
     used_tool_labels,
 )
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, build_message_streamer
-from sophie_bot.modules.ai.utils.chatbot_tool_history import collect_tool_call_ids, remember_chatbot_tool_history
+from sophie_bot.modules.ai.utils.chatbot_streaming import (
+    ChatbotMessageStreamer,
+    build_message_streamer,
+    chatbot_streaming_session,
+)
+from sophie_bot.modules.ai.utils.chatbot_tool_history import (
+    ToolExchange,
+    collect_tool_call_ids,
+    remember_chatbot_tool_history,
+)
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
@@ -205,6 +213,46 @@ async def _send_chatbot_ai_failure_reply(
     return await message.reply(**failure_message, disable_web_page_preview=True, **reply_kwargs)
 
 
+async def _cache_chatbot_reply(
+    message: Message,
+    final_message: Message,
+    output_text: str,
+    result: AIAgentResult[str],
+    previous_history: Sequence[ToolExchange],
+    *,
+    services: ApplicationServices,
+    history: ModernContext | None = None,
+) -> None:
+    """Remember a delivered AI answer and its new tool exchanges for follow-ups."""
+    cached_message = MessageType(
+        text=output_text,
+        user_id=CONFIG.bot_id,
+        message_id=final_message.message_id,
+        created_at=final_message.date,
+        username="Sophie",
+        is_bot=True,
+        message_thread_id=final_message.message_thread_id,
+        handled_by_ai=True,
+        eligible_for_proactive_ai=False,
+        reply_to_message_id=message.message_id,
+        reply_to_user_id=message.from_user.id if message.from_user else None,
+        reply_to_username=(message.from_user.username or message.from_user.full_name if message.from_user else None),
+    )
+    if history is not None:
+        await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
+    else:
+        async with services.redis.pipeline(transaction=True) as pipe:
+            enqueue_cached_message(pipe, message.chat.id, cached_message)
+            await pipe.execute()
+        await remember_chatbot_tool_history(
+            message.chat.id,
+            final_message.message_id,
+            result.message_history,
+            previous_history,
+            redis=services.redis,
+        )
+
+
 async def ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,
@@ -241,6 +289,7 @@ async def ai_chatbot_reply(
             redis=services.redis,
             strip_alien_html_tags=strip_alien_html_tags,
         )
+        await cleanup.enter_async_context(chatbot_streaming_session(message_streamer))
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=connection.tid,
@@ -366,36 +415,15 @@ async def ai_chatbot_reply(
         else:
             final_message = await send_ai_rich_message(message, doc, reply_markup=kwargs.get("reply_markup"))
 
-        cached_message = MessageType(
-            text=output_text,
-            user_id=CONFIG.bot_id,
-            message_id=final_message.message_id,
-            created_at=final_message.date,
-            username="Sophie",
-            is_bot=True,
-            message_thread_id=final_message.message_thread_id,
-            handled_by_ai=True,
-            eligible_for_proactive_ai=False,
-            reply_to_message_id=message.message_id,
-            reply_to_user_id=message.from_user.id if message.from_user else None,
-            reply_to_username=(
-                message.from_user.username or message.from_user.full_name if message.from_user else None
-            ),
+        await _cache_chatbot_reply(
+            message,
+            final_message,
+            output_text,
+            result,
+            previous_history,
+            services=services,
+            history=history if isinstance(history, ModernContext) else None,
         )
-
-        if isinstance(history, ModernContext):
-            await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
-        else:
-            async with services.redis.pipeline(transaction=True) as pipe:
-                enqueue_cached_message(pipe, message.chat.id, cached_message)
-                await pipe.execute()
-            await remember_chatbot_tool_history(
-                message.chat.id,
-                final_message.message_id,
-                result.message_history,
-                previous_history,
-                redis=services.redis,
-            )
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))
         return final_message

@@ -1053,58 +1053,53 @@ msgstr "Noch keine Daten zur Kreditnutzung verfügbar"
 msgid "Quota exhausted! AI features are disabled until {date}."
 msgstr "Kontingent erschöpft! KI-Funktionen sind bis zum {date} deaktiviert."
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:43
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:52
 msgid "Please enter AI prompt"
 msgstr "Bitte geben Sie den AI-Prompt ein"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:50
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:59
 msgid "Please send me the AI instruction to proceed!"
 msgstr "Bitte senden Sie mir die KI-Anweisung, um fortzufahren!"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:51
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:60
 msgid "The AI will try to remember the chat context and will respond accordingly!"
 msgstr "Die KI wird versuchen, den Chat-Kontext zu merken und entsprechend zu antworten!"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:52
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:61
 msgid "For example, you can combine it with the warn filter: 'Tell the user how bad it is to speak profanity'"
 msgstr "Zum Beispiel können Sie es mit dem Warnfilter kombinieren: 'Warnen Sie den Benutzer, wie schlimm es ist, obszöne Wörter zu verwenden'"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:58
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:43
 #: sophie_bot/modules/notes/magic_handlers/reply_action.py:62
 msgid "Reply to message"
 msgstr "Auf Nachricht antworten"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:67
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:76
 msgid "Change AI prompt"
 msgstr "Ändere KI-Eingabeaufforderung"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:80
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:89
 msgid "AI Response"
 msgstr "KI-Antwort"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:92
+#: sophie_bot/modules/ai/magic_handlers/modern_action.py:101
 msgid "Send an AI Respond with prompt"
 msgstr "Senden Sie eine KI-Antwort mit dem Prompt"
 
-#: sophie_bot/modules/ai/magic_handlers/modern_action.py:139
-#, python-brace-format
-msgid "{ai_emoji} AI Response"
-msgstr "{ai_emoji} KI-Antwort"
-
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:51
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
 msgid "✋ AI Moderator"
 msgstr "✋ KI-Moderator"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:52
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
 msgid "This message violates the AI moderator policy and therefore has been deleted."
 msgstr "Diese Nachricht verstößt gegen die Richtlinien des KI-Moderators und wurde daher gelöscht."
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:53
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:54
 msgid "Message author"
 msgstr "Autoren der Nachricht"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:59
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:60
 #: sophie_bot/modules/communities/utils/ban_docs.py:38
 #: sophie_bot/modules/federations/handlers/fcheck_group.py:87
 #: sophie_bot/modules/federations/utils/ban_docs.py:44
@@ -1123,7 +1118,7 @@ msgid_plural "Reasons"
 msgstr[0] "Grund"
 msgstr[1] "Gründe"
 
-#: sophie_bot/modules/ai/middlewares/ai_moderator.py:63
+#: sophie_bot/modules/ai/middlewares/ai_moderator.py:64
 msgid "This message will be deleted shortly."
 msgstr ""
 
@@ -1147,10 +1142,10 @@ msgstr "Sie fassen Telegram-Gruppendiskussionen in strukturierten Themenzeilen z
 msgid "By using AI features you agree to our Privacy Policy (/privacy) and third party AI services used."
 msgstr "Durch die Verwendung der KI-Funktionen stimmen Sie unserer Datenschutzrichtlinie (/privacy) und den verwendeten KI-Diensten Dritter zu."
 
-#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:400
+#: sophie_bot/modules/ai/utils/ai_chatbot_reply.py:428
 #: sophie_bot/modules/ai/utils/ai_tool.py:113
-#: sophie_bot/modules/ai/utils/research.py:428
-#: sophie_bot/modules/ai/utils/research.py:559
+#: sophie_bot/modules/ai/utils/research.py:426
+#: sophie_bot/modules/ai/utils/research.py:562
 msgid "Research"
 msgstr "Recherche"
 
@@ -1167,7 +1162,7 @@ msgid "Thinking..."
 msgstr "Ich denke nach..."
 
 #: sophie_bot/modules/ai/utils/ai_progress.py:12
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:122
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:125
 msgid "Working on it..."
 msgstr "Ich arbeite daran..."
 
@@ -1278,7 +1273,7 @@ msgid "Searching the web..."
 msgstr "Im Web suchen..."
 
 #: sophie_bot/modules/ai/utils/ai_tool.py:29
-#: sophie_bot/modules/ai/utils/research.py:75
+#: sophie_bot/modules/ai/utils/research.py:73
 msgid "Looking it up online..."
 msgstr "Suche es online..."
 
@@ -1470,11 +1465,11 @@ msgstr ""
 msgid "AI context is not configured correctly. Ask the bot operator to configure context_window_tokens for every chatbot model, including the fallback model."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:115
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:118
 msgid "Reasoning..."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/chatbot_streaming.py:134
+#: sophie_bot/modules/ai/utils/chatbot_streaming.py:137
 #, python-brace-format
 msgid "Retrying ({attempt}/{total_attempts})..."
 msgstr ""
@@ -1666,87 +1661,87 @@ msgstr ""
 msgid "You are proactively joining a Telegram group chat. Keep the reply timely, casual, and very short: 1-2 short sentences. Do not include long explanations, bullet lists, or tool-like detail unless the target message explicitly asks for it. If the topic has moved on or a reply would feel forced, keep the answer minimal instead of trying to cover everything."
 msgstr "Du trittst proaktiv einem Telegram-Gruppenchat bei. Halte die Antwort zeitnah, locker und sehr kurz: 1–2 kurze Sätze. Füge keine langen Erklärungen, Aufzählungen oder tool-ähnliche Details hinzu, es sei denn, die Zielnachricht fordert dies ausdrücklich an. Hat sich das Thema bereits weiterentwickelt oder würde eine Antwort erzwungen wirken, halte die Antwort minimal, statt zu versuchen, alles abzudecken."
 
-#: sophie_bot/modules/ai/utils/research.py:69
+#: sophie_bot/modules/ai/utils/research.py:67
 msgid "Preparing search queries..."
 msgstr "Suchanfragen vorbereiten..."
 
-#: sophie_bot/modules/ai/utils/research.py:70
+#: sophie_bot/modules/ai/utils/research.py:68
 msgid "Planning the research..."
 msgstr "Recherche planen..."
 
-#: sophie_bot/modules/ai/utils/research.py:71
+#: sophie_bot/modules/ai/utils/research.py:69
 msgid "Choosing what to search for..."
 msgstr "Auswählen, wonach gesucht werden soll..."
 
-#: sophie_bot/modules/ai/utils/research.py:74
+#: sophie_bot/modules/ai/utils/research.py:72
 msgid "Searching the internet..."
 msgstr "Internet wird durchsucht..."
 
-#: sophie_bot/modules/ai/utils/research.py:76
+#: sophie_bot/modules/ai/utils/research.py:74
 msgid "Gathering sources from the web..."
 msgstr "Quellen aus dem Web sammeln..."
 
-#: sophie_bot/modules/ai/utils/research.py:79
+#: sophie_bot/modules/ai/utils/research.py:77
 msgid "Reviewing search results..."
 msgstr "Suchergebnisse überprüfen..."
 
-#: sophie_bot/modules/ai/utils/research.py:80
+#: sophie_bot/modules/ai/utils/research.py:78
 msgid "Checking if more searches are needed..."
 msgstr "Prüfen, ob weitere Suchen nötig sind..."
 
-#: sophie_bot/modules/ai/utils/research.py:81
+#: sophie_bot/modules/ai/utils/research.py:79
 msgid "Reading through the sources..."
 msgstr "Quellen durchlesen..."
 
-#: sophie_bot/modules/ai/utils/research.py:84
+#: sophie_bot/modules/ai/utils/research.py:82
 msgid "Summarizing the research..."
 msgstr "Recherche zusammenfassen..."
 
-#: sophie_bot/modules/ai/utils/research.py:85
+#: sophie_bot/modules/ai/utils/research.py:83
 msgid "Putting the findings together..."
 msgstr "Ergebnisse zusammenstellen..."
 
-#: sophie_bot/modules/ai/utils/research.py:86
+#: sophie_bot/modules/ai/utils/research.py:84
 msgid "Preparing the final answer..."
 msgstr "Endgültige Antwort vorbereiten..."
 
-#: sophie_bot/modules/ai/utils/research.py:152
+#: sophie_bot/modules/ai/utils/research.py:150
 msgid "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:157
+#: sophie_bot/modules/ai/utils/research.py:155
 msgid "Research requires a configured TinyFish API key."
 msgstr ""
 
-#: sophie_bot/modules/ai/utils/research.py:161
+#: sophie_bot/modules/ai/utils/research.py:159
 msgid "Research requires a configured Kagi API key."
 msgstr "Recherche erfordert einen konfigurierten Kagi-API-Schlüssel."
 
-#: sophie_bot/modules/ai/utils/research.py:366
+#: sophie_bot/modules/ai/utils/research.py:364
 msgid "Research requires a saved chat context."
 msgstr "Recherche erfordert einen gespeicherten Chat-Kontext."
 
-#: sophie_bot/modules/ai/utils/research.py:429
+#: sophie_bot/modules/ai/utils/research.py:427
 msgid "I could not find enough search results to research this topic."
 msgstr "Ich konnte nicht genügend Suchergebnisse finden, um dieses Thema zu recherchieren."
 
-#: sophie_bot/modules/ai/utils/research.py:527
+#: sophie_bot/modules/ai/utils/research.py:525
 msgid "No snippet available."
 msgstr "Kein Ausschnitt verfügbar."
 
-#: sophie_bot/modules/ai/utils/research.py:549
+#: sophie_bot/modules/ai/utils/research.py:547
 msgid "Sources"
 msgstr "Quellen"
 
-#: sophie_bot/modules/ai/utils/research.py:563
+#: sophie_bot/modules/ai/utils/research.py:560
 msgid "No sources."
 msgstr "Keine Quellen."
 
-#: sophie_bot/modules/ai/utils/research.py:570
+#: sophie_bot/modules/ai/utils/research.py:568
 msgid "Original request"
 msgstr "Ursprüngliche Anfrage"
 
-#: sophie_bot/modules/ai/utils/research.py:571
+#: sophie_bot/modules/ai/utils/research.py:569
 msgid "Research model"
 msgstr "Recherche-Modell"
 
@@ -9020,4 +9015,7 @@ msgstr "Ein Link zu einem Benutzer, in der Regel erstellt, indem ein Benutzer oh
 
 #~ msgid "The chat initiated the Welcome Security procedure were not found! Try clicking on the authentication button in the group again."
 #~ msgstr ""
+
+#~ msgid "{ai_emoji} AI Response"
+#~ msgstr "{ai_emoji} KI-Antwort"
 
