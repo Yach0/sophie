@@ -1,0 +1,3 @@
+# Translation catalogs: use union merge to automatically accept additions without conflicts
+locales/*.pot merge=union
+locales/**/*.po merge=union

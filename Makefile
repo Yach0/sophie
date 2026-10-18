@@ -28,7 +28,7 @@ LOCALES_DIR := $(CURDIR)/locales
 
 
 all: fix_code_style locale test_all clean build_onefile
-commit: fix_code_style extract_lang test_code_style test_codeanalysis run_tests gen_wiki api migrate_status
+commit: fix_code_style test_code_style test_codeanalysis run_tests gen_wiki api migrate_status
 test_all: test_code_style test_codeanalysis run_tests
 locale: extract_lang update_lang compile_lang
 
@@ -83,7 +83,7 @@ new_lang:
 
 extract_lang:
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
-	--add-comments="NOTE: " -o "$(LOCALES_DIR)/bot.pot" --sort-by-file --no-wrap $(PROJECT_DIR)
+	--add-comments="NOTE: " -o "$(LOCALES_DIR)/bot.pot" --no-location --sort-by-file --no-wrap $(PROJECT_DIR)
 
 	$(PYBABEL) extract -k "pl_:1,2" -k "p_:1,2" -k "l_:1" \
 	--add-comments="NOTE: " -o "$(LOCALES_DIR)/ass.pot" --omit-header --no-location --sort-by-file --no-wrap "$(ASS_PATH)"
