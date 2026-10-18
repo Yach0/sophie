@@ -74,7 +74,8 @@ async def test_research_followups_only_attach_new_reports(test_client: TestClien
         assert isinstance(latest_request, ModelRequest)
         if any(isinstance(part, ToolReturnPart) for part in latest_request.parts):
             return ModelResponse(parts=[TextPart(f"Research summary {report_count}")])
-        user_prompt = next(part.content for part in reversed(latest_request.parts) if isinstance(part, UserPromptPart))
+        user_prompt = next((part.content for part in reversed(latest_request.parts) if isinstance(part, UserPromptPart)), None)
+        assert user_prompt is not None
         latest_text = user_prompt if isinstance(user_prompt, str) else user_prompt[-1]
         if str(latest_text).endswith(("research this topic", "Please research an updated report")):
             return ModelResponse(

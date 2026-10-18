@@ -34,7 +34,11 @@ from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot
 
 
 def _callbacks(requests: list) -> list[str]:
-    markup_data = next(request.params.get("reply_markup") for request in requests if request.params.get("reply_markup"))
+    markup_data = next(
+        (request.params.get("reply_markup") for request in requests if request.params.get("reply_markup")),
+        None,
+    )
+    assert markup_data is not None
     markup = InlineKeyboardMarkup.model_validate(markup_data)
     return [button.callback_data or "" for row in markup.inline_keyboard for button in row]
 

@@ -2,7 +2,6 @@ from aiogram import Bot
 from aiogram.types import InlineKeyboardButton, Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from beanie import PydanticObjectId
-from redis.asyncio import Redis
 from stfu_tg import Doc, Title
 
 from sophie_bot.db.models import ChatModel, RulesModel
@@ -20,7 +19,6 @@ async def captcha_send_rules(
     is_join_request: bool,
     *,
     bot: Bot,
-    redis: Redis,
 ) -> Message | bool | None:
     captcha = EmojiCaptcha()
     captcha.show_emoji("🪧")

@@ -25,10 +25,10 @@ class _TraceTransport(Transport):
                 self.transactions.append(item.payload.json)
 
     def flush(self, *_args: Any, **_kwargs: Any) -> None:
-        pass
+        """Flush pending events."""
 
     def kill(self) -> None:
-        pass
+        """Kill transport."""
 
 
 class _CacheRedis:

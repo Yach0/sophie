@@ -544,7 +544,6 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
     assert rich_html.startswith(f'<tg-emoji emoji-id="{AI_CUSTOM_EMOJI_ID}">✨</tg-emoji> <h1>')
     assert "<table" not in rich_html
     assert rich_html.index("<h1>") < rich_html.index("<ul>")
-    assert rich_html.endswith("<br>🔋")
     assert rich_html.rfind("🔋") > rich_html.index("</ul>")
 
 

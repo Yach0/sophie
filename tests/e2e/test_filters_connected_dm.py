@@ -18,8 +18,10 @@ from tests.e2e.helpers import create_test_user_and_group, get_wizard_session_id,
 
 def rich_html(requests: list[CapturedRequest], chat_tid: int) -> str:
     request = next(
-        request for request in requests if isinstance(request.params, dict) and "rich_message" in request.params
+        (request for request in requests if isinstance(request.params, dict) and "rich_message" in request.params),
+        None,
     )
+    assert request is not None
     assert request.params["chat_id"] == chat_tid
     return request.params["rich_message"]["html"]
 

@@ -82,8 +82,7 @@ class RedisCache:
         tasks = tuple(self._background_tasks)
         for task in tasks:
             task.cancel()
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
+        await asyncio.gather(*tasks, return_exceptions=True)
         self._background_tasks.clear()
 
 
@@ -164,8 +163,6 @@ class CachedFunction[**P, T]:
             result = await self.func(*args, **kwargs)
             await self.cache.set_value(key, result, ttl=self.ttl)
             log.debug("Cached: PER background refresh complete", key=key)
-        except asyncio.CancelledError:
-            raise
         except Exception as exc:  # noqa: BLE001
             log.warning("Cached: PER background refresh failed", key=key, error=str(exc))
 

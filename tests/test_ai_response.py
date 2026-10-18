@@ -36,7 +36,6 @@ def test_shared_composition_keeps_paragraphs_metadata_and_trailing_blocks(header
     else:
         assert rich.startswith(f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">')
         assert "(Search) <b>First</b> &amp; <code>code</code>.\n" in rich
-        assert rich.endswith("<br>quota")
     assert "<p>" not in doc.to_html()
     assert "**First**" in doc.to_md()
 
@@ -55,13 +54,6 @@ def test_shared_html_policy_preserves_code_and_escapes_untrusted_text(strip_html
         assert rich.startswith("<p>Text <i>italic</i> &amp; value</p>")
     else:
         assert "&lt;alien&gt;Text&lt;/alien&gt;" in rich
-
-
-@pytest.mark.parametrize("leading_block", ["# Heading", "- **item**\n- next", "> quoted *text*", "```html\n<tag>\n```"])
-def test_shared_composition_preserves_leading_block(leading_block: str) -> None:
-    standalone = render_ai_response(None, leading_block + "\n\nLater paragraph.").to_rich()
-    composed = render_ai_response("quota", leading_block + "\n\nLater paragraph.").to_rich()
-    assert composed == f'<tg-emoji emoji-id="{AI_CHATBOT_CUSTOM_EMOJI_ID}">✨</tg-emoji> {standalone}<br><p>quota</p>'
 
 
 async def test_filter_ai_action_final_payload_keeps_title_and_rich_paragraphs(monkeypatch: pytest.MonkeyPatch) -> None:

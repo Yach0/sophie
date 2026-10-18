@@ -198,36 +198,35 @@ class AsyncCollectionMock:
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def update_one(self, filter: Any, update: Any, **kwargs: Any) -> Any:
+    async def update_one(self, filter_spec: Any, update: Any, **kwargs: Any) -> Any:
         """Update one document."""
-        func = partial(self._sync_collection.update_one, filter, update, **kwargs)
+        func = partial(self._sync_collection.update_one, filter_spec, update, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def update_many(self, filter: Any, update: Any, **kwargs: Any) -> Any:
+    async def update_many(self, filter_spec: Any, update: Any, **kwargs: Any) -> Any:
         """Update many documents."""
-        func = partial(self._sync_collection.update_many, filter, update, **kwargs)
+        func = partial(self._sync_collection.update_many, filter_spec, update, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def delete_one(self, filter: Any, **kwargs: Any) -> Any:
+    async def delete_one(self, filter_spec: Any, **kwargs: Any) -> Any:
         """Delete one document."""
-        func = partial(self._sync_collection.delete_one, filter, **kwargs)
+        func = partial(self._sync_collection.delete_one, filter_spec, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def delete_many(self, filter: Any, **kwargs: Any) -> Any:
+    async def delete_many(self, filter_spec: Any, **kwargs: Any) -> Any:
         """Delete many documents."""
-        func = partial(self._sync_collection.delete_many, filter, **kwargs)
+        func = partial(self._sync_collection.delete_many, filter_spec, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
 
-    async def count_documents(self, filter: Any, **kwargs: Any) -> int:
+    async def count_documents(self, filter_spec: Any, **kwargs: Any) -> int:
         """Count documents."""
-        func = partial(self._sync_collection.count_documents, filter, **kwargs)
+        func = partial(self._sync_collection.count_documents, filter_spec, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
-
     async def create_index(self, keys: Any, **kwargs: Any) -> str:
         """Create index."""
         func = partial(self._sync_collection.create_index, keys, **kwargs)

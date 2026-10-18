@@ -71,7 +71,7 @@ class StatusHandlerABC[StatusValue](SophieMessageHandler):
         return await self.event.reply(str(doc))
 
     async def handle(self) -> Any:
-        new_status: StatusValue | None = self.data.get("new_status", None)
+        new_status: StatusValue | None = self.data.get("new_status")
 
         if new_status is None:
             return await self.display_current_status()

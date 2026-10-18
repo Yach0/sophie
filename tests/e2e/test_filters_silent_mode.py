@@ -194,8 +194,14 @@ async def test_filter_list_pagination_is_available_to_non_admins(test_client: Te
     requests = await test_client.send_command(command="filters", from_user=user_wrapper.user, chat=group)
     buttons = [button for row in (requests[-1].reply_markup or {}).get("inline_keyboard", []) for button in row]
     next_callback = next(
-        button["callback_data"] for button in buttons if FiltersPageCallback.unpack(button["callback_data"]).page == 1
+        (
+            button["callback_data"]
+            for button in buttons
+            if FiltersPageCallback.unpack(button["callback_data"]).page == 1
+        ),
+        None,
     )
+    assert next_callback is not None
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
     list_message = MessageFactory.create(text="Filters", from_user=bot_user, chat=group)
 

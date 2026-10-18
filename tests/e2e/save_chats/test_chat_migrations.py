@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 import pytest
-from aiogram.types import Chat
+from aiogram.types import Chat, Message, Update, User
 
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.group_user_whitelist import GroupUserWhitelistModel
@@ -26,7 +26,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test migration from old group ID to new supergroup ID."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange - Create old group (with required username field)
         old_group = ChatModel(
@@ -70,7 +69,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test migration to new chat ID (old group receives this)."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange
         user = User(id=123456789, first_name="Test", is_bot=False)
@@ -100,7 +98,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test that migration preserves group data like title."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange - Create old group with specific data (with required username field)
         old_group = ChatModel(
@@ -196,7 +193,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test that migration handles groups with existing users."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange - Create old group with users (with required username field)
         old_group = ChatModel(
@@ -249,7 +245,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test migration when old group doesn't exist in database."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange - No old group in database
         user = User(id=123456789, first_name="Test", is_bot=False)
@@ -278,7 +273,6 @@ class TestChatMigration:
         base_data,
     ) -> None:
         """Test handling when both migrate_from_chat_id and migrate_to_chat_id are present."""
-        from aiogram.types import Chat, Message, Update, User
 
         # Arrange - This shouldn't happen in real Telegram, but test it
         user = User(id=123456789, first_name="Test", is_bot=False)

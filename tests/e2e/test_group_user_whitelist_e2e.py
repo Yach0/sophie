@@ -171,11 +171,15 @@ async def test_whitelisted_paginates_and_admin_can_remove_current_group_user(tes
         button["callback_data"] for button in buttons if button.get("callback_data", "").startswith("whitelist_remove:")
     ]
     next_callback = next(
-        button["callback_data"]
-        for button in buttons
-        if button.get("callback_data", "").startswith("whitelist_page:")
-        and WhitelistPageCallback.unpack(button["callback_data"]).page == 1
+        (
+            button["callback_data"]
+            for button in buttons
+            if button.get("callback_data", "").startswith("whitelist_page:")
+            and WhitelistPageCallback.unpack(button["callback_data"]).page == 1
+        ),
+        None,
     )
+    assert next_callback is not None
     assert len(remove_callbacks) == 8
 
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
@@ -274,18 +278,24 @@ async def test_whitelisted_list_and_page_allow_regular_members_without_remove_bu
 
     list_requests = await test_client.send_command(command="whitelisted", from_user=regular, chat=group)
     list_response = next(
-        request for request in list_requests if "Users whitelisted in this group" in _rich_html(request)
+        (request for request in list_requests if "Users whitelisted in this group" in _rich_html(request)),
+        None,
     )
+    assert list_response is not None
     assert "Regular View Target 1" in _rich_html(list_response)
     assert list_response.reply_markup is not None
     buttons = [button for row in list_response.reply_markup.get("inline_keyboard", []) for button in row]
     assert not any(button.get("callback_data", "").startswith("whitelist_remove:") for button in buttons)
     next_callback = next(
-        button["callback_data"]
-        for button in buttons
-        if button.get("callback_data", "").startswith("whitelist_page:")
-        and WhitelistPageCallback.unpack(button["callback_data"]).page == 1
+        (
+            button["callback_data"]
+            for button in buttons
+            if button.get("callback_data", "").startswith("whitelist_page:")
+            and WhitelistPageCallback.unpack(button["callback_data"]).page == 1
+        ),
+        None,
     )
+    assert next_callback is not None
 
     bot_user = UserFactory.create(user_id=42, first_name="Sophie", username="sophie_bot", is_bot=True)
     list_message = MessageFactory.create(
@@ -297,7 +307,8 @@ async def test_whitelisted_list_and_page_allow_regular_members_without_remove_bu
     page_requests = await test_client.send_callback(next_callback, from_user=regular, message=list_message)
 
     assert any(request.request_type == RequestType.ANSWER_CALLBACK_QUERY for request in page_requests)
-    page_edit = next(request for request in page_requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT)
+    page_edit = next((request for request in page_requests if request.request_type == RequestType.EDIT_MESSAGE_TEXT), None)
+    assert page_edit is not None
     assert "Regular View Target 9" in _rich_html(page_edit)
     assert page_edit.reply_markup is not None
     page_buttons = [button for row in page_edit.reply_markup.get("inline_keyboard", []) for button in row]
