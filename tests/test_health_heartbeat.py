@@ -142,7 +142,7 @@ async def test_cli_rest_check_healthy(monkeypatch: pytest.MonkeyPatch) -> None:
 
     class FakeClient:
         def __init__(self, *_args: Any, **_kwargs: Any) -> None:
-            pass
+            """Initialize fake client."""
 
         async def __aenter__(self) -> Self:
             return self

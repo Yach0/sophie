@@ -303,7 +303,8 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
         if any(isinstance(part, ToolReturnPart) and part.tool_name == "write_memory" for part in latest.parts):
             return ModelResponse(parts=[TextPart("I will remember that name association.")])
         assert "write_memory" in {tool.name for tool in info.function_tools}
-        current = next(node for node in reversed(_message_nodes(messages)) if node.attrib["context"] == "current")
+        current = next((node for node in reversed(_message_nodes(messages)) if node.attrib["context"] == "current"), None)
+        assert current is not None
         assert current.attrib["first_name"] == alice.first_name
         return ModelResponse(parts=[
             ToolCallPart("write_memory", {"information_to_save": current.attrib["speaker_id"] + fact}, "save-name-fact"),

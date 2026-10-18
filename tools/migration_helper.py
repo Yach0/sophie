@@ -5,14 +5,10 @@ import argparse
 import asyncio
 import importlib.util
 import json
-import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
 from beanie.migrations.controllers.base import BaseMigrationController
-
-# Add project root to path to allow importing sophie_bot
-sys.path.append(str(Path(__file__).parent.parent))
 
 from sophie_bot.config import CONFIG
 from sophie_bot.services.db import init_db, open_database

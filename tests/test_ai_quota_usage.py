@@ -69,8 +69,8 @@ async def test_estimate_model_credit_cost_uses_openrouter_fallback(monkeypatch: 
         fake_pricing_cache,
     )
 
-    credits = await estimate_model_credit_cost("custom/test-model", 200, 100, 100, redis=test_redis)
-    assert credits == 4
+    estimated_credits = await estimate_model_credit_cost("custom/test-model", 200, 100, 100, redis=test_redis)
+    assert estimated_credits == 4
 
 
 @pytest.mark.asyncio

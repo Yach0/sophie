@@ -90,6 +90,7 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **Running Tests**: Use `make run_tests` or `make commit`.
 - **Isolated Feature-Flag Tests**: Patch the flag resolver explicitly when testing one context mode without a database fixture.
 - **Migration Checks**: CI runs `tests/test_migration_helper.py` separately and excludes it from the unit-test job; use `uv run pytest tests/test_migration_helper.py -v` to run that suite locally.
+- **AI Rendering Checks**: Cover content, escaping, preserved body blocks, and draft-to-final transitions. Do not pin incidental footer wrappers such as `<p>` tags or mock removed layout helpers.
 
 ---
 

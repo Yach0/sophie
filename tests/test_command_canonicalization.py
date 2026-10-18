@@ -294,8 +294,10 @@ async def test_canonical_names_reach_help_and_wiki_without_legacy_duplicates() -
 async def test_ai_help_preserves_operator_visibility() -> None:
     feature_values = {feature: True for feature in FEATURE_FLAGS}
     router = next(
-        router for module_name, router, _handler, _command_filter in _registered_handlers() if module_name == "ai"
+        (router for module_name, router, _handler, _command_filter in _registered_handlers() if module_name == "ai"),
+        None,
     )
+    assert router is not None
     helps = await gather_cmds_help(router, feature_values, {})
     operator_commands = {command for handler in helps if handler.only_op for command in handler.cmds}
     assert operator_commands == {

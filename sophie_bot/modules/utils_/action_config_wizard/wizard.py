@@ -1,17 +1,21 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 from typing import Any
 
-from aiogram.types import Message
+from aiogram.types import CallbackQuery, Message
+from beanie import PydanticObjectId
 from pydantic import BaseModel
 from stfu_tg import Template
 
+from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.utils_.action_config_wizard.spec import (
     ActionSetupTryAgainException,
 )
 from sophie_bot.modules.utils_.wizard import WizardCallback, WizardSession, WizardView
-from sophie_bot.shared.actions import ActionDefinition
+from sophie_bot.shared.actions import ActionDefinition, StoredAction
 from sophie_bot.utils.handlers import SophieBaseHandler, SophieCallbackQueryHandler
+from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 from .config import ActionDraft, ActionWizardConfig
@@ -302,4 +306,54 @@ class ActionWizard[DRAFT: ActionDraft]:
         return value.model_dump(mode="json") if isinstance(value, BaseModel) else None
 
 
-__all__ = ["ActionWizard"]
+def model_action_wizard(
+    *,
+    model_loader: Callable[[PydanticObjectId], Awaitable[Any]],
+    attribute: str,
+    scope: str,
+    title: str | LazyProxy,
+    done_message: str | LazyProxy,
+    max_actions: int,
+    min_actions: int = 0,
+    action_filter: Callable[[ActionDefinition[Any]], bool] | None = None,
+    on_back: Callable[[SophieCallbackQueryHandler, CallbackQuery], Awaitable[None]] | None = None,
+) -> ActionWizard[ActionDraft]:
+    if max_actions <= 0:
+        raise ValueError("max_actions must be positive")
+    if min_actions < 0 or min_actions > max_actions:
+        raise ValueError("min_actions must be between zero and max_actions")
+
+    async def load_draft(chat_iid: PydanticObjectId) -> ActionDraft:
+        model = await model_loader(chat_iid)
+        actions = getattr(model, attribute, []) or []
+        return ActionDraft(actions={action.name: action.data for action in actions})
+
+    async def save_draft(
+        chat_iid: PydanticObjectId,
+        draft: ActionDraft,
+        callback_query: CallbackQuery,
+        connection: ChatConnection,
+    ) -> None:
+        if len(draft.actions) > max_actions:
+            raise ValueError(f"Draft exceeds maximum allowed actions ({max_actions})")
+        model = await model_loader(chat_iid)
+        setattr(model, attribute, [StoredAction(name=name, data=data) for name, data in draft.actions.items()])
+        await model.save()
+
+    config = ActionWizardConfig(
+        scope=scope,
+        title=title,
+        done_message=done_message,
+        max_actions=max_actions,
+        min_actions=min_actions,
+        draft_model=ActionDraft,
+        load_draft=load_draft,
+        save_draft=save_draft,
+        action_filter=action_filter,
+        on_back=on_back,
+    )
+
+    return ActionWizard(config)
+
+
+__all__ = ["ActionWizard", "model_action_wizard"]

@@ -6,18 +6,14 @@ from sophie_bot.db.models.ai import (
     AIAutotranslateModel,
     AICatalogModelModel,
     AICatalogProviderModel,
+    AIChatSummaryLine,
     AIChatSummaryModel,
     AIMemoryModel,
+    AIMode,
     AIModeModel,
     AIModeratorModel,
     AIQuotaModel,
     AIUsageModel,
-)
-from sophie_bot.db.models.ai import (
-    AIChatSummaryLine as AIChatSummaryLine,
-)
-from sophie_bot.db.models.ai import (
-    AIMode as AIMode,
 )
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.api_token import ApiTokenModel

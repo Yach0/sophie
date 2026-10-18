@@ -65,13 +65,16 @@ from sophie_bot.utils.notes_search import semantic_search_notes
 type ActivityCallback = Callable[[str], Awaitable[None]]
 
 
-def _user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
+def user_prompt_text(content: str | Sequence[UserContent]) -> str | None:
     if isinstance(content, str):
         return content
     text_parts = [
         item if isinstance(item, str) else item.content for item in content if isinstance(item, (str, TextContent))
     ]
     return "\n".join(text_parts) or None
+
+
+_user_prompt_text = user_prompt_text
 
 
 class AIUserMessageFormatter:
@@ -104,7 +107,7 @@ class AIUserMessageFormatter:
         ).to_md()
 
 
-async def _get_chat_model(
+async def get_chat_model(
     chat_tid: int,
     chat_models: dict[int, asyncio.Task[ChatModel | None]],
 ) -> ChatModel | None:
@@ -113,6 +116,9 @@ async def _get_chat_model(
         lookup = asyncio.create_task(ChatModel.get_by_tid(chat_tid))
         chat_models[chat_tid] = lookup
     return await lookup
+
+
+_get_chat_model = get_chat_model
 
 
 async def _admin_context_name(
@@ -132,7 +138,7 @@ async def _admin_context_name(
     user_model = await _get_chat_model(user_tid, chat_models)
     if not chat_model or not user_model:
         return name
-    if chat_model.type not in {ChatType.group, ChatType.supergroup}:
+    if getattr(chat_model, "type", None) not in {ChatType.group, ChatType.supergroup}:
         return name
 
     admin = await get_admin_record(chat_model, user_model)
@@ -152,7 +158,24 @@ async def _admin_context_name(
     return f"{name} [{role}]"
 
 
-def _extract_message_content(
+async def admin_context_name(
+    chat_tid: int,
+    user_tid: int,
+    name: str,
+    is_group: bool,
+    *,
+    chat_models: dict[int, asyncio.Task[ChatModel | None]] | None = None,
+) -> str:
+    return await _admin_context_name(
+        chat_tid,
+        user_tid,
+        name,
+        is_group,
+        chat_models=chat_models,
+    )
+
+
+def extract_message_content(
     message: Message,
     custom_text: str | None,
     normalize_texts: bool,
@@ -171,7 +194,10 @@ def _extract_message_content(
     return content_text
 
 
-async def _build_message_parts(
+_extract_message_content = extract_message_content
+
+
+async def build_message_parts(
     message: Message,
     content_text: str,
     from_user_name: str,
@@ -269,6 +295,9 @@ async def _build_message_parts(
                 prompt.append(str(Template(_("[Video transcription: {text}]"), text=video_transcription)))
 
     return prompt
+
+
+_build_message_parts = build_message_parts
 
 
 def render_chat_notes_for_prompt(notes: Sequence[NoteModel]) -> str:

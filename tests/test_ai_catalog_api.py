@@ -24,7 +24,7 @@ from sophie_bot.modules.ai.api.catalog_schemas import (
     ProviderCreate,
     ProviderUpdate,
 )
-from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_roles
+from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_role, resolve_roles
 from sophie_bot.modules.ai.utils.ai_model_factory import build_purpose_plan, role_candidate
 
 pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
@@ -451,7 +451,6 @@ async def test_provider_models_404s_for_an_unknown_provider(_no_version_bump, te
 
 async def test_a_role_carries_its_own_service_tier_and_reasoning(_no_version_bump, test_services: object) -> None:
     """The same model can be flex for one role and normal for another."""
-    from sophie_bot.modules.ai.utils.ai_catalog import load_catalog, resolve_role
 
     await _clear()
     await catalog.create_provider(ProviderCreate(name="openrouter", kind="openrouter"), services=test_services)
