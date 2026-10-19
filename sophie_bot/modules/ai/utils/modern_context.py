@@ -7,9 +7,10 @@ from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
-from html import escape, unescape
+from html import unescape
 from typing import BinaryIO, Literal
 from uuid import uuid4
+from xml.etree import ElementTree
 
 import sentry_sdk
 from aiogram import Bot
@@ -300,21 +301,28 @@ async def build_message_parts(
 _build_message_parts = build_message_parts
 
 
-def render_chat_notes_for_prompt(notes: Sequence[NoteModel]) -> str:
-    rendered = []
+def _chat_notes_xml(notes: Sequence[NoteModel]) -> ElementTree.Element:
+    root = ElementTree.Element("chat_notes")
     for note in notes:
-        name = escape(note.names[0], quote=True)
-        title = escape(note.description or "", quote=False)
-        content = escape(note.text or "", quote=False)
-        rendered.append(f'<note name="{name}">\n<title>{title}</title>\n<content>{content}</content>\n</note>')
-    return "<chat_notes>\n" + "\n".join(rendered) + "\n</chat_notes>"
+        entry = ElementTree.SubElement(root, "note", name=note.names[0])
+        ElementTree.SubElement(entry, "title").text = note.description or ""
+        ElementTree.SubElement(entry, "content").text = note.text or ""
+    return root
+
+
+def render_chat_notes_for_prompt(notes: Sequence[NoteModel]) -> str:
+    return ElementTree.tostring(_chat_notes_xml(notes), encoding="unicode")
+
+
+def _memory_xml(lines: Sequence[str]) -> ElementTree.Element:
+    root = ElementTree.Element("memory")
+    for index, line in enumerate(lines, start=1):
+        ElementTree.SubElement(root, "item", index=str(index)).text = line
+    return root
 
 
 def render_memory_for_prompt(lines: Sequence[str]) -> str:
-    rendered = [
-        f'<item index="{index}">{escape(line, quote=False)}</item>' for index, line in enumerate(lines, start=1)
-    ]
-    return "<memory>\n" + "\n".join(rendered) + "\n</memory>"
+    return ElementTree.tostring(_memory_xml(lines), encoding="unicode")
 
 
 @dataclass(frozen=True, slots=True)
@@ -501,11 +509,9 @@ class ModernContext:
                 runtime_update = default_runtime
             else:
                 history.runtime_context = runtime_context
-                runtime_update = (
-                    "<runtime_context><text>"
-                    + escape(history.runtime_context, quote=False)
-                    + "</text></runtime_context>"
-                )
+                runtime = ElementTree.Element("runtime_context")
+                ElementTree.SubElement(runtime, "text").text = history.runtime_context
+                runtime_update = ElementTree.tostring(runtime, encoding="unicode")
             reply = message.reply_to_message
             omitted = {message.message_id, *excluded_message_ids}
             if reply:
@@ -577,18 +583,18 @@ class ModernContext:
                 "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
             ),
         )
-        runtime = ["<date>" + datetime.now(UTC).strftime("%d %B %Y") + " (UTC)</date>"]
+        runtime = ElementTree.Element("runtime_context")
+        ElementTree.SubElement(runtime, "date").text = datetime.now(UTC).strftime("%d %B %Y") + " (UTC)"
         chat = await ChatModel.get_by_tid(context.chat_tid)
         if chat and chat.type != ChatType.private and chat.first_name_or_title:
-            runtime.append(f"<conversation>{escape(chat.first_name_or_title, quote=False)}</conversation>")
+            ElementTree.SubElement(runtime, "conversation").text = chat.first_name_or_title
         summaries = await AIChatSummaryModel.get_recent_lines(context.chat_iid)
         if summaries:
-            lines = []
+            summaries_xml = ElementTree.SubElement(runtime, "chat_summaries")
             for line in summaries:
-                title = escape(line.title, quote=False)
-                excerpt = escape(line.source_excerpt or "", quote=False)
-                lines.append(f"<summary><title>{title}</title><excerpt>{excerpt}</excerpt></summary>")
-            runtime.append("<chat_summaries>\n" + "\n".join(lines) + "\n</chat_summaries>")
+                summary = ElementTree.SubElement(summaries_xml, "summary")
+                ElementTree.SubElement(summary, "title").text = line.title
+                ElementTree.SubElement(summary, "excerpt").text = line.source_excerpt or ""
         notes = (
             await semantic_search_notes(
                 context.chat_iid,
@@ -607,16 +613,16 @@ class ModernContext:
                 runtime_speakers.add(int(reference[1]))
         await self._load_first_names()
         if self._mode == AIMode.entertainment:
-            speakers = [
-                f'<speaker id="{self._state.speakers[identity]}" first_name="{escape(first_name, quote=True)}" />'
-                for identity, first_name in self._state.first_names.items()
-                if int(identity) in runtime_speakers and self._state.speakers[identity] != "assistant"
-            ]
-            runtime.append("<speakers>\n" + "\n".join(speakers) + "\n</speakers>")
-        runtime.append(render_chat_notes_for_prompt(notes))
+            speakers = ElementTree.SubElement(runtime, "speakers")
+            for identity, first_name in self._state.first_names.items():
+                if int(identity) in runtime_speakers and self._state.speakers[identity] != "assistant":
+                    ElementTree.SubElement(
+                        speakers, "speaker", id=self._state.speakers[identity], first_name=first_name
+                    )
+        runtime.append(_chat_notes_xml(notes))
         memory_lines = [self._USER_LINK.sub(lambda match: self._speaker(int(match[1])), memory) for memory in memories]
-        runtime.append(render_memory_for_prompt(memory_lines))
-        return stable.to_md(), "<runtime_context>\n" + "\n".join(runtime) + "\n</runtime_context>"
+        runtime.append(_memory_xml(memory_lines))
+        return stable.to_md(), ElementTree.tostring(runtime, encoding="unicode")
 
     async def _acquire(self, topic: int, mode: str) -> None:
         epoch_key = get_context_epoch_key(self._chat_tid)
@@ -791,26 +797,34 @@ class ModernContext:
         reference: bool = False,
     ) -> list[UserContent]:
         speaker = self._speaker(user_tid) if user_tid is not None else "[speaker]"
-        attributes = f'id="{self._message_alias(message_id)}" speaker_id="{speaker}"'
+        message = ElementTree.Element("message", id=self._message_alias(message_id), speaker_id=speaker)
         first_name = self._state.first_names.get(str(user_tid)) if self._mode == AIMode.entertainment else None
         if first_name and speaker != "assistant":
-            attributes += f' first_name="{escape(first_name, quote=True)}"'
+            message.set("first_name", first_name)
         if reply_id is not None:
-            attributes += f' reply_to="{self._message_alias(reply_id)}"'
-        attributes += ' context="reference"' if reference else ' context="current"'
+            message.set("reply_to", self._message_alias(reply_id))
+        message.set("context", "reference" if reference else "current")
+        # Native media stays between XML text fragments, not inside a serialized XML value.
+        message.text = "\n"
+        opening, closing = ElementTree.tostring(message, encoding="unicode").split("\n", maxsplit=1)
         parts: list[UserContent] = []
         for item in content:
             if isinstance(item, TextContent):
                 item = item.content
-            parts.append("<text>" + escape(item, quote=False) + "</text>" if isinstance(item, str) else item)
+            if isinstance(item, str):
+                text = ElementTree.Element("text")
+                text.text = item
+                parts.append(ElementTree.tostring(text, encoding="unicode"))
+            else:
+                parts.append(item)
         if not parts or not isinstance(parts[0], str):
-            parts.insert(0, "<message " + attributes + ">")
+            parts.insert(0, opening)
         else:
-            parts[0] = "<message " + attributes + ">\n" + parts[0]
+            parts[0] = opening + "\n" + parts[0]
         if isinstance(parts[-1], str):
-            parts[-1] += "\n</message>"
+            parts[-1] += "\n" + closing
         else:
-            parts.append("</message>")
+            parts.append(closing)
         return parts
 
     async def _message_parts(
@@ -1151,13 +1165,13 @@ def render_messages_for_prompt(
     rendered_messages: list[str] = []
     for message in messages:
         if isinstance(message, DecisionMessage):
-            reply = f' reply_to="{message.reply_to_message_id}"' if message.reply_to_message_id else ""
-            speaker = escape(message.speaker_id, quote=True)
-            name = f' first_name="{escape(message.first_name, quote=True)}"' if message.first_name else ""
-            rendered_messages.append(
-                f'<message id="{message.message_id}" speaker_id="{speaker}"{name}{reply}>'
-                f"{escape(message.text)}</message>"
-            )
+            node = ElementTree.Element("message", id=str(message.message_id), speaker_id=message.speaker_id)
+            if message.first_name:
+                node.set("first_name", message.first_name)
+            if message.reply_to_message_id:
+                node.set("reply_to", str(message.reply_to_message_id))
+            node.text = message.text
+            rendered_messages.append(ElementTree.tostring(node, encoding="unicode"))
             continue
         username = message.username or str(message.user_id)
         reply_part = ""
