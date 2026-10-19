@@ -552,13 +552,19 @@ async def test_message_reference_numbers_do_not_replace_arithmetic(
 
 
 @pytest.mark.parametrize(
-    "text",
-    ["hello world " * 500, "Привет мир! " * 500, "<|endoftext|> " * 300],
-    ids=["ascii", "unicode", "special-token-spelling"],
+    ("text", "token_budget"),
+    [
+        ("hello world " * 500, 4000),
+        ("Привет мир! " * 500, 16000),
+        ("<|endoftext|> " * 300, 4000),
+        ("🙂" * 1500, 10000),
+    ],
+    ids=["ascii", "unicode", "special-token-spelling", "emoji"],
 )
 async def test_current_text_fits_token_budget_offline_without_truncation(
     context: SophieAIToolContext,
     text: str,
+    token_budget: int,
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
@@ -566,7 +572,7 @@ async def test_current_text_fits_token_budget_offline_without_truncation(
     network = MagicMock(side_effect=AssertionError("Token estimation must work offline"))
     monkeypatch.setattr(socket, "getaddrinfo", network)
     monkeypatch.setattr(socket.socket, "connect", network)
-    history = await _build(_message(300, text), context, token_budget=4000)
+    history = await _build(_message(300, text), context, token_budget=token_budget)
     try:
         current = ElementTree.fromstring(str(history.prompt[-1]))
         assert current.findtext("text") == text
@@ -594,10 +600,15 @@ async def test_saved_byte_bounds_are_recounted_without_rewriting_native_history(
         await later.abort()
 
 
+@pytest.mark.parametrize(
+    "text",
+    ["hello world " * 3000, "Я" * 2500, "界" * 1500, "🙂" * 1500, "e\u0301" * 2000],
+    ids=["ascii", "cyrillic", "cjk", "emoji", "combining"],
+)
 async def test_genuinely_oversized_current_text_is_rejected_and_retry_is_intact(
     context: SophieAIToolContext,
+    text: str,
 ) -> None:
-    text = "hello world " * 3000
     with pytest.raises(ValueError, match="current content is never truncated"):
         await _build(_message(300, text), context, token_budget=4000)
     retry = await _build(_message(300, text), context, token_budget=16000)
@@ -623,7 +634,38 @@ def test_text_content_uses_tokens_and_native_images_use_fixed_reserve() -> None:
 
 @pytest.mark.parametrize(
     ("text", "expected"),
-    [("", 0), ("a", 1), ("abc", 1), ("abcd", 2), ("Привет", 4), ("你好", 2), ("🙂", 2)],
+    [
+        ("", 0),
+        ("a", 1),
+        ("abc", 1),
+        ("abcd", 2),
+        ("Привет", 12),
+        ("你好", 6),
+        ("🙂", 4),
+        ("e\u0301", 3),
+        ("abc🙂界Я", 10),
+        ("a🙂b", 5),
+        ("👩‍💻", 11),
+    ],
 )
-def test_offline_text_estimate_rounds_up_utf8_units(text: str, expected: int) -> None:
+def test_offline_text_estimate_discounts_only_ascii(text: str, expected: int) -> None:
     assert ModernContext._text_bound(text) == expected
+
+
+async def test_saved_unicode_bounds_are_recounted_and_pruned(
+    context: SophieAIToolContext,
+) -> None:
+    first = await _build(_message(300), context)
+    events = _events(first, "🙂" * 1500)
+    await first.finish_run(events, _message(301, user_id=CONFIG.bot_id))
+    saved = modern_context._Session.model_validate_json(await context.services.redis.get(first._session_key))
+    saved.events[0].token_bound = (len(saved.events[0].messages_json.encode()) + 2) // 3
+    await context.services.redis.set(first._session_key, saved.model_dump_json())
+
+    current = "current question 🙂"
+    later = await _build(_message(302, current), context, token_budget=5000)
+    try:
+        assert later.message_history == []
+        assert ElementTree.fromstring(str(later.prompt[-1])).findtext("text") == current
+    finally:
+        await later.abort()

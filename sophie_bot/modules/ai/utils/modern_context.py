@@ -915,9 +915,10 @@ class ModernContext:
 
     @staticmethod
     def _text_bound(text: str) -> int:
-        # Provider-neutral offline heuristic: one estimated token per three UTF-8 bytes.
+        # Offline heuristic: discount ASCII only; reserve one token per non-ASCII UTF-8 byte.
         # This is not an exact count or upper bound for every model/language.
-        return (len(text.encode("utf-8")) + 2) // 3
+        ascii_count = sum(character.isascii() for character in text)
+        return (ascii_count + 2) // 3 + len(text.encode("utf-8")) - ascii_count
 
     @classmethod
     def _content_bound(cls, content: str | Sequence[UserContent]) -> int:
