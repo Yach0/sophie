@@ -7,7 +7,8 @@ from aiogram.types import Message
 
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_request_failed_from_error
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
-from sophie_bot.modules.ai.utils.ai_run import modern_context_window_tokens
+from sophie_bot.modules.ai.utils.ai_run import modern_context_candidates
+from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, load_token_counter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.chatbot_agent import coerce_usage_limit
 from sophie_bot.modules.ai.utils.chatbot_tool_history import get_tool_exchanges
@@ -45,7 +46,7 @@ async def prepare_chatbot_history(
             if model_plan is None:
                 raise ValueError("Modern context requires a model plan with registered context sizes")
             try:
-                capacity = modern_context_window_tokens(model_plan)
+                candidates = modern_context_candidates(model_plan)
             except ValueError as error:
                 log.error("Modern chatbot context configuration is invalid: %s", error)
                 raise ai_request_failed_from_error(
@@ -56,10 +57,22 @@ async def prepare_chatbot_history(
                         "context_window_tokens for every chatbot model, including the fallback model."
                     ),
                 ) from error
+            # Provider-specific tool schemas and chat templates are not exact local text
+            # counts; leave explicit headroom, in addition to media/message framing allowances.
+            token_budgets = [
+                ModelTokenBudget(
+                    counter=await load_token_counter(candidate.model.model_name),
+                    input_tokens=min(
+                        configured_budget, candidate.require_context_window_tokens() - output_budget - 4096
+                    ),
+                )
+                for candidate in candidates
+            ]
             history = await ModernContext.build(
                 message,
                 context,
-                token_budget=min(configured_budget, capacity - output_budget - 4096),
+                token_budget=configured_budget,
+                token_budgets=token_budgets,
                 request_context=request_context,
                 on_activity=on_activity,
             )

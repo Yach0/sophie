@@ -5,7 +5,7 @@ import hashlib
 import re
 from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from contextlib import suppress
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from html import escape, unescape
 from typing import BinaryIO, Literal
@@ -17,7 +17,7 @@ from aiogram.enums import ChatMemberStatus
 from aiogram.types import Message, User
 from beanie.operators import In
 from normality import normalize
-from pydantic import BaseModel, Field, TypeAdapter
+from pydantic import BaseModel, Field
 from pydantic_ai.messages import (
     BinaryContent,
     ModelMessagesTypeAdapter,
@@ -41,6 +41,7 @@ from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel, N
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
@@ -326,14 +327,10 @@ class DecisionMessage:
     first_name: str | None = None
 
 
-_USER_CONTENT_ADAPTER = TypeAdapter[UserContent](UserContent)
-
-
 class _Event(BaseModel):
     kind: Literal["background", "turn"]
     # Use the native adapter, including its base64 binary encoding, rather than a lossy text format.
     messages_json: str
-    token_bound: int
     original_ids: set[int] = Field(default_factory=set)
 
     def messages(self) -> list[ModelRequest | ModelResponse]:
@@ -364,9 +361,6 @@ class ModernContext:
 
     LEASE_SECONDS = 60
     LOCK_RETRY_SECONDS = 0.05
-    # Provider image tokenization depends on resolution/model; this is an explicit conservative
-    # estimate, not a transport-byte token count or a claim of exact image usage.
-    IMAGE_TOKEN_RESERVE = 4096
     TAGGING_LEGEND = (
         "Conversation tags: uN identifies a session-local speaker; mN identifies a "
         "session-local message. These are opaque aliases, not Telegram identities. The assistant is "
@@ -399,6 +393,7 @@ class ModernContext:
         self.instructions = ""
         self.runtime_context = ""
         self._budget = 0
+        self._token_budgets: tuple[ModelTokenBudget, ...] = ()
         self._request_id = 0
         self._current_message_ids: set[int] = set()
         self._current_speaker_ids: set[int] = set()
@@ -450,6 +445,7 @@ class ModernContext:
         context: SophieAIToolContext,
         *,
         token_budget: int,
+        token_budgets: Sequence[ModelTokenBudget] = (),
         instructions: str | None = None,
         runtime_context: str | None = None,
         request_context: str = "",
@@ -461,6 +457,9 @@ class ModernContext:
             raise ValueError("Modern context requires a positive token budget")
         history = cls(redis=context.services.redis, chat_tid=context.chat_tid, mode=context.mode)
         history._budget = token_budget
+        history._token_budgets = tuple(token_budgets)
+        if any(budget.input_tokens <= 0 for budget in token_budgets):
+            raise ValueError("Modern context requires positive model input budgets")
         history._request_id = message.message_id
         try:
             await history._acquire(message.message_thread_id or 0, context.mode.value)
@@ -535,7 +534,7 @@ class ModernContext:
                 )
             )
             history._state.watermark = max(history._state.watermark, message.message_id)
-            history._prune(reserve=history._content_bound(history.prompt))
+            history._prune()
             runtime_in_history = any(
                 runtime_update in (_user_prompt_text(part.content) or "")
                 for batch in history._state.events
@@ -549,7 +548,7 @@ class ModernContext:
                 and not any(isinstance(part, str) and part.startswith("<runtime_context>") for part in history.prompt)
             ):
                 history.prompt.insert(0, runtime_update)
-                history._prune(reserve=history._content_bound(history.prompt))
+                history._prune()
             history.message_history = [event for batch in history._state.events for event in batch.messages()]
             return history
         except BaseException:
@@ -851,7 +850,6 @@ class ModernContext:
         return _Event(
             kind=kind,
             messages_json=ModelMessagesTypeAdapter.dump_json(list(messages)).decode(),
-            token_bound=self._messages_bound(messages),
             original_ids=set(original_ids),
         )
 
@@ -909,59 +907,35 @@ class ModernContext:
         if pending and include_background:
             self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
 
-    @classmethod
-    def _content_bound(cls, content: str | Sequence[UserContent]) -> int:
-        if isinstance(content, str):
-            return len(content.encode())
-        return sum(
-            cls.IMAGE_TOKEN_RESERVE
-            if isinstance(item, BinaryContent) and item.media_type.startswith("image/")
-            else len(_USER_CONTENT_ADAPTER.dump_json(item))
-            for item in content
-        )
-
-    @classmethod
-    def _messages_bound(cls, messages: Sequence[ModelRequest | ModelResponse]) -> int:
-        # Count native envelopes without charging base64 image transport bytes as text tokens.
-        envelopes = [
-            replace(
-                message,
-                instructions=None,
-                parts=[
-                    replace(part, content="") if isinstance(part, UserPromptPart) else part for part in message.parts
-                ],
-            )
-            if isinstance(message, ModelRequest)
-            else message
-            for message in messages
-        ]
-        return len(ModelMessagesTypeAdapter.dump_json(envelopes)) + sum(
-            cls._content_bound(part.content)
-            for message in messages
-            for part in message.parts
-            if isinstance(part, UserPromptPart)
-        )
-
-    def _prune(self, *, reserve: int) -> None:
-        available = self._budget - self._content_bound(self.instructions) - reserve - 64
-        if available < 0:
-            raise ValueError("Current modern AI request exceeds its token budget; current content is never truncated")
-        total = sum(event.token_bound for event in self._state.events)
-        target = total if total <= available else int(available * 0.8)
-        removed: set[int] = set()
-        for kind in ("background", "turn"):
-            candidates = [index for index, event in enumerate(self._state.events) if event.kind == kind]
-            for index in candidates:
-                if total <= target:
-                    break
-                event = self._state.events[index]
-                # Keep the newest completed turn if it fits, even when the batch headroom target
-                # would otherwise remove it. A turn contains all of its tool call/return pairs.
-                if kind == "turn" and index == candidates[-1] and event.token_bound <= available and total <= available:
-                    break
-                total -= event.token_bound
-                removed.add(index)
-        self._state.events = [event for index, event in enumerate(self._state.events) if index not in removed]
+    def _prune(self, *, include_current: bool = True) -> None:
+        budgets = self._token_budgets or (ModelTokenBudget(TokenCounter("unknown"), self._budget),)
+        for budget in budgets:
+            counter = budget.counter
+            reserve = counter.count_content(self.prompt) if include_current else 0
+            available = min(self._budget, budget.input_tokens) - counter.count_text(self.instructions) - reserve - 64
+            if available < 0:
+                raise ValueError(
+                    f"Current modern AI request exceeds its token budget for {counter.model_name}; "
+                    "current content is never truncated"
+                )
+            # Counts are run-local: persisted events can cross model/tokenizer/config changes.
+            counts = [counter.count_messages(event.messages()) for event in self._state.events]
+            total = sum(counts)
+            target = total if total <= available else int(available * 0.8)
+            removed: set[int] = set()
+            for kind in ("background", "turn"):
+                candidates = [index for index, event in enumerate(self._state.events) if event.kind == kind]
+                for index in candidates:
+                    if total <= target:
+                        break
+                    # Preserve the newest complete turn if it fits. Each event includes all
+                    # its tool calls and returns, so removing an event never splits a pair.
+                    if kind == "turn" and index == candidates[-1] and total <= available:
+                        break
+                    total -= counts[index]
+                    removed.add(index)
+            self._state.events = [event for index, event in enumerate(self._state.events) if index not in removed]
+        # Every pass only removes events, so later candidate limits preserve earlier fits.
         # Aliases only outlive pruning when the retained context or this request refers to them.
         # A pruned, unreferenced message receives a new monotonically allocated alias if it is
         # later supplied explicitly as a reply. Speaker attribution stays session-stable.
@@ -1024,7 +998,7 @@ class ModernContext:
             self._register_message(sent_message)
             self._state.deliveries.add(sent_message.message_id)
             self._state.events.append(self._event(new_messages, "turn", original_ids=self._current_message_ids))
-            self._prune(reserve=0)
+            self._prune(include_current=False)
             epoch_key = get_context_epoch_key(self._chat_tid)
             while True:
                 async with self._redis.pipeline(transaction=True) as pipe:
