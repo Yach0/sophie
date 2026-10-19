@@ -8,7 +8,6 @@ from threading import Lock
 from typing import ClassVar
 
 import tiktoken
-from huggingface_hub import hf_hub_download
 from pydantic_ai.messages import (
     BinaryContent,
     CachePoint,
@@ -27,8 +26,8 @@ from pydantic_ai.messages import (
 )
 from tokenizers import Tokenizer
 
-GLM_TOKENIZER_REPOSITORY = "zai-org/GLM-5.3"
-GLM_TOKENIZER_REVISION = "ba32f8c19c8738e2c57c71798c601d477a7bf844"
+from sophie_bot.utils.ai_tokenizer_assets import GLM_TOKENIZER_FILENAME, TOKENIZER_DIRECTORY, load_encoding
+
 _TOKENIZER_LOAD_LOCK = Lock()
 
 
@@ -116,12 +115,8 @@ class ModelTokenBudget:
 def _load_token_counter(model_name: str) -> TokenCounter:
     name = model_name.lower().removeprefix("openai/")
     if name.rsplit("/", 1)[-1].split(":", 1)[0] == "glm-5.3":
-        path = hf_hub_download(
-            repo_id=GLM_TOKENIZER_REPOSITORY,
-            filename="tokenizer.json",
-            revision=GLM_TOKENIZER_REVISION,
-        )
-        tokenizer = Tokenizer.from_file(path)
+        path = (TOKENIZER_DIRECTORY / GLM_TOKENIZER_FILENAME).resolve(strict=True)
+        tokenizer = Tokenizer.from_file(str(path))
         tokenizer.no_truncation()
         tokenizer.no_padding()
         return TokenCounter(model_name, tokenizer)
@@ -129,7 +124,7 @@ def _load_token_counter(model_name: str) -> TokenCounter:
         encoding_name = tiktoken.encoding_name_for_model(name)
     except KeyError:
         return TokenCounter(model_name)
-    return TokenCounter(model_name, tiktoken.get_encoding(encoding_name))
+    return TokenCounter(model_name, load_encoding(encoding_name))
 
 
 def _load_token_counter_serialized(model_name: str) -> TokenCounter:
@@ -139,9 +134,9 @@ def _load_token_counter_serialized(model_name: str) -> TokenCounter:
 
 
 async def load_token_counter(model_name: str) -> TokenCounter:
-    """Load vocabulary only (never weights), off-loop; disk and process caches are reused.
+    """Load bundled vocabulary off-loop, without network access or writable runtime caches.
 
-    hf_hub_download honors HF_HUB_OFFLINE/HF_HOME and tiktoken honors TIKTOKEN_CACHE_DIR.
-    Prewarm these caches at deployment for air-gapped runtime operation.
+    Missing or invalid known-model assets fail the request; run the image-build bundler
+    when running from a source checkout.
     """
     return await asyncio.to_thread(_load_token_counter_serialized, model_name)

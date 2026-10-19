@@ -266,30 +266,22 @@ tokenizers does not reuse stale token estimates.
 Admission budgets the history before a run; newly generated tool results can grow
 beyond the reserved headroom. It does not impose a new per-tool-step truncation policy.
 
-Tokenizer assets load off the event loop and are cached per process and on disk.
-Before enabling modern history, prewarm the caches as the bot's runtime user with
-network access; for the two model families above:
+The runtime Docker image bundles the pinned GLM tokenizer and every OpenAI encoding
+provided by its installed `tiktoken` version during the dependency build stage.
+Loading a tokenizer never downloads assets at runtime and does not require writable
+caches. Missing or invalid assets for a recognized model fail the request rather than
+silently changing its token estimate.
+
+For source-checkout development, prepare the same assets once with network access:
 
 ```sh
-uv run python - <<'PY'
-import asyncio
-from sophie_bot.modules.ai.utils.ai_tokens import load_token_counter
-
-async def main():
-    await load_token_counter("z-ai/glm-5.3")
-    await load_token_counter("openai/gpt-5.6-luna")
-
-asyncio.run(main())
-PY
+uv run python sophie_bot/utils/ai_tokenizer_assets.py
 ```
 
-Use persistent, runtime-readable `HF_HOME` and `TIKTOKEN_CACHE_DIR` locations when
-deployments do not preserve the default caches. Hugging Face supports
-`HF_HUB_OFFLINE=1` once its pinned tokenizer is cached; prewarm tiktoken's encoding
-cache before restricting network access as well. Prewarm every recognized tokenizer
-used by a possible fallback, not only the primary. A recognized tokenizer's download
-or load failure is surfaced as a request failure, not silently replaced by the unknown
-model estimate. Provider credentials remain separate from these public tokenizer assets.
+Generated files live in `sophie_bot/tokenizer_data/` and are excluded from Git and
+the Docker build context. The image always generates its own assets from the locked
+dependencies and pinned GLM revision. No model weights or provider credentials are
+needed. Tokenizer instances load off the event loop and are cached per process.
 
 Stable instructions precede append-only history. Date-only runtime snapshots,
 escaped XML chat notes and 1-based XML memory items are appended when runtime data
