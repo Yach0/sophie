@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
@@ -9,6 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
 
 import pytest
+import tiktoken
 from aiogram.types import Chat, Message, PhotoSize, User, Voice
 from beanie import PydanticObjectId
 from pydantic_ai.messages import (
@@ -29,6 +31,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import modern_context
+from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
@@ -96,6 +99,152 @@ async def _cache(context: SophieAIToolContext, message_id: int, text: str, **kwa
         datetime.now(UTC) - timedelta(seconds=100 - message_id),
         kwargs.pop('username', 'bob_secret'), redis=context.services.redis, **kwargs,
     )
+
+
+def _compact_counter() -> TokenCounter:
+    ranks = {bytes([value]): value for value in range(256)}
+    ranks.update({b'x' * size: 256 + index for index, size in enumerate((2, 4, 8, 16))})
+    encoding = tiktoken.Encoding(
+        name='test-x-merges', pat_str=r'[\s\S]+', mergeable_ranks=ranks, special_tokens={},
+    )
+    return TokenCounter(model_name='compact-test-model', tokenizer=encoding)
+
+
+@pytest.mark.parametrize('compact', [False, True])
+async def test_selected_tokenizer_changes_retained_history_without_truncating_current(
+    context: SophieAIToolContext, compact: bool,
+) -> None:
+    counter = _compact_counter() if compact else TokenCounter(model_name='unknown-model')
+    old = await _build(_message(300, 'previous question'), context)
+    await old.finish_run(
+        _events(old, 'tokenizer-sensitive answer ' + 'x' * 40000),
+        _message(301, user_id=CONFIG.bot_id),
+    )
+    current = await _build(
+        _message(302, 'current question remains complete'), context,
+        token_budget=6000, token_budgets=(ModelTokenBudget(counter=counter, input_tokens=6000),),
+    )
+    try:
+        assert ('tokenizer-sensitive answer' in _payload(current)) is compact
+        assert 'current question remains complete' in _payload(current)
+    finally:
+        await current.abort()
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize(
+    ('fallback_compact', 'fallback_window', 'retained'),
+    [(False, 6000, False), (True, 3000, False), (True, 6000, True)],
+)
+async def test_history_fits_each_fallback_tokenizer_and_window(
+    context: SophieAIToolContext, reverse: bool,
+    fallback_compact: bool, fallback_window: int, retained: bool,
+) -> None:
+    old = await _build(_message(310, 'previous question'), context)
+    await old.finish_run(
+        _events(old, 'fallback-sensitive answer ' + 'x' * 40000),
+        _message(311, user_id=CONFIG.bot_id),
+    )
+    fallback = _compact_counter() if fallback_compact else TokenCounter(model_name='unknown-fallback')
+    budgets = (
+        ModelTokenBudget(counter=_compact_counter(), input_tokens=16000),
+        ModelTokenBudget(counter=fallback, input_tokens=fallback_window),
+    )
+    current = await _build(
+        _message(312, 'current question'), context, token_budget=16000,
+        token_budgets=tuple(reversed(budgets)) if reverse else budgets,
+    )
+    try:
+        assert ('fallback-sensitive answer' in _payload(current)) is retained
+        assert 'current question' in _payload(current)
+    finally:
+        await current.abort()
+
+
+@pytest.mark.parametrize(('stored_count', 'retained'), [(0, False), (10**9, True)])
+async def test_reloaded_history_recounts_after_tokenizer_change_ignoring_stale_counts(
+    context: SophieAIToolContext, stored_count: int, retained: bool,
+) -> None:
+    compact = _compact_counter()
+    unknown = TokenCounter(model_name='unknown-model')
+    previous_counter, next_counter = (unknown, compact) if retained else (compact, unknown)
+    old = await _build(
+        _message(320, 'previous question'), context,
+        token_budgets=(ModelTokenBudget(counter=previous_counter, input_tokens=100000),),
+    )
+    await old.finish_run(
+        _events(old, 'recounted answer ' + 'x' * 40000),
+        _message(321, user_id=CONFIG.bot_id),
+    )
+    raw = await context.services.redis.get(old._session_key)
+    assert raw is not None
+    state = json.loads(raw)
+    for event in state['events']:
+        event['token_bound'] = stored_count
+    await context.services.redis.set(old._session_key, json.dumps(state))
+    current = await _build(
+        _message(322, 'current question'), context, token_budget=6000,
+        token_budgets=(ModelTokenBudget(counter=next_counter, input_tokens=6000),),
+    )
+    try:
+        assert current.session_id == old.session_id
+        assert ('recounted answer' in _payload(current)) is retained
+    finally:
+        await current.abort()
+
+
+@pytest.mark.parametrize('large_arguments', [False, True])
+@pytest.mark.parametrize('compact', [False, True])
+async def test_tool_payloads_are_budgeted_and_pruned_as_complete_exchanges(
+    context: SophieAIToolContext, large_arguments: bool, compact: bool,
+) -> None:
+    old = await _build(_message(330, 'lookup question'), context)
+    events = [
+        ModelRequest(parts=[UserPromptPart(content=old.prompt)]),
+        ModelResponse(parts=[ToolCallPart(
+            tool_name='lookup', args={'query': 'x' * 40000 if large_arguments else 'small'},
+            tool_call_id='budgeted-call',
+        )]),
+        ModelRequest(parts=[ToolReturnPart(
+            tool_name='lookup', content='small' if large_arguments else 'x' * 40000,
+            tool_call_id='budgeted-call',
+        )]),
+        ModelResponse(parts=[TextPart(content='lookup completed')]),
+    ]
+    await old.finish_run(events, _message(331, user_id=CONFIG.bot_id))
+    counter = _compact_counter() if compact else TokenCounter(model_name='unknown-model')
+    current = await _build(
+        _message(332, 'current question'), context, token_budget=6000,
+        token_budgets=(ModelTokenBudget(counter=counter, input_tokens=6000),),
+    )
+    try:
+        payload = _payload(current)
+        assert ('lookup completed' in payload) is compact
+        assert payload.count('budgeted-call') == (2 if compact else 0)
+        assert 'current question' in payload
+    finally:
+        await current.abort()
+
+
+async def test_native_storage_metadata_does_not_displace_conversation_content(
+    context: SophieAIToolContext,
+) -> None:
+    old = await _build(_message(340, 'previous question'), context)
+    events = [
+        ModelRequest(parts=[UserPromptPart(content=old.prompt)]),
+        ModelResponse(
+            parts=[TextPart(content='small useful answer')],
+            provider_response_id='transport-metadata-' + 'z' * 40000,
+        ),
+    ]
+    await old.finish_run(events, _message(341, user_id=CONFIG.bot_id))
+    current = await _build(_message(342, 'current question'), context, token_budget=6000)
+    try:
+        assert 'small useful answer' in _payload(current)
+        response = next(event for event in current.message_history if isinstance(event, ModelResponse))
+        assert response.provider_response_id == events[-1].provider_response_id
+    finally:
+        await current.abort()
 
 
 async def test_native_replay_preserves_prefix_media_and_runtime_tail(

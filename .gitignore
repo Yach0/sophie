@@ -38,6 +38,7 @@ allure_results/
 
 # Build
 output/
+/sophie_bot/tokenizer_data/
 
 # OpenAPI
 openapi.json
