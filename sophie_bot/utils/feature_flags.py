@@ -250,7 +250,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     ),
     "ai_chatbot": _feature(True),
     "ai_chatbot_modern_context": _feature(False),
-    "ai_chatbot_modern_context_tokens": _feature(16384),
+    "ai_chatbot_modern_context_tokens": _feature(0),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
     "ai_chatbot_request_limit": _feature(4),

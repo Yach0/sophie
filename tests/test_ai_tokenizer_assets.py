@@ -31,7 +31,17 @@ def offline_assets(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[
     ai_tokenizer_assets.load_encoding.cache_clear()
 
 
-@pytest.mark.parametrize("glm_model", ["z-ai/glm-5.3", "z-ai/glm-5.3-flash", "openai/z-ai/glm-5.3-flash:free"])
+@pytest.mark.parametrize(
+    "glm_model",
+    [
+        "glm-5.3",
+        "glm-5.3-flash",
+        "z-ai/glm-5.3",
+        "z-ai/glm-5.3-flash",
+        "openai/z-ai/glm-5.3:free",
+        "openai/z-ai/glm-5.3-flash:free",
+    ],
+)
 async def test_bundled_tokenizers_load_without_network_or_external_caches(
     offline_assets: Path,
     glm_model: str,
@@ -39,9 +49,7 @@ async def test_bundled_tokenizers_load_without_network_or_external_caches(
     encoding: ai_tokenizer_assets.EncodingAssets = {
         "name": "o200k_base",
         "pat_str": r"[\s\S]",
-        "mergeable_ranks": {
-            base64.b64encode(bytes([value])).decode("ascii"): value for value in range(256)
-        },
+        "mergeable_ranks": {base64.b64encode(bytes([value])).decode("ascii"): value for value in range(256)},
         "special_tokens": {},
     }
     (offline_assets / "o200k_base.json").write_text(json.dumps(encoding))
@@ -57,7 +65,7 @@ async def test_bundled_tokenizers_load_without_network_or_external_caches(
     assert glm.count_text("hello hello") == 2
 
 
-@pytest.mark.parametrize("model_name", ["gpt-5.6-luna", "glm-5.3", "z-ai/glm-5.3-flash"])
+@pytest.mark.parametrize("model_name", ["gpt-5.6-luna", "glm-5.3", "glm-5.3-flash", "z-ai/glm-5.3-flash"])
 async def test_missing_known_tokenizer_fails_without_downloading(offline_assets: Path, model_name: str) -> None:
     with pytest.raises(FileNotFoundError):
         await ai_tokens.load_token_counter(model_name)
@@ -69,9 +77,9 @@ async def test_corrupt_encoding_fails_without_redownloading(offline_assets: Path
         await ai_tokens.load_token_counter("gpt-5.6-luna")
 
 
-async def test_unknown_model_needs_no_bundled_assets(offline_assets: Path) -> None:
-    counter = await ai_tokens.load_token_counter("unknown-model")
-    assert counter.count_text("你好") == 6
+async def test_unknown_model_requires_bundled_openai_fallback(offline_assets: Path) -> None:
+    with pytest.raises(FileNotFoundError, match="cl100k_base"):
+        await ai_tokens.load_token_counter("unknown-model")
 
 
 def test_glm_asset_is_bundled_from_pinned_revision(

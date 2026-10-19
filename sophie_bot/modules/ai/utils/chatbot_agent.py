@@ -191,6 +191,7 @@ async def _build_chatbot_run_config(
             ),
             service_tier=service_tier,
             prompt_cache=isinstance(history, ModernContext),
+            context_projection=history.project_for_candidate if isinstance(history, ModernContext) else None,
         ),
     )
 

@@ -35,6 +35,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
 from sophie_bot.modules.ai.utils.proactive_tracking import is_candidate
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import next_group_id, next_user_id
+from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 
 @pytest.mark.parametrize(
@@ -137,7 +138,11 @@ async def test_modern_proactive_yes_retains_its_question_reference(
     now = datetime.now(UTC)
     context = SophieAIToolContext(
         connection=ChatConnection(
-            type=ChatType.group, is_connected=False, tid=chat_tid, title="Group", db_model=None,
+            type=ChatType.group,
+            is_connected=False,
+            tid=chat_tid,
+            title="Group",
+            db_model=None,
         ),
         chat_tid=chat_tid,
         chat_iid=PydanticObjectId(),
@@ -233,7 +238,6 @@ async def test_modern_proactive_yes_retains_its_question_reference(
             await history.abort()
         for user in users:
             await user.delete()
-
 
 
 @pytest.mark.asyncio
