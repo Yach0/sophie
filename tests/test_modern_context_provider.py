@@ -173,7 +173,9 @@ def test_runtime_capacity_includes_registered_last_resort(monkeypatch: pytest.Mo
     plan = AIModelPlan(
         candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),)
     )
-    assert ai_run.modern_context_window_tokens(plan) == 4096
+    candidates = ai_run.modern_context_candidates(plan)
+    assert {candidate.model_name for candidate in candidates} == {"primary", ai_run.AI_FALLBACK_MODEL_NAME}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 4096
 
 
 @pytest.mark.parametrize("register_fallback", [False, True])
@@ -188,7 +190,7 @@ def test_runtime_rejects_last_resort_without_registered_size(
         candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),)
     )
     with pytest.raises(ValueError, match=f"{ai_run.AI_FALLBACK_MODEL_NAME}.*context_window_tokens"):
-        ai_run.modern_context_window_tokens(plan)
+        ai_run.modern_context_candidates(plan)
 
 
 def test_runtime_capacity_only_includes_candidates_within_attempt_limit(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -200,7 +202,34 @@ def test_runtime_capacity_only_includes_candidates_within_attempt_limit(monkeypa
             for name, size in (("primary", 32768), ("second", 65536), ("third", 8192), ("not-tried", None))
         )
     )
-    assert ai_run.modern_context_window_tokens(plan) == 8192
+    candidates = ai_run.modern_context_candidates(plan)
+    assert "not-tried" not in {candidate.model_name for candidate in candidates}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 8192
+
+
+def test_runtime_capacity_includes_image_candidate_beyond_text_attempt_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _registered_capacities(monkeypatch, {ai_run.AI_FALLBACK_MODEL_NAME: 16384})
+    monkeypatch.setattr(ai_run, "get_ai_model", lambda _: TestModel(model_name="fallback"))
+    plan = AIModelPlan(
+        candidates=(
+            *(
+                AIModelCandidate(
+                    model=TestModel(model_name=f"text-{index}"), model_name=f"text-{index}",
+                    context_window_tokens=32768, supports_images=False,
+                )
+                for index in range(3)
+            ),
+            AIModelCandidate(
+                model=TestModel(model_name="visual"), model_name="visual",
+                context_window_tokens=4096, supports_images=True,
+            ),
+        ),
+    )
+    candidates = ai_run.modern_context_candidates(plan)
+    assert "visual" in {candidate.model_name for candidate in candidates}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 4096
 
 
 def test_pinned_candidate_copies_registry_size(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -278,7 +307,7 @@ def test_runtime_rejects_unconfigured_primary_or_backup(
         )
     )
     with pytest.raises(ValueError, match=f"{missing_name}.*context_window_tokens"):
-        ai_run.modern_context_window_tokens(plan)
+        ai_run.modern_context_candidates(plan)
 
 
 def test_ambiguous_upstream_alias_does_not_choose_a_registry_capacity(

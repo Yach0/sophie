@@ -143,16 +143,22 @@ def resolve_candidates(
     return _closed_chain([agent_candidate, *(c for c in eligible if c.model is not agent_model)])
 
 
-def modern_context_window_tokens(model_plan: AIModelPlan) -> int:
-    """Admission limit across the actual failover chain, including its last-resort model.
+def modern_context_candidates(model_plan: AIModelPlan) -> tuple[AIModelCandidate, ...]:
+    """All candidates reachable by a text or image turn, including the last-resort model.
 
-    Every runtime candidate must have an explicit registry capacity.
-    Checking without image filtering conservatively covers both text and image turns.
+    Image filtering can expose a later candidate beyond the normal attempt cap. Admission
+    must cover that chain too, before the current request's media has been assembled.
     """
-    return min(
-        candidate.require_context_window_tokens()
-        for candidate in resolve_candidates(model_plan.primary, model_plan, has_images=False)
-    )
+    candidates: list[AIModelCandidate] = []
+    for has_images in (False, True):
+        for candidate in resolve_candidates(model_plan.primary, model_plan, has_images=has_images):
+            candidate.require_context_window_tokens()
+            if not any(
+                existing.model is candidate.model and existing.context_window_tokens == candidate.context_window_tokens
+                for existing in candidates
+            ):
+                candidates.append(candidate)
+    return tuple(candidates)
 
 
 def _should_try_next_model(error: BaseException) -> bool:

@@ -241,10 +241,55 @@ new chat messages and native assistant/tool exchanges once, rather than rebuildi
 the complete recent-message block on every turn. When the budget is reached, it
 deletes old background batches first, then whole completed turns. Tool calls and
 returns stay paired. There is no generated summary or compaction message; an oversized
-current request fails instead of being truncated. Text budgeting uses a conservative
-UTF-8 byte bound and images reserve 4096 estimated tokens each, not an exact tokenizer.
-Unlimited response-limit settings remain supported; admission reserves 2048 tokens
-for output plus the context safety margin.
+current request fails instead of being truncated.
+
+Admission counts model-facing instructions, text and tool arguments/results with each
+candidate's local tokenizer, not the serialized session JSON. Known OpenAI model names
+use `tiktoken` (including `gpt-5.6-luna` / `openai/gpt-5.6-luna`, using the GPT-5
+`o200k_base` mapping). GLM-5.3 uses Hugging Face `tokenizers` with only
+`zai-org/GLM-5.3`'s `tokenizer.json`, pinned to revision
+`ba32f8c19c8738e2c57c71798c601d477a7bf844`; provider prefixes and routing suffixes
+on `glm-5.3` are accepted, but GLM-5.3-Flash is not treated as the same tokenizer.
+Unrecognized model names retain the conservative one-token-per-UTF-8-byte fallback.
+No model weights or remote token-counting API are used.
+
+History must fit every candidate that can be attempted, including image-eligible
+fallbacks and the last-resort model, under that candidate's tokenizer and registered
+capacity. The configured `ai_chatbot_modern_context_tokens` is an input cap, not a
+replacement for those capacities. Admission also reserves the configured response
+limit (2048 tokens when unlimited), 4096 tokens of safety/tool-schema headroom, and
+per-message/part framing allowances. Each image reserves 4096 estimated tokens,
+independently of its transport size. These are conservative allowances, not a guarantee
+of exact provider usage: chat templates, image handling and hidden provider additions
+can differ. Stored event costs are recounted on each build, so changing models or
+tokenizers does not reuse stale token estimates.
+Admission budgets the history before a run; newly generated tool results can grow
+beyond the reserved headroom. It does not impose a new per-tool-step truncation policy.
+
+Tokenizer assets load off the event loop and are cached per process and on disk.
+Before enabling modern history, prewarm the caches as the bot's runtime user with
+network access; for the two model families above:
+
+```sh
+uv run python - <<'PY'
+import asyncio
+from sophie_bot.modules.ai.utils.ai_tokens import load_token_counter
+
+async def main():
+    await load_token_counter("z-ai/glm-5.3")
+    await load_token_counter("openai/gpt-5.6-luna")
+
+asyncio.run(main())
+PY
+```
+
+Use persistent, runtime-readable `HF_HOME` and `TIKTOKEN_CACHE_DIR` locations when
+deployments do not preserve the default caches. Hugging Face supports
+`HF_HUB_OFFLINE=1` once its pinned tokenizer is cached; prewarm tiktoken's encoding
+cache before restricting network access as well. Prewarm every recognized tokenizer
+used by a possible fallback, not only the primary. A recognized tokenizer's download
+or load failure is surfaced as a request failure, not silently replaced by the unknown
+model estimate. Provider credentials remain separate from these public tokenizer assets.
 
 Stable instructions precede append-only history. Date-only runtime snapshots,
 escaped XML chat notes and 1-based XML memory items are appended when runtime data
