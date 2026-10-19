@@ -24,6 +24,8 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
+from sophie_bot.modules.utils_.common_try import common_try
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -156,11 +158,15 @@ class ChatbotMessageStreamer:
             self.final_message_sent = True
             return self.response_message
 
-        result = await self._editing_bot().edit_message_text(
-            chat_id=self.response_message.chat.id,
-            message_id=self.response_message.message_id,
-            rich_message=InputRichMessage(html=rendered_rich),
-            reply_markup=reply_markup,
+        result = await common_try(
+            self._editing_bot().edit_message_text(
+                chat_id=self.response_message.chat.id,
+                message_id=self.response_message.message_id,
+                rich_message=InputRichMessage(html=rendered_rich),
+                reply_markup=reply_markup,
+            ),
+            ignored_bad_request_errors=(MSG_NOT_MODIFIED,),
+            ignored_exceptions=(),
         )
         self._last_sent_rich = rendered_rich
         self.final_message_sent = True
@@ -264,7 +270,7 @@ class ChatbotMessageStreamer:
         return bot
 
     async def _update(self, doc: Doc) -> None:
-        """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
+        """Edit the placeholder in place; only unchanged Telegram edits are benign."""
         rendered_rich = doc.to_rich()
         if rendered_rich == self._last_sent_rich:
             return
@@ -272,10 +278,14 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await self._editing_bot().edit_message_text(
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
+            await common_try(
+                self._editing_bot().edit_message_text(
+                    chat_id=self.response_message.chat.id,
+                    message_id=self.response_message.message_id,
+                    rich_message=InputRichMessage(html=rendered_rich),
+                ),
+                ignored_bad_request_errors=(MSG_NOT_MODIFIED,),
+                ignored_exceptions=(),
             )
 
         self._last_sent_rich = rendered_rich

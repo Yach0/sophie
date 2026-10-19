@@ -10,6 +10,7 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
     MSG_NOT_MODIFIED,
     MSG_TEXT_EMPTY,
     MSG_TO_DEL_NOT_FOUND,
+    MSG_TO_EDIT_NOT_FOUND,
     MSG_TOO_LONG,
     NO_TEXT_IN_MSG_TO_EDIT,
     REPLIED_NOT_FOUND,
@@ -126,3 +127,18 @@ async def test_common_try_reraises_telegram_api_timeout() -> None:
 async def test_common_try_reraises_other_telegram_api_errors() -> None:
     with pytest.raises(TelegramAPIError):
         await common_try(raises_api_error("internal server error"))
+
+
+@pytest.mark.parametrize("initial_error", [REPLIED_NOT_FOUND, MSG_TO_EDIT_NOT_FOUND])
+async def test_common_try_preserves_restricted_error_policy_in_fallback(initial_error: str) -> None:
+    async def fallback_result() -> None:
+        await raises_bad_request(MSG_TOO_LONG)
+
+    with pytest.raises(TelegramBadRequest, match=MSG_TOO_LONG):
+        await common_try(
+            raises_bad_request(initial_error),
+            reply_not_found=fallback_result,
+            edit_not_found=fallback_result,
+            ignored_bad_request_errors=(MSG_NOT_MODIFIED,),
+            ignored_exceptions=(),
+        )
