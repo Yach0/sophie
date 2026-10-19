@@ -114,7 +114,7 @@ class ModelTokenBudget:
 @cache
 def _load_token_counter(model_name: str) -> TokenCounter:
     name = model_name.lower().removeprefix("openai/")
-    if name.rsplit("/", 1)[-1].split(":", 1)[0] == "glm-5.3":
+    if name.rsplit("/", 1)[-1].split(":", 1)[0] in {"glm-5.3", "glm-5.3-flash"}:
         path = (TOKENIZER_DIRECTORY / GLM_TOKENIZER_FILENAME).resolve(strict=True)
         tokenizer = Tokenizer.from_file(str(path))
         tokenizer.no_truncation()

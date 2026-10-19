@@ -5,13 +5,14 @@ import json
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
 
 import pytest
 import tiktoken
-from aiogram.types import Chat, Message, PhotoSize, User, Voice
+from aiogram.types import Chat, Message, PhotoSize, Sticker, User, Voice
 from beanie import PydanticObjectId
 from pydantic_ai.messages import (
     BinaryContent,
@@ -24,13 +25,16 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
+from tokenizers import Tokenizer
+from tokenizers.models import WordLevel
+from tokenizers.pre_tokenizers import Whitespace
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import NoteModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
-from sophie_bot.modules.ai.utils import modern_context
+from sophie_bot.modules.ai.utils import ai_tokens, modern_context
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
@@ -712,3 +716,78 @@ def test_multimodal_xml_preserves_attribute_whitespace_and_content_order(first_n
         'reply_to': 'm2', 'context': 'current',
     }
     assert [node.text for node in root.findall('text')] == [before, after]
+
+
+@pytest.mark.parametrize("sticker_kind", ["static", "animated", "video"])
+async def test_flash_sticker_reply_preserves_current_request_while_pruning_history(
+    context: SophieAIToolContext,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    sticker_kind: str,
+) -> None:
+    tokenizer = Tokenizer(WordLevel({"[UNK]": 0}, unk_token="[UNK]"))
+    tokenizer.pre_tokenizer = Whitespace()
+    tokenizer.save(str(tmp_path / ai_tokens.GLM_TOKENIZER_FILENAME))
+    monkeypatch.setattr(ai_tokens, "TOKENIZER_DIRECTORY", tmp_path)
+    monkeypatch.setattr(ai_tokens, "_load_token_counter", ai_tokens._load_token_counter.__wrapped__)
+    counter = await ai_tokens.load_token_counter("z-ai/glm-5.3-flash")
+    assert isinstance(counter.tokenizer, Tokenizer)
+
+    old = await _build(_message(400, "previous question"), context)
+    await old.finish_run(
+        _events(old, "old answer " * 8000),
+        _message(401, user_id=CONFIG.bot_id),
+    )
+    image = b"sticker image bytes" * 40000
+
+    def download_image(file_id: str) -> BytesIO:
+        return BytesIO(image)
+
+    download = AsyncMock(side_effect=download_image)
+    monkeypatch.setattr(context.services.bot, "download", download)
+    thumbnail = PhotoSize(file_id="thumbnail", file_unique_id="thumb", width=100, height=100)
+    sticker = Sticker(
+        file_id="sticker",
+        file_unique_id="unique",
+        type="regular",
+        width=512,
+        height=512,
+        is_animated=sticker_kind == "animated",
+        is_video=sticker_kind == "video",
+        thumbnail=thumbnail,
+    )
+    current_text = "你好世界 " * 600
+    reply = _message(402, sticker=sticker).model_copy(update={"text": None})
+    incoming = _message(403, current_text, reply_to_message=reply)
+    # Reproduce the incorrect byte fallback, independently of old history.
+    with pytest.raises(ValueError, match="exceeds its token budget"):
+        await _build(
+            incoming,
+            context,
+            token_budget=6000,
+            token_budgets=(ModelTokenBudget(TokenCounter(counter.model_name), 6000),),
+        )
+    history = await _build(
+        incoming,
+        context,
+        token_budget=6000,
+        token_budgets=(ModelTokenBudget(counter, 6000),),
+    )
+    try:
+        media = [part for part in history.prompt if isinstance(part, BinaryContent)]
+        assert len(media) == 1
+        assert media[0].media_type == "image/jpeg"
+        assert media[0].data == image
+        download.assert_called_with("sticker" if sticker_kind == "static" else "thumbnail")
+        assert counter.count_content(media) == counter.IMAGE_TOKEN_RESERVE + counter.PART_TOKEN_RESERVE
+        text_parts = [part for part in history.prompt if isinstance(part, str)]
+        assert counter.count_content(history.prompt) - counter.count_content(text_parts) == (
+            counter.IMAGE_TOKEN_RESERVE + counter.PART_TOKEN_RESERVE
+        )
+        assert current_text in "".join(text_parts)
+        assert 'context="reference"' in "".join(text_parts)
+        assert 'context="current"' in "".join(text_parts)
+        assert history.message_history == []
+        assert counter.count_text(history.instructions) + counter.count_content(history.prompt) + 64 <= 6000
+    finally:
+        await history.abort()

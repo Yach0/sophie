@@ -246,10 +246,10 @@ current request fails instead of being truncated.
 Admission counts model-facing instructions, text and tool arguments/results with each
 candidate's local tokenizer, not the serialized session JSON. Known OpenAI model names
 use `tiktoken` (including `gpt-5.6-luna` / `openai/gpt-5.6-luna`, using the GPT-5
-`o200k_base` mapping). GLM-5.3 uses Hugging Face `tokenizers` with only
+`o200k_base` mapping). GLM-5.3 and GLM-5.3-Flash use Hugging Face `tokenizers` with only
 `zai-org/GLM-5.3`'s `tokenizer.json`, pinned to revision
 `ba32f8c19c8738e2c57c71798c601d477a7bf844`; provider prefixes and routing suffixes
-on `glm-5.3` are accepted, but GLM-5.3-Flash is not treated as the same tokenizer.
+on both model names are accepted.
 Unrecognized model names retain the conservative one-token-per-UTF-8-byte fallback.
 No model weights or remote token-counting API are used.
 
