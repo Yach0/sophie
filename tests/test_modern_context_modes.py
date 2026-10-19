@@ -436,7 +436,8 @@ async def test_supported_response_limits_admit_or_reject_whole_current_requests(
     await set_chat_override("ai_chatbot_modern_context", world.chat.id, True, redis=world.services.redis)
     await set_chat_override("ai_chatbot_response_tokens_limit", world.chat.id, response_limit, redis=world.services.redis)
     context = world.context(AIMode.support, world.users[0])
-    message = world.message(world.users[0], "x" * 6000)
+    text = "hello world " * 2000
+    message = world.message(world.users[0], text)
 
     def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         current = _message_nodes(messages)[-1]
@@ -455,7 +456,7 @@ async def test_supported_response_limits_admit_or_reject_whole_current_requests(
     try:
         agent = chatbot_agent.build_chatbot_agent(model, [], AIMode.support, modern_context=history)
         result = await agent.run(history.prompt, message_history=history.message_history, deps=context)
-        assert result.output == "6000"
+        assert result.output == str(len(text))
     finally:
         await history.abort()
 

@@ -241,8 +241,12 @@ new chat messages and native assistant/tool exchanges once, rather than rebuildi
 the complete recent-message block on every turn. When the budget is reached, it
 deletes old background batches first, then whole completed turns. Tool calls and
 returns stay paired. There is no generated summary or compaction message; an oversized
-current request fails instead of being truncated. Text budgeting uses a conservative
-UTF-8 byte bound and images reserve 4096 estimated tokens each, not an exact tokenizer.
+current request fails instead of being truncated. Text and native message envelopes
+use an offline, provider-neutral estimate of one token per three UTF-8 bytes, rounded
+up; images reserve 4096 tokens each without charging base64 transport bytes. This
+heuristic needs no tokenizer assets or network access and is neither an exact count
+nor a guaranteed upper bound for every model or language. Existing sessions are
+recounted from their saved native messages on load.
 Unlimited response-limit settings remain supported; admission reserves 2048 tokens
 for output plus the context safety margin.
 

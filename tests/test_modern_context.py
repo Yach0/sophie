@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import socket
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 from xml.etree import ElementTree
@@ -17,6 +19,7 @@ from pydantic_ai.messages import (
     ModelRequest,
     ModelResponse,
     RetryPromptPart,
+    TextContent,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -174,7 +177,7 @@ async def test_reply_media_uses_shared_extraction_and_original_transcription(
 
 async def test_pruning_background_first_keeps_complete_recent_tools_and_no_reimport(context: SophieAIToolContext) -> None:
     old = await _build(_message(60, 'old request'), context)
-    await old.finish_run(_events(old, 'old large answer ' + 'x' * 2500), _message(61, user_id=CONFIG.bot_id))
+    await old.finish_run(_events(old, 'old large answer ' + 'word ' * 4000), _message(61, user_id=CONFIG.bot_id))
     recent = await _build(_message(62, 'recent request'), context)
     recent_events = [
         ModelRequest(parts=[UserPromptPart(content=recent.prompt)]),
@@ -183,7 +186,7 @@ async def test_pruning_background_first_keeps_complete_recent_tools_and_no_reimp
         ModelResponse(parts=[TextPart(content='recent answer')]),
     ]
     await recent.finish_run(recent_events, _message(63, user_id=CONFIG.bot_id))
-    await _cache(context, 64, 'discarded background ' + 'z' * 4000)
+    await _cache(context, 64, 'discarded background ' + 'word ' * 4000)
     pruned = await _build(_message(65, 'small current'), context, token_budget=4000)
     payload = _payload(pruned)
     assert 'discarded background' not in payload and 'old large answer' not in payload
@@ -391,7 +394,7 @@ async def test_request_style_precedes_latest_text_and_is_budgeted(context: Sophi
     finally:
         await history.abort()
     with pytest.raises(ValueError, match='exceeds its token budget'):
-        await _build(_message(150), context, token_budget=1000, request_context='style' * 500)
+        await _build(_message(150), context, token_budget=1000, request_context='style ' * 1500)
 
 
 async def test_serialization_lease_renews_until_abort(
@@ -546,3 +549,81 @@ async def test_message_reference_numbers_do_not_replace_arithmetic(
         assert node.findtext('text') == f'Calculate 1 + 1; message_id=1 and user_id={USER_TID}'
     finally:
         await history.abort()
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["hello world " * 500, "Привет мир! " * 500, "<|endoftext|> " * 300],
+    ids=["ascii", "unicode", "special-token-spelling"],
+)
+async def test_current_text_fits_token_budget_offline_without_truncation(
+    context: SophieAIToolContext,
+    text: str,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setenv("TIKTOKEN_CACHE_DIR", str(tmp_path))
+    network = MagicMock(side_effect=AssertionError("Token estimation must work offline"))
+    monkeypatch.setattr(socket, "getaddrinfo", network)
+    monkeypatch.setattr(socket.socket, "connect", network)
+    history = await _build(_message(300, text), context, token_budget=4000)
+    try:
+        current = ElementTree.fromstring(str(history.prompt[-1]))
+        assert current.findtext("text") == text
+        assert len(text.encode()) > 4000
+    finally:
+        await history.abort()
+
+
+async def test_saved_byte_bounds_are_recounted_without_rewriting_native_history(
+    context: SophieAIToolContext,
+) -> None:
+    first = await _build(_message(300, "hello world " * 300), context)
+    events = _events(first, "retained answer " * 100)
+    expected = ModelMessagesTypeAdapter.dump_json(events)
+    await first.finish_run(events, _message(301, user_id=CONFIG.bot_id))
+    saved = modern_context._Session.model_validate_json(await context.services.redis.get(first._session_key))
+    saved.events[0].token_bound = len(saved.events[0].messages_json.encode())
+    await context.services.redis.set(first._session_key, saved.model_dump_json())
+
+    later = await _build(_message(302), context, token_budget=4000)
+    try:
+        assert ModelMessagesTypeAdapter.dump_json(later.message_history) == expected
+        assert later._state.events[0].token_bound < saved.events[0].token_bound
+    finally:
+        await later.abort()
+
+
+async def test_genuinely_oversized_current_text_is_rejected_and_retry_is_intact(
+    context: SophieAIToolContext,
+) -> None:
+    text = "hello world " * 3000
+    with pytest.raises(ValueError, match="current content is never truncated"):
+        await _build(_message(300, text), context, token_budget=4000)
+    retry = await _build(_message(300, text), context, token_budget=16000)
+    try:
+        assert ElementTree.fromstring(str(retry.prompt[-1])).findtext("text") == text
+        assert retry.message_history == []
+    finally:
+        await retry.abort()
+
+
+def test_text_content_uses_tokens_and_native_images_use_fixed_reserve() -> None:
+    assert ModernContext._content_bound("hello world") == 4
+    assert ModernContext._content_bound(["hello world"]) == 4
+    assert ModernContext._content_bound([TextContent("hello world")]) == 4
+    small = BinaryContent(data=b"image", media_type="image/png")
+    large = BinaryContent(data=b"image" * 100000, media_type="image/png")
+    assert ModernContext._content_bound([small]) == ModernContext.IMAGE_TOKEN_RESERVE
+    assert ModernContext._content_bound([large]) == ModernContext.IMAGE_TOKEN_RESERVE
+    small_request = ModelRequest(parts=[UserPromptPart(content=["hello world", small])])
+    large_request = replace(small_request, parts=[UserPromptPart(content=["hello world", large])])
+    assert ModernContext._messages_bound([small_request]) == ModernContext._messages_bound([large_request])
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [("", 0), ("a", 1), ("abc", 1), ("abcd", 2), ("Привет", 4), ("你好", 2), ("🙂", 2)],
+)
+def test_offline_text_estimate_rounds_up_utf8_units(text: str, expected: int) -> None:
+    assert ModernContext._text_bound(text) == expected

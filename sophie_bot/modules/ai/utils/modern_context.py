@@ -467,6 +467,10 @@ class ModernContext:
             raw_state = await history._redis.get(history._session_key)
             if raw_state:
                 history._state = _Session.model_validate_json(raw_state)
+                # Older sessions persisted byte lengths in token_bound. Recount from the
+                # canonical messages so existing sessions use the same units as new events.
+                for event in history._state.events:
+                    event.token_bound = history._messages_bound(event.messages())
             history._register_message(message)
             if context.user_tid is not None:
                 history._speaker(context.user_tid)
@@ -909,16 +913,25 @@ class ModernContext:
         if pending and include_background:
             self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
 
+    @staticmethod
+    def _text_bound(text: str) -> int:
+        # Provider-neutral offline heuristic: one estimated token per three UTF-8 bytes.
+        # This is not an exact count or upper bound for every model/language.
+        return (len(text.encode("utf-8")) + 2) // 3
+
     @classmethod
     def _content_bound(cls, content: str | Sequence[UserContent]) -> int:
         if isinstance(content, str):
-            return len(content.encode())
-        return sum(
-            cls.IMAGE_TOKEN_RESERVE
-            if isinstance(item, BinaryContent) and item.media_type.startswith("image/")
-            else len(_USER_CONTENT_ADAPTER.dump_json(item))
-            for item in content
-        )
+            return cls._text_bound(content)
+        total = 0
+        for item in content:
+            if isinstance(item, BinaryContent) and item.media_type.startswith("image/"):
+                total += cls.IMAGE_TOKEN_RESERVE
+            elif isinstance(item, (str, TextContent)):
+                total += cls._text_bound(item if isinstance(item, str) else item.content)
+            else:
+                total += cls._text_bound(_USER_CONTENT_ADAPTER.dump_json(item).decode())
+        return total
 
     @classmethod
     def _messages_bound(cls, messages: Sequence[ModelRequest | ModelResponse]) -> int:
@@ -935,7 +948,7 @@ class ModernContext:
             else message
             for message in messages
         ]
-        return len(ModelMessagesTypeAdapter.dump_json(envelopes)) + sum(
+        return cls._text_bound(ModelMessagesTypeAdapter.dump_json(envelopes).decode()) + sum(
             cls._content_bound(part.content)
             for message in messages
             for part in message.parts
