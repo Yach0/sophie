@@ -6,7 +6,7 @@ from typing import ClassVar
 
 from beanie import Document, PydanticObjectId
 from beanie.odm.queries.update import UpdateResponse
-from beanie.operators import Set
+from beanie.operators import Set, Unset
 from pymongo import IndexModel
 from pymongo.errors import DuplicateKeyError
 
@@ -39,6 +39,7 @@ class AIModeratorModel(Document):
     class Settings:
         name = "ai_moderator"
         indexes: ClassVar = [IndexModel("chat", unique=True, name="moderator_chat_unique")]
+        keep_nulls = False
 
     @staticmethod
     async def get_state(chat_iid: PydanticObjectId) -> bool | None:
@@ -56,8 +57,15 @@ class AIModeratorModel(Document):
         for field, value in values.items():
             setattr(on_insert, field, value)
         query = AIModeratorModel.find_one(AIModeratorModel.chat.id == chat.iid)
+        set_values = {field: value for field, value in values.items() if value is not None}
+        unset_values = {field: "" for field, value in values.items() if value is None}
+        operators = []
+        if set_values:
+            operators.append(Set(set_values))
+        if unset_values:
+            operators.append(Unset(unset_values))
         try:
-            return await query.upsert(Set(values), on_insert=on_insert, response_type=UpdateResponse.NEW_DOCUMENT)
+            return await query.upsert(*operators, on_insert=on_insert, response_type=UpdateResponse.NEW_DOCUMENT)
         except DuplicateKeyError:
             # Another worker inserted this chat after the upsert's update found no record.
-            return await query.update(Set(values), response_type=UpdateResponse.NEW_DOCUMENT)
+            return await query.update(*operators, response_type=UpdateResponse.NEW_DOCUMENT)

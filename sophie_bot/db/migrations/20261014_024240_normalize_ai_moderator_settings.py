@@ -51,7 +51,7 @@ class Forward:
                 continue
             survivors[document["chat"]] = document["_id"]
             if not archived["applied"] and document.get("enabled", True) is True:
-                await collection.update_one({"_id": document["_id"]}, {"$set": {"enabled": None}}, session=session)
+                await collection.update_one({"_id": document["_id"]}, {"$unset": {"enabled": ""}}, session=session)
             await backup.update_one({"_id": document["_id"]}, {"$set": {"applied": True}}, session=session)
 
 

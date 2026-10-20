@@ -206,6 +206,10 @@ def _moderator_settings_migration() -> ModuleType:
     return importlib.import_module("sophie_bot.db.migrations.20261014_024240_normalize_ai_moderator_settings")
 
 
+def _unset_ai_moderator_null_enabled_migration() -> ModuleType:
+    return importlib.import_module("sophie_bot.db.migrations.20261020_103630_unset_ai_moderator_null_enabled")
+
+
 @pytest.mark.parametrize("enabled", [None, "missing", True, False])
 async def test_moderator_rollback_after_first_category_configuration(
     db_init: Any, test_redis: FakeAsyncRedis, enabled: bool | str | None
@@ -273,9 +277,9 @@ async def test_moderator_migration_normalizes_legacy_defaults_and_preserves_fals
     # Retry after a process stopped between archiving and applying the change.
     await backup.insert_one({"_id": inserted.inserted_ids[0], "original": originals[0], "applied": False})
     await _run_migration(migration.Forward.migrate, db_init, test_redis)
-    assert (await collection.find_one({"_id": inserted.inserted_ids[0]}))["enabled"] is None
+    assert "enabled" not in (await collection.find_one({"_id": inserted.inserted_ids[0]}))
     assert (await collection.find_one({"_id": inserted.inserted_ids[1]}))["enabled"] is False
-    assert (await collection.find_one({"_id": inserted.inserted_ids[2]})).get("enabled") is None
+    assert "enabled" not in (await collection.find_one({"_id": inserted.inserted_ids[2]}))
     migrated_default = await AIModeratorModel.get(inserted.inserted_ids[0])
     migrated_off = await AIModeratorModel.get(inserted.inserted_ids[1])
     assert migrated_default is not None and migrated_default.pii.value == "high"
@@ -317,4 +321,64 @@ async def test_moderator_migration_repairs_duplicates_before_unique_index_and_ro
     assert await collection.find({}, sort=[("_id", 1)]).to_list(None) == originals
     await _run_migration(migration.Backward.migrate, db_init, test_redis)
     assert await collection.count_documents({}) == 2
+    await collection.delete_many({})
+
+
+async def test_unset_ai_moderator_null_enabled_migration(db_init: Any, test_redis: FakeAsyncRedis) -> None:
+    from pydantic import BaseModel
+
+    class LegacyAIModeratorModel(BaseModel):
+        enabled: bool = True
+        sexual: str = "normal"
+
+    migration = _unset_ai_moderator_null_enabled_migration()
+    collection = db_init["ai_moderator"]
+    await collection.delete_many({})
+
+    chat_ref = DBRef("chats", ObjectId())
+    doc_null = {"_id": ObjectId(), "chat": chat_ref, "enabled": None, "sexual": "normal"}
+    doc_true = {"_id": ObjectId(), "chat": chat_ref, "enabled": True, "sexual": "normal"}
+    doc_false = {"_id": ObjectId(), "chat": chat_ref, "enabled": False, "sexual": "normal"}
+    doc_missing = {"_id": ObjectId(), "chat": chat_ref, "sexual": "normal"}
+    await collection.insert_many([doc_null, doc_true, doc_false, doc_missing])
+
+    # Pre-migration: verifying that doc_null reproduces the legacy stable crash
+    with pytest.raises(Exception) as exc_info:
+        LegacyAIModeratorModel.model_validate(await collection.find_one({"_id": doc_null["_id"]}))
+    assert "Input should be a valid boolean" in str(exc_info.value)
+
+    # Run Forward migration
+    await _run_migration(migration.Forward.migrate, db_init, test_redis)
+
+    res_null = await collection.find_one({"_id": doc_null["_id"]})
+    res_true = await collection.find_one({"_id": doc_true["_id"]})
+    res_false = await collection.find_one({"_id": doc_false["_id"]})
+    res_missing = await collection.find_one({"_id": doc_missing["_id"]})
+
+    assert "enabled" not in res_null
+    assert res_true["enabled"] is True
+    assert res_false["enabled"] is False
+    assert "enabled" not in res_missing
+
+    # Post-migration: legacy model loads without error and defaults to True
+    legacy_loaded = LegacyAIModeratorModel.model_validate(res_null)
+    assert legacy_loaded.enabled is True
+
+    # Modern model loads without error and evaluates to None
+    modern_loaded = await AIModeratorModel.get(doc_null["_id"])
+    assert modern_loaded is not None
+    assert modern_loaded.enabled is None
+
+    # Run Backward migration
+    await _run_migration(migration.Backward.migrate, db_init, test_redis)
+
+    rolled_null = await collection.find_one({"_id": doc_null["_id"]})
+    rolled_true = await collection.find_one({"_id": doc_true["_id"]})
+    rolled_false = await collection.find_one({"_id": doc_false["_id"]})
+    rolled_missing = await collection.find_one({"_id": doc_missing["_id"]})
+
+    assert rolled_null["enabled"] is None
+    assert rolled_true["enabled"] is True
+    assert rolled_false["enabled"] is False
+    assert rolled_missing["enabled"] is None
     await collection.delete_many({})
