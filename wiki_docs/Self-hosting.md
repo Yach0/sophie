@@ -302,9 +302,11 @@ uv run python sophie_bot/utils/ai_tokenizer_assets.py
 ```
 
 Generated files live in `sophie_bot/tokenizer_data/` and are excluded from Git and
-the Docker build context. The image always generates its own assets from the locked
-dependencies and pinned GLM revision. No model weights or provider credentials are
-needed. Tokenizer instances load off the event loop and are cached per process.
+the Docker build context. CI test setup runs the same generator and smoke-checks
+the required tokenizers before running pytest. The image always generates its own
+assets from the locked dependencies and pinned GLM revision. No model weights or
+provider credentials are needed. Tokenizer instances load off the event loop and
+are cached per process.
 
 Stable instructions precede append-only history. Date-only runtime snapshots,
 escaped XML chat notes and 1-based XML memory items are appended when runtime data
