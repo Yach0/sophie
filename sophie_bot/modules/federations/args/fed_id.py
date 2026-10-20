@@ -3,6 +3,7 @@ from typing import Any
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgSimpleTypeError, ArgStrictError
 from ass_tg.types import TextArg
+from babel.support import LazyProxy as BabelLazyProxy
 from stfu_tg import Code, Template
 
 from sophie_bot.constants import FEDERATION_ID_HYPHEN_COUNT, FEDERATION_ID_PART_LENGTH
@@ -57,6 +58,6 @@ class FedIdArg(TextArg[Federation]):
         return data.fed_id
 
     @property
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    def examples(self) -> dict[str, BabelLazyProxy | None] | None:
         example_id = "-".join(["x" * FEDERATION_ID_PART_LENGTH] * FEDERATION_ID_HYPHEN_COUNT)
         return {example_id: l_("Federation ID example")}

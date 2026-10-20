@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import AsyncExitStack, asynccontextmanager
 from time import monotonic
 from typing import TYPE_CHECKING, Final
@@ -65,7 +65,7 @@ async def _release_group_user_whitelist_lock(lock_key: str, owner: str, *, redis
 
 
 @asynccontextmanager
-async def _group_user_whitelist_lock(lock_key: str, *, redis: Redis) -> AsyncIterator[str]:
+async def _group_user_whitelist_lock(lock_key: str, *, redis: Redis) -> AsyncGenerator[str]:
     owner = uuid4().hex
     deadline = monotonic() + GROUP_USER_WHITELIST_LOCK_TIMEOUT_SECONDS
 
@@ -90,7 +90,7 @@ async def _group_user_whitelist_lock(lock_key: str, *, redis: Redis) -> AsyncIte
 async def _group_user_whitelist_locks(
     *memberships: tuple[int, int],
     redis: Redis,
-) -> AsyncIterator[dict[str, str]]:
+) -> AsyncGenerator[dict[str, str]]:
     lock_keys = sorted({_group_user_whitelist_lock_key(chat_tid, user_tid) for chat_tid, user_tid in memberships})
     lock_owners: dict[str, str] = {}
     async with AsyncExitStack() as stack:
@@ -103,7 +103,7 @@ async def _group_user_whitelist_locks(
 async def _group_user_whitelist_migration_locks(
     *chat_tids: int,
     redis: Redis,
-) -> AsyncIterator[None]:
+) -> AsyncGenerator[None]:
     lock_keys = sorted({_group_user_whitelist_migration_lock_key(chat_tid) for chat_tid in chat_tids})
     async with AsyncExitStack() as stack:
         for lock_key in lock_keys:

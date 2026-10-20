@@ -1,5 +1,6 @@
 from ass_tg.exceptions import ArgStrictError
 from ass_tg.types import OrArg, UserIDArg, UsernameArg
+from babel.support import LazyProxy as BabelLazyProxy
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
 from sophie_bot.db.models import ChatModel
@@ -57,7 +58,7 @@ class SophieChatArg(OrArg):
         )
 
     @property
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    def examples(self) -> dict[str, BabelLazyProxy | None] | None:
         return {
             "-100123456789": l_("Chat ID"),
             "@SophieChat": l_("Username"),

@@ -12,8 +12,8 @@ class NoteButton(SophieButtonABC):
     def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Note Button"), l_("Note Buttons")
 
-    @staticmethod
-    def examples() -> dict[str, LazyProxy | None] | None:
+    @property
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnnote:note_name)": None,
         }

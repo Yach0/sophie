@@ -19,8 +19,8 @@ class URLButton(SophieButtonABC):
     def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("URL Button"), l_("URL Buttons")
 
-    @staticmethod
-    def examples() -> dict[str, LazyProxy | None] | None:
+    @property
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnurl:https://google.com)": None,
             "[Button name](buttonurl#success://example.com)": None,

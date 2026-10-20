@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager, suppress
 from time import monotonic
 from uuid import uuid4
@@ -50,7 +50,7 @@ async def _renew_pending_user_lock(lock_key: str, owner: str, *, redis: Redis) -
 
 
 @asynccontextmanager
-async def pending_user_lock(group_tid: int, user_tid: int, *, redis: Redis) -> AsyncIterator[None]:
+async def pending_user_lock(group_tid: int, user_tid: int, *, redis: Redis) -> AsyncGenerator[None]:
     lock_key = _pending_user_lock_key(group_tid, user_tid)
     owner = uuid4().hex
     deadline = monotonic() + WELCOME_SECURITY_PENDING_LOCK_TIMEOUT_SECONDS

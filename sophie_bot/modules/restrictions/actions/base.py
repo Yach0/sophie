@@ -16,7 +16,6 @@ from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
 from sophie_bot.shared.actions import ActionDefinition, ActionResult
-from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 
 
@@ -31,7 +30,7 @@ def restriction_description(duration: timedelta | None) -> Element | str:
 
 class RestrictionActionMixin[ACTION_DATA: BaseModel]:
     definition: ClassVar[ActionDefinition[Any]]
-    action_name: ClassVar[str | LazyProxy]
+    action_name: ClassVar[str]
     action_log_event: ClassVar[LogEvent]
     auto_banned_text: ClassVar[str]
 

@@ -11,8 +11,8 @@ class SophieDMButton(SophieButtonABC):
     def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Sophie DM Button"), l_("Sophie DM Buttons")
 
-    @staticmethod
-    def examples() -> dict[str, LazyProxy | None] | None:
+    @property
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](btnsophieurl)": None,
         }

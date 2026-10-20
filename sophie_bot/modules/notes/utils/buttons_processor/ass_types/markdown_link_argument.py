@@ -1,6 +1,5 @@
 import re
 from abc import ABC
-from functools import cached_property
 from typing import Never
 
 from ass_tg.entities import ArgEntities
@@ -30,7 +29,7 @@ class MarkdownLinkArgument[ExtendedValue = Never](ArgFabric[tuple[str, str] | Ex
     ignored_entities: tuple[str, ...] = ("url", "text_link")
     separator = "]("
 
-    @cached_property
+    @property
     def data_offset(self) -> int:
         return len(self._link_name) + len(self.separator) + len("[](")
 

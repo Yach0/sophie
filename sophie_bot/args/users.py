@@ -2,6 +2,7 @@ from aiogram.types import User
 from ass_tg.entities import ArgEntities
 from ass_tg.exceptions import ArgStrictError
 from ass_tg.types import OrArg, UserIDArg, UserMentionArg, UsernameArg
+from babel.support import LazyProxy as BabelLazyProxy
 from stfu_tg import UserLink
 
 from sophie_bot.db.db_exceptions import DBNotFoundException
@@ -73,7 +74,7 @@ class SophieUserArg(OrArg):
         )
 
     @property
-    def examples(self) -> dict[str, LazyProxy | None] | None:
+    def examples(self) -> dict[str, BabelLazyProxy | None] | None:
         return {
             "1111224224": l_("User ID"),
             "@ofoxr_bot": l_("Username"),

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
@@ -22,7 +22,7 @@ class DatabaseResources:
 
 
 @asynccontextmanager
-async def open_database(config: Config) -> AsyncIterator[DatabaseResources]:
+async def open_database(config: Config) -> AsyncGenerator[DatabaseResources]:
     mongo = AsyncMongoClient(config.mongo_host, config.mongo_port)
     try:
         resources = DatabaseResources(mongo=mongo, database=mongo[config.mongo_db])

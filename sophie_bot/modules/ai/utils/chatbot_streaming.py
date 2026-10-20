@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
-from collections.abc import AsyncIterator, Sequence
+from collections.abc import AsyncGenerator, Sequence
 from contextlib import asynccontextmanager, suppress
 from random import choice
 from typing import Any
@@ -302,7 +302,7 @@ class ChatbotMessageStreamer:
 
 
 @asynccontextmanager
-async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> AsyncIterator[None]:
+async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> AsyncGenerator[None]:
     """Preserve reply failures through cleanup; propagate cleanup failures otherwise."""
     completed = False
     try:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -46,7 +46,7 @@ def _owns_restriction(snapshot: MutePermissionsModel, member: ChatMember) -> boo
 
 
 @asynccontextmanager
-async def _mute_lock(chat_tid: int, user_tid: int) -> AsyncIterator[None]:
+async def _mute_lock(chat_tid: int, user_tid: int) -> AsyncGenerator[None]:
     """A separate lease survives snapshot deletion; Mongo's _id arbitrates workers."""
     collection = MutePermissionsLockModel.get_pymongo_collection()
     lock_id = f"{chat_tid}:{user_tid}"
