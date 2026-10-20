@@ -11,6 +11,7 @@ from tests.test_migration_helper import (
     test_moderator_migration_normalizes_legacy_defaults_and_preserves_false,
     test_moderator_migration_repairs_duplicates_before_unique_index_and_rolls_back,
     test_moderator_rollback_after_first_category_configuration,
+    test_unset_ai_moderator_null_enabled_migration,
 )
 
 __all__ = [
@@ -20,4 +21,5 @@ __all__ = [
     "test_moderator_migration_normalizes_legacy_defaults_and_preserves_false",
     "test_moderator_migration_repairs_duplicates_before_unique_index_and_rolls_back",
     "test_moderator_rollback_after_first_category_configuration",
+    "test_unset_ai_moderator_null_enabled_migration",
 ]

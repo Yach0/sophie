@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiogram_test_framework.factories import MessageFactory, UserFactory
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
+from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.filters.message_status import HasArgs
 from sophie_bot.modules.ai.handlers import aimoderator
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
@@ -118,3 +122,52 @@ async def test_runtime_provider_calls_follow_enabled_override(
     assert provider.await_count == int(expected)
     assert classifier.await_count == int(expected)
     handler.assert_awaited_once_with(message, data)
+
+
+async def test_update_fields_unsets_none_and_omits_null_enabled(db_init: Any) -> None:
+    chat = ChatModel(
+        tid=-1001234567899,
+        type=ChatType.supergroup,
+        first_name_or_title="Test Moderator Group",
+        username="test_moderator_group",
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    )
+    await chat.insert()
+    chat = await ChatModel.get(chat.id)
+    assert chat is not None
+
+    collection = db_init["ai_moderator"]
+    await collection.delete_many({})
+
+    # 1. Update only category levels on a new chat - enabled must not be stored as null
+    created = await AIModeratorModel.update_fields(chat, {"pii": DetectionLevel.HIGH})
+    raw_created = await collection.find_one({"_id": created.id})
+    assert raw_created is not None
+    assert "enabled" not in raw_created
+    assert created.enabled is None
+    assert created.pii == DetectionLevel.HIGH
+
+    # 2. Explicit enable stores True
+    enabled_doc = await AIModeratorModel.set_state(chat, True)
+    raw_enabled = await collection.find_one({"_id": enabled_doc.id})
+    assert raw_enabled is not None
+    assert raw_enabled["enabled"] is True
+    assert enabled_doc.enabled is True
+
+    # 3. Explicit disable stores False
+    disabled_doc = await AIModeratorModel.set_state(chat, False)
+    raw_disabled = await collection.find_one({"_id": disabled_doc.id})
+    assert raw_disabled is not None
+    assert raw_disabled["enabled"] is False
+    assert disabled_doc.enabled is False
+
+    # 4. Reset to None unsets enabled in MongoDB rather than writing null
+    reset_doc = await AIModeratorModel.update_fields(chat, {"enabled": None})
+    raw_reset = await collection.find_one({"_id": reset_doc.id})
+    assert raw_reset is not None
+    assert "enabled" not in raw_reset
+    assert reset_doc.enabled is None
+
+    await collection.delete_many({})
+    await chat.delete()
