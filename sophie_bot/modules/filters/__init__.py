@@ -64,7 +64,8 @@ module_manifest = ModuleManifest(
             l_("Filters allow invoking different actions for different messages."),
             l_("For example, muting the users when they mention crypto."),
             l_(
-                "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
+                "Sophie supports many different actions you can configure to "
+                "automatize chat moderation in many different ways."
             ),
         )
     ),

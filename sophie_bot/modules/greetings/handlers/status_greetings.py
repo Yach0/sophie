@@ -56,7 +56,8 @@ class SetWelcomeMessageHandler(SophieMessageHandler):
             doc += " "
             doc += Template(
                 _(
-                    "⚠️ Please note that the welcome messages are currently disabled in the chat; use '{cmd}' to enable them."
+                    "⚠️ Please note that the welcome messages are currently disabled in the chat; "
+                    "use '{cmd}' to enable them."
                 ),
                 cmd=Italic("/enable_welcome on"),
             )

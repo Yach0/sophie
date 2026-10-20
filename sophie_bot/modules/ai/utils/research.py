@@ -147,7 +147,8 @@ async def search_web_for_research(
     if search_provider not in _RESEARCH_SEARCH_PROVIDERS:
         raise SophieException(
             _(
-                "Research supports the Kagi and TinyFish search providers. Set ai_search_provider to kagi or tinyfish to use it."
+                "Research supports the Kagi and TinyFish search providers. "
+                "Set ai_search_provider to kagi or tinyfish to use it."
             )
         )
     if search_provider == "tinyfish":
@@ -281,7 +282,8 @@ async def _decide_next_step(
     history = _build_history(
         (
             "You review web search results for a multistage research workflow.\n"
-            "Choose action='search' only when follow-up searches are needed because evidence is missing, weak, outdated, or contradictory.\n"
+            "Choose action='search' only when follow-up searches are needed "
+            "because evidence is missing, weak, outdated, or contradictory.\n"
             "Choose action='continue' when there is enough evidence to summarize.\n"
             "When action='search', return focused follow-up queries and do not exceed the requested limit."
         ),
@@ -329,7 +331,8 @@ async def _summarize_research(
             "You summarize multistage web research for Sophie, a Telegram bot.\n"
             "Use only the provided search results as evidence.\n"
             "Mention uncertainty when evidence is weak or sources disagree.\n"
-            "Return a concise final answer, a short research_title, and a sources list containing only sources used to support the answer."
+            "Return a concise final answer, a short research_title, and a sources list "
+            "containing only sources used to support the answer."
         ),
         "\n".join(
             (

@@ -180,6 +180,14 @@ class ChatbotMessageStreamer:
         """Cancel a deferred draft edit when the run ends without a normal final reply."""
         await self._cancel_pending_update()
 
+    async def delete_progress(self) -> None:
+        """Delete unfinished progress placeholder message if present."""
+        if self.response_message is not None:
+            await self._editing_bot().delete_message(
+                chat_id=self.response_message.chat.id,
+                message_id=self.response_message.message_id,
+            )
+
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _throttled(self) -> bool:
@@ -313,10 +321,7 @@ async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> 
             finally:
                 if not completed and not streamer.final_message_sent and streamer.response_message is not None:
                     try:
-                        await streamer._editing_bot().delete_message(
-                            chat_id=streamer.response_message.chat.id,
-                            message_id=streamer.response_message.message_id,
-                        )
+                        await streamer.delete_progress()
                     except BaseException as error:
                         if original_error is None:
                             raise

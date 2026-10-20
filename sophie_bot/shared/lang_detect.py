@@ -7,6 +7,7 @@ ai ↔ locks circular dependency.
 from __future__ import annotations
 
 from collections.abc import Iterable
+from functools import cache
 
 from lingua import (
     ConfidenceValue,
@@ -22,7 +23,6 @@ from sophie_bot.utils.logger import log
 
 _FALLBACK_LANGUAGES: tuple[Language, ...] = (Language.ENGLISH,)
 _TEXT_LANGUAGE_CONFIDENCE_THRESHOLD = 0.35
-_detector: LanguageDetector | None = None
 
 
 def lang_code_to_language(lang_code: str) -> Language:
@@ -51,14 +51,10 @@ def build_language_detector(locales: Iterable[str] | None = None) -> LanguageDet
     return LanguageDetectorBuilder.from_languages(*languages).with_preloaded_language_models().build()
 
 
+@cache
 def get_detector() -> LanguageDetector:
     """Return the singleton LanguageDetector, building it on first access."""
-    global _detector
-
-    if _detector is None:
-        _detector = build_language_detector()
-
-    return _detector
+    return build_language_detector()
 
 
 def detect_languages(text: str) -> list[ConfidenceValue]:

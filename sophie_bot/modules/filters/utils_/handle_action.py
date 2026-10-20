@@ -31,7 +31,7 @@ async def handle_effective_filter_action(
     message: Message,
     action: EffectiveFilterAction,
     data: dict[str, Any],
-    matched_filter: FiltersModel | None = None,
+    _matched_filter: FiltersModel | None = None,
 ) -> ActionResult | None:
     services = data["services"]
     action_item: ModernActionABC = services.modules.action_handlers[action.name]

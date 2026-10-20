@@ -179,6 +179,7 @@ async def test_real_candidate_retry_projects_only_the_attempted_request(
                 for model in (primary, fallback)
             )
         )
+        # deepsource: skip - PYL-R1728 - async comprehension with await cannot be a generator for tuple()
         budgets = tuple(
             [
                 ModelTokenBudget.for_model(await load_token_counter(model.model_name), 200000, 0, 2048)

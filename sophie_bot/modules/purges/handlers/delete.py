@@ -37,7 +37,8 @@ class DelMsgCmdHandler(SophieMessageHandler):
         if reply_to_message.date <= (datetime.now(tz=UTC) - timedelta(days=2)):
             return await self.event.reply(
                 _(
-                    "Couldn't delete the message older than 48 hours (2 days). You can delete it nevertheless using Telegram's admin tools."
+                    "Couldn't delete the message older than 48 hours (2 days). "
+                    "You can delete it nevertheless using Telegram's admin tools."
                 )
             )
 

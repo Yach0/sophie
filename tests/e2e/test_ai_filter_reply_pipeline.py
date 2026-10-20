@@ -165,11 +165,12 @@ async def test_ai_filter_payload_matches_ordinary_reply(test_client: TestClient,
         assert _final_payload(filtered, streaming=streaming) == ordinary_payload
         assert match.await_count == (1 if handler.startswith("ai:") else 0)
         schedule.assert_called_once()
-        produced = next(
+        produced_candidates = (
             request
             for request in filtered
             if "rich_message" in request.params and request.request_type == RequestType.OTHER
         )
+        produced = next(produced_candidates)
         assert produced.params["chat_id"] == group.id
         assert produced.params["reply_parameters"]["message_id"] == schedule.call_args.args[1][0]
         assert produced.response.message_id in schedule.call_args.args[1]
@@ -295,16 +296,18 @@ async def test_ai_filter_silent_mode_tracks_final_replies(
             final_ai = [request for request in requests if "rich_message" in request.params][-1]
             reply_ids = [final_ai.response.message_id, plain_sends[0].response.message_id]
 
-        trigger_id = next(
+        trigger_id_candidates = (
             request.params["reply_parameters"]["message_id"]
             for request in requests
             if request.request_type in {RequestType.SEND_MESSAGE, RequestType.OTHER}
             and "reply_parameters" in request.params
         )
+        trigger_id = next(trigger_id_candidates)
         schedule.assert_called_once_with(group.id, [trigger_id, *reply_ids], delay_seconds=30)
         assert len(set(reply_ids)) == len(reply_ids)
         await deletions.delete_messages_after_delay(group.id, schedule.call_args.args[1], delay_seconds=0)
-        deletion = next(request for request in test_client.capture.all_requests if "message_ids" in request.params)
+        deletion_candidates = (request for request in test_client.capture.all_requests if "message_ids" in request.params)
+        deletion = next(deletion_candidates)
         assert deletion.params["chat_id"] == group.id
         assert deletion.params["message_ids"] == [trigger_id, *reply_ids]
 
