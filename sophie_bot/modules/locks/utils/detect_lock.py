@@ -39,7 +39,9 @@ EMOJI_REGEX = re.compile(
 INVITE_LINK_REGEX = re.compile(r"(t\.me/\+|t\.me/joinchat|telegram\.me/\+|telegram\.me/joinchat)", re.IGNORECASE)
 BOT_LINK_REGEX = re.compile(r"(t\.me/|telegram\.me/)[a-zA-Z0-9_]+bot\b", re.IGNORECASE)
 EMOJI_ONLY_REGEX = re.compile(
-    r"^[\s\U0001f600-\U0001f64f\U0001f300-\U0001f5ff\U0001f680-\U0001f6ff\U0001f1e0-\U0001f1ff\U00002702-\U000027b0\U0001f900-\U0001f9ff\U0001fa70-\U0001faff\U00002600-\U000026ff\U00002700-\U000027bf]*$"
+    r"^[\s\U0001f600-\U0001f64f\U0001f300-\U0001f5ff\U0001f680-\U0001f6ff"
+    r"\U0001f1e0-\U0001f1ff\U00002702-\U000027b0\U0001f900-\U0001f9ff"
+    r"\U0001fa70-\U0001faff\U00002600-\U000026ff\U00002700-\U000027bf]*$"
 )
 MEDIA_ATTRIBUTES = ("photo", "video", "audio", "document", "sticker", "animation", "voice", "video_note")
 

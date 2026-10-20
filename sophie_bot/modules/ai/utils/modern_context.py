@@ -11,7 +11,7 @@ from datetime import UTC, datetime
 from html import unescape
 from typing import BinaryIO, Literal
 from uuid import uuid4
-from xml.etree import ElementTree
+from xml.etree import ElementTree  # deepsource: skip - BAN-B405 - only serializing XML, no parsing
 
 import sentry_sdk
 from aiogram import Bot
@@ -494,11 +494,17 @@ class ModernContext:
                 if instructions is None:
                     instructions = default_instructions
             policy = (
-                "Entertainment: first_name is the permitted first name of a speaker. Use it for natural dialogue "
-                "and name-related jokes; prefix a first-name mention with @ for output-only resolution. Never use surnames, "
-                "real usernames or Telegram IDs. Keep uN anchors in memory even when a fact concerns a first name."
+                (
+                    "Entertainment: first_name is the permitted first name of a speaker. "
+                    "Use it for natural dialogue and name-related jokes; "
+                    "prefix a first-name mention with @ for output-only resolution. Never use surnames, "
+                    "real usernames or Telegram IDs. Keep uN anchors in memory even when a fact concerns a first name."
+                )
                 if context.mode == AIMode.entertainment
-                else "Use aliases when addressing people; never use display names, usernames, Telegram IDs or Telegram mentions."
+                else (
+                    "Use aliases when addressing people; never use display names, "
+                    "usernames, Telegram IDs or Telegram mentions."
+                )
             )
             instructions_with_policy = instructions + "\n\n" + cls.TAGGING_LEGEND + "\n" + policy
             instruction_hash = hashlib.sha256(instructions_with_policy.encode()).hexdigest()
@@ -591,12 +597,16 @@ class ModernContext:
             _("You can use the web search tool to search for information. Include information sources as links."),
             _("You can also save important things to the memory.") if capabilities.memory else None,
             _(
-                "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
+                "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool "
+                "to obtain a help context, do not search internet for bot information. "
+                "Do not use it for questions that are not about Sophie."
             ),
             Template(_("Available Sophie modules: {modules}"), modules=HList(*context.services.modules.help_modules)),
             _("You can use the research tool to research complicated topics instead of plain web search."),
             _(
-                "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+                "Earlier tool calls and their results are part of the conversation history. "
+                "Reuse that information instead of calling the same tool with the same arguments again, "
+                "unless the user asks for an update or the information may have changed."
             ),
         )
         runtime = ElementTree.Element("runtime_context")
@@ -873,8 +883,8 @@ class ModernContext:
         )
         return self._format_message(user_tid, message.message_id, parts, reply_id=reply_id, reference=reference)
 
+    @staticmethod
     def _event(
-        self,
         messages: Sequence[ModelRequest | ModelResponse],
         kind: Literal["background", "turn"],
         *,
@@ -944,16 +954,17 @@ class ModernContext:
         self, candidate: AIModelCandidate
     ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
         """Budget an isolated request; fallback attempts never shrink the primary session."""
-        budget = (
-            next(
-                budget
-                for budget in self._token_budgets
-                if budget.counter.model_name == candidate.model.model_name
-                and budget.context_window_tokens in (None, candidate.context_window_tokens)
-            )
-            if self._token_budgets
-            else ModelTokenBudget(TokenCounter(candidate.model.model_name), self._budget)
-        )
+        # pylint: disable=protected-access
+        # deepsource: skip - PYL-W0212 - projection is an instance clone of the same ModernContext class
+        matching_budget = None
+        for candidate_budget in self._token_budgets:
+            if (
+                candidate_budget.counter.model_name == candidate.model.model_name
+                and candidate_budget.context_window_tokens in (None, candidate.context_window_tokens)
+            ):
+                matching_budget = candidate_budget
+                break
+        budget = matching_budget or ModelTokenBudget(TokenCounter(candidate.model.model_name), self._budget)
         projection = copy(self)
         projection._state = self._state.model_copy(deep=True)
         projection.prompt = list(self.prompt)
@@ -1124,13 +1135,17 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
     context_doc = Doc(
         _("You can also save important things to the memory.") if capabilities.memory else None,
         _(
-            "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool to obtain a help context, do not search internet for bot information. Do not use it for questions that are not about Sophie."
+            "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool "
+            "to obtain a help context, do not search internet for bot information. "
+            "Do not use it for questions that are not about Sophie."
         ),
         Template(_("Available Sophie modules: {modules}"), modules=HList(*context.services.modules.help_modules)),
     )
     context_doc += _("You can use the research tool to research complicated topics instead of plain web search.")
     context_doc += _(
-        "Earlier tool calls and their results are part of the conversation history. Reuse that information instead of calling the same tool with the same arguments again, unless the user asks for an update or the information may have changed."
+        "Earlier tool calls and their results are part of the conversation history. "
+        "Reuse that information instead of calling the same tool with the same arguments again, "
+        "unless the user asks for an update or the information may have changed."
     )
     chat_model = await ChatModel.get_by_tid(context.chat_tid)
     if chat_model and chat_model.first_name_or_title:
@@ -1233,11 +1248,19 @@ def build_decision_prompt(
         (
             "Decide how Sophie should naturally join this Telegram chat: none, react, or answer.",
             f"Limits: max {settings.max_answers} answers, max {settings.max_reactions} reactions.",
-            "Use answer when Sophie should reply to a specific message; the answer action will be sent as a Telegram reply to that message.",
+            (
+                "Use answer when Sophie should reply to a specific message; "
+                "the answer action will be sent as a Telegram reply to that message."
+            ),
             settings.prompt,
-            "React only when it clearly fits the moment; do not react just to do something. Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉.",
-            "Choose none when Sophie would not add anything, or the batch is spam, pure transactions, moderation chatter, or an obvious interruption.",
-            "Pick only provided message_id values.",
+            (
+                "React only when it clearly fits the moment; do not react just to do something. "
+                "Choose only Telegram reaction emoji; avoid 😊 🙂 😅 😆 😜 😉."
+            ),
+            (
+                "Choose none when Sophie would not add anything, or the batch is spam, "
+                "pure transactions, moderation chatter, or an obvious interruption."
+            ),
             "Recent messages:",
             render_messages_for_prompt(messages),
         )

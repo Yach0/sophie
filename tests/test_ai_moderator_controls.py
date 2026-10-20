@@ -20,7 +20,8 @@ async def test_hasargs_selects_separate_control_handler() -> None:
     assert control is not None
     for args, expected in (("", False), (" on", True), (" off", True)):
         message = MessageFactory.create(from_user=UserFactory.create(user_id=42), text="/aimoderator" + args)
-        control_filter = next(filter_ for filter_ in control.filters() if isinstance(filter_, HasArgs))
+        control_filter_candidates = (filter_ for filter_ in control.filters() if isinstance(filter_, HasArgs))
+        control_filter = next(control_filter_candidates)
         picker_filter = aimoderator.AIModeratorSetting.filters()[-1]
         assert await control_filter(message) is expected
         assert await picker_filter(message) is (not expected)

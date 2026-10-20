@@ -164,10 +164,11 @@ class WarnHandler(SophieMessageHandler):
         # Rules button
         if await RulesModel.get_rules(connection.db_model.iid):
             bot_username = (await self.bot.get_me()).username
+            rules_payload = build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, connection.tid)
             builder.row(
                 InlineKeyboardButton(
                     text=f"🪧 {_('Rules')}",
-                    url=f"https://t.me/{bot_username}?start={build_legacy_start_payload(LEGACY_RULES_BUTTON_PREFIX, connection.tid)}",
+                    url=f"https://t.me/{bot_username}?start={rules_payload}",
                 )
             )
 

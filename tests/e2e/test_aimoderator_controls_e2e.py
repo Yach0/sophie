@@ -27,7 +27,8 @@ from tests.utils.rich_html import parse_rich_html
 
 
 def _table(requests: list[CapturedRequest]) -> ElementTree.Element:
-    request = next(request for request in reversed(requests) if request.params.get("rich_message"))
+    request_candidates = (request for request in reversed(requests) if request.params.get("rich_message"))
+    request = next(request_candidates)
     assert not request.params.get("reply_markup"), "All controls must be embedded in the table"
     root = parse_rich_html(request.params["rich_message"]["html"])
     table = root.find("table")
@@ -38,7 +39,8 @@ def _table(requests: list[CapturedRequest]) -> ElementTree.Element:
 
 
 def _assert_control(table: ElementTree.Element, label: str, callback: str, value: str) -> None:
-    row = next(row for row in table.findall("tr") if label in "".join(row[0].itertext()))
+    row_candidates = (row for row in table.findall("tr") if label in "".join(row[0].itertext()))
+    row = next(row_candidates)
     button = row[1].find("tg-button")
     assert button is not None, "The value itself must be an inline control in the corresponding row"
     assert button.attrib == {"type": "callback_data", "data": callback}

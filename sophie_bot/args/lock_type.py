@@ -29,7 +29,8 @@ class LockTypeArg(WordArg):
 
         raise ArgStrictError(
             l_(
-                "Unknown lock type. Use /lockable to see all available lock types, or use stickerpack:PACK_ID or language:LANG format."
+                "Unknown lock type. Use /lockable to see all available lock types, "
+                "or use stickerpack:PACK_ID or language:LANG format."
             )
         )
 
