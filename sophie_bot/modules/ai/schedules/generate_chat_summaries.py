@@ -288,9 +288,8 @@ class GenerateChatSummaries:
         overview: str,
         lines: list[AIChatSummaryLine],
         *,
-        chat_iid: PydanticObjectId,
+        header: Element | str,
     ) -> int:
-        header = await build_chatbot_header(chat_iid, redis=self.services.redis)
         sent_message = await send_ai_rich_message_to_chat(
             chat_tid,
             _build_summary_doc(chat_tid, summary_date, overview, lines, header=header),
@@ -404,9 +403,10 @@ class GenerateChatSummaries:
             )
             return
 
+        header = await build_chatbot_header(chat.iid, redis=self.services.redis)
         summary = await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
         summary.sent_message_id = await self.send_summary(
-            target_chat_tid or chat.tid, summary_date, groups.overview, lines, chat_iid=chat.iid
+            target_chat_tid or chat.tid, summary_date, groups.overview, lines, header=header
         )
         await summary.save()
         await self.pin_summary(summary, target_chat_tid or chat.tid)

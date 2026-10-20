@@ -211,6 +211,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
         upsert_for_date,
     )
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", AsyncMock(return_value="🔋"))
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
@@ -255,7 +256,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
                 source_excerpt="first",
             )
         ],
-        chat_iid=chat.iid,
+        header="🔋",
     )
 
 
@@ -309,6 +310,7 @@ async def test_process_chat_tracks_summary_metrics(monkeypatch: pytest.MonkeyPat
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
         AsyncMock(),
     )
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", AsyncMock(return_value="🔋"))
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", AsyncMock())
     count_metric = Mock()
     monkeypatch.setattr("sophie_bot.modules.ai.schedules.generate_chat_summaries.count_metric", count_metric)
@@ -377,6 +379,7 @@ async def test_process_chat_upserts_empty_summary_when_no_lines_generated(monkey
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
         upsert_for_date,
     )
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", AsyncMock(return_value="🔋"))
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
@@ -469,6 +472,7 @@ async def test_process_chat_force_bypasses_existing_summary(monkeypatch: pytest.
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
         upsert_for_date,
     )
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", AsyncMock(return_value="🔋"))
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
 
@@ -581,9 +585,8 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
     ]
 
     summaries = _summaries()
-    message_id = await summaries.send_summary(
-        -1001234567890, summary_date, "General overview", lines, chat_iid=chat_iid
-    )
+    header = await generate_chat_summaries.build_chatbot_header(chat_iid, redis=summaries.services.redis)
+    message_id = await summaries.send_summary(-1001234567890, summary_date, "General overview", lines, header=header)
 
     assert message_id == 42
     quota_info.assert_awaited_once_with(chat_iid, redis=summaries.services.redis)
@@ -760,6 +763,7 @@ def _patch_process_chat_dependencies(
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.AIChatSummaryModel.upsert_for_date",
         upsert_for_date,
     )
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", AsyncMock(return_value="🔋"))
     send_summary = AsyncMock()
     monkeypatch.setattr(GenerateChatSummaries, "send_summary", send_summary)
     return upsert_for_date, send_summary
@@ -988,6 +992,45 @@ async def test_scheduled_boundary_labels_and_stores_end_date_without_regeneratin
     generate_groups.assert_awaited_once()
     rich_sender.assert_awaited_once()
     assert await AIChatSummaryModel.find(AIChatSummaryModel.chat.id == chat.iid).count() == 1
+
+
+@pytest.mark.asyncio
+async def test_process_chat_retries_after_header_failure(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices
+) -> None:
+    chat = await ChatModel.upsert_group(Chat(id=-1003456790, type="supergroup", title="Header retry"))
+    summary_date = date(2026, 5, 3)
+    _patch_privacy_flag(monkeypatch, enabled=False)
+    monkeypatch.setattr(
+        generate_chat_summaries,
+        "get_cached_messages_between",
+        AsyncMock(return_value=_transcript_sample()),
+    )
+    monkeypatch.setattr(
+        GenerateChatSummaries,
+        "generate_summary_groups",
+        AsyncMock(return_value=_summary_groups([45201, 45202, 45203])),
+    )
+    build_header = AsyncMock(side_effect=[RuntimeError("Header lookup failed"), "🔋"])
+    monkeypatch.setattr(generate_chat_summaries, "build_chatbot_header", build_header)
+    rich_sender = AsyncMock(return_value=SimpleNamespace(message_id=42))
+    monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
+    summaries = GenerateChatSummaries(test_services)
+
+    with pytest.raises(RuntimeError, match="Header lookup failed"):
+        await summaries.process_chat(chat, summary_date)
+
+    assert await AIChatSummaryModel.get_for_date(chat.iid, summary_date) is None
+    rich_sender.assert_not_awaited()
+
+    await summaries.process_chat(chat, summary_date)
+
+    assert build_header.await_args_list == [call(chat.iid, redis=test_services.redis)] * 2
+    stored_summary = await AIChatSummaryModel.get_for_date(chat.iid, summary_date)
+    assert stored_summary is not None
+    assert stored_summary.sent_message_id == 42
+    rich_sender.assert_awaited_once()
+    assert "🔋" in rich_sender.await_args.args[1].to_html()
 
 
 @pytest.mark.asyncio
