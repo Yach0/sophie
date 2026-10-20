@@ -308,9 +308,12 @@ assets from the locked dependencies and pinned GLM revision. No model weights or
 provider credentials are needed. Tokenizer instances load off the event loop and
 are cached per process.
 
-Stable instructions precede append-only history. Date-only runtime snapshots,
-escaped XML chat notes and 1-based XML memory items are appended when runtime data
-changes. The latest runtime snapshot supersedes earlier snapshots. Current/replied
+Stable instructions precede conversation history. Each request carries one current
+runtime snapshot with the date, escaped XML chat notes and 1-based XML memory items;
+earlier runtime blocks are removed structurally from replayed history. Previous-chat
+summary context uses only the newest stored daily summary for that chat, with its
+`summary_date` rendered in both runtime XML and chatbot instructions. An empty or
+missing latest summary clears that context without generating a replacement. Current/replied
 speakers and memory references can appear in the entertainment roster; old private
 alias maps do not grow the roster forever.
 Group and channel titles are included as escaped XML in runtime snapshots, never in
