@@ -5,6 +5,7 @@ import hashlib
 import re
 from collections.abc import Awaitable, Callable, Collection, Mapping, Sequence
 from contextlib import suppress
+from copy import copy
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from html import unescape
@@ -42,6 +43,7 @@ from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel, N
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
+from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import (
@@ -400,6 +402,7 @@ class ModernContext:
         self.message_history: list[ModelRequest | ModelResponse] = []
         self.instructions = ""
         self.runtime_context = ""
+        self._runtime_update = ""
         self._budget = 0
         self._token_budgets: tuple[ModelTokenBudget, ...] = ()
         self._request_id = 0
@@ -466,7 +469,7 @@ class ModernContext:
         history = cls(redis=context.services.redis, chat_tid=context.chat_tid, mode=context.mode)
         history._budget = token_budget
         history._token_budgets = tuple(token_budgets)
-        if any(budget.input_tokens <= 0 for budget in token_budgets):
+        if any(budget.input_tokens <= 0 for budget in token_budgets[:1]):
             raise ValueError("Modern context requires positive model input budgets")
         history._request_id = message.message_id
         try:
@@ -511,6 +514,7 @@ class ModernContext:
                 runtime = ElementTree.Element("runtime_context")
                 ElementTree.SubElement(runtime, "text").text = history.runtime_context
                 runtime_update = ElementTree.tostring(runtime, encoding="unicode")
+            history._runtime_update = runtime_update
             reply = message.reply_to_message
             omitted = {message.message_id, *excluded_message_ids}
             if reply:
@@ -921,35 +925,71 @@ class ModernContext:
         if pending and include_background:
             self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
 
+    def project_for_candidate(
+        self, candidate: AIModelCandidate
+    ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
+        """Budget an isolated request; fallback attempts never shrink the primary session."""
+        budget = (
+            next(
+                budget
+                for budget in self._token_budgets
+                if budget.counter.model_name == candidate.model.model_name
+                and budget.context_window_tokens in (None, candidate.context_window_tokens)
+            )
+            if self._token_budgets
+            else ModelTokenBudget(TokenCounter(candidate.model.model_name), self._budget)
+        )
+        projection = copy(self)
+        projection._state = self._state.model_copy(deep=True)
+        projection.prompt = list(self.prompt)
+        projection._token_budgets = (budget,)
+        projection._budget = budget.input_tokens
+        projection._prune()
+        # A smaller projection can remove the turn carrying the latest runtime snapshot.
+        if self._runtime_update and not any(
+            self._runtime_update in (_user_prompt_text(part.content) or "")
+            for message in [
+                *(message for event in projection._state.events for message in event.messages()),
+                ModelRequest(parts=[UserPromptPart(projection.prompt)]),
+            ]
+            for part in message.parts
+            if isinstance(part, UserPromptPart)
+        ):
+            projection.prompt.insert(0, self._runtime_update)
+            projection._prune()
+        messages = [message for event in projection._state.events for message in event.messages()]
+        return projection.prompt, messages
+
     def _prune(self, *, include_current: bool = True) -> None:
-        budgets = self._token_budgets or (ModelTokenBudget(TokenCounter("unknown"), self._budget),)
-        for budget in budgets:
-            counter = budget.counter
-            reserve = counter.count_content(self.prompt) if include_current else 0
-            available = min(self._budget, budget.input_tokens) - counter.count_text(self.instructions) - reserve - 64
-            if available < 0:
-                raise ValueError(
-                    f"Current modern AI request exceeds its token budget for {counter.model_name}; "
-                    "current content is never truncated"
-                )
-            # Counts are run-local: persisted events can cross model/tokenizer/config changes.
-            counts = [counter.count_messages(event.messages()) for event in self._state.events]
-            total = sum(counts)
-            target = total if total <= available else int(available * 0.8)
-            removed: set[int] = set()
-            for kind in ("background", "turn"):
-                candidates = [index for index, event in enumerate(self._state.events) if event.kind == kind]
-                for index in candidates:
-                    if total <= target:
-                        break
-                    # Preserve the newest complete turn if it fits. Each event includes all
-                    # its tool calls and returns, so removing an event never splits a pair.
-                    if kind == "turn" and index == candidates[-1] and total <= available:
-                        break
-                    total -= counts[index]
-                    removed.add(index)
-            self._state.events = [event for index, event in enumerate(self._state.events) if index not in removed]
-        # Every pass only removes events, so later candidate limits preserve earlier fits.
+        budget = (
+            self._token_budgets[0] if self._token_budgets else ModelTokenBudget(TokenCounter("unknown"), self._budget)
+        )
+        counter = budget.counter
+        reserve = counter.count_content(self.prompt) if include_current else 0
+        available = min(self._budget, budget.input_tokens) - counter.count_text(self.instructions) - reserve - 64
+        if available < 0:
+            raise ValueError(
+                f"Current modern AI request exceeds its token budget for {counter.model_name}; "
+                "current content is never truncated"
+            )
+        # Counts are run-local: persisted events can cross model/tokenizer/config changes.
+        counts = [counter.count_messages(event.messages()) for event in self._state.events]
+        total = sum(counts)
+        target = total if total <= available else int(available * 0.8)
+        removed: set[int] = set()
+        for kind in ("background", "turn"):
+            candidates = [index for index, event in enumerate(self._state.events) if event.kind == kind]
+            for index in candidates:
+                if total <= target:
+                    break
+                # Preserve the newest complete turn if it fits. Each event includes all
+                # its tool calls and returns, so removing an event never splits a pair.
+                if kind == "turn" and index == candidates[-1] and total <= available:
+                    break
+                total -= counts[index]
+                removed.add(index)
+        self._state.events = [event for index, event in enumerate(self._state.events) if index not in removed]
+        # Persisted retention belongs to the primary model; other budgets are request projections.
         # Aliases only outlive pruning when the retained context or this request refers to them.
         # A pruned, unreferenced message receives a new monotonically allocated alias if it is
         # later supplied explicitly as a reply. Speaker attribution stays session-stable.
