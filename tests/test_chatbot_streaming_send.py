@@ -8,12 +8,12 @@ import pytest
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError, TelegramNetworkError
 from aiogram.methods import EditMessageText
-from aiogram.types import Chat, Message
+from aiogram.types import Chat, InlineKeyboardButton, InlineKeyboardMarkup, Message
 from fakeredis import FakeAsyncRedis
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from stfu_tg import Doc
+from stfu_tg import Bold, Doc
 
 from sophie_bot.modules.ai.utils.ai_run import run_ai_stream
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, chatbot_streaming_session
@@ -40,53 +40,91 @@ def make_streamer(bot: Bot, redis: FakeAsyncRedis) -> ChatbotMessageStreamer:
     return streamer
 
 
-@pytest.mark.parametrize("failure_stage", ["draft", "final"])
-async def test_not_modified_does_not_abort_event_stream_or_final_reply(
-    failure_stage: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
+async def test_repeated_stream_snapshots_and_final_render_do_not_edit(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
 ) -> None:
     streamer = make_streamer(streaming_bot, test_redis)
-    payloads: list[str] = []
-    rejected = False
-
-    async def edit_request(bot: Bot, method: EditMessageText, **kwargs: object) -> Message:
-        nonlocal rejected
-        assert method.rich_message is not None
-        assert method.rich_message.html is not None
-        payloads.append(method.rich_message.html)
-        is_final = method.rich_message.html == "Final answer"
-        if not rejected and is_final == (failure_stage == "final"):
-            rejected = True
-            raise TelegramBadRequest(method=method, message=MSG_NOT_MODIFIED)
-        assert streamer.response_message is not None
-        return streamer.response_message
+    assert streamer.response_message is not None
+    streamer.response_message = streamer.response_message.model_copy(update={"text": None})
+    request = AsyncMock(return_value=streamer.response_message)
 
     async def model_stream(_messages: list[ModelMessage], _info: AgentInfo) -> AsyncIterator[str]:
         yield "Answer"
         yield " continued"
 
+    async def repeated_snapshot(text: str) -> None:
+        await streamer.stream(text)
+        await streamer.stream(text)
+
     agent = Agent(FunctionModel(stream_function=model_stream))
-    request = AsyncMock(side_effect=edit_request)
     with (
         patch.object(streaming_bot.session, "make_request", request),
         patch("sophie_bot.modules.ai.utils.ai_run._STREAM_DEBOUNCE_SECONDS", 0),
     ):
         async with chatbot_streaming_session(streamer):
-            result = await run_ai_stream(agent, "Question", on_text_stream=streamer.stream)
+            result = await run_ai_stream(agent, "Question", on_text_stream=repeated_snapshot)
             assert result.output == "Answer continued"
-            response = await streamer.send_final(Doc("Final answer"))
-            assert response is streamer.response_message
-            assert streamer._last_sent_rich == "Final answer"
+            before_final = request.await_count
+            await streamer.send_final(await streamer._render_doc(result.output))
+            assert request.await_count == before_final
 
-    assert rejected
-    assert any("Answer continued" in payload for payload in payloads)
-    assert payloads[-1] == "Final answer"
+    payloads = [call.args[1].rich_message.html for call in request.await_args_list]
+    assert len(payloads) >= 2
+    assert len(payloads) == len(set(payloads))
+    assert "Answer continued" in payloads[-1]
     assert streamer.final_message_sent
+
+
+async def test_rendered_content_comparison_preserves_formatting_changes(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    request = AsyncMock(return_value=streamer.response_message)
+    with patch.object(streaming_bot.session, "make_request", request):
+        await streamer._update(Doc("Answer"))
+        await streamer._update(Doc("Answer"))
+        await streamer._update(Doc(Bold("Answer")))
+        await streamer._update(Doc(Bold("Answer")))
+    assert [call.args[1].rich_message.html for call in request.await_args_list] == ["Answer", "<b>Answer</b>"]
+
+
+async def test_final_send_tracks_content_and_only_changed_keyboard_edits(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    assert streamer.response_message is not None
+    sent = streamer.response_message.model_copy(update={"text": None}).as_(streaming_bot)
+    streamer.response_message = None
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    request = AsyncMock(return_value=sent)
+    with patch.object(streaming_bot.session, "make_request", request):
+        assert await streamer.send_final(Doc("Answer"), reply_markup=keyboard) is sent
+        assert streamer.response_message is sent
+        assert streamer._last_sent_rich == "Answer"
+        await streamer.send_final(Doc("Answer"), reply_markup=keyboard.model_copy(deep=True))
+        assert request.await_count == 1
+        changed_keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="Next", callback_data="next")]]
+        )
+        await streamer.send_final(Doc("Answer"), reply_markup=changed_keyboard)
+        assert request.await_count == 2
+        assert request.await_args.args[1].reply_markup == changed_keyboard
+        await streamer.send_final(Doc("Answer"), reply_markup=changed_keyboard)
+        assert request.await_count == 2
+        await streamer.send_final(Doc("Answer"))
+        assert request.await_count == 2
+        await streamer.send_final(Doc("Answer"), reply_markup=None)
+        assert request.await_count == 3
+        assert request.await_args.args[1].reply_markup is None
+        await streamer.send_final(Doc("Answer"), reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+        assert request.await_count == 3
 
 
 @pytest.mark.parametrize("failure_stage", ["draft", "final"])
 @pytest.mark.parametrize(
     "error_type,error_message",
     [
+        (TelegramBadRequest, MSG_NOT_MODIFIED),
         (TelegramBadRequest, "message is too long"),
         (TelegramForbiddenError, "bot was blocked"),
         (TelegramNetworkError, "connection lost"),
@@ -113,3 +151,64 @@ async def test_real_edit_failures_still_propagate(
     assert raised.value is error
     assert streamer._last_sent_rich is None
     assert not streamer.final_message_sent
+    assert streamer.last_sent_text == ""
+    request = AsyncMock(return_value=streamer.response_message)
+    with patch.object(streaming_bot.session, "make_request", request):
+        if failure_stage == "draft":
+            await streamer.stream("Answer")
+        else:
+            await streamer.send_final(Doc("Final answer"))
+    request.assert_awaited_once()
+    assert streamer._last_sent_rich is not None
+
+
+@pytest.mark.parametrize("stage", ["thinking", "draft", "final"])
+async def test_failed_send_is_retryable(stage: str, streaming_bot: Bot, test_redis: FakeAsyncRedis) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    sent = streamer.response_message
+    streamer.response_message = None
+    error = TelegramNetworkError(method=EditMessageText(chat_id=1, message_id=3, text="Answer"), message="offline")
+    request = AsyncMock(side_effect=[error, sent])
+    with patch.object(streaming_bot.session, "make_request", request):
+        with pytest.raises(TelegramNetworkError) as raised:
+            if stage == "thinking":
+                await streamer.send_thinking_message()
+            elif stage == "draft":
+                await streamer.stream("Answer")
+            else:
+                await streamer.send_final(Doc("Answer"))
+        assert raised.value is error
+        assert streamer.response_message is None
+        assert streamer._last_sent_rich is None
+        assert streamer.last_sent_text == ""
+        assert not streamer.final_message_sent
+        if stage == "thinking":
+            await streamer.send_thinking_message()
+        elif stage == "draft":
+            await streamer.stream("Answer")
+        else:
+            await streamer.send_final(Doc("Answer"))
+    assert request.await_count == 2
+    assert streamer._last_sent_rich is not None
+
+
+async def test_failed_markup_edit_preserves_last_successful_content(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    error = TelegramNetworkError(method=EditMessageText(chat_id=1, message_id=3, text="Answer"), message="offline")
+    request = AsyncMock(return_value=streamer.response_message)
+    with patch.object(streaming_bot.session, "make_request", request):
+        await streamer._update(Doc("Answer"))
+        request.side_effect = error
+        with pytest.raises(TelegramNetworkError) as raised:
+            await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        assert raised.value is error
+        assert streamer._last_sent_rich == "Answer"
+        assert not streamer.final_message_sent
+        request.side_effect = None
+        await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        assert request.await_count == 3
+        await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        assert request.await_count == 3

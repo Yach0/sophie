@@ -9,7 +9,7 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
@@ -24,8 +24,6 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
-from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -80,13 +78,16 @@ class ChatbotMessageStreamer:
         self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
+        # Compare the rendered payload, since rich replies can have message.text=None.
         self._last_sent_rich: str | None = None
+        self._last_sent_reply_markup: InlineKeyboardMarkup | None = None
         self._pending_update_task: asyncio.Task[None] | None = None
 
     async def send_thinking_message(self) -> None:
         doc = self._build_progress_doc(self.placeholder)
         self.response_message = await send_ai_rich_message(self.source_message, doc)
         self._last_sent_rich = doc.to_rich()
+        self._last_sent_reply_markup = None
 
     async def stream(self, text: str) -> None:
         if not text.strip():
@@ -148,27 +149,30 @@ class ChatbotMessageStreamer:
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
         await self._cancel_pending_update()
         rendered_rich = doc.to_rich()
-        if self.response_message is None:
-            result = await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
-            self.final_message_sent = True
-            return result
-
         reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
-        if rendered_rich == self._last_sent_rich and reply_markup is None:
+        if reply_markup is not None and not reply_markup.inline_keyboard:
+            reply_markup = None
+        if self.response_message is None:
+            self.response_message = await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+            self._last_sent_rich = rendered_rich
+            self._last_sent_reply_markup = reply_markup
             self.final_message_sent = True
             return self.response_message
 
-        result = await common_try(
-            self._editing_bot().edit_message_text(
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
-                reply_markup=reply_markup,
-            ),
-            ignored_bad_request_errors=(MSG_NOT_MODIFIED,),
-            ignored_exceptions=(),
+        if rendered_rich == self._last_sent_rich and (
+            "reply_markup" not in reply_kwargs or reply_markup == self._last_sent_reply_markup
+        ):
+            self.final_message_sent = True
+            return self.response_message
+
+        result = await self._editing_bot().edit_message_text(
+            chat_id=self.response_message.chat.id,
+            message_id=self.response_message.message_id,
+            rich_message=InputRichMessage(html=rendered_rich),
+            reply_markup=reply_markup,
         )
         self._last_sent_rich = rendered_rich
+        self._last_sent_reply_markup = reply_markup
         self.final_message_sent = True
         return result if isinstance(result, Message) else self.response_message
 
@@ -270,7 +274,7 @@ class ChatbotMessageStreamer:
         return bot
 
     async def _update(self, doc: Doc) -> None:
-        """Edit the placeholder in place; only unchanged Telegram edits are benign."""
+        """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
         rendered_rich = doc.to_rich()
         if rendered_rich == self._last_sent_rich:
             return
@@ -278,17 +282,14 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await common_try(
-                self._editing_bot().edit_message_text(
-                    chat_id=self.response_message.chat.id,
-                    message_id=self.response_message.message_id,
-                    rich_message=InputRichMessage(html=rendered_rich),
-                ),
-                ignored_bad_request_errors=(MSG_NOT_MODIFIED,),
-                ignored_exceptions=(),
+            await self._editing_bot().edit_message_text(
+                chat_id=self.response_message.chat.id,
+                message_id=self.response_message.message_id,
+                rich_message=InputRichMessage(html=rendered_rich),
             )
 
         self._last_sent_rich = rendered_rich
+        self._last_sent_reply_markup = None
         self.last_sent_at = time.monotonic()
 
 
