@@ -60,18 +60,18 @@ async def prepare_chatbot_history(
             # Provider-specific tool schemas and chat templates are not exact local text
             # counts; leave explicit headroom, in addition to media/message framing allowances.
             token_budgets = [
-                ModelTokenBudget(
-                    counter=await load_token_counter(candidate.model.model_name),
-                    input_tokens=min(
-                        configured_budget, candidate.require_context_window_tokens() - output_budget - 4096
-                    ),
+                ModelTokenBudget.for_model(
+                    await load_token_counter(candidate.model.model_name),
+                    candidate.require_context_window_tokens(),
+                    configured_budget,
+                    output_budget,
                 )
                 for candidate in candidates
             ]
             history = await ModernContext.build(
                 message,
                 context,
-                token_budget=configured_budget,
+                token_budget=token_budgets[0].input_tokens,
                 token_budgets=token_budgets,
                 request_context=request_context,
                 on_activity=on_activity,

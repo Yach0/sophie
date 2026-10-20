@@ -30,13 +30,20 @@ from sophie_bot.utils.ai_tokenizer_assets import GLM_TOKENIZER_FILENAME, TOKENIZ
 
 _TOKENIZER_LOAD_LOCK = Lock()
 
+# Application policy for unrecognized tokenizers, not a claimed provider capability.
+# Bound exposure to cl100k estimation error even for a large registered context window.
+# Known tokenizers use their full registered capacity instead.
+UNKNOWN_TOKENIZER_CONTEXT_CAP = 8192
+UNKNOWN_TOKENIZER_INPUT_PERCENT = 80
+TOOL_SCHEMA_TOKEN_RESERVE = 4096
+
 
 @dataclass(frozen=True, slots=True)
 class TokenCounter:
     """Local text token counts plus conservative, provider-dependent framing/media allowances.
 
-    Unknown models use one token per UTF-8 byte. Known tokenizer failures are configuration
-    errors, not a reason to silently switch counting strategies. No provider usage is claimed
+    Unknown models use the OpenAI cl100k_base tokenizer as an estimate. Tokenizer failures
+    are configuration errors, not a reason to silently switch counting strategies. No provider usage is claimed
     to be exact: chat templates, images and hidden provider instructions can differ.
     """
 
@@ -51,7 +58,7 @@ class TokenCounter:
             return len(self.tokenizer.encode_ordinary(text))
         if isinstance(self.tokenizer, Tokenizer):
             return len(self.tokenizer.encode(text, add_special_tokens=False).ids)
-        return len(text.encode("utf-8"))
+        return len(load_encoding("cl100k_base").encode_ordinary(text))
 
     def count_content(self, content: str | Sequence[UserContent]) -> int:
         if isinstance(content, str):
@@ -109,12 +116,25 @@ class TokenCounter:
 class ModelTokenBudget:
     counter: TokenCounter
     input_tokens: int
+    context_window_tokens: int | None = None
+
+    @classmethod
+    def for_model(
+        cls, counter: TokenCounter, context_window: int, configured_limit: int, output_tokens: int
+    ) -> ModelTokenBudget:
+        if configured_limit < 0:
+            raise ValueError("Modern context input cap cannot be negative")
+        capacity = min(context_window, UNKNOWN_TOKENIZER_CONTEXT_CAP) if counter.tokenizer is None else context_window
+        available = max(0, capacity - output_tokens - TOOL_SCHEMA_TOKEN_RESERVE)
+        if counter.tokenizer is None:
+            available = available * UNKNOWN_TOKENIZER_INPUT_PERCENT // 100
+        return cls(counter, min(configured_limit, available) if configured_limit else available, context_window)
 
 
 @cache
 def _load_token_counter(model_name: str) -> TokenCounter:
     name = model_name.lower().removeprefix("openai/")
-    if name.rsplit("/", 1)[-1].split(":", 1)[0] == "glm-5.3":
+    if name.rsplit("/", 1)[-1].split(":", 1)[0] in {"glm-5.3", "glm-5.3-flash"}:
         path = (TOKENIZER_DIRECTORY / GLM_TOKENIZER_FILENAME).resolve(strict=True)
         tokenizer = Tokenizer.from_file(str(path))
         tokenizer.no_truncation()
@@ -123,6 +143,7 @@ def _load_token_counter(model_name: str) -> TokenCounter:
     try:
         encoding_name = tiktoken.encoding_name_for_model(name)
     except KeyError:
+        load_encoding("cl100k_base")
         return TokenCounter(model_name)
     return TokenCounter(model_name, load_encoding(encoding_name))
 

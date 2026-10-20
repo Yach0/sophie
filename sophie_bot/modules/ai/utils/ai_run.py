@@ -74,6 +74,10 @@ AI_MAX_MODEL_ATTEMPTS: Final = 4
 _STREAM_DEBOUNCE_SECONDS: Final = 0.2
 
 
+class _CandidateContextRejected(ValueError):
+    """The current request cannot be projected safely for this candidate."""
+
+
 def _last_resort_candidate(candidates: Sequence[AIModelCandidate]) -> AIModelCandidate | None:
     """The cheap candidate that closes a chain, unless that model is already in it.
 
@@ -210,6 +214,15 @@ async def _run_with_model_candidates[FallbackOutputT](
         try:
             async with track_ai_request(candidate.model, operation_label):
                 result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
+        except _CandidateContextRejected as error:
+            if is_last or not allow_plan_failover:
+                raise ai_request_failed_from_error(error, context) from error
+            log.warning(
+                "AI request context rejected by %s; trying %s",
+                candidate.model_name,
+                candidates[index + 1].model_name,
+            )
+            continue
         except AIModelRefused:
             if is_last or not allow_plan_failover:
                 raise
@@ -251,6 +264,9 @@ class AIRequestOptions:
     session_id: str | None = None
     service_tier: str | None = None
     prompt_cache: bool = False
+    context_projection: (
+        Callable[[AIModelCandidate], tuple[list[UserContent], list[ModelRequest | ModelResponse]]] | None
+    ) = None
 
     @property
     def has_extra_body(self) -> bool:
@@ -418,6 +434,12 @@ def _candidate_run_kwargs(
 ) -> dict[str, Any]:
     """The run kwargs for one attempt, built per candidate because the service tier is one of them."""
     candidate_kwargs = dict(run_kwargs)
+    if request_options is not None and request_options.context_projection is not None:
+        try:
+            prompt, history = request_options.context_projection(candidate)
+        except ValueError as error:
+            raise _CandidateContextRejected(str(error)) from error
+        candidate_kwargs.update(user_prompt=prompt, message_history=history)
     candidate_options = _candidate_request_options(request_options, candidate)
     body_options = candidate_options
     if candidate_options is not None and candidate_options.prompt_cache:

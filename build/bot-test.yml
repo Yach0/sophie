@@ -31,6 +31,18 @@ test:
     - unset VIRTUAL_ENV
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/SophieBot/".insteadOf "https://gitlab.com/SophieBot/"
     - uv sync --frozen
+    # Tests run from a fresh checkout, independently of the runtime image build.
+    - uv run python sophie_bot/utils/ai_tokenizer_assets.py
+    - |
+      uv run python - <<'PY'
+      from tokenizers import Tokenizer
+
+      from sophie_bot.utils.ai_tokenizer_assets import GLM_TOKENIZER_FILENAME, TOKENIZER_DIRECTORY, load_encoding
+
+      for encoding_name in ("cl100k_base", "o200k_base"):
+          load_encoding(encoding_name).encode_ordinary("CI tokenizer smoke check")
+      Tokenizer.from_file(str(TOKENIZER_DIRECTORY / GLM_TOKENIZER_FILENAME)).encode("CI tokenizer smoke check")
+      PY
     - uv run pybabel compile -d locales -D sophie --use-fuzzy
   script:
     # Every check runs even if an earlier one fails, so one pipeline reports all
