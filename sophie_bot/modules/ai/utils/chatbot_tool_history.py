@@ -119,7 +119,8 @@ async def _trim_tool_history(chat_tid: int, *, redis: Redis) -> None:
     message_ids = sorted(int(field) for raw_field in raw_fields if (field := _decode_field(raw_field)).isdigit())
     if len(message_ids) <= TOOL_HISTORY_RUN_LIMIT:
         return
-    await redis.hdel(key, *(str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT]))  # type: ignore[misc]
+    stale_ids = (str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT])
+    await redis.hdel(key, *stale_ids)  # type: ignore[misc]
 
 
 async def store_tool_exchanges(

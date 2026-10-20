@@ -42,7 +42,8 @@ class PurgeMessagesHandler(SophieMessageHandler):
         if reply_to_message.date <= datetime.now(tz=UTC) - timedelta(days=2):
             return await self.event.reply(
                 _(
-                    "Couldn't delete the messages older than 48 hours (2 days). You can delete them nevertheless using Telegram's admin tools."
+                    "Couldn't delete the messages older than 48 hours (2 days). "
+                    "You can delete them nevertheless using Telegram's admin tools."
                 )
             )
 

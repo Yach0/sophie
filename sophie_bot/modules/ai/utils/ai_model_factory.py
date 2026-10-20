@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.openrouter import OpenRouterModel, OpenRouterModelSettings
@@ -13,8 +15,11 @@ from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelP
 from sophie_bot.modules.ai.utils.ai_providers import get_openai_provider, get_openrouter_provider
 from sophie_bot.utils.feature_flags import get_value
 
-_ai_models: dict[str, Model] = {}
-_cache_version = ""
+
+class _ModelCache:
+    models: ClassVar[dict[str, Model]] = {}
+    version: ClassVar[str | None] = ""
+
 
 # Default reasoning effort applied to every model to keep token costs down. Models that do not
 # support reasoning simply ignore the parameter on OpenRouter; per-model extra_params win on conflict.
@@ -62,21 +67,19 @@ def _build_model(model_name: str, reasoning_effort: str | None) -> Model:
 
 
 def get_ai_model(model_name: str, reasoning_effort: str | None = None) -> Model:
-    global _cache_version
-
     # A built model holds a provider client and its settings, both of which a catalog reload may
     # have changed, so the cache is dropped whenever the snapshot it was built from is replaced.
     version = catalog().version
-    if version != _cache_version:
-        _ai_models.clear()
-        _cache_version = version
+    if version != _ModelCache.version:
+        _ModelCache.models.clear()
+        _ModelCache.version = version
 
     # The same model can serve several roles at different reasoning efforts, so the effort is part
     # of the cache key.
     key = f"{model_name}\x00{reasoning_effort or ''}"
-    if key not in _ai_models:
-        _ai_models[key] = _build_model(model_name, reasoning_effort)
-    return _ai_models[key]
+    if key not in _ModelCache.models:
+        _ModelCache.models[key] = _build_model(model_name, reasoning_effort)
+    return _ModelCache.models[key]
 
 
 def registered_context_window_tokens(model_name: str) -> int | None:

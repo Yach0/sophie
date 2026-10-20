@@ -53,7 +53,9 @@ async def list_federations(
     # `admins` holds DBRefs, so the filter must address `admins.$id`; comparing the field to a bare
     # ObjectId renders `{"admins": ...}` and never matches. The `Link[T] = T` alias hides the
     # class-level ExpressionField from the checker, which sees a plain list here.
-    admin_federations = await Federation.find(Federation.admins.id == user.iid).to_list()  # ty: ignore[unresolved-attribute]
+    admin_federations = await Federation.find(
+        Federation.admins.id == user.iid  # ty: ignore[unresolved-attribute]
+    ).to_list()
 
     unique_federations: dict[str, Federation] = {federation.fed_id: federation for federation in owned_federations}
     for federation in admin_federations:

@@ -20,7 +20,6 @@ from aiogram.types import (
     RichBlockParagraph,
     RichMessage,
     RichMessageButton,
-    RichTextButton,
     RichTextTextMention,
 )
 from pydantic import BaseModel
@@ -130,7 +129,7 @@ def _convert_text(text: Any) -> Any:
         return {key: _convert_text(value) for key, value in text.items()}
     data = _model_data(text)
     if text.__class__.__name__ == "RichTextButton":
-        data["button"] = _convert_button(cast("RichTextButton", text).button)
+        data["button"] = _convert_button(text.button)
     elif hasattr(text, "text"):
         data["text"] = _convert_text(text.text)
     text_type = text.__class__
@@ -239,7 +238,9 @@ def _text_to_html(value: Any) -> str:
         return _text_to_html(value.text)
     name = value.__class__.__name__
     if name == "RichTextCustomEmoji":
-        return f'<tg-emoji emoji-id="{html.escape(value.custom_emoji_id, quote=True)}">{html.escape(value.alternative_text)}</tg-emoji>'
+        emoji_id = html.escape(value.custom_emoji_id, quote=True)
+        alt_text = html.escape(value.alternative_text)
+        return f'<tg-emoji emoji-id="{emoji_id}">{alt_text}</tg-emoji>'
     if name == "RichTextUrl":
         label = _text_to_html(value.text)
         return f'<a href="{html.escape(value.url, quote=True)}">{label}</a>'

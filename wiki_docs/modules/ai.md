@@ -37,6 +37,7 @@ icon: ✨
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/ai_mode` | - | Select what the AI does in this chat. |  |
+| `/ai_moderator` | `<New state>` | Enable or disable the AI moderator in this chat. |  |
 | `/ai_moderator` | - | Tune what the AI moderator detects in this chat. |  |
 | `/ai_auto_translate` `/auto_translate` | `<?New status>` `<?Language code>` | Controls AI Auto translator. |  |
 | `/ai_summaries` | `<?New status>` | Controls AI chat summaries. |  |

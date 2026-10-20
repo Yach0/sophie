@@ -82,6 +82,7 @@ async def test_candidate_budget_rejection_preserves_fallback_chain(
             AIModelCandidate(model=later, model_name="later", context_window_tokens=200000 if later_accepts else 7000),
         )
         history = ModernContext(redis=MagicMock(), chat_tid=1)
+        # deepsource: skip - PYL-R1728 - async comprehension with await cannot be a generator for tuple()
         history._token_budgets = tuple(
             [
                 ModelTokenBudget.for_model(
