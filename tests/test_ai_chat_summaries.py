@@ -11,6 +11,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import SendMessage
 from aiogram.types import Chat
 from babel.dates import format_date, format_time
+from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryLine, AIChatSummaryModel
 from sophie_bot.db.models.chat import ChatModel
@@ -24,7 +25,9 @@ from sophie_bot.modules.ai.schedules.generate_chat_summaries import (
     _build_summary_window,
     _derive_summary_line,
 )
-from sophie_bot.modules.ai.utils.ai_header import AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils import chatbot_response
+from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.ai_quota import QuotaInfo
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
 from sophie_bot.modules.ai.utils.summary_transcript import UNKNOWN_TIME, build_summary_transcript
 from sophie_bot.services.application import ApplicationServices
@@ -252,6 +255,7 @@ async def test_process_chat_upserts_generated_summary(monkeypatch: pytest.Monkey
                 source_excerpt="first",
             )
         ],
+        chat_iid=chat.iid,
     )
 
 
@@ -499,6 +503,7 @@ def test_build_summary_doc_renders_lines() -> None:
                 source_excerpt="first",
             )
         ],
+        header="🔋",
     )
 
     html = doc.to_html()
@@ -530,6 +535,7 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
                 source_excerpt="first",
             )
         ],
+        header="🔋",
     )
 
     rich_html = doc.to_rich()
@@ -549,9 +555,19 @@ def test_build_summary_doc_renders_native_rich_heading_and_list() -> None:
 
 @pytest.mark.asyncio
 async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) -> None:
-    rich_sender = AsyncMock()
+    rich_sender = AsyncMock(return_value=SimpleNamespace(message_id=42))
     monkeypatch.setattr(generate_chat_summaries, "send_ai_rich_message_to_chat", rich_sender)
-    monkeypatch.setattr(generate_chat_summaries, "is_enabled", AsyncMock(return_value=False))
+    quota_info = AsyncMock(
+        return_value=QuotaInfo(
+            total_credits=200,
+            used_credits=54,
+            remaining_credits=146,
+            period_start=date(2026, 5, 1),
+            period_end=date(2026, 5, 31),
+        )
+    )
+    monkeypatch.setattr(chatbot_response, "get_quota_info", quota_info)
+    chat_iid = PydanticObjectId()
     summary_date = date(2026, 5, 3)
     lines = [
         AIChatSummaryLine(
@@ -565,21 +581,25 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
     ]
 
     summaries = _summaries()
-    await summaries.send_summary(-1001234567890, summary_date, "General overview", lines)
+    message_id = await summaries.send_summary(
+        -1001234567890, summary_date, "General overview", lines, chat_iid=chat_iid
+    )
 
+    assert message_id == 42
+    quota_info.assert_awaited_once_with(chat_iid, redis=summaries.services.redis)
     rich_sender.assert_awaited_once()
     chat_tid, sent_doc = rich_sender.await_args.args
     assert chat_tid == -1001234567890
     assert rich_sender.await_args.kwargs["bot"] is summaries.services.bot
+    payload = sent_doc.to_rich()
+    assert any(f'<tg-emoji emoji-id="{emoji_id}">🔋</tg-emoji>' in payload for emoji_id in AI_BATTERY_CUSTOM_EMOJI_IDS)
+    assert "73%" in payload
+    assert "<h1>Chat history of May 3, 2026</h1>" in payload
     assert (
-        sent_doc.to_rich()
-        == _build_summary_doc(
-            chat_tid,
-            summary_date,
-            "General overview",
-            lines,
-        ).to_rich()
+        '<ul><li>8:00\u202fAM - 💡 <a href="https://t.me/c/1234567890/100"><i>Topic</i></a>, alice</li></ul>' in payload
     )
+    assert payload.index("</ul>") < payload.index("🔋")
+    assert "General overview" not in payload
 
 
 def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
@@ -605,6 +625,7 @@ def test_build_summary_doc_orders_lines_by_first_message_time() -> None:
                 source_excerpt="earlier",
             ),
         ],
+        header="🔋",
     )
 
     html = doc.to_html()
@@ -633,6 +654,7 @@ def test_build_summary_doc_renders_lines_with_non_default_locale(monkeypatch: py
                 source_excerpt="first",
             )
         ],
+        header="🔋",
     )
 
     html = doc.to_html()
