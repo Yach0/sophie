@@ -98,7 +98,6 @@ class MemoryMediaGroupAggregator(BaseMediaGroupAggregator):
         self.remove_expired_objects()
         if media.message_id not in (msg.message_id for msg in self.groups[key]):
             self.groups[key].append(media)
-        self.last_message_timers.pop(key, None)
         self.last_message_timers[key] = time.monotonic()
         return len(self.groups[key])
 
