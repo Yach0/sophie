@@ -43,6 +43,7 @@ async def test_chatbot_final_edit_propagates_telegram_failure(
     assert raised.value is error
     edit_message_text.assert_awaited_once()
 
+
 @pytest.mark.usefixtures("db_init")
 @pytest.mark.asyncio
 async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: object) -> None:
@@ -62,6 +63,7 @@ async def test_chatbot_progress_edit_propagates_telegram_failure(test_redis: obj
 
     assert raised.value is error
     edit_message_text.assert_awaited_once()
+
 
 @pytest.mark.asyncio
 async def test_rich_sender_uses_one_reply_on_success() -> None:
@@ -134,9 +136,10 @@ async def test_research_progress_edit_propagates_telegram_failure() -> None:
 
 
 @pytest.mark.asyncio
-async def test_send_ai_rich_message_retries_without_deleted_reply_target() -> None:
+@pytest.mark.parametrize("error_message", ["message to be replied not found", "REPLY_MESSAGE_ID_INVALID"])
+async def test_send_ai_rich_message_retries_without_deleted_reply_target(error_message: str) -> None:
     sent = SimpleNamespace(message_id=201)
-    error = TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")  # type: ignore[arg-type]
+    error = TelegramBadRequest(method=None, message=f"Bad Request: {error_message}")  # type: ignore[arg-type]
     send_rich_message = AsyncMock(side_effect=[error, sent])
     source = SimpleNamespace(
         chat=SimpleNamespace(id=100),
@@ -160,6 +163,26 @@ async def test_send_ai_rich_message_retries_without_deleted_reply_target() -> No
 
 
 @pytest.mark.asyncio
+async def test_send_ai_rich_message_propagates_failed_fallback() -> None:
+    error = TelegramBadRequest(method=None, message="Bad Request: REPLY_MESSAGE_ID_INVALID")  # type: ignore[arg-type]
+    fallback_error = TelegramBadRequest(method=None, message="Bad Request: chat not found")  # type: ignore[arg-type]
+    send_rich_message = AsyncMock(side_effect=[error, fallback_error])
+    source = SimpleNamespace(
+        chat=SimpleNamespace(id=100),
+        message_id=200,
+        message_thread_id=5,
+        bot=SimpleNamespace(send_rich_message=send_rich_message),
+    )
+
+    with pytest.raises(TelegramBadRequest) as raised:
+        await ai_send.send_ai_rich_message(source, Doc("answer"))
+
+    assert raised.value is fallback_error
+    assert send_rich_message.await_count == 2
+    assert "reply_parameters" not in send_rich_message.await_args_list[1].kwargs
+
+
+@pytest.mark.asyncio
 async def test_send_ai_rich_message_propagates_unrelated_bad_request() -> None:
     error = TelegramBadRequest(method=None, message="Bad Request: chat not found")  # type: ignore[arg-type]
     send_rich_message = AsyncMock(side_effect=error)
@@ -178,8 +201,11 @@ async def test_send_ai_rich_message_propagates_unrelated_bad_request() -> None:
 
 
 @pytest.mark.asyncio
-async def test_deleted_source_still_gets_thinking_message_and_final_edit(test_redis: object) -> None:
-    error = TelegramBadRequest(method=None, message="Bad Request: message to be replied not found")  # type: ignore[arg-type]
+@pytest.mark.parametrize("error_message", ["message to be replied not found", "REPLY_MESSAGE_ID_INVALID"])
+async def test_deleted_source_still_gets_thinking_message_and_final_edit(
+    test_redis: object, error_message: str
+) -> None:
+    error = TelegramBadRequest(method=None, message=f"Bad Request: {error_message}")  # type: ignore[arg-type]
     edit_message_text = AsyncMock()
     bot = SimpleNamespace(edit_message_text=edit_message_text)
     sent = SimpleNamespace(chat=SimpleNamespace(id=100), message_id=201, bot=bot)
@@ -196,8 +222,6 @@ async def test_deleted_source_still_gets_thinking_message_and_final_edit(test_re
     assert "reply_parameters" not in bot.send_rich_message.await_args_list[1].kwargs
     edit_message_text.assert_awaited_once()
     assert edit_message_text.await_args.kwargs["rich_message"].html == Doc("answer").to_rich()
-
-
 
 
 @pytest.mark.asyncio

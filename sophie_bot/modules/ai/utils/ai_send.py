@@ -7,7 +7,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message, ReplyParameters
 from stfu_tg import Doc
 
-from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND
+from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID
 
 
 def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
@@ -27,7 +27,7 @@ async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) 
             **reply_kwargs,
         )
     except TelegramBadRequest as error:
-        if REPLIED_NOT_FOUND not in error.message:
+        if not any(error_text in error.message for error_text in (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID)):
             raise
         return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
             chat_id=message.chat.id,
