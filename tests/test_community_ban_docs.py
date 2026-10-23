@@ -71,6 +71,7 @@ def _render_federation_ban_result(banned_count: int, lazy_ban_count: int = 0) ->
             silent=False,
             banned_count=banned_count,
             lazy_ban_count=lazy_ban_count,
+            total_chats=8,
         )
     )
 
@@ -107,11 +108,12 @@ def test_community_unban_result_uses_singular_for_one_chat() -> None:
     assert "Unbanned in <code>1</code> chat" in rendered
 
 
-def test_federation_ban_result_labels_direct_and_subscribed_counts() -> None:
+def test_federation_ban_result_uses_sentences_without_federation_count() -> None:
     rendered = _render_federation_ban_result(1, lazy_ban_count=1)
 
-    assert "<b>Federation chats</b>: <code>1</code>" in rendered
-    assert "<b>Subscribed federations</b>: <code>1</code>" in rendered
+    assert "User banned in 1 out of 8 chats in the federation" in rendered
+    assert "User banned in 0 chats in subscribed federations" in rendered
+    assert "Subscribed federations" not in rendered
 
 
 def test_federation_unban_result_uses_plural_for_multiple_chats() -> None:
@@ -135,4 +137,4 @@ def test_federation_ban_log_retains_total_chat_count() -> None:
         )
     )
 
-    assert "<b>Federation chats</b>: <code>1</code> out of <code>1</code>" in rendered
+    assert "User banned in 1 out of 1 chat in the federation" in rendered

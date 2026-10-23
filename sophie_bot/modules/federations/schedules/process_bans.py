@@ -156,6 +156,7 @@ class ProcessFederationBans:
         task.lazy_ban_count = lazy_ban_count
 
         user = await self._resolve_target(task.target_user_id)
+        total_chats = len(federation.chats) if federation.chats else 0
         reply_doc = build_ban_reply_doc(
             federation,
             user,
@@ -164,6 +165,7 @@ class ProcessFederationBans:
             task.reason,
             task.silent,
             banned_count=banned_count,
+            total_chats=total_chats,
             lazy_ban_count=lazy_ban_count,
             subscribed_banned_count=subscribed_banned_count,
             banner_anonymous=task.banner_anonymous,
@@ -171,7 +173,6 @@ class ProcessFederationBans:
         text = reply_doc.to_html()
         await _edit_reply(task, text, services=self.services)
 
-        total_chats = len(federation.chats) if federation.chats else 0
         log_doc = build_ban_log_doc(
             federation,
             user,

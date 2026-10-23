@@ -7,6 +7,14 @@ icon: 🏛
 
 > Federations allow you to manage multiple chats as a group. You can ban users across all chats in a federation, subscribe to other federations, and manage permissions.
 
+The final ban confirmation and federation log show the banned user's ID and the number
+of successful bans out of the federation's total chats. A separate sentence reports
+successful bans in subscribed federations when applicable. The log includes the federation
+ID and the original message as a spoiler when recorded. Its native STFU title renders as
+`<b>[🏛 User Banned from Federation #FedBan]</b>`, with no separate tag line.
+The command title remains `<b>[🏛 User Banned from Federation]</b>`.
+Anonymous administrators remain anonymous in the public confirmation; the log records the actor.
+
 ## Available commands
 
 

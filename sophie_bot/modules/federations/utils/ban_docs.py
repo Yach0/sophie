@@ -20,31 +20,43 @@ def _build_ban_doc(
     subscribed_banned_count: int,
     total_chats: int | None = None,
     banner_anonymous: bool = False,
+    include_audit_details: bool = False,
 ) -> Doc:
-    """Share the ban presentation; a log denominator enables audit identifiers."""
+    """Share the ban presentation while keeping federation audit details log-only."""
     federation_value = Template("{name}", name=federation.fed_name)
     user_link = UserLink(user.tid, user.first_name_or_title or _("Unknown"))
-    user_value = Template("{user}", user=user_link)
-    if total_chats is not None:
+    user_value = Template("{user} ({id})", user=user_link, id=Code(user.tid))
+    if include_audit_details:
         federation_value = Template("{name} ({id})", name=federation.fed_name, id=federation.fed_id)
-        user_value = Template("{user} ({id})", user=user_link, id=Code(user.tid))
     banned_by = _("Anonymous admin") if banner_anonymous else UserLink(banner_tid, banner_name)
+    title = _("🏛 User Banned from Federation #FedBan") if include_audit_details else _("🏛 User Banned from Federation")
     doc = Doc(
-        Title(_("🏛 User Banned from Federation")),
+        Title(title),
         KeyValue(_("Federation"), federation_value),
         KeyValue(_("User"), user_value),
         KeyValue(_("Banned by"), banned_by),
     )
     if reason:
         doc += KeyValue(_("Reason"), Code(reason))
-    if banned_count is not None:
-        direct_count = Template("{count}", count=Code(banned_count))
-        if total_chats is not None:
-            direct_count = Template(_("{count} out of {total}"), count=Code(banned_count), total=Code(total_chats))
-        doc += KeyValue(_("Federation chats"), direct_count)
+    if banned_count is not None and total_chats is not None:
+        doc += Template(
+            pl_(
+                "User banned in {count} out of {total} chat in the federation",
+                "User banned in {count} out of {total} chats in the federation",
+                total_chats,
+            ),
+            count=banned_count,
+            total=total_chats,
+        )
         if subscribed_federation_count > 0:
-            doc += KeyValue(_("Subscribed federations"), Code(subscribed_federation_count))
-            doc += KeyValue(_("Subscribed-federation chats"), Code(subscribed_banned_count))
+            doc += Template(
+                pl_(
+                    "User banned in {count} chat in subscribed federations",
+                    "User banned in {count} chats in subscribed federations",
+                    subscribed_banned_count,
+                ),
+                count=subscribed_banned_count,
+            )
     return doc
 
 
@@ -57,6 +69,7 @@ def build_ban_reply_doc(
     silent: bool,
     *,
     banned_count: int | None = None,
+    total_chats: int | None = None,
     lazy_ban_count: int = 0,
     subscribed_banned_count: int = 0,
     propagating: bool = False,
@@ -67,7 +80,7 @@ def build_ban_reply_doc(
 
     When ``propagating`` is True the document reflects the in-progress state shown
     right after the command (before the scheduler finishes); otherwise it shows the
-    final per-chat counts.
+    final per-chat counts when the scheduler supplies ``total_chats``.
 
     When ``banner_anonymous`` is True the banner is shown as plain "Anonymous admin"
     with no user link, so an anonymous admin's identity stays hidden in the public
@@ -83,6 +96,7 @@ def build_ban_reply_doc(
         subscribed_federation_count=lazy_ban_count,
         subscribed_banned_count=subscribed_banned_count,
         banner_anonymous=banner_anonymous,
+        total_chats=total_chats,
     )
 
     if propagating:
@@ -120,8 +134,8 @@ def build_ban_log_doc(
         subscribed_federation_count=subscribed_federation_count,
         subscribed_banned_count=subscribed_banned_count,
         total_chats=total_chats,
+        include_audit_details=True,
     )
-    log_doc += _("#FedBan")
     if original_message_text:
         log_doc += Section(
             Spoiler(original_message_text),
