@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime
 from functools import partial
 
@@ -42,7 +43,5 @@ def start_scheduler_mode() -> None:
 
         run_with_reload("scheduler")
         return
-    try:
+    with suppress(KeyboardInterrupt, SystemExit):
         asyncio.run(_scheduler_main())
-    except (KeyboardInterrupt, SystemExit):
-        pass
