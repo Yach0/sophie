@@ -54,18 +54,15 @@ class MarkdownLinkArgument[ExtendedValue = Never](ArgFabric[tuple[str, str] | Ex
         link_name, link_data = text_match.groups()
         self._link_name, self._link_data = link_name, link_data
 
-        length = len("[")
-
         # Check if link name has entities
-        if entities.get_overlapping(offset + length, len(link_name)):
+        if entities.get_overlapping(offset + len("["), len(link_name)):
             raise ArgCustomError(
                 _("Markdown link name cannot contain entities."),
-                offset=length + offset,
+                offset=offset + len("["),
                 length=len(link_name),
             )
 
-        length += len(link_name)
-        length += len("](")
+        length = len("[") + len(link_name) + len("](")
 
         # Check if link_data has entities
         if entities.get_overlapping(offset + length, len(link_data) + 1):
