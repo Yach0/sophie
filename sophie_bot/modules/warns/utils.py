@@ -15,7 +15,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 )
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.action_registry import resolve_action_duration
-from sophie_bot.shared.actions import RestrictionAction, StoredAction
+from sophie_bot.shared.actions import RestrictionAction, StoredAction, mark_action_completed
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
 
@@ -103,6 +103,7 @@ async def _execute_warn_actions(
             )
             continue
         runtime_data: dict[str, Any] = dict(action_context or {})
+        runtime_data.pop("action_completion", None)
         request_context = runtime_data.get("context")
         if isinstance(request_context, RequestContext):
             runtime_data["context"] = replace(
@@ -139,6 +140,8 @@ async def warn_user(
     # Create warn record
     warn = WarnModel(chat=chat.iid, user=user.iid, admin=admin.iid, reason=reason)
     await warn.save()
+    if action_context is not None:
+        mark_action_completed(action_context)
     track_moderation_action("warn")
 
     # Check counts

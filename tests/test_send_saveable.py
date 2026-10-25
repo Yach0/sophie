@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiogram import Bot
 from aiogram.enums import ContentType
-from aiogram.exceptions import TelegramBadRequest
+from aiogram.exceptions import TelegramBadRequest, TelegramForbiddenError
 from aiogram.methods import SendMediaGroup, SendRichMessage, SendVideo, SendVideoNote, SendVoice, TelegramMethod
 from aiogram.types import Chat, Message, RichBlockParagraph, RichMessage
 from stfu_tg import Bold
@@ -571,3 +571,39 @@ async def test_send_saveable_album_recipient_error_is_not_ephemeral(
     assert len(emitted) == 1
     assert isinstance(emitted[0], SendMediaGroup)
     assert emitted[0].model_dump().get("receiver_user_id") is None
+
+
+@pytest.mark.parametrize("observe_delivery", [False, True])
+@pytest.mark.parametrize("followup_succeeds", [False, True])
+async def test_album_preserves_primary_message_and_reports_complete_delivery(
+    observe_delivery: bool, followup_succeeds: bool, monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices
+) -> None:
+    album = [
+        Message(message_id=message_id, date=0, chat=Chat(id=-100123, type="supergroup")) for message_id in (41, 42)
+    ]
+    followup = Message(message_id=43, date=0, chat=album[0].chat)
+    monkeypatch.setattr(SendMediaGroup, "emit", AsyncMock(return_value=album))
+    failure = TelegramForbiddenError(
+        method=send_module.SendMessage(chat_id=-100123, text="caption"), message="Forbidden"
+    )
+    monkeypatch.setattr(
+        send_module.SendMessage,
+        "emit",
+        AsyncMock(return_value=followup, side_effect=None if followup_succeeds else failure),
+    )
+    collected: list[Message] = []
+    delivery = send_module.SaveableDelivery()
+    result = await send_module.send_saveable(
+        None,
+        -100123,
+        Saveable(
+            text="caption " * 150,
+            files=[NoteFile(id="first", type=ContentType.PHOTO), NoteFile(id="second", type=ContentType.PHOTO)],
+        ),
+        collect_sent=collected,
+        delivery=delivery if observe_delivery else None,
+        bot=test_services.bot,
+    )
+    assert result is album[0]
+    assert collected == album + ([followup] if followup_succeeds else [])
+    assert delivery.completed is (observe_delivery and followup_succeeds)

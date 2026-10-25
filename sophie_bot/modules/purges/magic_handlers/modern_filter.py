@@ -5,7 +5,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, mark_action_completed
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -29,7 +29,11 @@ class DelMsgModern(ModernActionABC[None]):
         if not message.from_user:
             return
 
-        await common_try(message.delete())
+        deleted = await common_try(message.delete())
+        if not deleted:
+            return
+
+        mark_action_completed(data)
 
         if "filter_id" in data:
             await log_event(

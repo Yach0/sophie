@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
@@ -179,7 +179,14 @@ async def _restore_owned_snapshot(
     return applied
 
 
-async def _apply(bot: Bot, action: RestrictionAction, chat_tid: int, user_tid: int, duration: timedelta | None) -> bool:
+async def _apply(
+    bot: Bot,
+    action: RestrictionAction,
+    chat_tid: int,
+    user_tid: int,
+    duration: timedelta | None,
+    on_applied: Callable[[], None] | None = None,
+) -> bool:
     snapshot, created = await _snapshot(bot, chat_tid, user_tid)
     permissions = _MUTE_PERMISSIONS
     if action is RestrictionAction.RESTRICT:
@@ -226,6 +233,8 @@ async def _apply(bot: Bot, action: RestrictionAction, chat_tid: int, user_tid: i
         else:
             await before_apply.save()
         raise
+    if applied and on_applied is not None:
+        on_applied()
     if not applied:
         if created:
             await snapshot.delete()
@@ -245,7 +254,9 @@ async def execute_restriction(
     *,
     until_date: timedelta | None = None,
     expired_only: bool = False,
+    on_applied: Callable[[], None] | None = None,
 ) -> RestrictionResult:
+    """Observe successful application before subsequent snapshot or lock bookkeeping."""
     try:
         # Serialize all Sophie moderation writes, including CAPTCHA replacement.
         async with _mute_lock(chat_tid, user_tid):
@@ -257,9 +268,15 @@ async def execute_restriction(
                 case RestrictionAction.UNBAN:
                     applied = await bot.unban_chat_member(chat_tid, user_tid, only_if_banned=True)
                 case RestrictionAction.MUTE | RestrictionAction.RESTRICT:
-                    applied = await _apply(bot, action, chat_tid, user_tid, until_date)
+                    applied = await _apply(bot, action, chat_tid, user_tid, until_date, on_applied)
                 case RestrictionAction.UNMUTE:
                     applied = await _restore(bot, chat_tid, user_tid, expired_only=expired_only)
+            if (
+                applied
+                and on_applied is not None
+                and action not in (RestrictionAction.MUTE, RestrictionAction.RESTRICT)
+            ):
+                on_applied()
             if applied and action in (RestrictionAction.BAN, RestrictionAction.KICK, RestrictionAction.UNBAN):
                 await MutePermissionsModel.find({"chat_tid": chat_tid, "user_tid": user_tid}).delete()
     except (*_RESTRICTION_EXCEPTIONS, *_TRANSIENT_EXCEPTIONS) as error:
