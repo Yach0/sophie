@@ -8,18 +8,15 @@ from aiogram.exceptions import TelegramAPIError
 from babel.dates import format_date, format_time
 from beanie import PydanticObjectId
 from stfu_tg import Doc, Heading, HList, Italic, ListItem, Template, UnorderedList, Url
-from stfu_tg.doc import Element
 
 from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatModel
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
-from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.summary_transcript import SummaryTranscript, build_summary_transcript
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
@@ -150,8 +147,6 @@ def _build_summary_doc(
     summary_date: date,
     _overview: str,
     lines: list[AIChatSummaryLine],
-    *,
-    header: Element | str,
 ) -> Doc:
     current_locale = get_i18n().current_locale
     sorted_lines = sorted(lines, key=lambda line: line.first_message_at)
@@ -164,11 +159,7 @@ def _build_summary_doc(
         Template(_("Chat history of {today}"), today=format_date(summary_date, format="long", locale=current_locale))
     )
 
-    return build_ai_message_doc(
-        header,
-        title,
-        rendered_lines,
-    )
+    return Doc(title, rendered_lines)
 
 
 def _track_summary_metrics(
@@ -287,12 +278,10 @@ class GenerateChatSummaries:
         summary_date: date,
         overview: str,
         lines: list[AIChatSummaryLine],
-        *,
-        header: Element | str,
     ) -> int:
         sent_message = await send_ai_rich_message_to_chat(
             chat_tid,
-            _build_summary_doc(chat_tid, summary_date, overview, lines, header=header),
+            _build_summary_doc(chat_tid, summary_date, overview, lines),
             bot=self.services.bot,
         )
         return sent_message.message_id
@@ -403,10 +392,9 @@ class GenerateChatSummaries:
             )
             return
 
-        header = await build_chatbot_header(chat.iid, redis=self.services.redis)
         summary = await AIChatSummaryModel.upsert_for_date(chat, summary_date, groups.overview, lines)
         summary.sent_message_id = await self.send_summary(
-            target_chat_tid or chat.tid, summary_date, groups.overview, lines, header=header
+            target_chat_tid or chat.tid, summary_date, groups.overview, lines
         )
         await summary.save()
         await self.pin_summary(summary, target_chat_tid or chat.tid)
