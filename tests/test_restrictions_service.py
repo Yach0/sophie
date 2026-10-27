@@ -740,3 +740,21 @@ async def test_successful_welcome_replacement_no_longer_owns_old_mute_state(mock
     result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
     assert result.applied is False
     assert mock_bot.restrict_chat_member.await_count == 2
+
+
+@pytest.mark.parametrize("action", [RestrictionAction.BAN, RestrictionAction.KICK, RestrictionAction.MUTE])
+async def test_restriction_observes_success_before_database_cleanup(
+    action: RestrictionAction, mock_bot: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed = []
+    # Lock cleanup is after the Telegram operation for every restriction type.
+    monkeypatch.setattr(
+        "sophie_bot.modules.restrictions.utils.restrictions.MutePermissionsLockModel.get_pymongo_collection",
+        lambda: SimpleNamespace(
+            find_one_and_update=AsyncMock(return_value={"_id": "lock"}),
+            delete_one=AsyncMock(side_effect=RuntimeError("cleanup failed")),
+        ),
+    )
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        await execute_restriction(mock_bot, action, CHAT_TID, USER_TID, on_applied=lambda: observed.append(action))
+    assert observed == [action]

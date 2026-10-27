@@ -23,6 +23,7 @@ icon: 🪄
 | `/add_filter` `/new_filter` | `<Text to match>` | Adds a new filter. |  |
 | `/edit_filter` | `<Filter's keyword>` | Edits filter settings. |  |
 | `/del_filter` | `<Text to match>` | Deletes a filter. |  |
+| `/filterstats` | - | Shows successful filter action execution counts for this chat. | Requires `filter_stats` |
 {.card-view-on-mobile}
 
 ### Aliased commands from [✨ Sophie AI](ai)
@@ -363,3 +364,30 @@ specific needs.
 
 Once the AI Response is generated, users can interact with it by simply replying to the message, which can be invaluable
 for addressing follow-up questions.
+
+## Filter statistics
+
+The `filter_stats` feature flag defaults to off and gates both counting and the admin-only
+`/filterstats` command. The `filters` flag must also be enabled. The command uses the current
+group or the connected group in a private chat.
+
+Each successfully completed action adds one to its filter's count: a filter that successfully
+warns, deletes, and replies adds three. Matches alone, exempt users' skipped actions, duplicate
+actions suppressed by the filter dispatcher, failed actions, and incomplete deliveries add nothing.
+Text replies count after delivery; successful moderation actions count even if their notification
+cannot be delivered. Later logging or history-cache errors do not undo a successful action
+observation. An album counts once only after all required parts are delivered; saveable callers
+still receive its primary message when a follow-up fails.
+
+Identity is the existing filter document ID within the chat's internal ID. Editing a filter keeps
+its identity; deleting and recreating it creates a new one. The report uses current handler names
+for existing filters and last-counted names for deleted filters whose counters remain in Redis.
+Long names are shortened; full identities remain visible. Large reports are sent in batches.
+
+Counters and saved labels live only in the existing application Redis instance. Increments use
+Redis `HINCRBY`; a transaction updates the counter and label together, and totals are computed from
+a single hash snapshot. This is noncritical data that may be lost through Redis loss, eviction,
+or errors; it has no MongoDB copy or durability guarantee. Recording errors do not interrupt filter
+enforcement, and a failed statistics flag lookup skips that observation. There is no backfill,
+reset command, expiry, or replay of observations missed while disabled or unavailable. Disabling
+the flag leaves existing counters in Redis.

@@ -2,10 +2,13 @@ from dataclasses import dataclass
 from typing import Any
 
 from aiogram.types import Message
+from redis.exceptions import RedisError
 
 from sophie_bot.db.models import FiltersModel
+from sophie_bot.modules.filters.utils_.stats import record_filter_action
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.shared.actions import ActionResult, ModernActionABC
+from sophie_bot.shared.actions import ActionCompletion, ActionResult, ModernActionABC
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
@@ -31,7 +34,7 @@ async def handle_effective_filter_action(
     message: Message,
     action: EffectiveFilterAction,
     data: dict[str, Any],
-    _matched_filter: FiltersModel | None = None,
+    matched_filter: FiltersModel | None = None,
 ) -> ActionResult | None:
     services = data["services"]
     action_item: ModernActionABC = services.modules.action_handlers[action.name]
@@ -52,4 +55,21 @@ async def handle_effective_filter_action(
             )
             return None
     loaded_data = definition.load_data(action.data)
-    return await action_item.handle(message, data, loaded_data)
+    completion = ActionCompletion()
+    action_data = {**data, "action_completion": completion}
+    try:
+        return await action_item.handle(message, action_data, loaded_data)
+    finally:
+        # Completion belongs to the external action, even if later bookkeeping raises.
+        if matched_filter is not None and completion.completed:
+            try:
+                stats_enabled = await is_enabled("filter_stats", chat_tid=message.chat.id, redis=services.redis)
+            except RedisError as error:
+                log.warning("Could not resolve noncritical filter statistics flag", error=str(error))
+                stats_enabled = False
+            if stats_enabled:
+                chat_iid = data["context"].event_chat.iid
+                if completion.deferred:
+                    data.setdefault("filter_stats_pending", []).append((chat_iid, matched_filter))
+                else:
+                    await record_filter_action(chat_iid, matched_filter, redis=services.redis)

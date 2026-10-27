@@ -30,7 +30,7 @@ from sophie_bot.modules.utils_.action_config_wizard import (
     ActionWizardSetting,
     ActionWizardSpec,
 )
-from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, mark_action_completed
 from sophie_bot.utils.ai_features import AI_FEATURE_FILTER
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.feature_flags import is_enabled
@@ -196,5 +196,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
                 final_message = await message_streamer.send_final(doc)
             else:
                 final_message = await send_ai_rich_message(message, doc)
+            if isinstance(final_message, Message):
+                mark_action_completed(data)
             await _cache_chatbot_reply(message, final_message, output_text, result, previous_history, services=services)
             return final_message

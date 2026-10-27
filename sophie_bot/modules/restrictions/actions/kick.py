@@ -1,3 +1,5 @@
+from functools import partial
+
 from aiogram.types import Message
 from stfu_tg import KeyValue, Template, Title, UserLink
 from stfu_tg.doc import Doc, Element
@@ -8,7 +10,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.restrictions.utils.logging import add_offending_message_text
 from sophie_bot.modules.restrictions.utils.restrictions import execute_restriction
-from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, RestrictionAction
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, RestrictionAction, mark_action_completed
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -61,9 +63,12 @@ class KickModernAction(ModernActionABC[None]):
             RestrictionAction.KICK,
             chat_id,
             message.from_user.id,
+            on_applied=partial(mark_action_completed, data),
         )
         if not restriction_result.applied:
             return None
+
+        mark_action_completed(data)
 
         if "filter_id" in data:
             details = add_offending_message_text(

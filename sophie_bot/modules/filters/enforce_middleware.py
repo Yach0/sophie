@@ -6,6 +6,7 @@ from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.filters.command import CommandException
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Chat, Message, TelegramObject, User
+from beanie import PydanticObjectId
 from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
@@ -19,6 +20,7 @@ from sophie_bot.modules.filters.utils_.handle_action import (
     handle_effective_filter_action,
 )
 from sophie_bot.modules.filters.utils_.match_handler import match_filter_handler
+from sophie_bot.modules.filters.utils_.stats import record_filter_action
 from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
@@ -112,6 +114,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         *,
         services: ApplicationServices,
         ai_matched: bool = False,
+        pending_enforcements: list[tuple[PydanticObjectId, FiltersModel]] | None = None,
     ) -> list[int]:
         """Sends the aggregated filter text and returns the IDs of every message the bot produced.
 
@@ -149,6 +152,8 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             reply = await common_try(message.reply(doc.to_html()), reply_not_found=send_message)
         if isinstance(reply, Message):
             sent_message_ids.append(reply.message_id)
+            for chat_iid, filter_item in pending_enforcements or []:
+                await record_filter_action(chat_iid, filter_item, redis=services.redis)
 
         return sent_message_ids
 
@@ -204,6 +209,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
             if len(ai_filters) > 1:
                 log.debug("EnforceFiltersMiddleware: skipping extra AI filters for this message")
 
+        data["filter_stats_pending"] = []
         all_messages = []
         triggered_groups: list[str] = []  # Handled action groups, to stop same actions from repeating
         silent = False
@@ -228,6 +234,7 @@ class EnforceFiltersMiddleware(BaseMiddleware):
                 all_messages,
                 services=data["services"],
                 ai_matched=ai_matched,
+                pending_enforcements=data["filter_stats_pending"],
             )
             data["ai_filter_handled"] = ai_matched
 
