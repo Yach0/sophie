@@ -38,10 +38,11 @@ def build_ban_reply_doc(
         doc += KeyValue(_("Reason"), reason)
 
     if propagating:
-        if immediate_chat_banned:
-            doc += _("✅ Banned in this chat. Propagating across the community…")
-        else:
-            doc += _("⏳ Ban recorded. Propagating across the community…")
+        doc += _(
+            "✅ Banned in this chat. Propagating across the community…"
+            if immediate_chat_banned
+            else "⏳ Ban recorded. Propagating across the community…"
+        )
     else:
         banned_count = banned_count or 0
         doc += KeyValue(
