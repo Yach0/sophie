@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from html.parser import HTMLParser
 
 from aiogram import Bot
@@ -42,6 +43,13 @@ from sophie_bot.utils.logger import log
 
 _TELEGRAM_ENTITY = re.compile(r"&(#x[0-9a-fA-F]+|#[0-9]+|[a-zA-Z]+);?")
 _TELEGRAM_NAMED_ENTITIES = {"lt": "<", "gt": ">", "amp": "&", "quot": '"'}
+
+
+@dataclass(slots=True)
+class SaveableDelivery:
+    """Optional complete-delivery status, independent of the primary message return."""
+
+    completed: bool = False
 
 
 def _decode_telegram_entity(match: re.Match[str]) -> str:
@@ -207,6 +215,7 @@ async def _send_media_group(
     collect_sent: list[Message] | None = None,
     *,
     bot: Bot,
+    delivery: SaveableDelivery | None = None,
 ) -> Message | None:
     """Sends an album note via sendMediaGroup.
 
@@ -257,6 +266,8 @@ async def _send_media_group(
         )
         if collect_sent is not None and isinstance(followup, Message):
             collect_sent.append(followup)
+    if delivery is not None:
+        delivery.completed = isinstance(first_message, Message) and (not need_followup or isinstance(followup, Message))
 
     return first_message
 
@@ -283,11 +294,13 @@ async def send_saveable(
     owner_chat_tid: int | None = None,
     *,
     bot: Bot,
+    delivery: SaveableDelivery | None = None,
 ) -> Message | None:
     """Sends a saveable, returning its primary message.
 
     An album produces several messages but only the first is returned; pass `collect_sent`
-    to receive every message that was actually sent.
+    to receive every message that was actually sent. Pass `delivery` to observe whether
+    all required parts arrived; a failed album follow-up still returns the primary message.
 
     ``receiver_user_id`` makes the message ephemeral: only that member sees it, and it is not part
     of the chat history. Albums are always sent normally: sendMediaGroup takes no receiver, and
@@ -296,6 +309,8 @@ async def send_saveable(
     If an ephemeral recipient has left, the send is skipped and returns ``None`` with a
     structured log. A missing-reply retry keeps the recipient; it never becomes public.
     """
+    if delivery is not None:
+        delivery.completed = False
     text = saveable.text or ""
 
     # An album moves overflowing text into a follow-up message, so only a single caption-bearing
@@ -327,7 +342,7 @@ async def send_saveable(
             inline_markup.inline_keyboard.extend(additional_keyboard.inline_keyboard)
 
     if saveable.rich_message is not None:
-        return await _send_rich_saveable(
+        sent = await _send_rich_saveable(
             send_to,
             saveable,
             message=message,
@@ -342,6 +357,9 @@ async def send_saveable(
             collect_sent=collect_sent,
             bot=bot,
         )
+        if delivery is not None:
+            delivery.completed = isinstance(sent, Message)
+        return sent
     text = process_fillings(text, message, user or (message.from_user if message else None), additional_fillings)
 
     # Apply random choice sections (%%%...%%%)
@@ -378,6 +396,7 @@ async def send_saveable(
             message_thread_id=message_thread_id,
             collect_sent=collect_sent,
             bot=bot,
+            delivery=delivery,
         )
 
     # TODO: Multi messages
@@ -420,4 +439,6 @@ async def send_saveable(
     if collect_sent is not None and isinstance(sent, Message):
         collect_sent.append(sent)
 
+    if delivery is not None:
+        delivery.completed = isinstance(sent, Message)
     return sent
