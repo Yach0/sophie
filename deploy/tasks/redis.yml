@@ -1,0 +1,145 @@
+# Keep the externally managed Redis quadlet (including auth/config arguments).
+- name: Look up the rootless containers account
+  ansible.builtin.getent:
+    database: passwd
+    key: containers
+
+- name: Provision Redis RDB persistence as the Podman owner
+  become: "{{ ansible_user_id != 'containers' }}"
+  become_user: containers
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd.containers[1] }}"
+  vars:
+    redis_data_dir: /home/containers/.local/share/sophie-redis
+    redis_quadlet_dir: /home/containers/.config/containers/systemd
+  block:
+    - name: Read the existing Redis quadlet
+      ansible.builtin.slurp:
+        src: "{{ redis_quadlet_dir }}/redis.container"
+      register: redis_quadlet
+      no_log: true
+
+    - name: Retain the existing Redis startup command
+      ansible.builtin.set_fact:
+        redis_exec: "{{ (redis_quadlet.content | b64decode | regex_findall('(?m)^Exec=(.*)$') | first) | default('redis-server') }}"
+      no_log: true
+
+    - name: Check for the durable Redis snapshot
+      ansible.builtin.stat:
+        path: "{{ redis_data_dir }}/dump.rdb"
+      register: redis_snapshot
+
+    - name: Check whether the Redis container exists
+      ansible.builtin.command:
+        argv: [podman, container, exists, redis]
+      register: redis_exists
+      changed_when: false
+      failed_when: redis_exists.rc not in [0, 1]
+      check_mode: false
+
+    - name: Inspect the existing Redis data mount
+      ansible.builtin.command:
+        argv: [podman, inspect, redis]
+      register: redis_container
+      changed_when: false
+      check_mode: false
+      no_log: true
+      when: redis_exists.rc == 0
+
+    - name: Determine whether Redis already uses durable storage
+      ansible.builtin.set_fact:
+        redis_uses_durable_mount: >-
+          {{ redis_exists.rc == 0 and
+             ((redis_container.stdout | from_json | first).Mounts
+              | selectattr('Destination', 'equalto', '/data')
+              | selectattr('Source', 'equalto', redis_data_dir) | list | length > 0) }}
+
+    - name: Require a recovery snapshot when the Redis container is absent
+      ansible.builtin.assert:
+        that:
+          - redis_snapshot.stat.isreg | default(false)
+          - redis_snapshot.stat.size | default(0) > 0
+        fail_msg: Redis is absent and no nonempty durable dump.rdb is available for recovery.
+      when: redis_exists.rc == 1
+
+    # Do not reset ownership on later runs: the image entrypoint chowns /data
+    # to the Redis UID inside Podman's user namespace on its first startup.
+    - name: Create the dedicated Redis data directory
+      ansible.builtin.command:
+        argv: [mkdir, -p, "{{ redis_data_dir }}"]
+        creates: "{{ redis_data_dir }}"
+
+    # A dump can survive a failed replacement while the old mount accepts writes.
+    # Only the live mount establishes whether migration has completed.
+    - name: Preserve the current dataset before replacing the anonymous mount
+      when: redis_exists.rc == 0 and not redis_uses_durable_mount
+      block:
+        - name: Save the running Redis dataset
+          ansible.builtin.command:
+            argv: >-
+              {{ ['podman', 'exec']
+                 + (['--env', 'REDISCLI_AUTH'] if redis_password | default('None') not in ['', 'None'] else [])
+                 + ['redis', 'redis-cli']
+                 + (['--user', redis_username] if redis_username | default('None') not in ['', 'None'] else [])
+                 + ['SAVE'] }}
+          environment:
+            REDISCLI_AUTH: "{{ redis_password | default('') if redis_password | default('None') != 'None' else '' }}"
+          register: redis_save
+          failed_when: redis_save.rc != 0 or redis_save.stdout | trim != 'OK'
+          no_log: true
+
+        - name: Copy the snapshot out before Quadlet removes the old volume
+          ansible.builtin.command:
+            argv: [podman, cp, "redis:/data/dump.rdb", "{{ redis_data_dir }}/dump.rdb.pending"]
+
+        - name: Atomically replace the durable snapshot after a successful copy
+          ansible.builtin.command:
+            argv: [mv, -f, "{{ redis_data_dir }}/dump.rdb.pending", "{{ redis_data_dir }}/dump.rdb"]
+
+    - name: Create the Redis Quadlet drop-in directory
+      ansible.builtin.file:
+        path: "{{ redis_quadlet_dir }}/redis.container.d"
+        state: directory
+        mode: '0755'
+
+    - name: Install Redis persistence settings
+      ansible.builtin.template:
+        src: redis-persistence.conf.j2
+        dest: "{{ redis_quadlet_dir }}/redis.container.d/90-persistence.conf"
+        mode: '0600'
+      register: redis_persistence
+      no_log: true
+
+    # Also retry a replacement that failed after the drop-in was written.
+    - name: Determine whether Redis needs replacement
+      ansible.builtin.set_fact:
+        redis_restart_needed: >-
+          {{ redis_persistence.changed or not redis_uses_durable_mount }}
+
+    # Requires=redis.service propagates a Redis restart to the app services.
+    # Stable-only deploys do not otherwise start the scheduler or REST's peers.
+    - name: Remember running Redis consumers before restarting Redis
+      ansible.builtin.command:
+        argv: [systemctl, --user, is-active, "{{ item }}"]
+      loop: [sophie-beta, sophie-stable, sophie-rest, sophie-scheduler]
+      register: redis_consumers
+      changed_when: false
+      failed_when: redis_consumers.rc not in [0, 3, 4]
+      when: redis_restart_needed
+
+    - name: Apply changed Redis persistence settings
+      ansible.builtin.systemd_service:
+        scope: user
+        name: redis
+        daemon_reload: true
+        state: "{{ 'restarted' if redis_restart_needed else 'started' }}"
+
+    - name: Restore previously running Redis consumers
+      ansible.builtin.systemd_service:
+        scope: user
+        name: "{{ item.item }}"
+        state: started
+      loop: "{{ redis_consumers.results }}"
+      when:
+        - redis_restart_needed
+        - item.rc == 0
