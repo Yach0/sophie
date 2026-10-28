@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from collections.abc import AsyncIterator
 from contextlib import ExitStack
-from html import unescape
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -25,10 +24,17 @@ from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 LONG_ANSWER = "A & B " * 600 + "TAIL"
 ROW_ANSWER = "| Name | Value |\n| --- | --- |\n| kept | visible |\n| unseen_row | secret_row |"
 COLUMN_ANSWER = "| Name | Value | unseen_column |\n| --- | --- | --- |\n| kept | visible | secret_column |"
-DELIVERED_TABLE = "| Name | Value |\n| --- | --- |\n| kept | visible |"
+RAGGED_ANSWER = (
+    "| Name | Value |\n| --- | --- |\n| kept | visible | extra_visible | secret_column |\n| unseen_row | secret_row |"
+)
+DELIVERED_TABLE = (
+    "<table bordered striped compact><tr><th>Name</th><th>Value</th></tr><tr><td>kept</td><td>visible</td></tr></table>"
+)
 
 
-@pytest.mark.parametrize("answer", [LONG_ANSWER, ROW_ANSWER, COLUMN_ANSWER], ids=["length", "rows", "columns"])
+@pytest.mark.parametrize(
+    "answer", [LONG_ANSWER, ROW_ANSWER, COLUMN_ANSWER, RAGGED_ANSWER], ids=["length", "rows", "columns", "ragged"]
+)
 @pytest.mark.parametrize("reply_path", ["modern", "legacy", "filter"])
 @pytest.mark.parametrize("streaming", [False, True])
 async def test_fitted_public_cache_matches_delivered_body(
@@ -47,7 +53,9 @@ async def test_fitted_public_cache_matches_delivered_body(
         ).insert()
 
     for feature in ("ai_chatbot_table_max_rows", "ai_chatbot_table_max_columns"):
-        await set_chat_override(feature, group.id, 2, redis=services.redis)
+        await set_chat_override(
+            feature, group.id, 3 if feature.endswith("columns") and answer == RAGGED_ANSWER else 2, redis=services.redis
+        )
     await set_chat_override("ai_chatbot_table_card_threshold", group.id, -1, redis=services.redis)
 
     native_responses: list[ModelResponse] = []
@@ -151,13 +159,16 @@ async def test_fitted_public_cache_matches_delivered_body(
         assert len(native_responses) == (1 if reply_path == "filter" else 2)
     payload = final.params["rich_message"]["html"]
     if answer == LONG_ANSWER:
-        # Decode HTML entities and exclude the UI footer.
-        delivered_body = unescape(payload[payload.index("A &amp; B") : payload.index("<br>")])
-        assert delivered_body.endswith("...")
+        # Restore the body paragraph unwrapped by the header and exclude the UI footer.
+        delivered_body = "<p>" + payload[payload.index("A &amp; B") : payload.index("<br>")] + "</p>"
+        assert delivered_body.endswith("...</p>")
         assert len(delivered_body) < len(answer) == 3604
         assert "TAIL" not in payload
     else:
         delivered_body = DELIVERED_TABLE
+        if answer == RAGGED_ANSWER:
+            delivered_body = delivered_body.replace("<td>visible</td>", "<td>visible</td><td>extra_visible</td>")
+            assert "<td>extra_visible</td>" in payload
         assert "<th>Name</th><th>Value</th>" in payload
         assert "<td>kept</td><td>visible</td>" in payload
         assert "unseen" not in payload and "secret" not in payload

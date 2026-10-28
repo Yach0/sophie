@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import unescape
 from types import SimpleNamespace
 from typing import Any, Self, cast
 from unittest.mock import AsyncMock, patch
@@ -294,15 +295,15 @@ async def test_build_fitting_reply_doc_returns_exact_body(
         services=test_services,
     )
 
-    assert doc.to_md() == fitted_output_text
+    assert doc.to_rich() == fitted_output_text
     if output_text == "Short answer.":
-        assert fitted_output_text == output_text
+        assert fitted_output_text == f"<p>{output_text}</p>"
     else:
-        assert fitted_output_text.endswith("...")
+        assert fitted_output_text.endswith("...</p>")
         assert "TAIL" not in fitted_output_text
         assert len(fitted_output_text) < len(output_text)
         if render_limit == 1:
-            assert len(fitted_output_text) <= 512
+            assert len(unescape(fitted_output_text.removeprefix("<p>").removesuffix("</p>"))) <= 512
 
 
 def test_render_research_markdown_has_metadata_and_sources_without_blockquote() -> None:

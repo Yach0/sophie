@@ -138,7 +138,11 @@ async def _build_fitting_reply_doc(
     mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
     speaker_names: Sequence[tuple[int, str]] = (),
 ) -> tuple[Doc, str]:
-    """Return the fitted document and its public body, independently of native history."""
+    """Return the fitted document and its public Rich body, independently of native history.
+
+    Rich serialization preserves every delivered table cell; Markdown can trim
+    ragged rows to the header width. Serialize only the fitted body to exclude UI.
+    """
     fitted_output_text = output_text
     mention_index = (
         await resolve_reply_mention_index(
@@ -167,7 +171,7 @@ async def _build_fitting_reply_doc(
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
-            return doc, doc.body.to_md()
+            return doc, doc.body.to_rich()
 
         overflow = html_length - TELEGRAM_MESSAGE_SAFE_LIMIT
         next_length = len(fitted_output_text) - overflow - 128
@@ -192,7 +196,7 @@ async def _build_fitting_reply_doc(
         mention_policy=mention_policy,
         speaker_names=speaker_names,
     )
-    return doc, doc.body.to_md()
+    return doc, doc.body.to_rich()
 
 
 async def _send_chatbot_ai_failure_reply(
