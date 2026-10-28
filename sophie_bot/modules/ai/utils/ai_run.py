@@ -20,9 +20,11 @@ from pydantic_ai import (
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
+    ToolDefinition,
 )
+from pydantic_ai.capabilities import Hooks, ValidatedToolArgs
 from pydantic_ai.exceptions import UsageLimitExceeded
-from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent
+from pydantic_ai.messages import ModelRequest, ModelResponse, ToolCallPart, UserContent
 from pydantic_ai.models import Model
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.models.openrouter import OpenRouterModel
@@ -76,6 +78,33 @@ _STREAM_DEBOUNCE_SECONDS: Final = 0.2
 
 class _CandidateContextRejected(ValueError):
     """The current request cannot be projected safely for this candidate."""
+
+
+@dataclass(slots=True)
+class _ToolExecutionState:
+    """Whole-agent restarts are unsafe once a function tool may have changed state."""
+
+    started: bool = False
+
+    def before_tool_execute(
+        self,
+        _ctx: RunContext[object],
+        *,
+        call: ToolCallPart,
+        tool_def: ToolDefinition,
+        args: ValidatedToolArgs,
+    ) -> ValidatedToolArgs:
+        self.started = True
+        return args
+
+    def track(self, run_kwargs: Mapping[str, Any]) -> dict[str, Any]:
+        return {
+            **run_kwargs,
+            "capabilities": [
+                Hooks(before_tool_execute=self.before_tool_execute),
+                *(run_kwargs.get("capabilities") or ()),
+            ],
+        }
 
 
 def _last_resort_candidate(candidates: Sequence[AIModelCandidate]) -> AIModelCandidate | None:
@@ -186,6 +215,7 @@ async def _run_with_model_candidates[FallbackOutputT](
     is_refusal: Callable[[FallbackOutputT], bool] | None = None,
     on_retry: AIRetryCallback | None = None,
     operation_label: str = "text",
+    tool_execution: _ToolExecutionState | None = None,
 ) -> tuple[FallbackOutputT, AIModelCandidate]:
     """Run ``operation`` against each candidate in turn until one answers.
 
@@ -200,10 +230,22 @@ async def _run_with_model_candidates[FallbackOutputT](
 
     A provider failure becomes a reported, user-facing error only after the retry/failover
     candidates are exhausted. Failures that neither retry nor fail over propagate unchanged.
+    Once a function tool starts, failures end the run instead of replaying its side effects.
     """
     lead_model_name = candidates[0].model_name if candidates else None
     allow_plan_failover = model_plan is not None
     should_try_next = _should_try_next_model if allow_plan_failover else is_retryable_ai_provider_error
+
+    async def run_once(candidate: AIModelCandidate, context: AIErrorContext) -> FallbackOutputT:
+        try:
+            return await operation(candidate)
+        except AI_PROVIDER_EXCEPTIONS as error:
+            # Convert before the retry loop sees the failure. Request-level recovery inside the
+            # agent is safe, but restarting this operation would discard completed tool returns.
+            if tool_execution is not None and tool_execution.started and should_try_next(error):
+                raise ai_request_failed_from_error(error, context) from error
+            raise
+
     for index, candidate in enumerate(candidates):
         is_last = index == len(candidates) - 1
         context = AIErrorContext(
@@ -213,7 +255,9 @@ async def _run_with_model_candidates[FallbackOutputT](
         )
         try:
             async with track_ai_request(candidate.model, operation_label):
-                result = await run_ai_request_with_retries(partial(operation, candidate), context, on_retry=on_retry)
+                result = await run_ai_request_with_retries(
+                    partial(run_once, candidate, context), context, on_retry=on_retry
+                )
         except _CandidateContextRejected as error:
             if is_last or not allow_plan_failover:
                 raise ai_request_failed_from_error(error, context) from error
@@ -224,7 +268,7 @@ async def _run_with_model_candidates[FallbackOutputT](
             )
             continue
         except AIModelRefused:
-            if is_last or not allow_plan_failover:
+            if is_last or not allow_plan_failover or (tool_execution is not None and tool_execution.started):
                 raise
             log.warning(
                 "AI request on %s produced no usable output; trying %s",
@@ -246,7 +290,13 @@ async def _run_with_model_candidates[FallbackOutputT](
             capture_ai_error(error, context, level="warning")
             continue
 
-        if allow_plan_failover and is_refusal is not None and not is_last and is_refusal(result):
+        if (
+            allow_plan_failover
+            and is_refusal is not None
+            and not is_last
+            and not (tool_execution is not None and tool_execution.started)
+            and is_refusal(result)
+        ):
             log.warning(
                 "AI request on %s produced no usable output; trying %s",
                 candidate.model_name,
@@ -516,6 +566,8 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
     model_plan: AIModelPlan | None = None,
     operation_label: str = "text",
 ) -> AIAgentResult[OutputT]:
+    tool_execution = _ToolExecutionState()
+    run_kwargs = tool_execution.track(run_kwargs)
     agent_model = _get_agent_model(agent)
     candidates = resolve_candidates(
         agent_model,
@@ -535,6 +587,7 @@ async def _run_with_retries_and_metrics[DepsT, OutputT](
         model_plan=model_plan,
         on_retry=on_retry,
         operation_label=operation_label,
+        tool_execution=tool_execution,
     )
 
     served_model = served_candidate.model
@@ -773,6 +826,8 @@ async def run_ai_stream[DepsT](
     candidates = resolve_candidates(agent_model, model_plan, request_has_images(user_prompt, message_history))
     base_run_kwargs = _build_agent_run_kwargs(user_prompt, message_history, deps, usage_limits)
     base_run_kwargs.update(extra_run_kwargs)
+    tool_execution = _ToolExecutionState()
+    base_run_kwargs = tool_execution.track(base_run_kwargs)
     # Keep tool-thinking UI stable across stream retries.
     seen_tool_names: set[str] = set()
 
@@ -798,6 +853,7 @@ async def run_ai_stream[DepsT](
         model_plan=model_plan,
         on_retry=on_retry,
         operation_label="stream",
+        tool_execution=tool_execution,
     )
 
     served_model = served_candidate.model
