@@ -367,7 +367,7 @@ async def test_ai_reply_unexpected_failure_cleans_progress(
         )
         if failure_stage == "caching":
             stack.enter_context(
-                patch("sophie_bot.modules.ai.utils.ai_chatbot_reply.enqueue_cached_message", side_effect=error)
+                patch("sophie_bot.modules.ai.utils.ai_chatbot_reply.store_delivered_message", side_effect=error)
             )
         if failure_stage == "delivery":
             generate = test_client.bot.session._generate_response
