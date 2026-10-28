@@ -120,11 +120,19 @@ async def test_legacy_persistence_does_not_restore_context_reset_between_attempt
 
 
 @pytest.mark.parametrize(
-    ("modern", "proactive", "tool_failure"),
-    [(True, False, False), (True, True, False), (False, False, False), (False, True, False), (False, False, True)],
-)
-@pytest.mark.parametrize(
-    "failure", ["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"]
+    ("modern", "proactive", "tool_failure", "failure"),
+    [
+        (modern, proactive, tool_failure, failure)
+        for modern, proactive, tool_failure in [
+            (True, False, False),
+            (True, True, False),
+            (False, False, False),
+            (False, True, False),
+            (False, False, True),
+        ]
+        for failure in ["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"]
+    ]
+    + [pytest.param(False, False, False, "reset_during_delay", id="legacy-cache-lost-ack-reset-before-tool-history")],
 )
 async def test_delivered_reply_retries_only_prepared_persistence(
     monkeypatch: pytest.MonkeyPatch,
@@ -132,7 +140,9 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     modern: bool,
     proactive: bool,
     tool_failure: bool,
-    failure: Literal["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"],
+    failure: Literal[
+        "before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled", "reset_during_delay"
+    ],
 ) -> None:
     chat = ChatModel(
         tid=-100123,
@@ -220,12 +230,28 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         if failure == "exhausted" or (failure == "before" and attempts < 3):
             raise ConnectionError("unavailable")
         result = await original_execute(pipe, raise_on_error)
-        if failure == "lost_ack" and attempts == 1:
+        if failure in {"lost_ack", "reset_during_delay"} and attempts == 1:
             # Redis applied EXEC; the caller never received its successful result.
+            if failure == "reset_during_delay":
+                assert [
+                    (row.message_id, row.text) for row in await get_cached_messages(chat.tid, redis=test_services.redis)
+                ] == [(8, "answer")]
             raise WatchError("connection lost while watching") if modern else TimeoutError("lost acknowledgment")
         return result
 
     monkeypatch.setattr(Pipeline, "execute", execute)
+
+    sleeps = 0
+
+    async def reset_during_retry_delay(seconds: float) -> None:
+        nonlocal sleeps
+        sleeps += 1
+        assert seconds == 0.1
+        await ModernContext.reset(chat.tid, redis=test_services.redis)
+        await chatbot_tool_history.reset_tool_exchanges(chat.tid, redis=test_services.redis)
+
+    if failure == "reset_during_delay":
+        monkeypatch.setattr(cache_messages, "AsyncRetrying", partial(AsyncRetrying, sleep=reset_during_retry_delay))
 
     async def reply() -> None:
         if proactive:
@@ -250,7 +276,9 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     else:
         await reply()
 
-    assert attempts == (1 if failure in {"response_error", "cancelled"} else 2 if failure == "lost_ack" else 3)
+    assert attempts == (
+        1 if failure in {"response_error", "cancelled", "reset_during_delay"} else 2 if failure == "lost_ack" else 3
+    )
     assert all(snapshot == snapshots[0] for snapshot in snapshots)
     run.assert_awaited_once()
     send.assert_awaited_once()
@@ -258,6 +286,10 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     cached = await get_cached_messages(chat.tid, redis=test_services.redis)
     success = failure in {"before", "lost_ack"}
     assert [(row.message_id, row.text) for row in cached] == ([(8, "answer")] if success or tool_failure else [])
+    if failure == "reset_during_delay":
+        assert sleeps == 1
+        assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
+        tool_config.assert_not_awaited()
     if isinstance(history, ModernContext):
         assert history._closed
         assert not await test_services.redis.exists(history._lock_key)

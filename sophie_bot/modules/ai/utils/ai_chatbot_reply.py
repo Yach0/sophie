@@ -248,7 +248,8 @@ async def _cache_chatbot_reply(
     if history is not None:
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
-        await store_delivered_message(message.chat.id, cached_message, redis=services.redis)
+        if not await store_delivered_message(message.chat.id, cached_message, redis=services.redis):
+            return
         await remember_chatbot_tool_history(
             message.chat.id,
             final_message.message_id,

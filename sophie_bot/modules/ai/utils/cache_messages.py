@@ -59,8 +59,8 @@ def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -
     pipe.expire(key, int(MESSAGE_CACHE_TTL.total_seconds()), lt=True)
 
 
-async def store_delivered_message(chat_tid: int, message: MessageType, *, redis: Redis) -> None:
-    """Retry only the prepared, deterministic cache writes for an already delivered answer."""
+async def store_delivered_message(chat_tid: int, message: MessageType, *, redis: Redis) -> bool:
+    """Retry prepared cache writes; return False if a reset invalidated the answer."""
     epoch_key = get_context_epoch_key(chat_tid)
     expected_epoch: int | None = None
     async for attempt in AsyncRetrying(
@@ -78,10 +78,11 @@ async def store_delivered_message(chat_tid: int, message: MessageType, *, redis:
                     expected_epoch = current_epoch
                 elif current_epoch != expected_epoch:
                     await pipe.unwatch()
-                    return
+                    return False
                 pipe.multi()
                 enqueue_cached_message(pipe, chat_tid, message)
                 await pipe.execute()
+    return True
 
 
 def _build_cutoff(now: datetime | None = None) -> datetime:
