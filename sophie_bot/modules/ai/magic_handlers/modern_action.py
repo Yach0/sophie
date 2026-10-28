@@ -119,7 +119,9 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         ):
             return None
 
-        messages = OldContext(services=data["services"])
+        services = data["services"]
+        expected_epoch = await read_context_epoch(message.chat.id, redis=services.redis)
+        messages = OldContext(services=services)
         messages.add_system(filter_data.prompt)
         await messages.add_from_cache(message.chat.id, limit=CHATBOT_CACHE_MESSAGE_LIMIT, fold_background=True)
         await messages.add_from_message(message)
@@ -131,8 +133,6 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             redis=data["services"].redis,
         )
 
-        services = data["services"]
-        expected_epoch = await read_context_epoch(message.chat.id, redis=services.redis)
         strip_alien_html_tags = await is_enabled(
             "ai_chatbot_strip_alien_html_tags", chat_tid=message.chat.id, redis=services.redis
         )

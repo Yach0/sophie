@@ -28,6 +28,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.magic_handlers import modern_action
 from sophie_bot.modules.ai.utils import ai_chatbot_reply as chatbot_reply
 from sophie_bot.modules.ai.utils import cache_messages, chatbot_tool_history, proactive_replies
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
@@ -145,6 +146,7 @@ async def test_legacy_persistence_does_not_restore_context_reset_between_attempt
             "epoch_exhausted",
             "reset_before_watch",
             "reset_before_get",
+            "reset_during_preparation",
         ]
     ],
 )
@@ -168,6 +170,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         "epoch_exhausted",
         "reset_before_watch",
         "reset_before_get",
+        "reset_during_preparation",
     ],
 ) -> None:
     chat = ChatModel(
@@ -245,6 +248,16 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     epoch_key = cache_messages.get_context_epoch_key(chat.tid)
     if not modern:
         await test_services.redis.set(epoch_key, 7)
+    if failure == "reset_during_preparation":
+
+        async def reset_during_preparation(*args: object, **kwargs: object) -> OldContext | ModernContext:
+            run.assert_not_awaited()
+            send.assert_not_awaited()
+            await ModernContext.reset(chat.tid, redis=test_services.redis)
+            await chatbot_tool_history.reset_tool_exchanges(chat.tid, redis=test_services.redis)
+            return history
+
+        prepare.side_effect = reset_during_preparation
     original_get = test_services.redis.get
     epoch_reads = 0
 
@@ -373,7 +386,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
 
     assert attempts == (
         0
-        if failure in {"reset_before_watch", "reset_before_get"}
+        if failure in {"reset_before_watch", "reset_before_get", "reset_during_preparation"}
         else 1
         if failure
         in {
@@ -395,6 +408,10 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     cached = await get_cached_messages(chat.tid, redis=test_services.redis)
     success = failure in {"before", "lost_ack", "epoch_connection", "epoch_timeout"}
     assert [(row.message_id, row.text) for row in cached] == ([(8, "answer")] if success or tool_failure else [])
+    if failure == "reset_during_preparation":
+        assert await original_get(epoch_key) == b"8"
+        assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
+        tool_config.assert_not_awaited()
     if failure in {"reset_during_delay", "reset_before_watch", "reset_before_get"}:
         assert sleeps == 1
         if failure != "reset_during_delay":
@@ -438,3 +455,83 @@ async def test_delivered_reply_retries_only_prepared_persistence(
             assert len(exchanges[8]) == 2
         if success or tool_failure:
             tool_config.assert_awaited_once()
+
+
+@pytest.mark.parametrize("preparation_step", ["add_from_cache", "add_from_message"])
+async def test_filter_reply_does_not_persist_after_reset_during_preparation(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    preparation_step: str,
+) -> None:
+    chat = ChatModel(
+        tid=-100123,
+        type=ChatType.supergroup,
+        first_name_or_title="Group",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    )
+    connection = ChatConnection(type=chat.type, is_connected=False, tid=chat.tid, title="Group", db_model=chat)
+    source = Message(
+        message_id=7,
+        date=datetime.now(UTC),
+        chat=Chat(id=chat.tid, type="supergroup"),
+        from_user=User(id=123, is_bot=False, first_name="Alice"),
+        text="question",
+    )
+    sent = source.model_copy(update={"message_id": 8, "text": "answer"})
+    native = [
+        ModelRequest(parts=[UserPromptPart(content="question")]),
+        ModelResponse(parts=[ToolCallPart(tool_name="web_search", args={}, tool_call_id="call-1")]),
+        ModelRequest(parts=[ToolReturnPart(tool_name="web_search", content="result", tool_call_id="call-1")]),
+        ModelResponse(parts=[TextPart(content="answer")]),
+    ]
+    run = AsyncMock(
+        return_value=AIAgentResult(output="answer", message_history=native, new_messages=native, usage=RunUsage())
+    )
+    send = AsyncMock(return_value=sent)
+    epoch_key = cache_messages.get_context_epoch_key(chat.tid)
+    await test_services.redis.set(epoch_key, 7)
+
+    async def reset_during_preparation(*args: object, **kwargs: object) -> None:
+        run.assert_not_awaited()
+        send.assert_not_awaited()
+        await ModernContext.reset(chat.tid, redis=test_services.redis)
+        await chatbot_tool_history.reset_tool_exchanges(chat.tid, redis=test_services.redis)
+
+    load_cache = AsyncMock()
+    load_message = AsyncMock()
+    monkeypatch.setattr(OldContext, "add_from_cache", load_cache)
+    monkeypatch.setattr(OldContext, "add_from_message", load_message)
+    (load_cache if preparation_step == "add_from_cache" else load_message).side_effect = reset_during_preparation
+    monkeypatch.setattr(ChatModel, "get_by_tid", AsyncMock(return_value=chat))
+    monkeypatch.setattr(modern_action.AIQuotaFilter, "__call__", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        modern_action, "get_chat_default_model_plan", AsyncMock(return_value=SimpleNamespace(primary=TestModel()))
+    )
+    monkeypatch.setattr(modern_action, "is_enabled", AsyncMock(return_value=False))
+    monkeypatch.setattr(modern_action, "build_message_streamer", AsyncMock(return_value=None))
+    monkeypatch.setattr(modern_action, "run_ai_text", run)
+    monkeypatch.setattr(modern_action, "build_chatbot_header", AsyncMock(return_value="header"))
+    monkeypatch.setattr(modern_action, "_build_fitting_reply_doc", AsyncMock(return_value=Doc("answer")))
+    monkeypatch.setattr(modern_action, "send_ai_rich_message", send)
+    tool_config = AsyncMock(return_value=100)
+    monkeypatch.setattr(chatbot_tool_history, "get_value", tool_config)
+
+    assert (
+        await modern_action.AIReplyAction().handle(
+            source,
+            {"context": SimpleNamespace(connection=connection), "services": test_services},
+            modern_action.AIReplyActionDataModel(prompt="Respond"),
+        )
+        is sent
+    )
+
+    load_cache.assert_awaited_once()
+    load_message.assert_awaited_once()
+    run.assert_awaited_once()
+    send.assert_awaited_once()
+    assert await test_services.redis.get(epoch_key) == b"8"
+    assert await get_cached_messages(chat.tid, redis=test_services.redis) == ()
+    assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
+    tool_config.assert_not_awaited()

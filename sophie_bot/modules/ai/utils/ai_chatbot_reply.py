@@ -311,6 +311,7 @@ async def ai_chatbot_reply(
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
         )
+        expected_epoch = await read_context_epoch(message.chat.id, redis=services.redis)
         try:
             history = await prepare_chatbot_history(
                 message,
@@ -322,11 +323,6 @@ async def ai_chatbot_reply(
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
-        expected_epoch = (
-            None
-            if isinstance(history, ModernContext)
-            else await read_context_epoch(message.chat.id, redis=services.redis)
-        )
         mention_policy = select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode)
         speaker_names = (
             history.mention_speaker_names

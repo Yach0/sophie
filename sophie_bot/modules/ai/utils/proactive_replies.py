@@ -454,14 +454,12 @@ async def _answer_message(
             user_tid=None,
             services=services,
         )
+        expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
         history = await _build_answer_history(
             chat_tid, target_message, services=services, context=context, model_plan=model_plan
         )
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
-        expected_epoch = (
-            None if isinstance(history, ModernContext) else await read_context_epoch(chat_tid, redis=services.redis)
-        )
         previous_history = list(history.message_history)
         async with track_ai_conversation():
             set_conversation_id(f"{chat.iid}:proactive")
