@@ -17,17 +17,22 @@ from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, build_model_plan
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages
 from sophie_bot.modules.ai.utils.modern_context import ModernContext, _Session
+from sophie_bot.utils.feature_flags import set_chat_override
 from tests.e2e.helpers import create_test_user_and_group, set_feature
 from tests.e2e.test_ai_filter_reply_pipeline import _telegram_rich_response
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 LONG_ANSWER = "A & B " * 600 + "TAIL"
+ROW_ANSWER = "| Name | Value |\n| --- | --- |\n| kept | visible |\n| unseen_row | secret_row |"
+COLUMN_ANSWER = "| Name | Value | unseen_column |\n| --- | --- | --- |\n| kept | visible | secret_column |"
+DELIVERED_TABLE = "| Name | Value |\n| --- | --- |\n| kept | visible |"
 
 
+@pytest.mark.parametrize("answer", [LONG_ANSWER, ROW_ANSWER, COLUMN_ANSWER], ids=["length", "rows", "columns"])
 @pytest.mark.parametrize("reply_path", ["modern", "legacy", "filter"])
 @pytest.mark.parametrize("streaming", [False, True])
 async def test_fitted_public_cache_matches_delivered_body(
-    test_client: TestClient, reply_path: str, streaming: bool
+    test_client: TestClient, reply_path: str, streaming: bool, answer: str
 ) -> None:
     user, group, _user_model = await create_test_user_and_group(test_client)
     services = test_client.dispatcher.workflow_data["services"]
@@ -41,6 +46,10 @@ async def test_fitted_public_cache_matches_delivered_body(
             chat=chat.iid, handler="long answer", action=None, actions={"ai_text": {"prompt": "Give a long answer"}}
         ).insert()
 
+    for feature in ("ai_chatbot_table_max_rows", "ai_chatbot_table_max_columns"):
+        await set_chat_override(feature, group.id, 2, redis=services.redis)
+    await set_chat_override("ai_chatbot_table_card_threshold", group.id, -1, redis=services.redis)
+
     native_responses: list[ModelResponse] = []
     model_inputs: list[list[ModelMessage]] = []
 
@@ -48,10 +57,10 @@ async def test_fitted_public_cache_matches_delivered_body(
         model_inputs.append(list(messages))
         has_return = any(isinstance(part, ToolReturnPart) for message in messages for part in message.parts)
         is_followup = any(
-            isinstance(part, TextPart) and part.content == LONG_ANSWER for message in messages for part in message.parts
+            isinstance(part, TextPart) and part.content == answer for message in messages for part in message.parts
         )
         result = (
-            ModelResponse(parts=[TextPart("Continued." if is_followup else LONG_ANSWER)])
+            ModelResponse(parts=[TextPart("Continued." if is_followup else answer)])
             if reply_path == "filter" or has_return
             else ModelResponse(
                 parts=[
@@ -119,7 +128,7 @@ async def test_fitted_public_cache_matches_delivered_body(
                 for part in message.parts
                 if isinstance(part, TextPart)
             ]
-            assert prior_answers == [LONG_ANSWER]
+            assert prior_answers == [answer]
             followup_session_raw = await services.redis.get(next(iter(session_keys)))
             assert followup_session_raw is not None
             followup_session = _Session.model_validate_json(followup_session_raw)
@@ -141,11 +150,17 @@ async def test_fitted_public_cache_matches_delivered_body(
     if reply_path != "modern":
         assert len(native_responses) == (1 if reply_path == "filter" else 2)
     payload = final.params["rich_message"]["html"]
-    # The body has no Markdown: decode HTML entities and exclude the UI footer.
-    delivered_body = unescape(payload[payload.index("A &amp; B") : payload.index("<br>")])
-    assert delivered_body.endswith("...")
-    assert len(delivered_body) < len(LONG_ANSWER) == 3604
-    assert "TAIL" not in payload
+    if answer == LONG_ANSWER:
+        # Decode HTML entities and exclude the UI footer.
+        delivered_body = unescape(payload[payload.index("A &amp; B") : payload.index("<br>")])
+        assert delivered_body.endswith("...")
+        assert len(delivered_body) < len(answer) == 3604
+        assert "TAIL" not in payload
+    else:
+        delivered_body = DELIVERED_TABLE
+        assert "<th>Name</th><th>Value</th>" in payload
+        assert "<td>kept</td><td>visible</td>" in payload
+        assert "unseen" not in payload and "secret" not in payload
     cached = [
         entry
         for entry in await get_cached_messages(group.id, redis=services.redis)
@@ -154,6 +169,7 @@ async def test_fitted_public_cache_matches_delivered_body(
     assert len(cached) == 1
     assert cached[0].text == delivered_body
     assert "TAIL" not in cached[0].text
+    assert "unseen" not in cached[0].text and "secret" not in cached[0].text
     assert "PRIVATE" not in payload and "PRIVATE" not in cached[0].text
 
     if reply_path == "modern":
@@ -163,7 +179,7 @@ async def test_fitted_public_cache_matches_delivered_body(
         persisted_responses = [message for message in native_messages if isinstance(message, ModelResponse)]
         assert len(persisted_responses) == 2
         # Native history must keep the original answer and complete tool exchange.
-        assert persisted_responses[-1].parts == [TextPart(LONG_ANSWER)]
+        assert persisted_responses[-1].parts == [TextPart(answer)]
         thinking = persisted_responses[0].parts[0]
         assert isinstance(thinking, ThinkingPart)
         assert thinking.content == "PRIVATE native reasoning"

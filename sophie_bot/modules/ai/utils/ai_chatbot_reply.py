@@ -167,7 +167,7 @@ async def _build_fitting_reply_doc(
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
-            return doc, fitted_output_text
+            return doc, doc.body.to_md()
 
         overflow = html_length - TELEGRAM_MESSAGE_SAFE_LIMIT
         next_length = len(fitted_output_text) - overflow - 128
@@ -192,7 +192,7 @@ async def _build_fitting_reply_doc(
         mention_policy=mention_policy,
         speaker_names=speaker_names,
     )
-    return doc, fitted_output_text
+    return doc, doc.body.to_md()
 
 
 async def _send_chatbot_ai_failure_reply(
