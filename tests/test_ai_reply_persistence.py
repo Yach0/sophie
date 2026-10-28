@@ -132,7 +132,10 @@ async def test_legacy_persistence_does_not_restore_context_reset_between_attempt
         ]
         for failure in ["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"]
     ]
-    + [pytest.param(False, False, False, "reset_during_delay", id="legacy-cache-lost-ack-reset-before-tool-history")],
+    + [
+        pytest.param(False, False, False, "reset_during_delay", id="legacy-cache-lost-ack-reset-before-tool-history"),
+        pytest.param(False, False, False, "reset_during_config", id="legacy-cache-success-reset-during-tool-config"),
+    ],
 )
 async def test_delivered_reply_retries_only_prepared_persistence(
     monkeypatch: pytest.MonkeyPatch,
@@ -141,7 +144,14 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     proactive: bool,
     tool_failure: bool,
     failure: Literal[
-        "before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled", "reset_during_delay"
+        "before",
+        "lost_ack",
+        "exhausted",
+        "watch_exhausted",
+        "response_error",
+        "cancelled",
+        "reset_during_delay",
+        "reset_during_config",
     ],
 ) -> None:
     chat = ChatModel(
@@ -203,6 +213,17 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         monkeypatch.setattr(module, "build_message_streamer", AsyncMock(return_value=None))
         monkeypatch.setattr(module, "should_offer_help_mode", AsyncMock(return_value=False))
     tool_config = AsyncMock(return_value=100)
+    if failure == "reset_during_config":
+
+        async def reset_during_tool_config(*args: object, **kwargs: object) -> int:
+            assert [
+                (row.message_id, row.text) for row in await get_cached_messages(chat.tid, redis=test_services.redis)
+            ] == [(8, "answer")]
+            await ModernContext.reset(chat.tid, redis=test_services.redis)
+            await chatbot_tool_history.reset_tool_exchanges(chat.tid, redis=test_services.redis)
+            return 100
+
+        tool_config.side_effect = reset_during_tool_config
     monkeypatch.setattr(chatbot_tool_history, "get_value", tool_config)
 
     original_execute = Pipeline.execute
@@ -277,7 +298,11 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         await reply()
 
     assert attempts == (
-        1 if failure in {"response_error", "cancelled", "reset_during_delay"} else 2 if failure == "lost_ack" else 3
+        1
+        if failure in {"response_error", "cancelled", "reset_during_delay", "reset_during_config"}
+        else 2
+        if failure == "lost_ack"
+        else 3
     )
     assert all(snapshot == snapshots[0] for snapshot in snapshots)
     run.assert_awaited_once()
@@ -290,6 +315,9 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         assert sleeps == 1
         assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
         tool_config.assert_not_awaited()
+    if failure == "reset_during_config":
+        tool_config.assert_awaited_once()
+        assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
     if isinstance(history, ModernContext):
         assert history._closed
         assert not await test_services.redis.exists(history._lock_key)

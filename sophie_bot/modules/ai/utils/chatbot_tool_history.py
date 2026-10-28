@@ -132,6 +132,7 @@ async def store_tool_exchanges(
     exchanges: Sequence[ToolExchange],
     *,
     redis: Redis,
+    expected_epoch: int | None = None,
 ) -> None:
     """Persist the tool exchanges that produced the answer sent as ``message_id``."""
     if not exchanges:
@@ -140,7 +141,6 @@ async def store_tool_exchanges(
         key = tool_history_key(chat_tid)
         payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
         epoch_key = get_context_epoch_key(chat_tid)
-        expected_epoch: int | None = None
         async for attempt in AsyncRetrying(
             retry=retry_if_exception_type((ConnectionError, TimeoutError, WatchError)),
             stop=stop_after_attempt(3),
@@ -191,6 +191,7 @@ async def remember_chatbot_tool_history(
     previous_history: Sequence[ToolExchange],
     *,
     redis: Redis,
+    expected_epoch: int | None = None,
 ) -> None:
     """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
     max_content_chars = int(
@@ -207,4 +208,4 @@ async def remember_chatbot_tool_history(
         skip_tool_call_ids=skipped_call_ids,
     )
 
-    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
+    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis, expected_epoch=expected_epoch)

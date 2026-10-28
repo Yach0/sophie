@@ -23,7 +23,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, store_delivered_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_context_epoch_key, store_delivered_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -248,7 +248,11 @@ async def _cache_chatbot_reply(
     if history is not None:
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
-        if not await store_delivered_message(message.chat.id, cached_message, redis=services.redis):
+        # Both legacy writes belong to the same reset epoch, including awaited tool configuration.
+        expected_epoch = int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0)
+        if not await store_delivered_message(
+            message.chat.id, cached_message, redis=services.redis, expected_epoch=expected_epoch
+        ):
             return
         await remember_chatbot_tool_history(
             message.chat.id,
@@ -256,6 +260,7 @@ async def _cache_chatbot_reply(
             result.message_history,
             previous_history,
             redis=services.redis,
+            expected_epoch=expected_epoch,
         )
 
 
