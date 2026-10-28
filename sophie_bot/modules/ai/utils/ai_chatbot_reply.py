@@ -23,7 +23,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_context_epoch_key, store_delivered_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, read_context_epoch, store_delivered_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -228,6 +228,7 @@ async def _cache_chatbot_reply(
     previous_history: Sequence[ToolExchange],
     *,
     services: ApplicationServices,
+    expected_epoch: int | None,
     history: ModernContext | None = None,
 ) -> None:
     """Cache the fitted public body while preserving the complete native turn for follow-ups."""
@@ -249,7 +250,6 @@ async def _cache_chatbot_reply(
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
         # Both legacy writes belong to the same reset epoch, including awaited tool configuration.
-        expected_epoch = int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0)
         if not await store_delivered_message(
             message.chat.id, cached_message, redis=services.redis, expected_epoch=expected_epoch
         ):
@@ -322,6 +322,11 @@ async def ai_chatbot_reply(
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
+        expected_epoch = (
+            None
+            if isinstance(history, ModernContext)
+            else await read_context_epoch(message.chat.id, redis=services.redis)
+        )
         mention_policy = select_mention_policy(modern=isinstance(history, ModernContext), mode=context.mode)
         speaker_names = (
             history.mention_speaker_names
@@ -433,6 +438,7 @@ async def ai_chatbot_reply(
             result,
             previous_history,
             services=services,
+            expected_epoch=expected_epoch,
             history=history if isinstance(history, ModernContext) else None,
         )
         if research_response is not None:

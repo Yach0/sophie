@@ -29,7 +29,12 @@ from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages, store_delivered_message
+from sophie_bot.modules.ai.utils.cache_messages import (
+    MessageType,
+    get_cached_messages,
+    read_context_epoch,
+    store_delivered_message,
+)
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunRequest,
     run_chatbot,
@@ -454,6 +459,9 @@ async def _answer_message(
         )
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
+        expected_epoch = (
+            None if isinstance(history, ModernContext) else await read_context_epoch(chat_tid, redis=services.redis)
+        )
         previous_history = list(history.message_history)
         async with track_ai_conversation():
             set_conversation_id(f"{chat.iid}:proactive")
@@ -547,7 +555,7 @@ async def _answer_message(
         if isinstance(history, ModernContext):
             await history.finish_run(result.new_messages, sent_message, cached_message=cached_message)
         else:
-            await store_delivered_message(chat_tid, cached_message, redis=services.redis)
+            await store_delivered_message(chat_tid, cached_message, redis=services.redis, expected_epoch=expected_epoch)
 
 
 async def _execute_actions(

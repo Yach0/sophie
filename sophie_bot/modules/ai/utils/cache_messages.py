@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.asyncio.client import Pipeline
 from redis.exceptions import ConnectionError, TimeoutError, WatchError
-from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import AsyncRetrying, retry, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -47,6 +47,17 @@ def get_message_cache_key(chat_id: int) -> str:
 
 def get_context_epoch_key(chat_id: int) -> str:
     return f"ai:modern_context:epoch:{chat_id}"
+
+
+@retry(
+    retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(0.1),
+    reraise=True,
+)
+async def read_context_epoch(chat_tid: int, *, redis: Redis) -> int:
+    """Capture the reset epoch before generating or delivering a legacy answer."""
+    return int(await redis.get(get_context_epoch_key(chat_tid)) or 0)
 
 
 def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -> None:

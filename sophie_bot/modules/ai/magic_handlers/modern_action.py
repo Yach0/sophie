@@ -22,6 +22,7 @@ from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
+from sophie_bot.modules.ai.utils.cache_messages import read_context_epoch
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header, model_display_name, truncate_output
 from sophie_bot.modules.ai.utils.chatbot_streaming import build_message_streamer, chatbot_streaming_session
 from sophie_bot.modules.ai.utils.old_context import CHATBOT_CACHE_MESSAGE_LIMIT, OldContext
@@ -131,6 +132,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
         )
 
         services = data["services"]
+        expected_epoch = await read_context_epoch(message.chat.id, redis=services.redis)
         strip_alien_html_tags = await is_enabled(
             "ai_chatbot_strip_alien_html_tags", chat_tid=message.chat.id, redis=services.redis
         )
@@ -199,6 +201,12 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
             if isinstance(final_message, Message):
                 mark_action_completed(data)
             await _cache_chatbot_reply(
-                message, final_message, fitted_output_text, result, previous_history, services=services
+                message,
+                final_message,
+                fitted_output_text,
+                result,
+                previous_history,
+                services=services,
+                expected_epoch=expected_epoch,
             )
             return final_message

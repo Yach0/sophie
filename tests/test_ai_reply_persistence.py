@@ -135,6 +135,17 @@ async def test_legacy_persistence_does_not_restore_context_reset_between_attempt
     + [
         pytest.param(False, False, False, "reset_during_delay", id="legacy-cache-lost-ack-reset-before-tool-history"),
         pytest.param(False, False, False, "reset_during_config", id="legacy-cache-success-reset-during-tool-config"),
+    ]
+    + [
+        (False, proactive, False, failure)
+        for proactive in [False, True]
+        for failure in [
+            "epoch_connection",
+            "epoch_timeout",
+            "epoch_exhausted",
+            "reset_before_watch",
+            "reset_before_get",
+        ]
     ],
 )
 async def test_delivered_reply_retries_only_prepared_persistence(
@@ -152,6 +163,11 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         "cancelled",
         "reset_during_delay",
         "reset_during_config",
+        "epoch_connection",
+        "epoch_timeout",
+        "epoch_exhausted",
+        "reset_before_watch",
+        "reset_before_get",
     ],
 ) -> None:
     chat = ChatModel(
@@ -226,6 +242,54 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         tool_config.side_effect = reset_during_tool_config
     monkeypatch.setattr(chatbot_tool_history, "get_value", tool_config)
 
+    epoch_key = cache_messages.get_context_epoch_key(chat.tid)
+    if not modern:
+        await test_services.redis.set(epoch_key, 7)
+    original_get = test_services.redis.get
+    epoch_reads = 0
+
+    async def read_epoch(key: str) -> bytes | None:
+        nonlocal epoch_reads
+        if key == epoch_key:
+            epoch_reads += 1
+            if failure.startswith("epoch_"):
+                run.assert_not_awaited()
+                send.assert_not_awaited()
+                if failure == "epoch_exhausted" or epoch_reads < 3:
+                    raise (
+                        TimeoutError("epoch unavailable")
+                        if failure == "epoch_timeout"
+                        else ConnectionError("epoch unavailable")
+                    )
+        return await original_get(key)
+
+    if failure.startswith("epoch_"):
+        monkeypatch.setattr(test_services.redis, "get", read_epoch)
+
+    initial_read_failures = 0
+    original_watch = Pipeline.watch
+    original_pipeline_get = Pipeline.get
+
+    async def watch(pipe: Pipeline, *keys: str) -> None:
+        nonlocal initial_read_failures
+        if failure == "reset_before_watch" and epoch_key in keys and initial_read_failures == 0:
+            send.assert_awaited_once()
+            initial_read_failures += 1
+            raise ConnectionError("unavailable before WATCH")
+        await original_watch(pipe, *keys)
+
+    async def pipeline_get(pipe: Pipeline, key: str) -> bytes | None:
+        nonlocal initial_read_failures
+        if failure == "reset_before_get" and key == epoch_key and initial_read_failures == 0:
+            send.assert_awaited_once()
+            initial_read_failures += 1
+            raise TimeoutError("unavailable before GET")
+        return await original_pipeline_get(pipe, key)
+
+    if failure in {"reset_before_watch", "reset_before_get"}:
+        monkeypatch.setattr(Pipeline, "watch", watch)
+        monkeypatch.setattr(Pipeline, "get", pipeline_get)
+
     original_execute = Pipeline.execute
     attempts = 0
     snapshots: list[tuple[object, ...]] = []
@@ -271,7 +335,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         await ModernContext.reset(chat.tid, redis=test_services.redis)
         await chatbot_tool_history.reset_tool_exchanges(chat.tid, redis=test_services.redis)
 
-    if failure == "reset_during_delay":
+    if failure in {"reset_during_delay", "reset_before_watch", "reset_before_get"}:
         monkeypatch.setattr(cache_messages, "AsyncRetrying", partial(AsyncRetrying, sleep=reset_during_retry_delay))
 
     async def reply() -> None:
@@ -285,21 +349,41 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         else:
             assert await chatbot_reply.ai_chatbot_reply(source, connection, services=test_services) is sent
 
-    if failure in {"exhausted", "watch_exhausted", "response_error", "cancelled"}:
+    if failure in {"exhausted", "watch_exhausted", "response_error", "cancelled", "epoch_exhausted"}:
         error_type = {
             "exhausted": ConnectionError,
             "watch_exhausted": WatchError,
             "response_error": ResponseError,
             "cancelled": asyncio.CancelledError,
+            "epoch_exhausted": ConnectionError,
         }[failure]
         with pytest.raises(error_type):
             await reply()
     else:
         await reply()
 
+    if failure.startswith("epoch_"):
+        assert epoch_reads == 3
+        if failure == "epoch_exhausted":
+            run.assert_not_awaited()
+            send.assert_not_awaited()
+            assert attempts == 0
+            assert await get_cached_messages(chat.tid, redis=test_services.redis) == ()
+            return
+
     assert attempts == (
-        1
-        if failure in {"response_error", "cancelled", "reset_during_delay", "reset_during_config"}
+        0
+        if failure in {"reset_before_watch", "reset_before_get"}
+        else 1
+        if failure
+        in {
+            "epoch_connection",
+            "epoch_timeout",
+            "response_error",
+            "cancelled",
+            "reset_during_delay",
+            "reset_during_config",
+        }
         else 2
         if failure == "lost_ack"
         else 3
@@ -309,10 +393,13 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     send.assert_awaited_once()
     prepare.assert_awaited_once()
     cached = await get_cached_messages(chat.tid, redis=test_services.redis)
-    success = failure in {"before", "lost_ack"}
+    success = failure in {"before", "lost_ack", "epoch_connection", "epoch_timeout"}
     assert [(row.message_id, row.text) for row in cached] == ([(8, "answer")] if success or tool_failure else [])
-    if failure == "reset_during_delay":
+    if failure in {"reset_during_delay", "reset_before_watch", "reset_before_get"}:
         assert sleeps == 1
+        if failure != "reset_during_delay":
+            assert initial_read_failures == 1
+        assert await original_get(epoch_key) == b"8"
         assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
         tool_config.assert_not_awaited()
     if failure == "reset_during_config":
