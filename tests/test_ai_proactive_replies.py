@@ -364,7 +364,7 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
 
     assert reaction.await_count == 2
     assert [call.kwargs["message_id"] for call in reaction.await_args_list] == [1, 2]
-    answer.assert_awaited_once_with(chat_tid, chat, messages[2], services=services)
+    answer.assert_awaited_once_with(chat_tid, chat, messages[2], services=services, expected_epoch=None)
     metric.assert_any_call("reaction_skipped", {**proactive_replies._METRIC_ATTRIBUTES, "reason": "target_missing"})
     assert metric.call_args_list.count(call("reaction_sent", proactive_replies._METRIC_ATTRIBUTES)) == 1
 

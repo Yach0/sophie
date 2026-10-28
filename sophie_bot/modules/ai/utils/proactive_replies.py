@@ -424,6 +424,7 @@ async def _answer_message(
     target_message: MessageType,
     *,
     services: ApplicationServices,
+    expected_epoch: int | None = None,
 ) -> None:
     async with AsyncExitStack() as cleanup:
         connection = ChatConnection(
@@ -454,7 +455,8 @@ async def _answer_message(
             user_tid=None,
             services=services,
         )
-        expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
+        if expected_epoch is None:
+            expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
         history = await _build_answer_history(
             chat_tid, target_message, services=services, context=context, model_plan=model_plan
         )
@@ -551,6 +553,9 @@ async def _answer_message(
             reply_to_username=target_message.username,
         )
         if isinstance(history, ModernContext):
+            # History may have been built after a reset invalidated the selected target.
+            if await read_context_epoch(chat_tid, redis=services.redis) != expected_epoch:
+                return
             await history.finish_run(result.new_messages, sent_message, cached_message=cached_message)
         else:
             await store_delivered_message(chat_tid, cached_message, redis=services.redis, expected_epoch=expected_epoch)
@@ -564,6 +569,7 @@ async def _execute_actions(
     settings: ProactiveReplySettings,
     *,
     services: ApplicationServices,
+    expected_epoch: int | None = None,
 ) -> None:
     messages_by_id = _target_by_message_id(messages)
     limited_actions = _limit_actions(decision, settings)
@@ -601,7 +607,7 @@ async def _execute_actions(
                 chat_id=chat_tid,
                 message_id=target_message.message_id,
             )
-            await _answer_message(chat_tid, chat, target_message, services=services)
+            await _answer_message(chat_tid, chat, target_message, services=services, expected_epoch=expected_epoch)
 
 
 async def maybe_run_proactive_reply(
@@ -639,6 +645,7 @@ async def maybe_run_proactive_reply(
         return
 
     try:
+        expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
         candidates = await _get_recent_candidates(chat_tid, settings, redis=services.redis)
 
         if len(candidates) < settings.min_messages:
@@ -664,6 +671,7 @@ async def maybe_run_proactive_reply(
             decision,
             settings,
             services=services,
+            expected_epoch=expected_epoch,
         )
         await _clear_tracked_messages(chat_tid, candidates, redis=services.redis)
         _log_proactive_info("Proactive AI batch completed", chat_id=chat_tid, candidate_count=len(candidates))

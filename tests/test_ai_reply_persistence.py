@@ -133,6 +133,7 @@ async def test_legacy_persistence_does_not_restore_context_reset_between_attempt
         ]
         for failure in ["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"]
     ]
+    + [(modern, True, False, "reset_during_decision") for modern in [False, True]]
     + [
         pytest.param(False, False, False, "reset_during_delay", id="legacy-cache-lost-ack-reset-before-tool-history"),
         pytest.param(False, False, False, "reset_during_config", id="legacy-cache-success-reset-during-tool-config"),
@@ -171,6 +172,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         "reset_before_watch",
         "reset_before_get",
         "reset_during_preparation",
+        "reset_during_decision",
     ],
 ) -> None:
     chat = ChatModel(
@@ -258,6 +260,40 @@ async def test_delivered_reply_retries_only_prepared_persistence(
             return history
 
         prepare.side_effect = reset_during_preparation
+    if failure == "reset_during_decision":
+        settings = proactive_replies.ProactiveReplySettings(min_messages=1)
+        await cache_messages.cache_message(
+            "question", chat.tid, 123, source.message_id, source.date, "Alice", redis=test_services.redis
+        )
+
+        async def reset_during_decision(
+            decision_chat: ChatModel,
+            chat_tid: int,
+            candidates: tuple[MessageType, ...],
+            settings: proactive_replies.ProactiveReplySettings,
+            *,
+            services: ApplicationServices,
+        ) -> proactive_replies.ProactiveDecision:
+            nonlocal history
+            assert [(candidate.message_id, candidate.text) for candidate in candidates] == [(7, "question")]
+            run.assert_not_awaited()
+            send.assert_not_awaited()
+            await ModernContext.reset(chat_tid, redis=services.redis)
+            assert await get_cached_messages(chat_tid, redis=services.redis) == ()
+            if isinstance(history, ModernContext):
+                await history.abort()
+                history = await ModernContext.build(
+                    source, context, token_budget=100000, instructions="Be helpful.", runtime_context=""
+                )
+                prepare.return_value = history
+            return proactive_replies.ProactiveDecision(
+                actions=[proactive_replies.ProactiveAction(action="answer", message_id=7)]
+            )
+
+        decision = AsyncMock(side_effect=reset_during_decision)
+        monkeypatch.setattr(proactive_replies, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
+        monkeypatch.setattr(proactive_replies, "_get_settings", AsyncMock(return_value=settings))
+        monkeypatch.setattr(proactive_replies, "_generate_decision", decision)
     original_get = test_services.redis.get
     epoch_reads = 0
 
@@ -311,7 +347,10 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         nonlocal attempts
         target_command = "HSET" if tool_failure else "SET" if modern else "ZADD"
         target = next((args for args, _options in pipe.command_stack if args[0] == target_command), None)
-        if target is None:
+        if target is None or (
+            failure == "reset_during_decision"
+            and target[1] != (history._session_key if modern else cache_messages.get_message_cache_key(chat.tid))
+        ):
             return await original_execute(pipe, raise_on_error)
         attempts += 1
         snapshots.append(tuple(target))
@@ -352,7 +391,10 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         monkeypatch.setattr(cache_messages, "AsyncRetrying", partial(AsyncRetrying, sleep=reset_during_retry_delay))
 
     async def reply() -> None:
-        if proactive:
+        if failure == "reset_during_decision":
+            await proactive_replies.maybe_run_proactive_reply(source, chat, services=test_services)
+            decision.assert_awaited_once()
+        elif proactive:
             await proactive_replies._answer_message(
                 chat.tid,
                 chat,
@@ -386,7 +428,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
 
     assert attempts == (
         0
-        if failure in {"reset_before_watch", "reset_before_get", "reset_during_preparation"}
+        if failure in {"reset_before_watch", "reset_before_get", "reset_during_preparation", "reset_during_decision"}
         else 1
         if failure
         in {
@@ -408,8 +450,8 @@ async def test_delivered_reply_retries_only_prepared_persistence(
     cached = await get_cached_messages(chat.tid, redis=test_services.redis)
     success = failure in {"before", "lost_ack", "epoch_connection", "epoch_timeout"}
     assert [(row.message_id, row.text) for row in cached] == ([(8, "answer")] if success or tool_failure else [])
-    if failure == "reset_during_preparation":
-        assert await original_get(epoch_key) == b"8"
+    if failure in {"reset_during_preparation", "reset_during_decision"}:
+        assert await original_get(epoch_key) == (b"1" if modern else b"8")
         assert await get_tool_exchanges(chat.tid, redis=test_services.redis) == {}
         tool_config.assert_not_awaited()
     if failure in {"reset_during_delay", "reset_before_watch", "reset_before_get"}:
