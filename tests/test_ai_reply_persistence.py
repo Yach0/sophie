@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
+from functools import partial
 from types import SimpleNamespace
 from typing import Literal
 from unittest.mock import AsyncMock
@@ -21,13 +22,14 @@ from pydantic_ai.usage import RunUsage
 from redis.asyncio.client import Pipeline
 from redis.exceptions import ConnectionError, ResponseError, TimeoutError, WatchError
 from stfu_tg import Doc
+from tenacity import AsyncRetrying
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import ai_chatbot_reply as chatbot_reply
-from sophie_bot.modules.ai.utils import chatbot_tool_history, proactive_replies
+from sophie_bot.modules.ai.utils import cache_messages, chatbot_tool_history, proactive_replies
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages
@@ -38,18 +40,99 @@ from sophie_bot.services.application import ApplicationServices
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 
+@pytest.mark.parametrize("tool_history", [False, True])
+@pytest.mark.parametrize("failure", ["before", "lost_ack", "watch_conflict"])
+@pytest.mark.parametrize("initial_epoch", [0, 7])
+async def test_legacy_persistence_does_not_restore_context_reset_between_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    tool_history: bool,
+    failure: Literal["before", "lost_ack", "watch_conflict"],
+    initial_epoch: int,
+) -> None:
+    redis = test_services.redis
+    chat_tid = -100123
+    epoch_key = cache_messages.get_context_epoch_key(chat_tid)
+    if initial_epoch:
+        await redis.set(epoch_key, initial_epoch)
+    message = MessageType(user_id=123, message_id=8, text="answer", created_at=datetime.now(UTC))
+    exchanges = [
+        ModelResponse(parts=[ToolCallPart(tool_name="web_search", args={}, tool_call_id="call-1")]),
+        ModelRequest(parts=[ToolReturnPart(tool_name="web_search", content="result", tool_call_id="call-1")]),
+    ]
+    module = chatbot_tool_history if tool_history else cache_messages
+    original_execute = Pipeline.execute
+    attempts = 0
+    sleeps = 0
+
+    async def persist() -> None:
+        if tool_history:
+            await chatbot_tool_history.store_tool_exchanges(chat_tid, message.message_id, exchanges, redis=redis)
+        else:
+            await cache_messages.store_delivered_message(chat_tid, message, redis=redis)
+
+    async def execute(pipe: Pipeline, raise_on_error: bool = True) -> list[object]:
+        nonlocal attempts
+        target_command = "HSET" if tool_history else "ZADD"
+        if not any(args[0] == target_command for args, _options in pipe.command_stack):
+            return await original_execute(pipe, raise_on_error)
+        attempts += 1
+        if attempts == 1:
+            if failure == "before":
+                raise ConnectionError("unavailable before EXEC")
+            if failure == "watch_conflict":
+                # Change a watched key after the check, before Redis processes EXEC.
+                await redis.incr(epoch_key)
+            await original_execute(pipe, raise_on_error)
+            assert failure == "lost_ack"
+            assert await redis.exists(
+                chatbot_tool_history.tool_history_key(chat_tid)
+                if tool_history
+                else cache_messages.get_message_cache_key(chat_tid)
+            )
+            raise TimeoutError("EXEC succeeded but acknowledgment was lost")
+        return await original_execute(pipe, raise_on_error)
+
+    async def reset_during_retry_delay(seconds: float) -> None:
+        nonlocal sleeps
+        sleeps += 1
+        assert seconds == 0.1
+        await ModernContext.reset(chat_tid, redis=redis)
+        await chatbot_tool_history.reset_tool_exchanges(chat_tid, redis=redis)
+
+    monkeypatch.setattr(Pipeline, "execute", execute)
+    monkeypatch.setattr(module, "AsyncRetrying", partial(AsyncRetrying, sleep=reset_during_retry_delay))
+
+    await persist()
+
+    assert attempts == 1
+    assert sleeps == 1
+    assert await get_cached_messages(chat_tid, redis=redis) == ()
+    assert await get_tool_exchanges(chat_tid, redis=redis) == {}
+
+    # A fresh operation may persist in the new epoch.
+    await persist()
+    assert attempts == 2
+    if tool_history:
+        assert list(await get_tool_exchanges(chat_tid, redis=redis)) == [message.message_id]
+    else:
+        assert await get_cached_messages(chat_tid, redis=redis) == (message,)
+
+
 @pytest.mark.parametrize(
     ("modern", "proactive", "tool_failure"),
     [(True, False, False), (True, True, False), (False, False, False), (False, True, False), (False, False, True)],
 )
-@pytest.mark.parametrize("failure", ["before", "lost_ack", "exhausted", "response_error", "cancelled"])
+@pytest.mark.parametrize(
+    "failure", ["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"]
+)
 async def test_delivered_reply_retries_only_prepared_persistence(
     monkeypatch: pytest.MonkeyPatch,
     test_services: ApplicationServices,
     modern: bool,
     proactive: bool,
     tool_failure: bool,
-    failure: Literal["before", "lost_ack", "exhausted", "response_error", "cancelled"],
+    failure: Literal["before", "lost_ack", "exhausted", "watch_exhausted", "response_error", "cancelled"],
 ) -> None:
     chat = ChatModel(
         tid=-100123,
@@ -132,6 +215,8 @@ async def test_delivered_reply_retries_only_prepared_persistence(
             raise ResponseError("invalid persistence command")
         if failure == "cancelled":
             raise asyncio.CancelledError
+        if failure == "watch_exhausted":
+            raise WatchError("connection lost while watching")
         if failure == "exhausted" or (failure == "before" and attempts < 3):
             raise ConnectionError("unavailable")
         result = await original_execute(pipe, raise_on_error)
@@ -153,9 +238,10 @@ async def test_delivered_reply_retries_only_prepared_persistence(
         else:
             assert await chatbot_reply.ai_chatbot_reply(source, connection, services=test_services) is sent
 
-    if failure in {"exhausted", "response_error", "cancelled"}:
+    if failure in {"exhausted", "watch_exhausted", "response_error", "cancelled"}:
         error_type = {
             "exhausted": ConnectionError,
+            "watch_exhausted": WatchError,
             "response_error": ResponseError,
             "cancelled": asyncio.CancelledError,
         }[failure]

@@ -61,14 +61,25 @@ def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -
 
 async def store_delivered_message(chat_tid: int, message: MessageType, *, redis: Redis) -> None:
     """Retry only the prepared, deterministic cache writes for an already delivered answer."""
+    epoch_key = get_context_epoch_key(chat_tid)
+    expected_epoch: int | None = None
     async for attempt in AsyncRetrying(
-        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        retry=retry_if_exception_type((ConnectionError, TimeoutError, WatchError)),
         stop=stop_after_attempt(3),
         wait=wait_fixed(0.1),
         reraise=True,
     ):
         with attempt:
             async with redis.pipeline(transaction=True) as pipe:
+                await pipe.watch(epoch_key)
+                current_epoch = int(await pipe.get(epoch_key) or 0)
+                # Retain the original epoch even if EXEC succeeded but its acknowledgment was lost.
+                if expected_epoch is None:
+                    expected_epoch = current_epoch
+                elif current_epoch != expected_epoch:
+                    await pipe.unwatch()
+                    return
+                pipe.multi()
                 enqueue_cached_message(pipe, chat_tid, message)
                 await pipe.execute()
 
