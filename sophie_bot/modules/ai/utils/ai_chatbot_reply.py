@@ -23,7 +23,7 @@ from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, store_delivered_message
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -248,9 +248,7 @@ async def _cache_chatbot_reply(
     if history is not None:
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
-        async with services.redis.pipeline(transaction=True) as pipe:
-            enqueue_cached_message(pipe, message.chat.id, cached_message)
-            await pipe.execute()
+        await store_delivered_message(message.chat.id, cached_message, redis=services.redis)
         await remember_chatbot_tool_history(
             message.chat.id,
             final_message.message_id,

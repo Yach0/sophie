@@ -6,7 +6,8 @@ import sentry_sdk
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.asyncio.client import Pipeline
-from redis.exceptions import WatchError
+from redis.exceptions import ConnectionError, TimeoutError, WatchError
+from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -56,6 +57,20 @@ def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -
     pipe.zadd(key, {message.model_dump_json(): message.created_at.timestamp()})  # type: ignore[misc]
     pipe.zremrangebyscore(key, 0, _build_cutoff(message.created_at).timestamp())  # type: ignore[misc]
     pipe.expire(key, int(MESSAGE_CACHE_TTL.total_seconds()), lt=True)
+
+
+async def store_delivered_message(chat_tid: int, message: MessageType, *, redis: Redis) -> None:
+    """Retry only the prepared, deterministic cache writes for an already delivered answer."""
+    async for attempt in AsyncRetrying(
+        retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+        stop=stop_after_attempt(3),
+        wait=wait_fixed(0.1),
+        reraise=True,
+    ):
+        with attempt:
+            async with redis.pipeline(transaction=True) as pipe:
+                enqueue_cached_message(pipe, chat_tid, message)
+                await pipe.execute()
 
 
 def _build_cutoff(now: datetime | None = None) -> datetime:

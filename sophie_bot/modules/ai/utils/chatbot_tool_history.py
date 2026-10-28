@@ -13,6 +13,8 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from redis.asyncio import Redis
+from redis.exceptions import ConnectionError, TimeoutError
+from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from sophie_bot.utils.feature_flags import get_value
 
@@ -136,10 +138,17 @@ async def store_tool_exchanges(
     with sentry_sdk.start_span(op="ai.cache", name="Store tool history") as span:
         key = tool_history_key(chat_tid)
         payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
-        async with redis.pipeline(transaction=True) as pipe:
-            pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
-            pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
-            await pipe.execute()
+        async for attempt in AsyncRetrying(
+            retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+            stop=stop_after_attempt(3),
+            wait=wait_fixed(0.1),
+            reraise=True,
+        ):
+            with attempt:
+                async with redis.pipeline(transaction=True) as pipe:
+                    pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
+                    pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
+                    await pipe.execute()
         await _trim_tool_history(chat_tid, redis=redis)
         span.set_data("ai.cache.exchange_count", len(exchanges))
 

@@ -26,6 +26,8 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.test import TestModel
+from redis.asyncio.client import Pipeline
+from redis.exceptions import ConnectionError, WatchError
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
 from tokenizers.pre_tokenizers import Whitespace
@@ -808,6 +810,106 @@ async def test_serialization_lease_renews_until_abort(
         await next_history.abort()
     finally:
         await first.abort()
+        if not waiting.done():
+            waiting.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await waiting
+
+
+@pytest.mark.parametrize("lost_ack", [False, True])
+@pytest.mark.parametrize("interference", ["reset", "replacement", "expiry", "lease_lost"])
+async def test_finish_retry_rechecks_epoch_and_lease(
+    context: SophieAIToolContext,
+    monkeypatch: pytest.MonkeyPatch,
+    lost_ack: bool,
+    interference: str,
+) -> None:
+    history = await _build(_message(160), context)
+    redis = context.services.redis
+    original_execute = Pipeline.execute
+    writes = 0
+    committed: bytes | None = None
+
+    async def execute(pipe: Pipeline, raise_on_error: bool = True) -> list[object]:
+        nonlocal writes, committed
+        if not any(args[0] == "SET" and args[1] == history._session_key for args, _options in pipe.command_stack):
+            return await original_execute(pipe, raise_on_error)
+        writes += 1
+        assert writes == 1, "A stale owner must never execute its snapshot again"
+        if lost_ack:
+            await original_execute(pipe, raise_on_error)
+            committed = await redis.get(history._session_key)
+        if interference == "reset":
+            await ModernContext.reset(CHAT_TID, redis=redis)
+        elif interference == "replacement":
+            await redis.set(history._lock_key, "new-owner", ex=60)
+            await redis.set(history._session_key, b"new-owner-state")
+        elif interference == "expiry":
+            await redis.delete(history._lock_key)
+        else:
+            history._lease_lost = True
+        raise ConnectionError("connection lost during persistence")
+
+    monkeypatch.setattr(Pipeline, "execute", execute)
+    if interference == "reset":
+        await history.finish_run(_events(history), _message(161, user_id=CONFIG.bot_id))
+        assert await redis.get(history._session_key) is None
+    else:
+        with pytest.raises(RuntimeError, match="lost its serialization lease"):
+            await history.finish_run(_events(history), _message(161, user_id=CONFIG.bot_id))
+        assert await redis.get(history._session_key) == (
+            b"new-owner-state" if interference == "replacement" else committed
+        )
+    assert writes == 1
+    assert history._closed
+    assert history._renewal is not None and history._renewal.done()
+    assert await redis.get(history._lock_key) == (b"new-owner" if interference == "replacement" else None)
+
+
+@pytest.mark.parametrize("keep_conflicting", [False, True])
+async def test_finish_watch_retries_are_bounded_and_keep_ownership(
+    context: SophieAIToolContext,
+    monkeypatch: pytest.MonkeyPatch,
+    keep_conflicting: bool,
+) -> None:
+    history = await _build(_message(160), context)
+    redis = context.services.redis
+    original_execute = Pipeline.execute
+    writes = 0
+    waiting = asyncio.create_task(_build(_message(162), context))
+
+    async def execute(pipe: Pipeline, raise_on_error: bool = True) -> list[object]:
+        nonlocal writes
+        if any(args[0] == "SET" and args[1] == history._session_key for args, _options in pipe.command_stack):
+            writes += 1
+            assert not waiting.done()
+            assert await redis.get(history._lock_key) == history._owner.encode()
+            if keep_conflicting or writes < 3:
+                # Match an actual renewal changing the watched key before EXEC.
+                await redis.expire(history._lock_key, history.LEASE_SECONDS)
+        return await original_execute(pipe, raise_on_error)
+
+    monkeypatch.setattr(Pipeline, "execute", execute)
+    try:
+        if keep_conflicting:
+            with pytest.raises(WatchError):
+                await history.finish_run(_events(history), _message(161, user_id=CONFIG.bot_id))
+        else:
+            await history.finish_run(_events(history), _message(161, user_id=CONFIG.bot_id))
+        assert writes == 3
+        next_history = await asyncio.wait_for(waiting, 2)
+        try:
+            answers = [
+                part.content
+                for message in next_history.message_history
+                for part in message.parts
+                if isinstance(part, TextPart)
+            ]
+            assert answers == ([] if keep_conflicting else ["answer"])
+        finally:
+            await next_history.abort()
+    finally:
+        await history.abort()
         if not waiting.done():
             waiting.cancel()
             with pytest.raises(asyncio.CancelledError):

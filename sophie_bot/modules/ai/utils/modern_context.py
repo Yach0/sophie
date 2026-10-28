@@ -34,9 +34,10 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from redis.asyncio import Redis
-from redis.exceptions import WatchError
+from redis.exceptions import ConnectionError, TimeoutError, WatchError
 from stfu_tg import Doc, HList, KeyValue, Section, Template, VList
 from stfu_tg.doc import Element
+from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel, NoteModel
@@ -1079,10 +1080,18 @@ class ModernContext:
             self._state.deliveries.add(sent_message.message_id)
             self._state.events.append(self._event(new_messages, "turn", original_ids=self._current_message_ids))
             self._prune(include_current=False)
+            # Freeze the turn once. Replaying SET/SADD/ZADD after a lost EXEC acknowledgment
+            # must neither append events again nor release ownership between attempts.
+            payload = self._state.model_dump_json()
             epoch_key = get_context_epoch_key(self._chat_tid)
-            while True:
-                async with self._redis.pipeline(transaction=True) as pipe:
-                    try:
+            async for attempt in AsyncRetrying(
+                retry=retry_if_exception_type((ConnectionError, TimeoutError, WatchError)),
+                stop=stop_after_attempt(3),
+                wait=wait_fixed(0.1),
+                reraise=True,
+            ):
+                with attempt:
+                    async with self._redis.pipeline(transaction=True) as pipe:
                         await pipe.watch(epoch_key, self._lock_key)
                         if int(self._decode(await pipe.get(epoch_key)) or 0) != self._epoch:
                             await pipe.unwatch()
@@ -1090,16 +1099,12 @@ class ModernContext:
                         if self._lease_lost or self._decode(await pipe.get(self._lock_key)) != self._owner:
                             raise RuntimeError("Modern context lost its serialization lease")
                         pipe.multi()
-                        pipe.set(self._session_key, self._state.model_dump_json())
+                        pipe.set(self._session_key, payload)
                         pipe.sadd(self._index_key(self._chat_tid), self._session_key)
                         if cached_message is not None:
                             enqueue_cached_message(pipe, self._chat_tid, cached_message)
                         await pipe.execute()
                         return
-                    except WatchError:
-                        # A renewal can change the watched lease without losing ownership.
-                        # Recheck the owner and reset epoch rather than dropping the delivered turn.
-                        continue
         finally:
             await self.abort()
 
