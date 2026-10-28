@@ -375,7 +375,7 @@ async def test_fitted_and_last_resort_replies_preserve_mention_policy(
     )
     monkeypatch.setattr(chatbot_reply, "TELEGRAM_MESSAGE_SAFE_LIMIT", render_limit)
 
-    doc = await chatbot_reply._build_fitting_reply_doc(
+    doc, _fitted_output_text = await chatbot_reply._build_fitting_reply_doc(
         None,
         "Hi @Alice",
         None,

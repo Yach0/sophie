@@ -137,7 +137,8 @@ async def _build_fitting_reply_doc(
     services: ApplicationServices,
     mention_policy: MentionPolicy = MentionPolicy.LEGACY_DISPLAY_NAMES,
     speaker_names: Sequence[tuple[int, str]] = (),
-) -> Doc:
+) -> tuple[Doc, str]:
+    """Return the fitted document and its public body, independently of native history."""
     fitted_output_text = output_text
     mention_index = (
         await resolve_reply_mention_index(
@@ -166,7 +167,7 @@ async def _build_fitting_reply_doc(
         )
         html_length = len(doc.to_html())
         if html_length <= TELEGRAM_MESSAGE_SAFE_LIMIT:
-            return doc
+            return doc, fitted_output_text
 
         overflow = html_length - TELEGRAM_MESSAGE_SAFE_LIMIT
         next_length = len(fitted_output_text) - overflow - 128
@@ -176,9 +177,10 @@ async def _build_fitting_reply_doc(
             break
         fitted_output_text = _truncate_to_boundary(fitted_output_text, next_length)
 
-    return await build_reply_doc(
+    fitted_output_text = _truncate_to_boundary(fitted_output_text, max(0, min(len(fitted_output_text), 512)))
+    doc = await build_reply_doc(
         header,
-        _truncate_to_boundary(fitted_output_text, max(0, min(len(fitted_output_text), 512))),
+        fitted_output_text,
         model,
         result,
         explicit_debug_mode,
@@ -190,6 +192,7 @@ async def _build_fitting_reply_doc(
         mention_policy=mention_policy,
         speaker_names=speaker_names,
     )
+    return doc, fitted_output_text
 
 
 async def _send_chatbot_ai_failure_reply(
@@ -223,7 +226,7 @@ async def _cache_chatbot_reply(
     services: ApplicationServices,
     history: ModernContext | None = None,
 ) -> None:
-    """Remember a delivered AI answer and its new tool exchanges for follow-ups."""
+    """Cache the fitted public body while preserving the complete native turn for follow-ups."""
     cached_message = MessageType(
         text=output_text,
         user_id=CONFIG.bot_id,
@@ -384,7 +387,7 @@ async def ai_chatbot_reply(
             else result.message_history[len(previous_history) :]
         )
         output_text = truncate_output(header, str(result.output))
-        doc = await _build_fitting_reply_doc(
+        doc, fitted_output_text = await _build_fitting_reply_doc(
             header,
             output_text,
             model,
@@ -418,7 +421,7 @@ async def ai_chatbot_reply(
         await _cache_chatbot_reply(
             message,
             final_message,
-            output_text,
+            fitted_output_text,
             result,
             previous_history,
             services=services,

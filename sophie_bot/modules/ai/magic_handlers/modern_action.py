@@ -182,7 +182,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
                 redis=services.redis,
             )
             output_text = truncate_output(header, str(result.output))
-            doc = await _build_fitting_reply_doc(
+            doc, fitted_output_text = await _build_fitting_reply_doc(
                 header,
                 output_text,
                 model,
@@ -198,5 +198,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
                 final_message = await send_ai_rich_message(message, doc)
             if isinstance(final_message, Message):
                 mark_action_completed(data)
-            await _cache_chatbot_reply(message, final_message, output_text, result, previous_history, services=services)
+            await _cache_chatbot_reply(
+                message, final_message, fitted_output_text, result, previous_history, services=services
+            )
             return final_message

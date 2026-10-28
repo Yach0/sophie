@@ -122,7 +122,7 @@ async def test_ai_filter_stats_survive_history_cache_failure(streaming: bool, mo
     monkeypatch.setattr(ai_module, "run_ai_text", AsyncMock(return_value=result))
     monkeypatch.setattr(ai_module, "run_ai_stream", AsyncMock(return_value=result))
     monkeypatch.setattr(ai_module, "build_chatbot_header", AsyncMock(return_value=""))
-    monkeypatch.setattr(ai_module, "_build_fitting_reply_doc", AsyncMock(return_value=Mock()))
+    monkeypatch.setattr(ai_module, "_build_fitting_reply_doc", AsyncMock(return_value=(Mock(), "hello")))
     monkeypatch.setattr(ai_module, "send_ai_rich_message", AsyncMock(return_value=message))
     cache_error = RedisConnectionError("history unavailable")
     monkeypatch.setattr(ai_module, "_cache_chatbot_reply", AsyncMock(side_effect=cache_error))
