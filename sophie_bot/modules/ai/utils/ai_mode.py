@@ -127,8 +127,7 @@ async def resolve_chat_mode(chat: ChatModel, state: FSMContext | None = None) ->
     """
     if chat.type == ChatType.private:
         help_mode = await is_help_mode(state)
-        mode = AIMode.sophie_help if help_mode else AIMode.sophie_pm
-        return mode
+        return AIMode.sophie_help if help_mode else AIMode.sophie_pm
     return await get_chat_mode(chat.iid, AIMode.disabled)
 
 
