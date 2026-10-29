@@ -28,15 +28,12 @@ class MetricsMiddleware(BaseMiddleware):
     ) -> Any:
         """Process update and collect metrics"""
 
-        # Skip sampling if configured
         if self.config.metrics_sample_ratio < 1.0 and random.random() > self.config.metrics_sample_ratio:
             return await handler(event, data)
 
-        # Extract update information
         update_info = extract_update_info(event)
         command_name = extract_command_name(event)
 
-        # Increment update counter
         count_metric(
             "sophie.updates",
             attributes={
@@ -46,14 +43,11 @@ class MetricsMiddleware(BaseMiddleware):
             },
         )
 
-        # Increment message counter if it's a message
         if update_info["message_kind"]:
             count_metric("sophie.messages", attributes={"message_kind": update_info["message_kind"]})
 
-        # Track inflight handlers
         change_gauge_metric("sophie.inflight_handlers", 1)
 
-        # Measure handler duration
         start_time = time.perf_counter()
         handler_name = self._get_handler_name(handler, event)
         command_status = "ok"
@@ -63,7 +57,6 @@ class MetricsMiddleware(BaseMiddleware):
 
         except Exception as e:
             command_status = "error"
-            # Track handler errors
             exception_name = type(e).__name__
             count_metric(
                 "sophie.handler_errors",
@@ -72,14 +65,11 @@ class MetricsMiddleware(BaseMiddleware):
 
             log.debug("Handler error tracked", handler=handler_name, exception_type=exception_name, error=str(e))
 
-            # Re-raise the exception
             raise
 
         finally:
-            # Always decrement inflight handlers and record duration
             change_gauge_metric("sophie.inflight_handlers", -1)
 
-            # Record handler duration
             duration = time.perf_counter() - start_time
             distribution_metric(
                 "sophie.handler.duration",
