@@ -9,7 +9,15 @@ import pytest
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext, Tool
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ThinkingPart, ToolCallPart, ToolReturnPart
+from pydantic_ai.messages import (
+    ModelMessage,
+    ModelResponse,
+    RetryPromptPart,
+    TextPart,
+    ThinkingPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models.function import AgentInfo, DeltaThinkingPart, DeltaToolCall, FunctionModel
 from tenacity import wait_none
 
@@ -106,6 +114,21 @@ async def test_identical_public_rounds_are_not_deduplicated(streaming: bool) -> 
     assert result.output == "Again. Again. Again. "
     if streaming:
         assert updates[-1] == result.output
+
+
+async def test_empty_response_retry_preserves_identical_public_responses() -> None:
+    async def response(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
+        if any(isinstance(part, RetryPromptPart) for message in messages for part in message.parts):
+            return ModelResponse(parts=[TextPart("Again. ")])
+        if any(isinstance(part, ToolReturnPart) for message in messages for part in message.parts):
+            return ModelResponse(parts=[])
+        return ModelResponse(parts=[TextPart("Again. "), ToolCallPart("lookup", {})])
+
+    agent = Agent[None, str](FunctionModel(response), tools=[Tool[None](lookup)])
+    result = await run_ai_text(agent, "Look up")
+
+    assert result.output == "Again. Again. "
+    assert result.usage.requests == 3
 
 
 @pytest.mark.parametrize("streaming", [True, False])
