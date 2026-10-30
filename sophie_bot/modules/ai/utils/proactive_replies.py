@@ -554,7 +554,7 @@ async def _answer_message(
         )
         if isinstance(history, ModernContext):
             # History may have been built after a reset invalidated the selected target.
-            if await read_context_epoch(chat_tid, redis=services.redis) != expected_epoch:
+            if history.epoch != expected_epoch:
                 return
             await history.finish_run(result.new_messages, sent_message, cached_message=cached_message)
         else:

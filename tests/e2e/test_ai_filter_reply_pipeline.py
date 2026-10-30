@@ -306,7 +306,9 @@ async def test_ai_filter_silent_mode_tracks_final_replies(
         schedule.assert_called_once_with(group.id, [trigger_id, *reply_ids], delay_seconds=30)
         assert len(set(reply_ids)) == len(reply_ids)
         await deletions.delete_messages_after_delay(group.id, schedule.call_args.args[1], delay_seconds=0)
-        deletion_candidates = (request for request in test_client.capture.all_requests if "message_ids" in request.params)
+        deletion_candidates = (
+            request for request in test_client.capture.all_requests if "message_ids" in request.params
+        )
         deletion = next(deletion_candidates)
         assert deletion.params["chat_id"] == group.id
         assert deletion.params["message_ids"] == [trigger_id, *reply_ids]

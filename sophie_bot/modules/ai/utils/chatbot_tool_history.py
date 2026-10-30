@@ -13,10 +13,9 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from redis.asyncio import Redis
-from redis.exceptions import ConnectionError, TimeoutError, WatchError
-from tenacity import AsyncRetrying, retry_if_exception_type, stop_after_attempt, wait_fixed
 
 from sophie_bot.modules.ai.utils.cache_messages import get_context_epoch_key
+from sophie_bot.modules.ai.utils.redis_persistence import persist_redis_commit
 from sophie_bot.utils.feature_flags import get_value
 
 ToolExchange = ModelRequest | ModelResponse
@@ -141,26 +140,26 @@ async def store_tool_exchanges(
         key = tool_history_key(chat_tid)
         payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
         epoch_key = get_context_epoch_key(chat_tid)
-        async for attempt in AsyncRetrying(
-            retry=retry_if_exception_type((ConnectionError, TimeoutError, WatchError)),
-            stop=stop_after_attempt(3),
-            wait=wait_fixed(0.1),
-            reraise=True,
-        ):
-            with attempt:
-                async with redis.pipeline(transaction=True) as pipe:
-                    await pipe.watch(epoch_key)
-                    current_epoch = int(await pipe.get(epoch_key) or 0)
-                    # Retain the original epoch even if EXEC succeeded but its acknowledgment was lost.
-                    if expected_epoch is None:
-                        expected_epoch = current_epoch
-                    elif current_epoch != expected_epoch:
-                        await pipe.unwatch()
-                        return
-                    pipe.multi()
-                    pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
-                    pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
-                    await pipe.execute()
+
+        async def commit() -> bool:
+            nonlocal expected_epoch
+            async with redis.pipeline(transaction=True) as pipe:
+                await pipe.watch(epoch_key)
+                current_epoch = int(await pipe.get(epoch_key) or 0)
+                # Keep the original epoch when EXEC succeeds but its acknowledgment is lost.
+                if expected_epoch is None:
+                    expected_epoch = current_epoch
+                elif current_epoch != expected_epoch:
+                    await pipe.unwatch()
+                    return False
+                pipe.multi()
+                pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
+                pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
+                await pipe.execute()
+                return True
+
+        if not await persist_redis_commit(commit):
+            return
         await _trim_tool_history(chat_tid, redis=redis)
         span.set_data("ai.cache.exchange_count", len(exchanges))
 

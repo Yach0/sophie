@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.asyncio.client import Pipeline
-from redis.exceptions import ConnectionError, TimeoutError, WatchError
-from tenacity import AsyncRetrying, retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from redis.exceptions import WatchError
+
+from sophie_bot.modules.ai.utils.redis_persistence import persist_redis_commit
 
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
@@ -49,25 +51,31 @@ def get_context_epoch_key(chat_id: int) -> str:
     return f"ai:modern_context:epoch:{chat_id}"
 
 
-@retry(
-    retry=retry_if_exception_type((ConnectionError, TimeoutError)),
-    stop=stop_after_attempt(3),
-    wait=wait_fixed(0.1),
-    reraise=True,
-)
 async def read_context_epoch(chat_tid: int, *, redis: Redis) -> int:
     """Capture the reset epoch before generating or delivering a legacy answer."""
     return int(await redis.get(get_context_epoch_key(chat_tid)) or 0)
 
 
-def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -> None:
-    """Queue the same body cache writes inside a caller-owned transaction."""
+def prepare_cached_message(chat_id: int, message: MessageType) -> Callable[[Pipeline], None]:
+    """Freeze the delivered body and timestamps before any Redis commit attempt."""
     if message.created_at is None:
         raise ValueError("Caching a message requires its creation time")
     key = get_message_cache_key(chat_id)
-    pipe.zadd(key, {message.model_dump_json(): message.created_at.timestamp()})  # type: ignore[misc]
-    pipe.zremrangebyscore(key, 0, _build_cutoff(message.created_at).timestamp())  # type: ignore[misc]
-    pipe.expire(key, int(MESSAGE_CACHE_TTL.total_seconds()), lt=True)
+    payload = message.model_dump_json()
+    score = message.created_at.timestamp()
+    cutoff = _build_cutoff(message.created_at).timestamp()
+
+    def enqueue(pipe: Pipeline) -> None:
+        pipe.zadd(key, {payload: score})  # type: ignore[misc]
+        pipe.zremrangebyscore(key, 0, cutoff)  # type: ignore[misc]
+        pipe.expire(key, int(MESSAGE_CACHE_TTL.total_seconds()), lt=True)
+
+    return enqueue
+
+
+def enqueue_cached_message(pipe: Pipeline, chat_id: int, message: MessageType) -> None:
+    """Queue body cache writes inside a caller-owned transaction."""
+    prepare_cached_message(chat_id, message)(pipe)
 
 
 async def store_delivered_message(
@@ -75,26 +83,25 @@ async def store_delivered_message(
 ) -> bool:
     """Retry prepared cache writes; return False if a reset invalidated the answer."""
     epoch_key = get_context_epoch_key(chat_tid)
-    async for attempt in AsyncRetrying(
-        retry=retry_if_exception_type((ConnectionError, TimeoutError, WatchError)),
-        stop=stop_after_attempt(3),
-        wait=wait_fixed(0.1),
-        reraise=True,
-    ):
-        with attempt:
-            async with redis.pipeline(transaction=True) as pipe:
-                await pipe.watch(epoch_key)
-                current_epoch = int(await pipe.get(epoch_key) or 0)
-                # Retain the original epoch even if EXEC succeeded but its acknowledgment was lost.
-                if expected_epoch is None:
-                    expected_epoch = current_epoch
-                elif current_epoch != expected_epoch:
-                    await pipe.unwatch()
-                    return False
-                pipe.multi()
-                enqueue_cached_message(pipe, chat_tid, message)
-                await pipe.execute()
-    return True
+    enqueue = prepare_cached_message(chat_tid, message)
+
+    async def commit() -> bool:
+        nonlocal expected_epoch
+        async with redis.pipeline(transaction=True) as pipe:
+            await pipe.watch(epoch_key)
+            current_epoch = int(await pipe.get(epoch_key) or 0)
+            # Keep the original epoch when EXEC succeeds but its acknowledgment is lost.
+            if expected_epoch is None:
+                expected_epoch = current_epoch
+            elif current_epoch != expected_epoch:
+                await pipe.unwatch()
+                return False
+            pipe.multi()
+            enqueue(pipe)
+            await pipe.execute()
+            return True
+
+    return await persist_redis_commit(commit)
 
 
 def _build_cutoff(now: datetime | None = None) -> datetime:
