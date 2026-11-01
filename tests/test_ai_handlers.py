@@ -8,11 +8,18 @@ import pytest
 
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.ai.ai_quota import AIQuotaModel
 from sophie_bot.modules.ai.handlers.op_prices import op_ai_prices_handler
 from sophie_bot.modules.ai.handlers.usage import AiUsage
 from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
+from sophie_bot.modules.ai.utils.ai_quota import AIQuotaState, get_period_end, get_quota_info
+from sophie_bot.modules.ai.utils.ai_quota_docs import (
+    build_chatbot_quota_exhausted_doc,
+    build_feature_quota_exhausted_doc,
+)
 from sophie_bot.modules.ai.utils.ai_usage_service import ChatUsageBreakdownItem, ChatUsageView
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 
 
@@ -44,7 +51,7 @@ async def test_aiusage_shows_credit_breakdown(monkeypatch: pytest.MonkeyPatch, t
                 used_credits=55,
                 remaining_credits=19945,
                 percentage_remaining=99,
-                period_end=date(2026, 3, 31),
+                period_end=date(2026, 4, 1),
                 breakdown=(
                     ChatUsageBreakdownItem(
                         feature=AI_FEATURE_CHATBOT,
@@ -69,27 +76,42 @@ async def test_aiusage_shows_credit_breakdown(monkeypatch: pytest.MonkeyPatch, t
 
 
 @pytest.mark.asyncio
-async def test_aiusage_shows_exhausted_state(monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object) -> None:
+@pytest.mark.parametrize(
+    ("period_start", "reset_date", "display_date"),
+    [
+        (date(2026, 4, 1), date(2026, 5, 1), "May 01, 2026"),
+        (date(2026, 12, 1), date(2027, 1, 1), "January 01, 2027"),
+        (date(2024, 2, 1), date(2024, 3, 1), "March 01, 2024"),
+    ],
+)
+async def test_quota_reset_display_is_next_month_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    period_start: date,
+    reset_date: date,
+    display_date: str,
+) -> None:
     handler, event = _build_ai_usage_handler(test_services)
-    monkeypatch.setattr(
-        "sophie_bot.modules.ai.handlers.usage.get_chat_usage_view",
-        AsyncMock(
-            return_value=ChatUsageView(
-                total_credits=100,
-                used_credits=100,
-                remaining_credits=0,
-                percentage_remaining=0,
-                period_end=date(2026, 3, 31),
-                breakdown=(),
-            )
-        ),
+    state = AIQuotaState(
+        quota=AIQuotaModel.model_construct(period_start=period_start, monthly_credits=100, used_credits=100),
+        usage=None,
+        month_key=period_start.strftime("%Y-%m"),
     )
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_quota.get_quota_state", AsyncMock(return_value=state))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_usage_service.get_quota_state", AsyncMock(return_value=state))
 
+    quota_info = await get_quota_info(handler.connection.db_model.iid, redis=test_services.redis)
+    assert quota_info is not None
+    chatbot_text = str(build_chatbot_quota_exhausted_doc(quota_info.total_credits, quota_info.period_end))
+    feature_text = str(build_feature_quota_exhausted_doc(quota_info.period_end))
     await AiUsage.handle(handler)
+    usage_text = event.reply.await_args.args[0]
 
-    text = event.reply.await_args.args[0]
-    assert "Quota exhausted!" in text
-    assert "Mar 31, 2026" in text or "March 31, 2026" in text
+    assert f"Quota resets on <code>{display_date}</code>." in chatbot_text
+    assert f"AI features are disabled till <code>{display_date}</code>." in feature_text
+    assert f"<b>Resets</b>: <i>{display_date}</i>" in usage_text
+    assert f"Quota exhausted! AI features are disabled until <i>{display_date}</i>." in usage_text
+    assert quota_info.period_end == get_period_end(period_start) == reset_date
 
 
 def test_ai_credit_header_matches_usage_percentage() -> None:

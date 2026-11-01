@@ -557,7 +557,7 @@ async def test_send_summary_uses_rich_delivery(monkeypatch: pytest.MonkeyPatch) 
             used_credits=54,
             remaining_credits=146,
             period_start=date(2026, 5, 1),
-            period_end=date(2026, 5, 31),
+            period_end=date(2026, 6, 1),
         )
     )
     monkeypatch.setattr(chatbot_response, "get_quota_info", quota_info)

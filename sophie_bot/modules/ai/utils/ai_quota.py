@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import calendar
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 import sentry_sdk
 from beanie import PydanticObjectId
@@ -61,10 +61,11 @@ def current_period_start() -> date:
 
 def _get_period_end(period_start: date) -> date:
     last_day = calendar.monthrange(period_start.year, period_start.month)[1]
-    return date(period_start.year, period_start.month, last_day)
+    return date(period_start.year, period_start.month, last_day) + timedelta(days=1)
 
 
 def get_period_end(period_start: date) -> date:
+    """Return the exclusive monthly boundary: quota resets at 00:00 UTC on this date."""
     return _get_period_end(period_start)
 
 
