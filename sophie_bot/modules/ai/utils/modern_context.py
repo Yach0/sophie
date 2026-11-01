@@ -25,7 +25,6 @@ from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     TextContent,
     TextPart,
     ToolCallPart,
@@ -951,7 +950,7 @@ class ModernContext:
             self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
 
     def project_for_candidate(
-        self, candidate: AIModelCandidate
+        self, candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse] = ()
     ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
         """Budget an isolated request; fallback attempts never shrink the primary session."""
         # pylint: disable=protected-access
@@ -969,7 +968,7 @@ class ModernContext:
         projection._state = self._state.model_copy(deep=True)
         projection.prompt = list(self.prompt)
         projection._token_budgets = (budget,)
-        projection._budget = budget.input_tokens
+        projection._budget = budget.input_tokens - budget.counter.count_messages(continuation)
         projection._prune()
         # Keep direct callers safe when the runtime snapshot is not already in the current prompt.
         if self._runtime_update and not any(
@@ -1065,7 +1064,7 @@ class ModernContext:
                 part.tool_call_id
                 for message in new_messages
                 for part in message.parts
-                if isinstance(part, (ToolReturnPart, RetryPromptPart))
+                if isinstance(part, ToolReturnPart)
             }
             tool_returns = {
                 part.tool_call_id

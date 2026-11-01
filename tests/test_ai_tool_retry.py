@@ -10,21 +10,17 @@ from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelRequest, ModelResponse, TextPart, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.fallback import FallbackModel
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
-from tenacity import wait_none
 
-from sophie_bot.modules.ai.utils import ai_errors, ai_run
+from sophie_bot.modules.ai.utils import ai_run
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
-from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 
 Runner = Literal["text", "stream", "structured"]
 
 
 @pytest.fixture(autouse=True)
-def immediate_retries(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Exercise the real retry policy, without waiting between attempts or calling a provider.
-    monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
+def no_external_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
@@ -49,7 +45,7 @@ def tool_returns(messages: list[ModelMessage]) -> list[ToolReturnPart]:
         for message in messages
         if isinstance(message, ModelRequest)
         for part in message.parts
-        if isinstance(part, ToolReturnPart)
+        if isinstance(part, ToolReturnPart) and part.outcome == "success"
     ]
 
 
@@ -99,7 +95,7 @@ async def test_forwarded_capabilities_none_preserves_tool_execution(runner: Runn
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
 @pytest.mark.parametrize("status_code", [400, 503])
-async def test_provider_failure_after_mutation_does_not_restart(runner: Runner, status_code: int) -> None:
+async def test_native_fallback_after_mutation_keeps_completed_tool_return(runner: Runner, status_code: int) -> None:
     mutations: list[int] = []
     attempted: list[str] = []
     error = ModelHTTPError(status_code, "primary", body="provider failed after the tool returned")
@@ -124,17 +120,16 @@ async def test_provider_failure_after_mutation_does_not_restart(runner: Runner, 
         mutations.append(amount)
         return "mutation completed"
 
-    with capture_run_messages() as messages, pytest.raises(AIRequestFailed) as raised:
-        await run_agent(runner, agent, plan)
-
-    assert raised.value.__cause__ is error
+    result = await run_agent(runner, agent, plan)
+    assert result.output == "done"
+    assert result.served_model is backup
     assert mutations == [1]
-    assert attempted == ["primary", "primary"]
-    assert [part.content for part in tool_returns(messages)] == ["mutation completed"]
+    assert attempted == ["primary", "primary", "backup"]
+    assert [part.content for part in tool_returns(result.new_messages)] == ["mutation completed"]
 
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
-async def test_last_resort_cannot_restart_after_mutation(runner: Runner, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_last_resort_continues_after_mutation(runner: Runner, monkeypatch: pytest.MonkeyPatch) -> None:
     mutations: list[int] = []
     backup_calls: list[bool] = []
 
@@ -156,26 +151,21 @@ async def test_last_resort_cannot_restart_after_mutation(runner: Runner, monkeyp
         mutations.append(amount)
         return "mutation completed"
 
-    with pytest.raises(AIRequestFailed):
-        await run_agent(runner, agent)
+    result = await run_agent(runner, agent)
 
+    assert result.output == "done"
     assert mutations == [1]
-    assert backup_calls == []
+    assert backup_calls == [True]
 
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
-@pytest.mark.parametrize("recovery", ["retry", "fallback"])
-async def test_provider_failure_before_any_tool_still_recovers(
-    runner: Runner, recovery: Literal["retry", "fallback"]
-) -> None:
+async def test_provider_failure_before_any_tool_still_recovers(runner: Runner) -> None:
     attempted: list[str] = []
     mutations: list[int] = []
 
     def primary_response(messages: list[ModelMessage]) -> ModelResponse:
         attempted.append("primary")
-        if recovery == "fallback" or len(attempted) == 1:
-            raise ModelHTTPError(400 if recovery == "fallback" else 503, "primary", body="unavailable")
-        return mutate_or_answer(messages)
+        raise ModelHTTPError(400, "primary", body="unavailable")
 
     def backup_response(messages: list[ModelMessage]) -> ModelResponse:
         attempted.append("backup")
@@ -195,8 +185,8 @@ async def test_provider_failure_before_any_tool_still_recovers(
 
     assert result.output == "done"
     assert mutations == [1]
-    assert attempted == ["primary", *(["backup"] * 2 if recovery == "fallback" else ["primary"] * 2)]
-    assert result.served_model is (backup if recovery == "fallback" else primary)
+    assert attempted == ["primary", "backup", "backup"]
+    assert result.served_model is backup
 
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
@@ -230,7 +220,7 @@ async def test_native_request_fallback_preserves_completed_tool_return(runner: R
 
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
-async def test_validation_without_tool_execution_does_not_block_retry(runner: Runner) -> None:
+async def test_validation_feedback_is_kept_during_fallback(runner: Runner) -> None:
     calls = 0
     mutations: list[int] = []
 
@@ -243,23 +233,27 @@ async def test_validation_without_tool_execution_does_not_block_retry(runner: Ru
             raise ModelHTTPError(503, "primary", body="unavailable")
         return mutate_or_answer(messages)
 
-    agent = Agent(scripted_model("primary", respond))
+    primary = scripted_model("primary", respond)
+    backup = scripted_model("backup", mutate_or_answer)
+    agent = Agent(primary)
+    plan = AIModelPlan((AIModelCandidate(primary, "primary"), AIModelCandidate(backup, "backup")))
 
     @agent.tool_plain
     async def mutate(amount: int) -> str:
         mutations.append(amount)
         return "mutation completed"
 
-    result = await run_agent(runner, agent)
+    result = await run_agent(runner, agent, plan)
 
     assert result.output == "done"
     assert mutations == [1]
-    assert calls == 4
+    assert calls == 2
+    assert result.served_model is backup
 
 
 @pytest.mark.parametrize("runner", ["text", "stream", "structured"])
 @pytest.mark.parametrize("raised_refusal", [False, True])
-async def test_refusal_after_mutation_cannot_restart(runner: Runner, raised_refusal: bool) -> None:
+async def test_blank_response_and_validator_failure_do_not_replay_mutation(runner: Runner, raised_refusal: bool) -> None:
     mutations: list[int] = []
 
     def respond(messages: list[ModelMessage]) -> ModelResponse:
@@ -280,15 +274,15 @@ async def test_refusal_after_mutation_cannot_restart(runner: Runner, raised_refu
     @agent.output_validator
     async def validate(output: str) -> str:
         if raised_refusal:
-            raise AIModelRefused("primary")
+            raise RuntimeError("output validator failed")
         return output
 
     if raised_refusal:
-        with pytest.raises(AIModelRefused):
+        with pytest.raises(RuntimeError, match="output validator failed"):
             await run_agent(runner, agent, plan)
     else:
         result = await run_agent(runner, agent, plan)
-        assert result.output == " "
+        assert result.output == (" " if runner == "stream" else "done")
         assert [part.content for part in tool_returns(result.new_messages)] == ["mutation completed"]
     assert mutations == [1]
 
