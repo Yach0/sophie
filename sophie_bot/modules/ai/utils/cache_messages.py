@@ -32,9 +32,7 @@ class MessageType(BaseModel):
 
     @property
     def reply_to_user_name(self) -> str | None:
-        return self.reply_to_username or (
-            str(self.reply_to_user_id) if self.reply_to_user_id is not None else None
-        )
+        return self.reply_to_username or (str(self.reply_to_user_id) if self.reply_to_user_id is not None else None)
 
 
 def get_message_cache_key(chat_id: int) -> str:
