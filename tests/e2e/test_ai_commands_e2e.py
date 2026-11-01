@@ -154,7 +154,7 @@ async def test_aiusage_shows_usage_info(test_client: TestClient) -> None:
         used_credits=500,
         remaining_credits=9500,
         percentage_remaining=95,
-        period_end=date(2026, 6, 30),
+        period_end=date(2026, 7, 1),
         breakdown=(
             ChatUsageBreakdownItem(
                 feature=AI_FEATURE_CHATBOT,
