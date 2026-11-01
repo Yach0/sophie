@@ -5486,7 +5486,7 @@ msgid "The chat that initiated the Welcome Security procedure was not found! Try
 msgstr ""
 
 #, python-brace-format
-msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
+msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and join the conversation in {group_name}."
 msgstr "Завершите эмодзи '{emoji_name}', чтобы завершить капчу и участвовать в {group_name}."
 
 msgid "❌ Incorrect solution. Please, try again."
