@@ -356,3 +356,32 @@ async def test_leave_removes_user_in_group_row(test_client: TestClient) -> None:
     await leave_group(test_client, group, newbie)
 
     assert await UserInGroupModel.get_user_in_group(user.iid, chat.iid) is None
+
+
+@pytest.mark.parametrize("rich_welcome", [False, True])
+async def test_welcome_bot_admin_failure_remains_reported(
+    test_client: TestClient, monkeypatch: pytest.MonkeyPatch, rich_welcome: bool
+) -> None:
+    _adder, group, _ = await create_test_user_and_group(test_client)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    rich = RichMessage(blocks=[RichBlockParagraph(text="Greeting")]) if rich_welcome else None
+    await GreetingsModel.change_welcome_message(
+        chat.iid, Saveable(text="Greeting", rich_message=rich, version=3 if rich_welcome else 2)
+    )
+    reported: list[Exception] = []
+    failures: list[TelegramBadRequest] = []
+    original_make_request = test_client.bot.session.make_request
+
+    async def make_request(bot: Bot, method: TelegramMethod, timeout: int | None = None) -> Any:
+        if isinstance(method, (SendMessage, SendRichMessage)) and _welcome_receiver(method) is not None:
+            error = TelegramBadRequest(method=method, message="BOT_NOT_ADMIN")
+            failures.append(error)
+            raise error
+        return await original_make_request(bot, method, timeout=timeout)
+
+    monkeypatch.setattr(test_client.bot.session, "make_request", make_request)
+    monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(reported.append))
+    await join_group(test_client, group, User(id=next_user_id(), is_bot=False, first_name="New member"))
+    assert len(failures) == 1
+    assert reported == failures

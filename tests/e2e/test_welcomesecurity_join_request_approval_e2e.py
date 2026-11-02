@@ -9,6 +9,7 @@ from aiogram.methods import ApproveChatJoinRequest, DeclineChatJoinRequest, Tele
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.types import RequestType
 
+from sophie_bot.db.models import WSUserModel
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, send_join_request
 
@@ -61,7 +62,6 @@ async def test_unexpected_join_request_approval_error_is_reported(
 
     monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(record_error))
 
-
     requests = await send_join_request(test_client, group, requester)
 
     assert [(request.chat_id, request.user_id) for request in approvals] == [(group.id, requester.id)]
@@ -70,6 +70,12 @@ async def test_unexpected_join_request_approval_error_is_reported(
     assert isinstance(reported[0], TelegramBadRequest)
     assert reported[0].message == "UNEXPECTED_APPROVAL_ERROR"
     assert reported[0].method is approvals[0]
-    assert any(
-        request.request_type == RequestType.SEND_MESSAGE and request.chat_id == group.id for request in requests
-    )
+    assert any(request.request_type == RequestType.SEND_MESSAGE and request.chat_id == group.id for request in requests)
+
+
+async def test_channel_join_request_does_not_run_group_captcha_or_approval(test_client: TestClient) -> None:
+    requester, group, _ = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, requester.id)
+    requests = await send_join_request(test_client, group.model_copy(update={"type": "channel"}), requester)
+    assert requests == []
+    assert await WSUserModel.find_all().count() == 0

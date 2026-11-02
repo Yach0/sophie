@@ -511,8 +511,16 @@ async def test_send_saveable_missing_reply_retry_keeps_ephemeral_recipient(
         (None, "USER_NOT_PARTICIPANT"),
         (42, "UNEXPECTED_SEND_ERROR"),
         (42, "USER_NOT_PARTICIPANT_OTHER"),
+        (42, "BOT_NOT_ADMIN"),
+        (42, "Bad Request: BOT_NOT_ADMIN"),
     ],
-    ids=["public-recipient-error", "unrelated-ephemeral-error", "different-recipient-error"],
+    ids=[
+        "public-recipient-error",
+        "unrelated-ephemeral-error",
+        "different-recipient-error",
+        "bot-permission-error",
+        "prefixed-bot-permission-error",
+    ],
 )
 async def test_send_saveable_surfaces_non_recipient_failure(
     monkeypatch: pytest.MonkeyPatch,
