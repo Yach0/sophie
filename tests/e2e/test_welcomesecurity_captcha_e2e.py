@@ -10,8 +10,12 @@ against mongomock), so nothing between the callback and the DB is mocked.
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 import pytest
+from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import ApproveChatJoinRequest, EditMessageMedia, RestrictChatMember, TelegramMethod
 from aiogram.types import Chat, Message, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
@@ -244,16 +248,13 @@ async def test_autokick_kicks_stale_unpassed_user(test_client: TestClient) -> No
     await pending.save()
 
     start = len(test_client.capture)
-    await KickUnpassedUsers(
-        test_client.dispatcher.workflow_data["services"]
-    ).handle()
+    await KickUnpassedUsers(test_client.dispatcher.workflow_data["services"]).handle()
     requests = test_client.capture.all_requests[start:]
 
     kicks = [
         request
         for request in requests
-        if request.request_type == RequestType.UNBAN_CHAT_MEMBER
-                and request.params.get("user_id") == stale.id
+        if request.request_type == RequestType.UNBAN_CHAT_MEMBER and request.params.get("user_id") == stale.id
     ]
     assert kicks, "A user who never solved the captcha within the window should be kicked"
     assert not [
@@ -277,9 +278,7 @@ async def test_autokick_leaves_recent_user_alone(test_client: TestClient) -> Non
     await WSUserModel.ensure_user(recent_model, chat, is_join_request=False)
 
     start = len(test_client.capture)
-    await KickUnpassedUsers(
-        test_client.dispatcher.workflow_data["services"]
-    ).handle()
+    await KickUnpassedUsers(test_client.dispatcher.workflow_data["services"]).handle()
     requests = test_client.capture.all_requests[start:]
 
     assert not [
@@ -436,3 +435,72 @@ async def test_welcomerestrict_command_persists(test_client: TestClient) -> None
     assert chat is not None
     greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
     assert greetings.welcome_mute is not None and greetings.welcome_mute.enabled is True
+
+
+@pytest.mark.parametrize("is_join_request", [False, True])
+@pytest.mark.parametrize("welcome_restriction", [False, True])
+async def test_failed_captcha_restoration_has_manual_recovery_without_new_challenge(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    is_join_request: bool,
+    welcome_restriction: bool,
+) -> None:
+    admin, group, _model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, admin.id)
+    await grant_bot_admin(group.id)
+    chat = await _enable_ws(group.id)
+    greetings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    greetings.welcome_mute = WelcomeMute(enabled=welcome_restriction, time=timedelta(hours=1))
+    await greetings.save()
+    _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
+    pending = await WSUserModel.is_user(user.iid, chat.iid)
+    assert pending is not None
+    pending.is_join_request = is_join_request
+    pending.added_at = datetime.now(UTC) - timedelta(days=7)
+    await pending.save()
+    await _solve_fsm_captcha(test_client, user.tid)
+
+    original_make_request = test_client.bot.session.make_request
+    failed_writes: list[RestrictChatMember] = []
+    captions: list[str | None] = []
+    approvals: list[ApproveChatJoinRequest] = []
+
+    async def fail_restoration(bot: Bot, method: TelegramMethod, timeout: int | None = None) -> Any:
+        if isinstance(method, ApproveChatJoinRequest):
+            approvals.append(method)
+        if isinstance(method, EditMessageMedia):
+            captions.append(method.media.caption)
+        if isinstance(method, RestrictChatMember):
+            failed_writes.append(method)
+            raise TelegramBadRequest(method=method, message="CHAT_ADMIN_REQUIRED")
+        return await original_make_request(bot, method, timeout=timeout)
+
+    monkeypatch.setattr(test_client.bot.session, "make_request", fail_restoration)
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid), is_join_request=is_join_request).pack()
+    requests = await test_client.send_callback(
+        confirm,
+        from_user=User(id=user.tid, is_bot=False, first_name="Solver"),
+        message=captcha_message,
+    )
+
+    assert len(failed_writes) == 1
+    assert len(captions) == 1 and captions[0] is not None
+    assert "CAPTCHA passed" in captions[0] and "/unmute" in captions[0]
+    assert "all set" not in captions[0]
+    pending = await WSUserModel.is_user(user.iid, chat.iid)
+    assert pending is not None and pending.passed
+    state = test_client.dispatcher.fsm.get_context(bot=test_client.bot, chat_id=user.tid, user_id=user.tid)
+    assert await state.get_state() is None
+    assert len(approvals) == int(is_join_request)
+
+    start = len(test_client.capture)
+    await KickUnpassedUsers(test_client.dispatcher.workflow_data["services"]).handle()
+    assert len(test_client.capture) == start
+    assert len(failed_writes) == 1
+
+    await test_client.send_command(command="unmute", from_user=admin, args=str(user.tid), chat=group)
+    assert await WSUserModel.is_user(user.iid, chat.iid) is not None
+    monkeypatch.setattr(test_client.bot.session, "make_request", original_make_request)
+    requests = await test_client.send_command(command="unmute", from_user=admin, args=str(user.tid), chat=group)
+    assert _restricts(requests, user.tid)
+    assert await WSUserModel.is_user(user.iid, chat.iid) is None

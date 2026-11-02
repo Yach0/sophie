@@ -122,6 +122,7 @@ async def test_captcha_pass_lifecycle_holds_lock_before_visible_actions(
     user = SimpleNamespace(iid=PydanticObjectId(), id=PydanticObjectId(), tid=123)
     group = SimpleNamespace(iid=PydanticObjectId(), id=PydanticObjectId(), tid=-100123)
     ws_user = _make_ws_user(is_join_request=False)
+    ws_user.save = AsyncMock()
     current_record: list[object | None] = [ws_user]
     visible_action_started = asyncio.Event()
     allow_captcha_completion = asyncio.Event()
@@ -166,7 +167,7 @@ async def test_captcha_pass_lifecycle_holds_lock_before_visible_actions(
             redis=test_services.redis,
         )
     )
-    await visible_action_started.wait()
+    await asyncio.wait_for(visible_action_started.wait(), timeout=5)
 
     scheduler_task = asyncio.create_task(KickUnpassedUsers(test_services).process_user(ws_user))
     await asyncio.sleep(0)
