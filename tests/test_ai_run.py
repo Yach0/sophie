@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from typing import Any, cast
 
 import pytest
@@ -18,7 +19,8 @@ from pydantic_ai import (
     ThinkingPartDelta,
 )
 from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
-from pydantic_ai.messages import BinaryContent, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
+from pydantic_ai.messages import BinaryContent, ModelMessage, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage, UsageLimits
 
@@ -30,7 +32,6 @@ from sophie_bot.modules.ai.utils.ai_model_plan import (
     build_model_plan,
     request_has_images,
 )
-from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
     build_model_settings,
@@ -38,6 +39,13 @@ from sophie_bot.modules.ai.utils.ai_run import (
     run_ai_structured,
     run_ai_text,
 )
+
+
+@pytest.fixture(autouse=True)
+def no_network_fallback(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> None:
+    if request.node.name == "test_the_last_resort_is_not_tried_twice_for_a_second_reasoning_effort":
+        return
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
 class StructuredOutput(BaseModel):
@@ -215,30 +223,32 @@ async def test_run_ai_structured_wraps_typed_output() -> None:
     assert result.usage.total_tokens
 
 
-async def test_output_limit_caps_non_streaming_provider_requests_too() -> None:
-    agent = FakeRunAgent(TestModel(settings={"max_tokens": 11}))
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("model_limit", [None, 0, 11])
+async def test_native_requests_preserve_provider_generation_ceiling(streaming: bool, model_limit: int | None) -> None:
+    observed: list[dict[str, object]] = []
 
-    await run_ai_text(
-        cast(Agent[Any, str], agent),
-        "Say hello",
-        usage_limits=UsageLimits(output_tokens_limit=37),
+    def request(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        observed.append(dict(info.model_settings or {}))
+        return ModelResponse(parts=[TextPart("bounded")])
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncGenerator[str]:
+        observed.append(dict(info.model_settings or {}))
+        yield "bounded"
+
+    model = FunctionModel(
+        request, stream_function=stream, settings={"max_tokens": model_limit} if model_limit is not None else None
     )
+    agent = Agent(model)
+    if streaming:
 
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 11
+        async def on_text(text: str) -> None:
+            pass
 
-
-async def test_output_limit_preserves_zero_provider_generation_ceiling() -> None:
-    agent = FakeRunAgent(TestModel(settings={"max_tokens": 0}))
-
-    await run_ai_text(
-        cast(Agent[Any, str], agent),
-        "Say nothing",
-        usage_limits=UsageLimits(output_tokens_limit=37),
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 0
+        await run_ai_stream(agent, "hello", on_text, usage_limits=UsageLimits(output_tokens_limit=37))
+    else:
+        await run_ai_text(agent, "hello", usage_limits=UsageLimits(output_tokens_limit=37))
+    assert observed == [{"max_tokens": model_limit if model_limit is not None else 37, "max_retries": 4}]
 
 
 async def test_run_ai_stream_completes_tool_loop_and_uses_final_output(no_stream_debounce: None) -> None:
@@ -279,6 +289,7 @@ async def test_run_ai_stream_does_not_duplicate_restarted_text_part(no_stream_de
 
     async def on_text_stream(text: str) -> None:
         streamed_text.append(text)
+
     formatted_answer = "Testing mode: *beep boop*"
     agent = FakeEventAgent(
         events=[
@@ -406,52 +417,6 @@ async def test_run_ai_stream_propagates_usage_limit_after_partial_stream(no_stre
     assert streamed_text == ["Partial answer"]
 
 
-async def test_run_ai_stream_sends_output_limit_to_provider_as_generation_ceiling() -> None:
-    agent = FakeEventAgent(events=text_round("Bounded answer"), final_output="Bounded answer")
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="Answer within the budget",
-        on_text_stream=on_text_stream,
-        usage_limits=UsageLimits(output_tokens_limit=37),
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 37
-
-
-async def test_run_ai_stream_preserves_a_stricter_provider_generation_ceiling() -> None:
-    agent = FakeEventAgent(events=text_round("Short answer"), final_output="Short answer")
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="Answer briefly",
-        on_text_stream=on_text_stream,
-        usage_limits=UsageLimits(output_tokens_limit=100),
-        model_settings={"max_tokens": 12, "temperature": 0},
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"] == {"max_tokens": 12, "temperature": 0}
-
-
-@pytest.fixture
-def immediate_retries(monkeypatch: Any) -> Iterator[None]:
-    """Run each attempt exactly once, so assertions see the candidate sequence and nothing else."""
-
-    async def fake_retries(operation: Any, context: Any, on_retry: Any = None) -> Any:
-        return await operation()
-
-    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
-    yield
-
-
 class NamedTestModel(TestModel):
     """A ``TestModel`` that reports a name of its own.
 
@@ -482,17 +447,25 @@ def candidate(
     )
 
 
-async def run_chain[OutputT](
-    operation: Callable[[AIModelCandidate], Awaitable[OutputT]],
+async def run_chain(
+    operation: Callable[[AIModelCandidate], Awaitable[str]],
     *candidates: AIModelCandidate,
-    is_refusal: Callable[[OutputT], bool] | None = None,
-) -> tuple[OutputT, AIModelCandidate]:
-    return await ai_run._run_with_model_candidates(
-        operation,
-        list(candidates),
-        model_plan=AIModelPlan(candidates=candidates),
-        is_refusal=is_refusal,
+) -> tuple[str, AIModelCandidate]:
+    def request_for(active: AIModelCandidate) -> FunctionModel:
+        async def request(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            return ModelResponse(parts=[TextPart(await operation(active))])
+
+        return FunctionModel(request, model_name=active.model_name)
+
+    native_candidates = tuple(replace(active, model=request_for(active)) for active in candidates)
+    plan = AIModelPlan(native_candidates)
+    result = await run_ai_text(Agent(plan.primary), "hello", model_plan=plan)
+    served = next(
+        original
+        for original, native in zip(candidates, native_candidates, strict=True)
+        if native.model is result.served_model
     )
+    return result.output, served
 
 
 def no_last_resort(monkeypatch: Any) -> None:
@@ -500,7 +473,7 @@ def no_last_resort(monkeypatch: Any) -> None:
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
-async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: None) -> None:
+async def test_the_first_candidate_serves_when_it_succeeds() -> None:
     primary = candidate("primary")
     attempted: list[AIModelCandidate] = []
 
@@ -515,7 +488,7 @@ async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: No
     assert attempted == [primary]
 
 
-async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: None) -> None:
+async def test_a_failing_candidate_hands_over_to_the_next() -> None:
     primary = candidate("primary")
     backup = candidate("backup")
     attempted: list[AIModelCandidate] = []
@@ -534,7 +507,7 @@ async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: Non
     assert attempted == [primary, backup]
 
 
-async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None) -> None:
+async def test_a_flat_provider_rejection_also_hands_over() -> None:
     """The request that most needs another model — an image a model cannot read — is a plain 400."""
     primary = candidate("primary")
     backup = candidate("backup")
@@ -550,7 +523,7 @@ async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None
     assert served is backup
 
 
-async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
+async def test_a_usage_limit_stops_the_chain() -> None:
     """Sophie's own budget ended the run; the next model would only spend more of it."""
     attempted: list[AIModelCandidate] = []
 
@@ -564,7 +537,7 @@ async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
 
 
 @pytest.mark.parametrize("status_code", [401, 402, 403])
-async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None, status_code: int) -> None:
+async def test_a_misconfigured_provider_stops_the_chain(status_code: int) -> None:
     """A rejected key fails identically on every candidate: walking the chain only delays the error."""
     attempted: list[AIModelCandidate] = []
 
@@ -579,7 +552,7 @@ async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None,
     assert len(attempted) == 1
 
 
-async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> None:
+async def test_the_last_candidates_error_is_raised() -> None:
     """Exhaustion keeps error semantics: the last candidate's failure is the one callers get."""
 
     async def operation(active: AIModelCandidate) -> str:
@@ -588,44 +561,16 @@ async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> N
     with pytest.raises(AIRequestFailed) as raised:
         await run_chain(operation, candidate("primary"), candidate("backup"))
 
-    assert str(raised.value.__cause__) == "everything is down"
+    assert isinstance(raised.value.__cause__, ExceptionGroup)
+    assert str(raised.value.__cause__.exceptions[-1]) == "everything is down"
 
 
-async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
+async def test_an_empty_answer_hands_over_to_the_next_candidate() -> None:
     primary = candidate("primary")
     backup = candidate("backup")
 
     async def operation(active: AIModelCandidate) -> str:
         return "" if active is primary else "a real answer"
-
-    result, served = await run_chain(operation, primary, backup, is_refusal=is_refusal_output)
-
-    assert result == "a real answer"
-    assert served is backup
-
-
-async def test_the_last_candidates_empty_answer_is_returned(immediate_retries: None) -> None:
-    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
-    primary = candidate("primary")
-
-    async def operation(active: AIModelCandidate) -> str:
-        return ""
-
-    result, served = await run_chain(operation, primary, is_refusal=is_refusal_output)
-
-    assert result == ""
-    assert served is primary
-
-
-async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
-    """An output validator opting into failover is caught, exactly as the class promises."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
-            raise AIModelRefused("primary")
-        return "a real answer"
 
     result, served = await run_chain(operation, primary, backup)
 
@@ -633,15 +578,17 @@ async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retri
     assert served is backup
 
 
-async def test_the_last_candidates_raised_refusal_reaches_the_caller(immediate_retries: None) -> None:
-    """Unlike an empty output, a raised refusal carries no answer to hand back."""
+async def test_the_last_candidates_empty_answer_is_returned() -> None:
+    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
+    primary = candidate("primary")
 
     async def operation(active: AIModelCandidate) -> str:
-        raise AIModelRefused(active.model_name)
+        return " "
 
-    with pytest.raises(AIModelRefused):
-        await run_chain(operation, candidate("primary"))
+    result, served = await run_chain(operation, primary)
 
+    assert result == " "
+    assert served is primary
 
 
 def test_the_agents_own_model_leads_and_the_last_resort_closes(monkeypatch: Any) -> None:
