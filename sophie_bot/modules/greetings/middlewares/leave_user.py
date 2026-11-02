@@ -7,6 +7,7 @@ from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import GreetingsModel
+from sophie_bot.modules.utils_.common_try import common_try
 
 
 class LeaveUserMiddleware(BaseMiddleware):
@@ -31,7 +32,7 @@ class LeaveUserMiddleware(BaseMiddleware):
 
             # Cleanservice
             if db_item.clean_service and db_item.clean_service.enabled:
-                await event.delete()
+                await common_try(event.delete())
 
             # Skip handler
             raise SkipHandler

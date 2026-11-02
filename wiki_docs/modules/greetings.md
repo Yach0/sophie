@@ -29,3 +29,8 @@ icon: 🙋‍♂️
 | `/clean_service` | `<?New status>` | Shows / changes the state of automatic service messages cleanup. |  |
 | `/clean_welcome` | `<?New status>` | Shows / changes the state of automatic welcome messages cleanup. |  |
 {.card-view-on-mobile}
+
+---
+## Service message cleanup
+
+When clean-service mode is enabled, Sophie attempts to delete leave-service messages. An unavailable message or an expected Telegram deletion restriction does not interrupt leave-event processing. Unexpected Telegram failures still propagate.
