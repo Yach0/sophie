@@ -197,6 +197,11 @@ class AiTranslate(SophieMessageHandler):
                 or reply_to_message.animation
                 or reply_to_message.video
                 or reply_to_message.video_note
+                or (
+                    reply_to_message.document
+                    and reply_to_message.document.mime_type == "image/gif"
+                    and reply_to_message.document.thumbnail
+                )
             )
         )
 
@@ -225,6 +230,11 @@ class AiTranslate(SophieMessageHandler):
             or reply_to_message.animation
             or reply_to_message.video
             or reply_to_message.video_note
+            or (
+                reply_to_message.document
+                and reply_to_message.document.mime_type == "image/gif"
+                and reply_to_message.document.thumbnail
+            )
         ):
             ai_context.add_system(
                 Template(
