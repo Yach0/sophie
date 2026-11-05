@@ -135,11 +135,12 @@ def _check_url_by_regex(message: Message, pattern: re.Pattern[str]) -> bool:
     for entity in _get_all_entities(message):
         if entity.type == MessageEntityType.URL:
             url = entity.url or text_content[entity.offset : entity.offset + entity.length]
-            if url and pattern.search(url):
-                return True
         elif entity.type == MessageEntityType.TEXT_LINK:
-            if entity.url and pattern.search(entity.url):
-                return True
+            url = entity.url
+        else:
+            continue
+        if url and pattern.search(url):
+            return True
     return False
 
 
