@@ -6716,9 +6716,3 @@ msgstr "Ein Link zu einem Benutzer, in der Regel erstellt, indem ein Benutzer oh
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} KI-Antwort"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

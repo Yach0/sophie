@@ -6586,9 +6586,3 @@ msgstr "Bir kullanıcıya bağlantı, genellikle kullanıcı adı olmadan bir ku
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI Yanıtı"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

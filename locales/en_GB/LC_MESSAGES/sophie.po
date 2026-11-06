@@ -6597,9 +6597,3 @@ msgstr "A link to a user, usually created by mentioning a user without a usernam
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI Response"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

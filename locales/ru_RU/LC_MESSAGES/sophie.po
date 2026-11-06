@@ -6606,9 +6606,3 @@ msgstr "Ссылка на пользователя, обычно создает�
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI Ответ"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

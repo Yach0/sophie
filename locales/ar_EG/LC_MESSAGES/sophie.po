@@ -6645,9 +6645,3 @@ msgstr "رابط إلى المستخدم، يتم إنشاؤه عادةً عن �
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} استجابة الذكاء الاصطناعي"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

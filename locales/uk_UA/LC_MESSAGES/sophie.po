@@ -6611,9 +6611,3 @@ msgstr "Посилання на користувача, яке зазвичай 
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} Відповідь AI"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

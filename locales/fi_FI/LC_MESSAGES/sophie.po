@@ -6597,9 +6597,3 @@ msgstr "Linkki käyttäjään, yleensä luodaan mainitsemalla käyttäjä ilman 
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI Vastaus"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

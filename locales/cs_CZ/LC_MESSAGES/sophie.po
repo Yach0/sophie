@@ -6609,9 +6609,3 @@ msgstr "Odkaz na uživatele, obvykle se vytvoří zmíněním uživatele bez už
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI Odezva"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

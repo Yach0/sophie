@@ -6585,9 +6585,3 @@ msgstr "用户的链接，通常通过提及用户而不带用户名来创建。
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} AI 响应"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-

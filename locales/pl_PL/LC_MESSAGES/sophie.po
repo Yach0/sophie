@@ -6609,9 +6609,3 @@ msgstr "Link do użytkownika, zwykle tworzony przez wspomnienie użytkownika bez
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} Odpowiedź AI"
 
-#~ msgid "Legacy modules"
-#~ msgstr ""
-
-#~ msgid "{cmds} total commands registered, in {modules} modules"
-#~ msgstr ""
-
