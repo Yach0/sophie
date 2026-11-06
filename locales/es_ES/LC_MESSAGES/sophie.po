@@ -4292,13 +4292,6 @@ msgstr ""
 msgid "{modules} loaded"
 msgstr ""
 
-msgid "Legacy modules"
-msgstr ""
-
-#, python-brace-format
-msgid "{cmds} total commands registered, in {modules} modules"
-msgstr ""
-
 msgid "Migrations"
 msgstr ""
 
@@ -6722,4 +6715,10 @@ msgstr "Un enlace al usuario, generalmente se crea al mencionar a un usuario sin
 
 #~ msgid "{ai_emoji} AI Response"
 #~ msgstr "{ai_emoji} Respuesta de IA"
+
+#~ msgid "Legacy modules"
+#~ msgstr ""
+
+#~ msgid "{cmds} total commands registered, in {modules} modules"
+#~ msgstr ""
 
