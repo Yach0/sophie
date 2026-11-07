@@ -182,135 +182,381 @@ class WelcomeSecurityPanelHandler(SophieMessageHandler):
         )
 
 
-class WelcomeSecurityPanelCallbackHandler(SophieCallbackQueryHandler):
+async def _callback_context(
+    handler: SophieCallbackQueryHandler,
+) -> tuple[ChatModel, GreetingsModel, Message] | None:
+    chat = handler.connection.db_model
+    if handler.connection.type == "private" or handler.callback_data.chat_iid != str(chat.iid):
+        await handler.event.answer(
+            _("These settings are no longer active. Open /welcome_security again for the intended chat."),
+            show_alert=True,
+        )
+        return None
+    await handler.check_for_message()
+    message = handler.event.message
+    assert isinstance(message, Message)
+    settings = await GreetingsModel.get_by_chat_iid(chat.iid)
+    return chat, settings, message
+
+
+class WelcomeSecurityCaptchaCallbackHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (
-            WelcomeSecuritySettingsCB.filter(),
+            WelcomeSecuritySettingsCB.filter(F.action == "captcha"),
             UserRestricting(admin=True),
             FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
         )
 
     async def handle(self) -> Any:
-        chat = self.connection.db_model
-        if self.connection.type == "private" or self.callback_data.chat_iid != str(chat.iid):
-            return await self.event.answer(
-                _("These settings are no longer active. Open /welcome_security again for the intended chat."),
-                show_alert=True,
-            )
-        await self.check_for_message()
-        message = self.event.message
-        assert isinstance(message, Message)
-        settings = await GreetingsModel.get_by_chat_iid(chat.iid)
-        action = self.callback_data.action
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
         value = self.callback_data.value
-        if action in {"captcha", "media", "cleanup", "welcome_cleanup"} and value not in {0, 1}:
+        if value not in {0, 1}:
             return await self.event.answer(_("This setting is no longer available."), show_alert=True)
-        match action:
-            case "captcha":
-                await settings.set_status_welcomesecurity(bool(value))
-            case "media":
-                duration = (settings.welcome_mute.time if settings.welcome_mute else None) or WELCOMEMUTE_DEFAULT_TIME
-                await settings.set_status_welcomemute(bool(value), duration)
-            case "cleanup":
-                await settings.set_service_clean_status(bool(value))
-            case "welcome_cleanup":
-                await settings.set_clean_welcome_status(bool(value))
-            case "set_expiry" | "set_duration":
-                options = CAPTCHA_EXPIRY_OPTIONS if action == "set_expiry" else MEDIA_DURATION_OPTIONS
-                if value not in {int(option.total_seconds()) for option in options}:
-                    return await self.event.answer(_("This duration option is no longer available."), show_alert=True)
-                if action == "set_expiry":
-                    await settings.set_status_welcomesecurity(
-                        bool(settings.welcome_security and settings.welcome_security.enabled), timedelta(seconds=value)
+        await settings.set_status_welcomesecurity(bool(value))
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecurityMediaCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "media"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        value = self.callback_data.value
+        if value not in {0, 1}:
+            return await self.event.answer(_("This setting is no longer available."), show_alert=True)
+        duration = (settings.welcome_mute.time if settings.welcome_mute else None) or WELCOMEMUTE_DEFAULT_TIME
+        await settings.set_status_welcomemute(bool(value), duration)
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecurityCleanupCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "cleanup"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        value = self.callback_data.value
+        if value not in {0, 1}:
+            return await self.event.answer(_("This setting is no longer available."), show_alert=True)
+        await settings.set_service_clean_status(bool(value))
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecurityWelcomeCleanupCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "welcome_cleanup"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        value = self.callback_data.value
+        if value not in {0, 1}:
+            return await self.event.answer(_("This setting is no longer available."), show_alert=True)
+        await settings.set_clean_welcome_status(bool(value))
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecuritySetExpiryCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "set_expiry"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        value = self.callback_data.value
+        if value not in {int(option.total_seconds()) for option in CAPTCHA_EXPIRY_OPTIONS}:
+            return await self.event.answer(_("This duration option is no longer available."), show_alert=True)
+        await settings.set_status_welcomesecurity(
+            bool(settings.welcome_security and settings.welcome_security.enabled), timedelta(seconds=value)
+        )
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecuritySetDurationCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "set_duration"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        value = self.callback_data.value
+        if value not in {int(option.total_seconds()) for option in MEDIA_DURATION_OPTIONS}:
+            return await self.event.answer(_("This duration option is no longer available."), show_alert=True)
+        await settings.set_status_welcomemute(
+            bool(settings.welcome_mute and settings.welcome_mute.enabled), timedelta(seconds=value)
+        )
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecurityResetCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "reset"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        settings.security_note = None
+        await settings.save()
+        await self.event.answer(_("Settings updated."))
+        return await self.edit_text(
+            await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
+            reply_markup=_panel_keyboard(settings, chat.iid),
+        )
+
+
+class WelcomeSecurityResetConfirmCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "reset_confirm"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, _settings, _message = context
+        await self.event.answer()
+        return await self.edit_text(
+            _("Reset the security message to the default?"),
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [_button(chat.iid, _("Reset"), "reset")],
+                    [_button(chat.iid, _("Cancel"), "home")],
+                ]
+            ),
+        )
+
+
+class WelcomeSecurityExpiryCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "expiry"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        await self.event.answer()
+        return await self.edit_text(
+            _("Choose CAPTCHA expiry. Members are kicked and join requests are declined after this time."),
+            reply_markup=_duration_keyboard(settings, chat.iid, self.current_locale, expiry=True),
+        )
+
+
+class WelcomeSecurityDurationCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "duration"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        await self.event.answer()
+        return await self.edit_text(
+            _("Choose how long new members cannot send media."),
+            reply_markup=_duration_keyboard(settings, chat.iid, self.current_locale, expiry=False),
+        )
+
+
+class WelcomeSecurityMessageCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "message"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, message = context
+        await self.event.answer()
+        rules = await RulesModel.get_rules(chat.iid)
+        return await send_saveable(
+            message,
+            message.chat.id,
+            settings.security_note or get_default_security_message(),
+            additional_fillings={"rules": rules.text or "" if rules else _("No chat rules, have fun!")},
+            connection=self.connection,
+            owner_chat_tid=chat.tid,
+            bot=self.services.bot,
+        )
+
+
+class WelcomeSecurityEditCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "edit"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, _settings, message = context
+        if await self.state.get_state() is not None:
+            return await self.event.answer(_("Finish your current action or use /cancel first."), show_alert=True)
+        prompt = await message.answer(
+            _(
+                "Reply to this message with the new security message, or use /cancel. You can include supported media and buttons."
+            ),
+            reply_markup=ForceReply(selective=True),
+        )
+        await self.state.set_state(WelcomeSecurityFSM.security_message)
+        await self.state.update_data(ws_settings_chat_iid=str(chat.iid), ws_settings_prompt_id=prompt.message_id)
+        return await self.event.answer()
+
+
+class WelcomeSecurityPendingCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "pending"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, _settings, _message = context
+        pending = WSUserModel.find(WSUserModel.group.id == chat.iid)
+        total = await pending.count()
+        verified = await WSUserModel.find(WSUserModel.group.id == chat.iid, WSUserModel.passed == True).count()
+        entries: list[KeyValue] = []
+        async for record in WSUserModel.find(WSUserModel.group.id == chat.iid).sort("-added_at").limit(10):
+            user = await ChatModel.get_by_iid(record.user.ref.id)
+            if user is not None:
+                entries.append(
+                    KeyValue(
+                        UserLink(user.tid, user.first_name_or_title),
+                        _("Verified")
+                        if record.passed
+                        else _("Join request")
+                        if record.is_join_request
+                        else _("Awaiting CAPTCHA"),
                     )
-                else:
-                    await settings.set_status_welcomemute(
-                        bool(settings.welcome_mute and settings.welcome_mute.enabled), timedelta(seconds=value)
-                    )
-            case "reset":
-                settings.security_note = None
-                await settings.save()
-            case "reset_confirm":
-                await self.event.answer()
-                return await self.edit_text(
-                    _("Reset the security message to the default?"),
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [_button(chat.iid, _("Reset"), "reset")],
-                            [_button(chat.iid, _("Cancel"), "home")],
-                        ]
-                    ),
                 )
-            case "expiry" | "duration":
-                await self.event.answer()
-                return await self.edit_text(
-                    _("Choose CAPTCHA expiry. Members are kicked and join requests are declined after this time.")
-                    if action == "expiry"
-                    else _("Choose how long new members cannot send media."),
-                    reply_markup=_duration_keyboard(settings, chat.iid, self.current_locale, expiry=action == "expiry"),
-                )
-            case "message":
-                await self.event.answer()
-                rules = await RulesModel.get_rules(chat.iid)
-                return await send_saveable(
-                    message,
-                    message.chat.id,
-                    settings.security_note or get_default_security_message(),
-                    additional_fillings={"rules": rules.text or "" if rules else _("No chat rules, have fun!")},
-                    connection=self.connection,
-                    owner_chat_tid=chat.tid,
-                    bot=self.services.bot,
-                )
-            case "edit":
-                if await self.state.get_state() is not None:
-                    return await self.event.answer(
-                        _("Finish your current action or use /cancel first."), show_alert=True
-                    )
-                prompt = await message.answer(
-                    _(
-                        "Reply to this message with the new security message, or use /cancel. You can include supported media and buttons."
-                    ),
-                    reply_markup=ForceReply(selective=True),
-                )
-                await self.state.set_state(WelcomeSecurityFSM.security_message)
-                await self.state.update_data(
-                    ws_settings_chat_iid=str(chat.iid), ws_settings_prompt_id=prompt.message_id
-                )
-                return await self.event.answer()
-            case "pending":
-                pending = WSUserModel.find(WSUserModel.group.id == chat.iid)
-                total = await pending.count()
-                verified = await WSUserModel.find(WSUserModel.group.id == chat.iid, WSUserModel.passed == True).count()
-                entries: list[KeyValue] = []
-                async for record in WSUserModel.find(WSUserModel.group.id == chat.iid).sort("-added_at").limit(10):
-                    user = await ChatModel.get_by_iid(record.user.ref.id)
-                    if user is not None:
-                        entries.append(
-                            KeyValue(
-                                UserLink(user.tid, user.first_name_or_title),
-                                _("Verified")
-                                if record.passed
-                                else _("Join request")
-                                if record.is_join_request
-                                else _("Awaiting CAPTCHA"),
-                            )
-                        )
-                await self.event.answer()
-                return await self.edit_text(
-                    Doc(
-                        KeyValue(_("Awaiting CAPTCHA"), total - verified),
-                        *entries,
-                        KeyValue(_("Verified CAPTCHA records"), verified),
-                        _("Showing up to 10 recent records. Use /unmute <user> for manual permission recovery."),
-                    ),
-                    reply_markup=_back_keyboard(chat.iid),
-                )
-            case "home":
-                pass
-            case _:
-                return await self.event.answer(_("This setting is no longer available."), show_alert=True)
-        await self.event.answer(_("Settings updated.") if action != "home" else None)
+        await self.event.answer()
+        return await self.edit_text(
+            Doc(
+                KeyValue(_("Awaiting CAPTCHA"), total - verified),
+                *entries,
+                KeyValue(_("Verified CAPTCHA records"), verified),
+                _("Showing up to 10 recent records. Use /unmute <user> for manual permission recovery."),
+            ),
+            reply_markup=_back_keyboard(chat.iid),
+        )
+
+
+class WelcomeSecurityHomeCallbackHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return (
+            WelcomeSecuritySettingsCB.filter(F.action == "home"),
+            UserRestricting(admin=True),
+            FeatureFlagFilter("welcome_security_settings_panel", notify_callback=True),
+        )
+
+    async def handle(self) -> Any:
+        context = await _callback_context(self)
+        if context is None:
+            return None
+        chat, settings, _message = context
+        await self.event.answer(None)
         return await self.edit_text(
             await _panel_text(settings, chat.tid, self.current_locale, redis=self.services.redis),
             reply_markup=_panel_keyboard(settings, chat.iid),
