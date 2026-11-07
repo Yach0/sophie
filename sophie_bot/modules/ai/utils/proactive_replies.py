@@ -22,6 +22,7 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
@@ -53,6 +54,7 @@ from sophie_bot.modules.ai.utils.modern_context import (
     render_proactive_answer_target,
 )
 from sophie_bot.modules.ai.utils.old_context import OldContext
+from sophie_bot.modules.ai.utils.proactive_tracking import DECISION_FAILURE_COOLDOWN_SECONDS, decision_failure_key
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     acquire_lock as _acquire_lock,
 )
@@ -635,6 +637,12 @@ async def maybe_run_proactive_reply(
         return
 
     try:
+        failure_key = decision_failure_key(services.bot.id, chat_tid)
+        if await services.redis.exists(failure_key):
+            _log_proactive_info(
+                "Proactive AI skipped during decision failure cooldown", bot_id=services.bot.id, chat_id=chat_tid
+            )
+            return
         candidates = await _get_recent_candidates(chat_tid, settings, redis=services.redis)
 
         if len(candidates) < settings.min_messages:
@@ -652,7 +660,18 @@ async def maybe_run_proactive_reply(
             chat_id=chat_tid,
             candidate_count=len(candidates),
         )
-        decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
+        try:
+            decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
+        except AIRequestFailed:
+            await services.redis.set(failure_key, "1", ex=DECISION_FAILURE_COOLDOWN_SECONDS)
+            _log_proactive_info(
+                "Proactive AI decision failed; skipping response",
+                bot_id=services.bot.id,
+                chat_id=chat_tid,
+                error_type="AIRequestFailed",
+                cooldown_seconds=DECISION_FAILURE_COOLDOWN_SECONDS,
+            )
+            return
         await _execute_actions(
             chat_tid,
             chat,
