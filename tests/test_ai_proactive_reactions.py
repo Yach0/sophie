@@ -131,7 +131,9 @@ async def test_decision_prompt_lists_only_allowed_choices(
     )
     prompt = "\n".join(run_task.await_args.args[2].prompt)
     if allowed:
-        choices = next(line for line in prompt.splitlines() if line.startswith("Allowed reaction emoji: "))
+        choice_lines = [line for line in prompt.splitlines() if line.startswith("Allowed reaction emoji: ")]
+        assert len(choice_lines) == 1
+        choices = choice_lines[0]
         assert frozenset(choices.removeprefix("Allowed reaction emoji: ").split()) == allowed
     else:
         assert "Reactions are disabled; choose only none or answer." in prompt
