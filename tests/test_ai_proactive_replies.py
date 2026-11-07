@@ -308,7 +308,14 @@ async def test_failed_proactive_action_retries_on_the_next_message(
     reaction = AsyncMock(side_effect=[failure, True])
     services = cast(
         ApplicationServices,
-        SimpleNamespace(redis=test_redis, bot=SimpleNamespace(id=123, set_message_reaction=reaction)),
+        SimpleNamespace(
+            redis=test_redis,
+            bot=SimpleNamespace(
+                id=123,
+                get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None)),
+                set_message_reaction=reaction,
+            ),
+        ),
     )
     decision = ProactiveDecision(actions=[ProactiveAction(action="react", message_id=3, emoji=chr(0x1F44D))])
     monkeypatch.setattr(proactive_replies, "is_enabled", AsyncMock(return_value=True))
@@ -468,7 +475,13 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
     monkeypatch.setattr(proactive_replies, "_answer_message", answer)
 
     await proactive_replies._execute_actions(
-        chat_tid, chat, messages, decision, ProactiveReplySettings(max_reactions=2), services=services
+        chat_tid,
+        chat,
+        messages,
+        decision,
+        ProactiveReplySettings(max_reactions=2),
+        allowed_reactions=frozenset({"👍"}),
+        services=services,
     )
 
     assert reaction.await_count == 2
@@ -478,7 +491,7 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
     assert metric.call_args_list.count(call("reaction_sent", proactive_replies._METRIC_ATTRIBUTES)) == 1
 
 
-@pytest.mark.parametrize("description", ["Bad Request: REACTION_INVALID", "Bad Request: not enough rights"])
+@pytest.mark.parametrize("description", ["Bad Request: not enough rights", "Bad Request: MESSAGE_ID_INVALID"])
 async def test_unexpected_reaction_bad_request_propagates(description: str) -> None:
     chat_tid = -1001234567890
     failure = TelegramBadRequest(
@@ -490,7 +503,11 @@ async def test_unexpected_reaction_bad_request_propagates(description: str) -> N
 
     with pytest.raises(TelegramBadRequest) as raised:
         await proactive_replies._react_to_message(
-            chat_tid, MessageType(user_id=42, message_id=1, text="hello"), "👍", services=services
+            chat_tid,
+            MessageType(user_id=42, message_id=1, text="hello"),
+            "👍",
+            allowed_reactions=frozenset({"👍"}),
+            services=services,
         )
 
     assert raised.value is failure
