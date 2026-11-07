@@ -224,7 +224,12 @@ async def build_message_parts(
     ]
 
     # Visual media
-    if message.photo or message.sticker or message.animation:
+    if (
+        message.photo
+        or message.sticker
+        or message.animation
+        or (message.document and message.document.mime_type == "image/gif" and message.document.thumbnail)
+    ):
         # Determine a file_id to download irrespective of underlying Telegram type
         if message.photo:
             image_file_id = message.photo[-1].file_id
@@ -234,6 +239,8 @@ async def build_message_parts(
             image_file_id = message.sticker.thumbnail.file_id
         elif message.animation and message.animation.thumbnail:
             image_file_id = message.animation.thumbnail.file_id
+        elif message.document and message.document.mime_type == "image/gif" and message.document.thumbnail:
+            image_file_id = message.document.thumbnail.file_id
         elif message.sticker:
             image_file_id = message.sticker.file_id
         else:
