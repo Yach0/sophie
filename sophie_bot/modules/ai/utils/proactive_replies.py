@@ -8,6 +8,7 @@ from typing import Literal
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, Message, ReactionTypeEmoji, User
 from pydantic import BaseModel, Field
+from pydantic_ai.exceptions import UsageLimitExceeded
 from sentry_sdk.ai import set_conversation_id
 
 from sophie_bot.config import CONFIG
@@ -22,7 +23,11 @@ from sophie_bot.metrics import (
 )
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AI_PROVIDER_EXCEPTIONS,
+    AIRequestFailed,
+    is_provider_configuration_error,
+)
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
@@ -662,13 +667,18 @@ async def maybe_run_proactive_reply(
         )
         try:
             decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
-        except AIRequestFailed:
+        except (AIRequestFailed, *AI_PROVIDER_EXCEPTIONS) as error:
+            # The shared runner preserves configuration and budget errors for explicit commands.
+            if not isinstance(error, (AIRequestFailed, UsageLimitExceeded)) and not is_provider_configuration_error(
+                error
+            ):
+                raise
             await services.redis.set(failure_key, "1", ex=DECISION_FAILURE_COOLDOWN_SECONDS)
             _log_proactive_info(
                 "Proactive AI decision failed; skipping response",
                 bot_id=services.bot.id,
                 chat_id=chat_tid,
-                error_type="AIRequestFailed",
+                error_type=type(error).__name__,
                 cooldown_seconds=DECISION_FAILURE_COOLDOWN_SECONDS,
             )
             return

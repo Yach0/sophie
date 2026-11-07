@@ -11,6 +11,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.methods import SetMessageReaction
 from aiogram.types import Chat, Message, User
 from beanie import PydanticObjectId
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from redis.asyncio import Redis
 
@@ -33,7 +34,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
     _limit_actions,
     _normalize_reaction_emoji,
 )
-from sophie_bot.modules.ai.utils.proactive_tracking import is_candidate, lock_key
+from sophie_bot.modules.ai.utils.proactive_tracking import decision_failure_key, is_candidate, lock_key
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import next_group_id, next_user_id
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
@@ -354,19 +355,33 @@ async def decision_lifecycle(
 
 
 @pytest.mark.parametrize("different_scope", ["bot", "chat"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        AIRequestFailed("private-reference", "private provider payload"),
+        UsageLimitExceeded("private usage details"),
+        *[
+            ModelHTTPError(status_code=status_code, model_name="primary", body="private provider payload")
+            for status_code in (401, 402, 403)
+        ],
+    ],
+    ids=["request", "usage", "401", "402", "403"],
+)
 async def test_decision_failure_cooldown_is_scoped(
     monkeypatch: pytest.MonkeyPatch,
     decision_lifecycle: tuple[Message, ChatModel, ApplicationServices],
     different_scope: str,
+    failure: Exception,
 ) -> None:
     message, chat, services = decision_lifecycle
-    inference = AsyncMock(side_effect=AIRequestFailed("private-reference", "private provider payload"))
+    inference = AsyncMock(side_effect=failure)
     execute = AsyncMock()
     monkeypatch.setattr(proactive_replies, "_generate_decision", inference)
     monkeypatch.setattr(proactive_replies, "_execute_actions", execute)
     await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
     await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
     assert inference.await_count == 1
+    assert 0 < await services.redis.ttl(decision_failure_key(services.bot.id, chat.tid)) <= 60
     assert not await services.redis.exists(lock_key(chat.tid))
 
     if different_scope == "bot":
@@ -382,15 +397,29 @@ async def test_decision_failure_cooldown_is_scoped(
 
 
 @pytest.mark.parametrize("stage", ["decision", "action"])
-@pytest.mark.parametrize("failure_type", [ValueError, AIRequestFailed])
+@pytest.mark.parametrize(
+    ("failure", "best_effort"),
+    [
+        (ValueError("private-reference"), False),
+        (AIRequestFailed("private-reference"), True),
+        (UsageLimitExceeded("private usage details"), True),
+        *[
+            (ModelHTTPError(status_code=status_code, model_name="primary", body="private provider payload"), True)
+            for status_code in (401, 402, 403)
+        ],
+        (ModelHTTPError(status_code=500, model_name="primary", body="private provider payload"), False),
+        (TimeoutError("unrelated timeout"), False),
+    ],
+    ids=["value", "request", "usage", "401", "402", "403", "500", "timeout"],
+)
 async def test_only_decision_request_failures_are_best_effort(
     monkeypatch: pytest.MonkeyPatch,
     decision_lifecycle: tuple[Message, ChatModel, ApplicationServices],
     stage: str,
-    failure_type: type[Exception],
+    failure: Exception,
+    best_effort: bool,
 ) -> None:
     message, chat, services = decision_lifecycle
-    failure = failure_type("private-reference")
     inference = AsyncMock(return_value=ProactiveDecision(actions=[]))
     execute = AsyncMock()
     if stage == "decision":
@@ -399,11 +428,11 @@ async def test_only_decision_request_failures_are_best_effort(
         execute.side_effect = failure
     monkeypatch.setattr(proactive_replies, "_generate_decision", inference)
     monkeypatch.setattr(proactive_replies, "_execute_actions", execute)
-    if stage == "decision" and failure_type is AIRequestFailed:
+    if stage == "decision" and best_effort:
         await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
         execute.assert_not_awaited()
     else:
-        with pytest.raises(failure_type) as raised:
+        with pytest.raises(type(failure)) as raised:
             await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
         assert raised.value is failure
         # These errors must not install a cooldown or prevent the next attempt.
