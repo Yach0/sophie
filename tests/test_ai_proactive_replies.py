@@ -350,7 +350,13 @@ async def decision_lifecycle(
 ) -> tuple[Message, ChatModel, ApplicationServices]:
     chat_tid = next_group_id()
     chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, iid=PydanticObjectId()))
-    services = cast(ApplicationServices, SimpleNamespace(redis=test_redis, bot=SimpleNamespace(id=123)))
+    services = cast(
+        ApplicationServices,
+        SimpleNamespace(
+            redis=test_redis,
+            bot=SimpleNamespace(id=123, get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None))),
+        ),
+    )
     now = datetime.now(UTC)
     message = Message(message_id=3, date=now, chat=Chat(id=chat_tid, type="supergroup"), text="hello")
     for message_id in (1, 2, 3):
@@ -392,7 +398,13 @@ async def test_decision_failure_cooldown_is_scoped(
     assert not await services.redis.exists(lock_key(chat.tid))
 
     if different_scope == "bot":
-        services = cast(ApplicationServices, SimpleNamespace(redis=services.redis, bot=SimpleNamespace(id=456)))
+        services = cast(
+            ApplicationServices,
+            SimpleNamespace(
+                redis=services.redis,
+                bot=SimpleNamespace(id=456, get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None))),
+            ),
+        )
     else:
         chat = cast(ChatModel, SimpleNamespace(tid=next_group_id(), iid=PydanticObjectId()))
         await cache_message("hello", chat.tid, 42, 3, message.date, "sender", redis=services.redis)
