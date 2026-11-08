@@ -15,6 +15,7 @@ from sophie_bot.utils.logger import log
 
 _ELIGIBLE_KEY_TEMPLATE = "ai:proactive:{chat_tid}:eligible"
 _LOCK_KEY_TEMPLATE = "ai:proactive:{chat_tid}:lock"
+DECISION_FAILURE_COOLDOWN_SECONDS = 60
 _LOCK_TTL_SECONDS = 120
 _PROCESSED_TTL_SECONDS = 86400
 
@@ -35,6 +36,10 @@ def eligible_key(chat_tid: int) -> str:
 
 def lock_key(chat_tid: int) -> str:
     return _LOCK_KEY_TEMPLATE.format(chat_tid=chat_tid)
+
+
+def decision_failure_key(bot_id: int, chat_tid: int) -> str:
+    return f"ai:proactive:{bot_id}:{chat_tid}:decision_failure"
 
 
 def is_candidate(message: MessageType) -> bool:
