@@ -344,7 +344,7 @@ async def _summarize_research(
         ),
         services=services,
     )
-    result = await run_research_structured_step(
+    return await run_research_structured_step(
         history,
         ResearchFinalResponse,
         connection,
@@ -353,7 +353,6 @@ async def _summarize_research(
         "summary",
         services=services,
     )
-    return result
 
 
 async def run_research_workflow(

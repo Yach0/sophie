@@ -25,7 +25,6 @@ from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     TextContent,
     TextPart,
     ToolCallPart,
@@ -226,7 +225,12 @@ async def build_message_parts(
     ]
 
     # Visual media
-    if message.photo or message.sticker or message.animation:
+    if (
+        message.photo
+        or message.sticker
+        or message.animation
+        or (message.document and message.document.mime_type == "image/gif" and message.document.thumbnail)
+    ):
         # Determine a file_id to download irrespective of underlying Telegram type
         if message.photo:
             image_file_id = message.photo[-1].file_id
@@ -236,6 +240,8 @@ async def build_message_parts(
             image_file_id = message.sticker.thumbnail.file_id
         elif message.animation and message.animation.thumbnail:
             image_file_id = message.animation.thumbnail.file_id
+        elif message.document and message.document.mime_type == "image/gif" and message.document.thumbnail:
+            image_file_id = message.document.thumbnail.file_id
         elif message.sticker:
             image_file_id = message.sticker.file_id
         else:
@@ -957,7 +963,7 @@ class ModernContext:
             self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
 
     def project_for_candidate(
-        self, candidate: AIModelCandidate
+        self, candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse] = ()
     ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
         """Budget an isolated request; fallback attempts never shrink the primary session."""
         # pylint: disable=protected-access
@@ -975,7 +981,7 @@ class ModernContext:
         projection._state = self._state.model_copy(deep=True)
         projection.prompt = list(self.prompt)
         projection._token_budgets = (budget,)
-        projection._budget = budget.input_tokens
+        projection._budget = budget.input_tokens - budget.counter.count_messages(continuation)
         projection._prune()
         # Keep direct callers safe when the runtime snapshot is not already in the current prompt.
         if self._runtime_update and not any(
@@ -1071,7 +1077,7 @@ class ModernContext:
                 part.tool_call_id
                 for message in new_messages
                 for part in message.parts
-                if isinstance(part, (ToolReturnPart, RetryPromptPart))
+                if isinstance(part, ToolReturnPart)
             }
             tool_returns = {
                 part.tool_call_id

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -13,7 +13,7 @@ from sophie_bot.db.models import AIQuotaModel, AIUsageModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_model_pricing import estimate_model_credit_cost
-from sophie_bot.modules.ai.utils.ai_quota import _ensure_period
+from sophie_bot.modules.ai.utils.ai_quota import _ensure_period, get_period_end
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
@@ -74,28 +74,54 @@ async def test_estimate_model_credit_cost_uses_openrouter_fallback(monkeypatch: 
 
 
 @pytest.mark.asyncio
-async def test_checking_quota_resets_old_month_usage(db_init: object, test_redis: object, test_services: object) -> None:
+@pytest.mark.parametrize(
+    "reset_at",
+    [datetime(2026, 5, 1, tzinfo=UTC), datetime(2027, 1, 1, tzinfo=UTC), datetime(2024, 3, 1, tzinfo=UTC)],
+)
+async def test_checking_quota_resets_only_at_utc_month_boundary(
+    db_init: object,
+    monkeypatch: pytest.MonkeyPatch,
+    reset_at: datetime,
+) -> None:
     chat = await _create_chat(-1001003, "Reset")
+    before_reset = reset_at - timedelta(microseconds=1)
+    period_start = before_reset.date().replace(day=1)
     quota = AIQuotaModel(
         chat=chat,
-        period_start=(datetime.now(UTC).date().replace(day=1) - timedelta(days=31)).replace(day=1),
+        period_start=period_start,
         used_credits=123,
-        exhausted_notified_period_start=datetime.now(UTC).date().replace(day=1),
-        exhausted_notified_at=datetime.now(UTC),
+        exhausted_notified_period_start=period_start,
+        exhausted_notified_at=before_reset,
     )
+    clock = Mock(wraps=datetime)
+    clock.now.return_value = before_reset
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_quota.datetime", clock)
+    save = AsyncMock(return_value=quota)
+    monkeypatch.setattr(AIQuotaModel, "save", save)
+
+    await _ensure_period(quota)
+    assert quota.used_credits == 123
+    assert quota.period_start == period_start
+    assert quota.exhausted_notified_period_start == period_start
+    assert quota.exhausted_notified_at == before_reset
+    save.assert_not_awaited()
+    clock.now.assert_called_with(UTC)
+
+    clock.now.return_value = reset_at
     refreshed = await _ensure_period(quota)
     assert refreshed.used_credits == 0
-    assert refreshed.period_start == datetime.now(UTC).date().replace(day=1)
+    assert refreshed.period_start == reset_at.date()
     assert refreshed.exhausted_notified_period_start is None
     assert refreshed.exhausted_notified_at is None
+    save.assert_awaited_once()
+    clock.now.assert_called_with(UTC)
 
 
 @pytest.mark.asyncio
 async def test_quota_filter_notifies_only_once_per_period(db_init: object, test_redis: object, test_services: object) -> None:
     chat = await _create_chat(-1001004, "Exhausted")
     period_start = datetime.now(UTC).date().replace(day=1)
-    period_end = datetime.now(UTC).date().replace(day=28) + timedelta(days=4)
-    period_end = period_end - timedelta(days=period_end.day)
+    period_end = get_period_end(period_start)
     quota = AIQuotaModel(chat=chat, period_start=period_start, monthly_credits=1, used_credits=1)
 
     message = AsyncMock()

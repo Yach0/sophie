@@ -100,7 +100,7 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         text = Template(
             _(
                 "Complete the '{emoji_name}' emoji in order to complete the captcha "
-                "and participate in the {group_name}."
+                "and join the conversation in {group_name}."
             ),
             emoji_name=Bold(captcha.data.base_emoji),
             group_name=Italic(chat_db.first_name_or_title),

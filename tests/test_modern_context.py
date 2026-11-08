@@ -19,7 +19,6 @@ from pydantic_ai.messages import (
     ModelMessagesTypeAdapter,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ToolCallPart,
     ToolReturnPart,
@@ -584,7 +583,14 @@ async def test_incomplete_tool_pair_cannot_commit_but_retry_exchange_can(context
         ModelRequest(parts=[UserPromptPart(content=retry.prompt)]),
         ModelResponse(parts=[ToolCallPart(tool_name="lookup", args="not json", tool_call_id="retry-call")]),
         ModelRequest(
-            parts=[RetryPromptPart(content="please retry @alice_secret", tool_name="lookup", tool_call_id="retry-call")]
+            parts=[
+                ToolReturnPart(
+                    content="please retry @alice_secret",
+                    tool_name="lookup",
+                    tool_call_id="retry-call",
+                    outcome="retried",
+                )
+            ]
         ),
         ModelResponse(parts=[TextPart(content="recovered")]),
     ]
