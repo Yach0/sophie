@@ -16,6 +16,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from aiogram import Bot
 from aiogram.types import (
+    Message,
     PhotoSize,
     Video,
     Voice,
@@ -24,6 +25,7 @@ from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory
 from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import BinaryContent
+from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
@@ -38,6 +40,7 @@ from sophie_bot.modules.ai.utils.ai_usage_service import (
     ChatUsageView,
 )
 from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_cached_messages
+from sophie_bot.modules.ai.utils.proactive_tracking import decision_failure_key
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT, AI_FEATURE_TRANSLATE
 from sophie_bot.utils.feature_flags import is_enabled
@@ -328,7 +331,7 @@ async def test_aimode_shows_mode_picker(test_client: TestClient) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _simulate_rich_send_response(test_client: TestClient, stack: ExitStack) -> None:
+def _simulate_rich_send_response(test_client: TestClient, stack: ExitStack, *, bind_bot: bool = False) -> None:
     """Make the Telegram mock return a Message for sendRichMessage, like the real API."""
     session = test_client.dispatcher.workflow_data["services"].bot.session
     original_response = session._generate_response
@@ -336,7 +339,8 @@ def _simulate_rich_send_response(test_client: TestClient, stack: ExitStack) -> N
     def generate_response(bot: Bot, method_name: str, params: dict[str, Any]) -> Any:
         if method_name == "sendRichMessage":
             method_name = "sendMessage"
-        return original_response(bot=bot, method_name=method_name, params=params)
+        response = original_response(bot=bot, method_name=method_name, params=params)
+        return response.as_(bot) if bind_bot and isinstance(response, Message) else response
 
     stack.enter_context(patch.object(session, "_generate_response", side_effect=generate_response))
 
@@ -668,10 +672,12 @@ async def test_translate_empty_text_error(test_client: TestClient) -> None:
 
 
 @pytest.mark.asyncio
-async def test_translate_ai_failure(test_client: TestClient) -> None:
+@pytest.mark.parametrize("command", ("translate", "tr"))
+async def test_translate_ai_failure(test_client: TestClient, test_services: ApplicationServices, command: str) -> None:
     """The /translate command should show a graceful error when AI fails."""
     group_chat = ChatFactory.create_group(chat_id=-1002900000012, title="Translate Failure Group")
     user_wrapper = test_client.create_user(user_id=929000012, first_name="FailTransUser", username="fail_trans")
+    await test_services.redis.set(decision_failure_key(test_services.bot.id, group_chat.id), "1", ex=60)
 
     await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
     await grant_admin(group_chat.id, user_wrapper.user.id)
@@ -693,7 +699,7 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
         )
 
         requests = await test_client.send_command(
-            command="translate",
+            command=command,
             from_user=user_wrapper.user,
             chat=group_chat,
             args="Hello world",
@@ -710,6 +716,37 @@ async def test_translate_ai_failure(test_client: TestClient) -> None:
     assert "<i>Translating...</i>" in edits[0].params["rich_message"]["html"]
     response_text = edits[-1].text or ""
     assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"
+
+
+async def test_explicit_ai_request_failure_stays_visible(
+    test_client: TestClient, test_services: ApplicationServices
+) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000099, title="Explicit AI Failure")
+    user_wrapper = test_client.create_user(user_id=929000099, first_name="ExplicitUser")
+    await test_services.redis.set(decision_failure_key(test_services.bot.id, group_chat.id), "1", ex=60)
+    await test_client.send_message(text="init", from_user=user_wrapper.user, chat=group_chat)
+    await grant_admin(group_chat.id, user_wrapper.user.id)
+
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack, bind_bot=True)
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.utils.ai_chatbot_reply.get_chat_default_model_plan",
+                AsyncMock(return_value=SimpleNamespace(primary=TestModel())),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "sophie_bot.modules.ai.utils.ai_chatbot_reply.run_chatbot",
+                AsyncMock(side_effect=AIRequestFailed("known-reference")),
+            )
+        )
+        requests = await test_client.send_command(
+            command="ai", args="hello", from_user=user_wrapper.user, chat=group_chat
+        )
+
+    assert any("AI provider did not complete" in (request.text or "") for request in requests)
 
 
 @pytest.mark.asyncio
