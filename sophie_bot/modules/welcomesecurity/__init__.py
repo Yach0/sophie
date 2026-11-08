@@ -29,6 +29,52 @@ from sophie_bot.modules.welcomesecurity.handlers.status_overall import (
     WelcomeSecurityExpireHandler,
     WelcomeSecuritySettingsShowHandler,
 )
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_captcha_callback_handler import (
+    WelcomeSecurityCaptchaCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_cleanup_callback_handler import (
+    WelcomeSecurityCleanupCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_duration_callback_handler import (
+    WelcomeSecurityDurationCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_edit_callback_handler import (
+    WelcomeSecurityEditCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_expiry_callback_handler import (
+    WelcomeSecurityExpiryCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_home_callback_handler import (
+    WelcomeSecurityHomeCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_media_callback_handler import (
+    WelcomeSecurityMediaCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_message_callback_handler import (
+    WelcomeSecurityMessageCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_message_input_handler import (
+    WelcomeSecurityMessageInputHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_panel_handler import WelcomeSecurityPanelHandler
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_pending_callback_handler import (
+    WelcomeSecurityPendingCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_reset_callback_handler import (
+    WelcomeSecurityResetCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_reset_confirm_callback_handler import (
+    WelcomeSecurityResetConfirmCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_set_duration_callback_handler import (
+    WelcomeSecuritySetDurationCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_set_expiry_callback_handler import (
+    WelcomeSecuritySetExpiryCallbackHandler,
+)
+from sophie_bot.modules.welcomesecurity.handlers.welcome_security_welcome_cleanup_callback_handler import (
+    WelcomeSecurityWelcomeCleanupCallbackHandler,
+)
 from sophie_bot.modules.welcomesecurity.middlewares.lock_muted_users import (
     LockMutedUsers,
 )
@@ -60,6 +106,22 @@ module_manifest = ModuleManifest(
         LegacyWSButtonHandler,
         CaptchaConfirmHandler,
         ChatJoinRequestHandler,
+        WelcomeSecurityPanelHandler,
+        WelcomeSecurityCaptchaCallbackHandler,
+        WelcomeSecurityMediaCallbackHandler,
+        WelcomeSecurityCleanupCallbackHandler,
+        WelcomeSecurityWelcomeCleanupCallbackHandler,
+        WelcomeSecuritySetExpiryCallbackHandler,
+        WelcomeSecuritySetDurationCallbackHandler,
+        WelcomeSecurityResetCallbackHandler,
+        WelcomeSecurityResetConfirmCallbackHandler,
+        WelcomeSecurityExpiryCallbackHandler,
+        WelcomeSecurityDurationCallbackHandler,
+        WelcomeSecurityMessageCallbackHandler,
+        WelcomeSecurityEditCallbackHandler,
+        WelcomeSecurityPendingCallbackHandler,
+        WelcomeSecurityHomeCallbackHandler,
+        WelcomeSecurityMessageInputHandler,
         EnableWelcomeCaptchaHandlerABC,
         EnableWelcomeMute,
         SetSecurityMessageHandler,
