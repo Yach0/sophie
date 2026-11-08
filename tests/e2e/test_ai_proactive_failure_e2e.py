@@ -69,6 +69,8 @@ async def test_terminal_proactive_decision_failure_lifecycle(
             "Proactive failures must not send an error card, action, reaction, or message"
         )
 
+    await proactive_replies._get_allowed_reactions(group.id, services=test_services)
+
     for message_number in range(15):
         await send_chatter(f"ordinary chatter {message_number}")
 
