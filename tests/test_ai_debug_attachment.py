@@ -43,8 +43,7 @@ from sophie_bot.modules.ai.utils.chatbot_agent import ChatbotRunConfig
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
-
-pytest_plugins = ("tests.utils.ai_tokenizers",)
+from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 LARGE_CONTEXT = "Контекст 🦊 <raw>\n" * 900
 OPERATOR_TID = 123456
