@@ -207,6 +207,9 @@ class AIAgentResult[OutputT](BaseModel):
     Callers that report or bill the model should prefer this over the one they asked for, so a
     reply header and a usage charge both name the model the user's answer really came from.
     """
+    last_model_request: ModelRequestContext | None = Field(default=None, exclude=True, repr=False)
+    """Reuse the final prepared request for operator diagnostics; never serialize provider clients."""
+    request_usage_limits: UsageLimits | None = Field(default=None, exclude=True, repr=False)
 
 
 @dataclass(slots=True)
@@ -427,6 +430,7 @@ class _ModelRequests:
     operation_label: str
     active: AIModelCandidate
     attempt_started: float | None = None
+    last_model_request: ModelRequestContext | None = None
 
     @classmethod
     def create(
@@ -520,7 +524,9 @@ class _ModelRequests:
             self.usage_limits,
         )
         self.attempt_started = time.perf_counter()
-        return replace(request_context, messages=messages, model_settings=settings)
+        prepared = replace(request_context, messages=messages, model_settings=settings)
+        self.last_model_request = prepared
+        return prepared
 
     async def falls_back(self, error: Exception) -> bool:
         self.finish_attempt(type(error).__name__)
@@ -629,6 +635,8 @@ async def _run_with_metrics[DepsT, OutputT](
         new_messages=result.new_messages(),
         usage=result.usage,
         served_model=served_model,
+        last_model_request=requests.last_model_request,
+        request_usage_limits=requests.usage_limits,
     )
 
 
@@ -880,4 +888,6 @@ async def run_ai_stream[DepsT](
         new_messages=outcome.new_messages,
         usage=outcome.usage,
         served_model=served_model,
+        last_model_request=requests.last_model_request,
+        request_usage_limits=requests.usage_limits,
     )

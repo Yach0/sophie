@@ -4,10 +4,11 @@ from collections.abc import Sequence
 from contextlib import AsyncExitStack
 from typing import Any
 
-from aiogram.types import Message
+from aiogram.exceptions import TelegramAPIError
+from aiogram.types import BufferedInputFile, Message
 from pydantic_ai.models import Model
 from sentry_sdk.ai import set_conversation_id
-from stfu_tg import BlockQuote, Doc, Section
+from stfu_tg import Doc
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
@@ -30,6 +31,7 @@ from sophie_bot.modules.ai.utils.chatbot_agent import (
     run_chatbot,
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
+from sophie_bot.modules.ai.utils.chatbot_debug import build_chatbot_debug_file
 from sophie_bot.modules.ai.utils.chatbot_response import (
     TELEGRAM_MESSAGE_SAFE_LIMIT,
     build_chatbot_header,
@@ -57,13 +59,20 @@ from sophie_bot.modules.ai.utils.help_tip import (
 )
 from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
-from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 __all__ = ("ai_chatbot_reply",)
+
+
+async def _send_chatbot_debug_document(message: Message, document: BufferedInputFile) -> None:
+    try:
+        await message.reply_document(document, caption=_("LLM diagnostics"))
+    except TelegramAPIError as error:
+        log.warning("Failed to deliver LLM diagnostics attachment", error_type=type(error).__name__)
 
 
 def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode: bool) -> bool:
@@ -73,13 +82,6 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
         from_user = message.from_user
         return from_user is not None and from_user.id in CONFIG.operators
     return False
-
-
-async def _reply_debug_history(message: Message, history: OldContext | ModernContext) -> None:
-    await message.reply(
-        Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
-        disable_web_page_preview=True,
-    )
 
 
 async def _resolve_model_plan(
@@ -330,9 +332,6 @@ async def ai_chatbot_reply(
         # Whatever tool calls history already contains were replayed from a previous
         # answer and must not be stored a second time.
         previous_history = list(history.message_history)
-        if explicit_debug_mode:
-            await _reply_debug_history(message, history)
-
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.chatbot,
             chat_tid=message.chat.id,
@@ -357,11 +356,22 @@ async def ai_chatbot_reply(
                 )
             )
         except AIRequestFailed as err:
+            if explicit_debug_mode:
+                await _send_chatbot_debug_document(
+                    message,
+                    await build_chatbot_debug_file(history, None, model_plan, context, service_tier=service_tier),
+                )
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
 
         # Failover may have moved the reply off the model the streamer opened with, so the charge and
         # the header both follow the model that actually answered.
         model = result.served_model or model
+
+        if explicit_debug_mode:
+            await _send_chatbot_debug_document(
+                message,
+                await build_chatbot_debug_file(history, result, model_plan, context, service_tier=service_tier),
+            )
 
         show_model_name = await is_enabled(
             "ai_chatbot_show_model_name",
@@ -396,7 +406,7 @@ async def ai_chatbot_reply(
             output_text,
             model,
             result,
-            explicit_debug_mode,
+            explicit_debug_mode=False,  # Provider diagnostics are delivered in the attachment.
             chat_tid=message.chat.id,
             services=services,
             tool_labels=tool_labels,
