@@ -1397,12 +1397,6 @@ wheels = [
 ]
 
 [[package]]
-name = "nuitka"
-version = "4.3.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/da/0f/db5cfdebf906a6de141bfdadcd72a7417ba710ba9c9d307be185a69a7c8d/nuitka-4.3.1.tar.gz", hash = "sha256:b9c87a694acc424cfffa06abf149fddbdfa85f6daac998df67411b5f4269df0f", size = 4771037, upload-time = "2026-10-17T16:34:00.545Z" }
-
-[[package]]
 name = "numpy"
 version = "2.5.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2449,7 +2443,6 @@ dev = [
     { name = "devtools" },
     { name = "fakeredis" },
     { name = "mongomock" },
-    { name = "nuitka" },
     { name = "pycln" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -2517,7 +2510,6 @@ dev = [
     { name = "devtools", extras = ["pygments"], specifier = ">=0.13,<0.14" },
     { name = "fakeredis", specifier = ">=2.38.0,<3" },
     { name = "mongomock", specifier = ">=4.3.0,<5" },
-    { name = "nuitka", specifier = ">=4.2.1" },
     { name = "pycln", specifier = ">=2.6.0,<3" },
     { name = "pytest", specifier = ">=9.1.1,<10" },
     { name = "pytest-asyncio", specifier = ">=1.4.0,<2" },

@@ -52,6 +52,8 @@ When you're ready to submit changes, please:
 
 ## Development Setup
 
+The runtime container runs `python -m sophie_bot` directly. `make all` prepares translations and runs code checks and tests; it does not produce a compiled executable.
+
 Please refer to the [README.md](README.md#1-installation) for detailed installation and setup instructions. We use `uv` as our package manager and `make` for common development tasks.
 
 ---
