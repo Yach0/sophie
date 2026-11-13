@@ -21,6 +21,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY sophie_bot/utils/ai_tokenizer_assets.py sophie_bot/utils/ai_tokenizer_assets.py
 RUN uv run --no-sync python sophie_bot/utils/ai_tokenizer_assets.py
 
+COPY sophie_bot/utils/spam_classifier.py sophie_bot/utils/spam_classifier.py
+RUN uv run --no-sync python sophie_bot/utils/spam_classifier.py
+
 # Copy the project source code
 COPY sophie_bot sophie_bot
 COPY locales locales

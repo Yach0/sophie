@@ -48,6 +48,9 @@ build_standalone:
 	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone
 
 # Development with hot-reload
+spam_model:
+	uv run python sophie_bot/utils/spam_classifier.py
+
 dev_bot:
 	@echo "Starting bot with hot-reload..."
 	DEV_RELOAD=true MODE=bot uv run python -m sophie_bot
