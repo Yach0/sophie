@@ -15,6 +15,7 @@ from sophie_bot.db.models.ai import (
     AIQuotaModel,
     AIUsageModel,
 )
+from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.antiflood import AntifloodModel
 from sophie_bot.db.models.api_token import ApiTokenModel
 from sophie_bot.db.models.beta import BetaModeModel
@@ -77,6 +78,7 @@ models: list[type[Document]] = [
     AIAutotranslateModel,
     AIModeratorModel,
     AIMemoryModel,
+    AIEvidenceMemoryModel,
     AIChatSummaryModel,
     DisablingModel,
     PrivateNotesModel,
@@ -110,6 +112,7 @@ __all__ = [
     "AICatalogProviderModel",
     "AIChatSummaryLine",
     "AIChatSummaryModel",
+    "AIEvidenceMemoryModel",
     "AIMemoryModel",
     "AIMode",
     "AIModeModel",

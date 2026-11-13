@@ -8,11 +8,14 @@ from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
+from sophie_bot.db.models.ai.ai_evidence_memory import MemorySource, MemoryState
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_context_epoch_key
+from sophie_bot.modules.ai.utils.evidence_memory import capture_source, memory_cutoff, mutate_memory, prune_memory
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
@@ -52,6 +55,15 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         expected_epoch = None
         if isinstance(event, Message) and chat_db and capabilities.message_cache:
             expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
+        memory_generation = None
+        if (
+            chat_db
+            and capabilities.memory
+            and await is_enabled("ai_memory_capture", chat_tid=chat_db.tid, redis=data["services"].redis)
+        ):
+            cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
+            memory_state = await mutate_memory(chat_db, lambda current: prune_memory(current, cutoff))
+            memory_generation = memory_state.generation
         result = await handler(event, data)
         if data.get("ai_moderation_blocked"):
             return result
@@ -61,7 +73,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             if not text:
                 return result
 
-            if cache_state.command and cache_state.command.command == "ai_reset":
+            if cache_state.command and cache_state.command.command in {"ai_reset", "ai_memory"}:
                 log.debug("CacheUserMessagesMiddleware: skipping reset command")
                 return result
 
@@ -107,6 +119,31 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 expected_epoch=expected_epoch,
                 redis=data["services"].redis,
             )
+            if memory_generation is not None and not event.from_user.is_bot and not event.sender_chat:
+                cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
+
+                sender = event.from_user
+
+                def remember(state: MemoryState) -> None:
+                    if state.generation != memory_generation:
+                        return
+                    capture_source(
+                        state,
+                        MemorySource(
+                            message_id=msg_id,
+                            speaker_tid=user_id,
+                            speaker_name=sender.full_name,
+                            username=sender.username,
+                            text=text,
+                            sent_at=event.date,
+                            topic_id=event.message_thread_id,
+                            reply_to_message_id=reply_to_message.message_id if reply_to_message else None,
+                            branch_id=reply_to_message.message_id if reply_to_message else msg_id,
+                        ),
+                    )
+                    prune_memory(state, cutoff)
+
+                await mutate_memory(chat_db, remember)
             if eligible_for_proactive_ai and capabilities.proactive_replies:
                 await maybe_run_proactive_reply(event, chat_db, services=data["services"])
 
