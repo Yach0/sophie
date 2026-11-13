@@ -29,6 +29,7 @@ test:
       policy: pull-push
   before_script:
     - unset VIRTUAL_ENV
+    - apt-get update && apt-get install -y --no-install-recommends make
     - git config --global url."https://gitlab-ci-token:${CI_JOB_TOKEN}@gitlab.com/SophieBot/".insteadOf "https://gitlab.com/SophieBot/"
     - uv sync --frozen
     # Tests run from a fresh checkout, independently of the runtime image build.
