@@ -4344,13 +4344,6 @@ msgstr ""
 msgid "{modules} loaded"
 msgstr ""
 
-msgid "Legacy modules"
-msgstr ""
-
-#, python-brace-format
-msgid "{cmds} total commands registered, in {modules} modules"
-msgstr ""
-
 msgid "Migrations"
 msgstr ""
 
@@ -5522,7 +5515,7 @@ msgid "The chat that initiated the Welcome Security procedure was not found! Try
 msgstr ""
 
 #, python-brace-format
-msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and participate in the {group_name}."
+msgid "Complete the '{emoji_name}' emoji in order to complete the captcha and join the conversation in {group_name}."
 msgstr "أكمل رمز '{emoji_name}' لإكمال الكابتشا والمشاركة في {group_name}."
 
 msgid "❌ Incorrect solution. Please, try again."

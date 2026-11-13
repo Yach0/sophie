@@ -11,6 +11,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.methods import SetMessageReaction
 from aiogram.types import Chat, Message, User
 from beanie import PydanticObjectId
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from pydantic_ai.messages import ModelRequest, UserPromptPart
 from redis.asyncio import Redis
 
@@ -19,6 +20,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import proactive_replies
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
@@ -32,7 +34,7 @@ from sophie_bot.modules.ai.utils.proactive_replies import (
     _limit_actions,
     _normalize_reaction_emoji,
 )
-from sophie_bot.modules.ai.utils.proactive_tracking import is_candidate
+from sophie_bot.modules.ai.utils.proactive_tracking import decision_failure_key, is_candidate, lock_key
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import next_group_id, next_user_id
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
@@ -306,7 +308,14 @@ async def test_failed_proactive_action_retries_on_the_next_message(
     reaction = AsyncMock(side_effect=[failure, True])
     services = cast(
         ApplicationServices,
-        SimpleNamespace(redis=test_redis, bot=SimpleNamespace(set_message_reaction=reaction)),
+        SimpleNamespace(
+            redis=test_redis,
+            bot=SimpleNamespace(
+                id=123,
+                get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None)),
+                set_message_reaction=reaction,
+            ),
+        ),
     )
     decision = ProactiveDecision(actions=[ProactiveAction(action="react", message_id=3, emoji=chr(0x1F44D))])
     monkeypatch.setattr(proactive_replies, "is_enabled", AsyncMock(return_value=True))
@@ -334,6 +343,125 @@ async def test_failed_proactive_action_retries_on_the_next_message(
     assert reaction.await_args.kwargs["message_id"] == 3
 
 
+@pytest.fixture
+async def decision_lifecycle(
+    monkeypatch: pytest.MonkeyPatch,
+    test_redis: Redis,
+) -> tuple[Message, ChatModel, ApplicationServices]:
+    chat_tid = next_group_id()
+    chat = cast(ChatModel, SimpleNamespace(tid=chat_tid, iid=PydanticObjectId()))
+    services = cast(
+        ApplicationServices,
+        SimpleNamespace(
+            redis=test_redis,
+            bot=SimpleNamespace(id=123, get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None))),
+        ),
+    )
+    now = datetime.now(UTC)
+    message = Message(message_id=3, date=now, chat=Chat(id=chat_tid, type="supergroup"), text="hello")
+    for message_id in (1, 2, 3):
+        await cache_message("hello", chat_tid, 42, message_id, now, "sender", redis=test_redis)
+    settings = ProactiveReplySettings(min_messages=1)
+    monkeypatch.setattr(proactive_replies, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
+    monkeypatch.setattr(proactive_replies, "_get_settings", AsyncMock(return_value=settings))
+    return message, chat, services
+
+
+@pytest.mark.parametrize("different_scope", ["bot", "chat"])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        AIRequestFailed("private-reference", "private provider payload"),
+        UsageLimitExceeded("private usage details"),
+        *[
+            ModelHTTPError(status_code=status_code, model_name="primary", body="private provider payload")
+            for status_code in (401, 402, 403)
+        ],
+    ],
+    ids=["request", "usage", "401", "402", "403"],
+)
+async def test_decision_failure_cooldown_is_scoped(
+    monkeypatch: pytest.MonkeyPatch,
+    decision_lifecycle: tuple[Message, ChatModel, ApplicationServices],
+    different_scope: str,
+    failure: Exception,
+) -> None:
+    message, chat, services = decision_lifecycle
+    inference = AsyncMock(side_effect=failure)
+    execute = AsyncMock()
+    monkeypatch.setattr(proactive_replies, "_generate_decision", inference)
+    monkeypatch.setattr(proactive_replies, "_execute_actions", execute)
+    await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+    await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+    assert inference.await_count == 1
+    assert 0 < await services.redis.ttl(decision_failure_key(services.bot.id, chat.tid)) <= 60
+    assert not await services.redis.exists(lock_key(chat.tid))
+
+    if different_scope == "bot":
+        services = cast(
+            ApplicationServices,
+            SimpleNamespace(
+                redis=services.redis,
+                bot=SimpleNamespace(id=456, get_chat=AsyncMock(return_value=SimpleNamespace(available_reactions=None))),
+            ),
+        )
+    else:
+        chat = cast(ChatModel, SimpleNamespace(tid=next_group_id(), iid=PydanticObjectId()))
+        await cache_message("hello", chat.tid, 42, 3, message.date, "sender", redis=services.redis)
+        message = message.model_copy(update={"chat": Chat(id=chat.tid, type="supergroup")})
+    await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+    assert inference.await_count == 2
+    assert not await services.redis.exists(lock_key(chat.tid))
+    execute.assert_not_awaited()
+
+
+@pytest.mark.parametrize("stage", ["decision", "action"])
+@pytest.mark.parametrize(
+    ("failure", "best_effort"),
+    [
+        (ValueError("private-reference"), False),
+        (AIRequestFailed("private-reference"), True),
+        (UsageLimitExceeded("private usage details"), True),
+        *[
+            (ModelHTTPError(status_code=status_code, model_name="primary", body="private provider payload"), True)
+            for status_code in (401, 402, 403)
+        ],
+        (ModelHTTPError(status_code=500, model_name="primary", body="private provider payload"), False),
+        (TimeoutError("unrelated timeout"), False),
+    ],
+    ids=["value", "request", "usage", "401", "402", "403", "500", "timeout"],
+)
+async def test_only_decision_request_failures_are_best_effort(
+    monkeypatch: pytest.MonkeyPatch,
+    decision_lifecycle: tuple[Message, ChatModel, ApplicationServices],
+    stage: str,
+    failure: Exception,
+    best_effort: bool,
+) -> None:
+    message, chat, services = decision_lifecycle
+    inference = AsyncMock(return_value=ProactiveDecision(actions=[]))
+    execute = AsyncMock()
+    if stage == "decision":
+        inference.side_effect = failure
+    else:
+        execute.side_effect = failure
+    monkeypatch.setattr(proactive_replies, "_generate_decision", inference)
+    monkeypatch.setattr(proactive_replies, "_execute_actions", execute)
+    if stage == "decision" and best_effort:
+        await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+        execute.assert_not_awaited()
+    else:
+        with pytest.raises(type(failure)) as raised:
+            await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+        assert raised.value is failure
+        # These errors must not install a cooldown or prevent the next attempt.
+        inference.side_effect = None
+        execute.side_effect = None
+        await proactive_replies.maybe_run_proactive_reply(message, chat, services=services)
+        assert inference.await_count == 2
+    assert not await services.redis.exists(lock_key(chat.tid))
+
+
 async def test_missing_reaction_target_does_not_abort_remaining_actions(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -359,7 +487,13 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
     monkeypatch.setattr(proactive_replies, "_answer_message", answer)
 
     await proactive_replies._execute_actions(
-        chat_tid, chat, messages, decision, ProactiveReplySettings(max_reactions=2), services=services
+        chat_tid,
+        chat,
+        messages,
+        decision,
+        ProactiveReplySettings(max_reactions=2),
+        allowed_reactions=frozenset({"👍"}),
+        services=services,
     )
 
     assert reaction.await_count == 2
@@ -369,7 +503,7 @@ async def test_missing_reaction_target_does_not_abort_remaining_actions(
     assert metric.call_args_list.count(call("reaction_sent", proactive_replies._METRIC_ATTRIBUTES)) == 1
 
 
-@pytest.mark.parametrize("description", ["Bad Request: REACTION_INVALID", "Bad Request: not enough rights"])
+@pytest.mark.parametrize("description", ["Bad Request: not enough rights", "Bad Request: MESSAGE_ID_INVALID"])
 async def test_unexpected_reaction_bad_request_propagates(description: str) -> None:
     chat_tid = -1001234567890
     failure = TelegramBadRequest(
@@ -381,7 +515,11 @@ async def test_unexpected_reaction_bad_request_propagates(description: str) -> N
 
     with pytest.raises(TelegramBadRequest) as raised:
         await proactive_replies._react_to_message(
-            chat_tid, MessageType(user_id=42, message_id=1, text="hello"), "👍", services=services
+            chat_tid,
+            MessageType(user_id=42, message_id=1, text="hello"),
+            "👍",
+            allowed_reactions=frozenset({"👍"}),
+            services=services,
         )
 
     assert raised.value is failure

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from collections.abc import Iterator
+from collections.abc import Awaitable, Callable, Iterator
 from types import SimpleNamespace
 from typing import Any
 
@@ -12,6 +12,8 @@ import sentry_sdk
 from mistralai.client.errors import SDKError
 from pydantic_ai import Agent
 from pydantic_ai.exceptions import ModelHTTPError
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from sentry_sdk.envelope import Envelope
 from sentry_sdk.transport import Transport
@@ -86,20 +88,17 @@ def sentry_events() -> Iterator[list[dict[str, Any]]]:
     sentry_sdk.get_global_scope().set_client(None)
 
 
-class _NamedModel(TestModel):
-    """A ``TestModel`` with a name of its own, so a chain can tell its stand-ins apart."""
+async def _run_candidates(operation: Callable[[str], Awaitable[str]]) -> ai_run.AIAgentResult[str]:
+    def model(name: str) -> FunctionModel:
+        async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            return ModelResponse(parts=[TextPart(await operation(name))])
 
-    def __init__(self, model_name: str) -> None:
-        super().__init__()
-        self._name = model_name
+        return FunctionModel(respond, model_name=name)
 
-    @property
-    def model_name(self) -> str:
-        return self._name
-
-
-def _candidate(model_name: str) -> AIModelCandidate:
-    return AIModelCandidate(model=_NamedModel(model_name), model_name=model_name)
+    primary = model("primary/model")
+    backup = model("backup/model")
+    plan = AIModelPlan((AIModelCandidate(primary, "primary/model"), AIModelCandidate(backup, "backup/model")))
+    return await ai_run.run_ai_text(Agent(primary), "hello", model_plan=plan)
 
 
 def _model_http_error(status_code: int = 503) -> ModelHTTPError:
@@ -158,7 +157,7 @@ def test_capture_ai_error_separates_fingerprints_per_model_and_status(
 
 
 async def test_retries_are_recorded_as_breadcrumbs_on_the_final_event(
-    sentry_events: list[dict[str, Any]], instant_retries: None
+    sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     context = AIErrorContext(operation="agent", model_name="openai/gpt-5")
 
@@ -220,21 +219,18 @@ async def test_moderation_failure_logs_safe_provider_metadata_and_sentry_referen
 
 
 async def test_a_rescued_candidate_failure_is_reported_as_a_warning(
-    sentry_events: list[dict[str, Any]], instant_retries: None
+    sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    primary = _candidate("primary/model")
-    backup = _candidate("backup/model")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
+    async def operation(active: str) -> str:
+        if active == "primary/model":
             raise _model_http_error()
         return "from-backup"
 
-    result, served = await ai_run._run_with_model_candidates(
-        operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
-    )
-
-    assert (result, served) == ("from-backup", backup)
+    result = await _run_candidates(operation)
+    assert result.output == "from-backup"
+    assert result.served_model.model_name == "backup/model"
     # The user got an answer, so nothing else would ever surface that primary/model is failing.
     (event,) = sentry_events
     assert event["level"] == "warning"
@@ -243,18 +239,15 @@ async def test_a_rescued_candidate_failure_is_reported_as_a_warning(
 
 
 async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candidate(
-    sentry_events: list[dict[str, Any]], instant_retries: None
+    sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    primary = _candidate("primary/model")
-    backup = _candidate("backup/model")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
-    async def operation(_active: AIModelCandidate) -> str:
+    async def operation(_active: str) -> str:
         raise _model_http_error()
 
     with pytest.raises(AIRequestFailed) as raised:
-        await ai_run._run_with_model_candidates(
-            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
-        )
+        await _run_candidates(operation)
 
     rescue_event, terminal_event = sentry_events
     assert rescue_event["level"] == "warning"
@@ -266,21 +259,18 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
 
 
 async def test_a_configuration_error_reaches_the_global_handler_without_walking_the_chain(
-    sentry_events: list[dict[str, Any]], instant_retries: None
+    sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     attempted: list[str] = []
 
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active.model_name)
+    async def operation(active: str) -> str:
+        attempted.append(active)
         raise ModelHTTPError(status_code=401, model_name="whatever", body={"error": {"message": "Invalid key"}})
 
-    primary = _candidate("primary/model")
-    backup = _candidate("backup/model")
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
     with pytest.raises(ModelHTTPError):
-        await ai_run._run_with_model_candidates(
-            operation, [primary, backup], model_plan=AIModelPlan(candidates=(primary, backup))
-        )
+        await _run_candidates(operation)
 
     assert attempted == ["primary/model"]
     assert sentry_events == []

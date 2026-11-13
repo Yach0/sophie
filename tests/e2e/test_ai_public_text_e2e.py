@@ -72,7 +72,8 @@ async def test_tool_round_public_text_matches_final_and_cache(
         if entry.message_id == final.response.message_id
     ]
     assert len(cached) == 1
-    assert cached[0].text == PUBLIC_ANSWER
+    delivered_body = "<p>" + payload[payload.index(PUBLIC_ROUNDS[0].strip()) : payload.index("<br>")] + "</p>"
+    assert cached[0].text == delivered_body
     if modern:
         session_keys = await services.redis.smembers(ModernContext._index_key(group.id))
         assert len(session_keys) == 1
@@ -88,7 +89,7 @@ async def test_tool_round_public_text_matches_final_and_cache(
             for part in message.parts
             if isinstance(part, TextPart)
         )
-        assert persisted_text == cached[0].text
+        assert persisted_text == PUBLIC_ANSWER
     else:
         exchanges = await get_tool_exchanges(group.id, redis=services.redis)
         assert len(exchanges[final.response.message_id]) == 4

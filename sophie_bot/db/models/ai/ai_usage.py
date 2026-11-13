@@ -41,8 +41,7 @@ class AIUsageModel(Document):
     async def get_monthly_feature_requests(
         chat_iid: PydanticObjectId, month_key: str | None = None
     ) -> dict[AIFeature, int]:
-        if month_key is None:
-            month_key = datetime.now(UTC).date().strftime("%Y-%m")
+        month_key = month_key if month_key is not None else datetime.now(UTC).date().strftime("%Y-%m")
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
         if not usage:
@@ -77,8 +76,7 @@ class AIUsageModel(Document):
     async def get_monthly_feature_credits(
         chat_iid: PydanticObjectId, month_key: str | None = None
     ) -> dict[AIFeature, int]:
-        if month_key is None:
-            month_key = datetime.now(UTC).date().strftime("%Y-%m")
+        month_key = month_key if month_key is not None else datetime.now(UTC).date().strftime("%Y-%m")
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
         if not usage:

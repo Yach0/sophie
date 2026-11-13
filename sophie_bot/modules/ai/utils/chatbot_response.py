@@ -16,7 +16,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.utils.ai_header import ai_credit_header
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
-from sophie_bot.modules.ai.utils.ai_response import render_ai_response
+from sophie_bot.modules.ai.utils.ai_response import AIResponseDoc, render_ai_response
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME, AITool
 from sophie_bot.modules.ai.utils.mention_usernames import (
@@ -149,7 +149,7 @@ async def build_reply_doc(
     speaker_names: Sequence[tuple[int, str]] = (),
     tool_labels: Sequence[AITool] = (),
     strip_alien_html_tags: bool | None = None,
-) -> Doc:
+) -> AIResponseDoc:
     # Modern alias-only modes must not back-trace names, even with a preloaded index.
     # Allowed mentions are resolved before Markdown so escaping remains STFU's job.
     resolved_text = output_text

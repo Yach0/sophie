@@ -214,6 +214,14 @@ def _render_ai_markdown(
     return _ProtectedHTMLDoc(doc, replacements, token_prefix, token_suffix)
 
 
+class AIResponseDoc(Doc):
+    """A composed reply retaining its rendered body independently of UI metadata."""
+
+    def __init__(self, doc: Doc, body: Element) -> None:
+        super().__init__(*doc)
+        self.body = body
+
+
 def render_ai_response(
     header: Element | str | None,
     output_text: str,
@@ -223,22 +231,24 @@ def render_ai_response(
     max_columns: int | None = None,
     max_rows: int | None = None,
     card_threshold: int = -1,
-) -> Doc:
+) -> AIResponseDoc:
     """Render AI Markdown and compose its metadata and trailing blocks.
 
     This synchronous boundary owns Markdown conversion and header layout only.
     Callers own mentions, settings, debug output, and delivery. With no header,
     the Markdown keeps its leading block and no AI marker is added."""
-    return build_ai_message_doc(
+    rendered_body = _render_ai_markdown(
+        output_text,
+        strip_alien_html_tags=strip_alien_html_tags,
+        max_columns=max_columns,
+        max_rows=max_rows,
+        card_threshold=card_threshold,
+    )
+    doc = build_ai_message_doc(
         header,
-        _render_ai_markdown(
-            output_text,
-            strip_alien_html_tags=strip_alien_html_tags,
-            max_columns=max_columns,
-            max_rows=max_rows,
-            card_threshold=card_threshold,
-        ),
+        rendered_body,
         *body,
         tool_labels=tool_labels,
         emoji_id=AI_CHATBOT_CUSTOM_EMOJI_ID,
     )
+    return AIResponseDoc(doc, rendered_body)

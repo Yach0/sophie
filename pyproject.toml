@@ -26,7 +26,7 @@ dependencies = [
     "pillow>=13,<14",
     "mem-top>=0.2.1,<0.3",
     "apscheduler>=3.11.3,<4",
-    "pydantic-ai-slim[openai,openrouter,tavily]>=2.46.0,<3",
+    "pydantic-ai-slim[openai,openrouter,tavily]>=2.64.0,<3",
     "tiktoken>=0.12,<1",
     "tokenizers>=0.22,<1",
     "huggingface-hub>=2.2,<3",
@@ -88,7 +88,7 @@ torchvision = [{ index = "pytorch-cpu" }]
 
 [tool.ty.src]
 include = ["sophie_bot/**"]
-exclude = ["**/legacy_modules/**", "**/legacy_*.py", "**/stfu_gallery.py"]
+exclude = ["**/legacy_*.py", "**/stfu_gallery.py"]
 
 [tool.ty.environment]
 python-version = "3.14"

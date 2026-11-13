@@ -7,21 +7,19 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import BaseModel
-from pydantic_ai import Agent, RunContext, Tool
+from pydantic_ai import Agent, Tool
 from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import (
     ModelMessage,
     ModelResponse,
-    RetryPromptPart,
     TextPart,
     ThinkingPart,
     ToolCallPart,
     ToolReturnPart,
 )
 from pydantic_ai.models.function import AgentInfo, DeltaThinkingPart, DeltaToolCall, FunctionModel
-from tenacity import wait_none
 
-from sophie_bot.modules.ai.utils import ai_errors
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import run_ai_stream, run_ai_structured, run_ai_text
 
@@ -117,10 +115,14 @@ async def test_identical_public_rounds_are_not_deduplicated(streaming: bool) -> 
 
 
 async def test_empty_response_retry_preserves_identical_public_responses() -> None:
+    empty_sent = False
+
     async def response(messages: list[ModelMessage], _info: AgentInfo) -> ModelResponse:
-        if any(isinstance(part, RetryPromptPart) for message in messages for part in message.parts):
+        nonlocal empty_sent
+        if empty_sent:
             return ModelResponse(parts=[TextPart("Again. ")])
         if any(isinstance(part, ToolReturnPart) for message in messages for part in message.parts):
+            empty_sent = True
             return ModelResponse(parts=[])
         return ModelResponse(parts=[TextPart("Again. "), ToolCallPart("lookup", {})])
 
@@ -132,12 +134,15 @@ async def test_empty_response_retry_preserves_identical_public_responses() -> No
 
 
 @pytest.mark.parametrize("streaming", [True, False])
-@pytest.mark.parametrize("retry_same_model", [True, False])
-async def test_failed_attempt_public_text_does_not_leak(
-    streaming: bool, retry_same_model: bool, monkeypatch: pytest.MonkeyPatch
-) -> None:
+@pytest.mark.parametrize("status_code", [503, 400])
+async def test_accepted_public_text_survives_request_failover(streaming: bool, status_code: int) -> None:
     failed = False
     success = public_text_model()
+    lookups: list[str] = []
+
+    async def tracked_lookup() -> str:
+        lookups.append("completed")
+        return await lookup()
 
     def response(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         nonlocal failed
@@ -148,8 +153,8 @@ async def test_failed_attempt_public_text_does_not_leak(
             return successful_response
         if any(isinstance(part, ToolReturnPart) for message in messages for part in message.parts):
             failed = True
-            raise ModelHTTPError(503 if retry_same_model else 400, "failing-model", "Failed after tool")
-        return ModelResponse(parts=[TextPart("FAILED candidate text"), ToolCallPart("lookup", {}, "failed-call")])
+            raise ModelHTTPError(status_code, "failing-model", "Failed after tool")
+        return ModelResponse(parts=[TextPart(PUBLIC_ROUNDS[0]), ToolCallPart("lookup", {}, "first-call")])
 
     async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
         for part in response(messages, info).parts:
@@ -165,8 +170,7 @@ async def test_failed_attempt_public_text_does_not_leak(
             AIModelCandidate(model=success, model_name=success.model_name),
         ]
     )
-    monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
-    agent = Agent[None, str](primary, tools=[Tool[None](lookup)])
+    agent = Agent[None, str](primary, tools=[Tool[None](tracked_lookup, name="lookup")])
     updates: list[str] = []
 
     async def on_text(text: str) -> None:
@@ -179,15 +183,33 @@ async def test_failed_attempt_public_text_does_not_leak(
     )
     assert failed
     assert result.output == PUBLIC_ANSWER
-    assert result.served_model is (primary if retry_same_model else success)
-    assert "FAILED" not in str(result.new_messages)
-    assert "FAILED" not in str(result.message_history)
+    assert result.served_model is success
+    assert lookups == ["completed", "completed"]
     if streaming:
-        assert "FAILED candidate text" in updates
-        successful_updates = updates[updates.index("FAILED candidate text") + 1 :]
-        assert successful_updates
-        assert all("FAILED" not in update for update in successful_updates)
+        assert all(PUBLIC_ANSWER.startswith(update) for update in updates)
         assert updates[-1] == PUBLIC_ANSWER
+
+
+async def test_failed_partial_stream_does_not_restart_run() -> None:
+    def failed_response(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise ModelHTTPError(400, "partial", "Failed before response completed")
+
+    async def failed_stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str]:
+        yield "FAILED partial text"
+        raise ModelHTTPError(400, "partial", "Failed before response completed")
+
+    primary = FunctionModel(failed_response, stream_function=failed_stream, model_name="partial")
+    backup = public_text_model()
+    plan = build_model_plan([AIModelCandidate(primary, "partial"), AIModelCandidate(backup, backup.model_name)])
+    updates: list[str] = []
+
+    async def on_text(text: str) -> None:
+        updates.append(text)
+
+    with pytest.raises(AIRequestFailed):
+        await run_ai_stream(Agent(primary, tools=[lookup]), "Look up", on_text, model_plan=plan)
+
+    assert updates == ["FAILED partial text"]
 
 
 async def test_string_classification_keeps_terminal_output() -> None:
@@ -213,7 +235,7 @@ async def test_structured_classification_keeps_validated_output() -> None:
 
 
 @pytest.mark.parametrize("streaming", [True, False])
-async def test_empty_terminal_output_still_fails_over(streaming: bool) -> None:
+async def test_validator_output_does_not_restart_completed_tool_run(streaming: bool) -> None:
     primary = public_text_model(model_name="empty-terminal")
     backup = public_text_model()
     plan = build_model_plan(
@@ -225,8 +247,8 @@ async def test_empty_terminal_output_still_fails_over(streaming: bool) -> None:
     agent = Agent[None, str](primary, tools=[Tool[None](lookup)])
 
     @agent.output_validator
-    def empty_primary_output(ctx: RunContext[None], output: str) -> str:
-        return "" if ctx.model is primary else output
+    def empty_primary_output(output: str) -> str:
+        return ""
 
     async def on_text(_text: str) -> None:
         return None
@@ -236,8 +258,8 @@ async def test_empty_terminal_output_still_fails_over(streaming: bool) -> None:
         if streaming
         else await run_ai_text(agent, "Look up", model_plan=plan)
     )
-    assert result.served_model is backup
-    assert result.output == PUBLIC_ANSWER
+    assert result.served_model is primary
+    assert result.output == "".join(PUBLIC_ROUNDS[:-1])
 
 
 @pytest.mark.parametrize("streaming", [True, False])

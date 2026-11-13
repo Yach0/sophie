@@ -18,6 +18,7 @@ import pytest
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.db.models.warns import WarnModel
 from sophie_bot.modules.warns.handlers.warns_pm import WarnsPMHandler
+from sophie_bot.services.application import ApplicationServices
 
 
 async def _create_chat(chat_tid: int, title: str) -> ChatModel:
@@ -44,7 +45,7 @@ async def _create_warn(chat: ChatModel, user: ChatModel, reason: str, date: date
 
 
 @pytest.mark.asyncio
-async def test_warns_pm_lists_warns_with_chat_titles(db_init: object) -> None:
+async def test_warns_pm_lists_warns_with_chat_titles(db_init: object, test_services: ApplicationServices) -> None:
     user = await _create_chat(500001, "Warned user")
     first_chat = await _create_chat(-100501, "First group")
     second_chat = await _create_chat(-100502, "Second group")
@@ -67,6 +68,7 @@ async def test_warns_pm_lists_warns_with_chat_titles(db_init: object) -> None:
         handler = WarnsPMHandler(
             message,
             context=SimpleNamespace(actor=user),
+            services=test_services,
         )
         await handler.handle()
 
@@ -78,7 +80,7 @@ async def test_warns_pm_lists_warns_with_chat_titles(db_init: object) -> None:
 
 
 @pytest.mark.asyncio
-async def test_warns_pm_reports_no_warns(db_init: object) -> None:
+async def test_warns_pm_reports_no_warns(db_init: object, test_services: ApplicationServices) -> None:
     user = await _create_chat(500002, "Clean user")
     message = SimpleNamespace(reply=AsyncMock())
     real_find = WarnModel.find
@@ -92,6 +94,7 @@ async def test_warns_pm_reports_no_warns(db_init: object) -> None:
         handler = WarnsPMHandler(
             message,
             context=SimpleNamespace(actor=user),
+            services=test_services,
         )
         await handler.handle()
 
