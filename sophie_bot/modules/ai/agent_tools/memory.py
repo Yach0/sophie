@@ -18,6 +18,8 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
     Args:
         ctx: Runtime context for the current chat.
         information_to_save: The fact, preference, or instruction to remember for this chat.
+            In modern XML context, use [AA], [AB], etc. for alphabetic speaker identities;
+            bare alphabetic words are literal text. Legacy uN/UN identities remain bare.
     """
     normalized_information = information_to_save.strip()
     if ctx.deps.speaker_reference_decoder is not None:

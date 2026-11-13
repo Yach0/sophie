@@ -145,7 +145,7 @@ async def test_native_authenticated_thinking_and_tool_exchange_survive_persisted
     try:
         current = ElementTree.fromstring(history.prompt[-1])
         assert current.findtext("text") == message.text
-        assert current.attrib["speaker_id"] == "u1"
+        assert current.attrib["speaker_id"] == "AA"
         assert not {"user_id", "username", "first_name"}.intersection(current.attrib)
         async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
             model = OpenRouterModel(

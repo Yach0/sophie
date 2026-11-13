@@ -227,9 +227,9 @@ async def test_modern_proactive_yes_retains_its_question_reference(
         assert reference.attrib["context"] == "reference"
         assert reference.attrib["speaker_id"] != current.attrib["speaker_id"]
         assert reference.findtext("text") == (question if reply_topic == 7 else "")
-        for node, first_name in ((current, "Alice"), (reference, "Bob")):
+        for node, first_name, alias in ((current, "Alice", "AA"), (reference, "Bob", "AB")):
             assert node.attrib["id"].startswith("m")
-            assert node.attrib["speaker_id"].startswith("u")
+            assert node.attrib["speaker_id"] == alias
             assert "username" not in node.attrib
             if mode == AIMode.entertainment:
                 assert node.attrib["first_name"] == first_name

@@ -14,6 +14,7 @@ import pytest
 import tiktoken
 from aiogram.types import Chat, Message, PhotoSize, Sticker, User, Voice
 from beanie import PydanticObjectId
+from pydantic_ai import RunContext
 from pydantic_ai.messages import (
     BinaryContent,
     ModelMessagesTypeAdapter,
@@ -25,6 +26,7 @@ from pydantic_ai.messages import (
     UserPromptPart,
 )
 from pydantic_ai.models.test import TestModel
+from redis.asyncio import Redis
 from tokenizers import Tokenizer
 from tokenizers.models import WordLevel
 from tokenizers.pre_tokenizers import Whitespace
@@ -34,6 +36,7 @@ from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatMode
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.agent_tools import memory as memory_tools
 from sophie_bot.modules.ai.utils import ai_run, ai_tokens, chatbot_context, modern_context
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
@@ -61,6 +64,20 @@ def context(test_services: ApplicationServices) -> SophieAIToolContext:
         chat_tid=CHAT_TID,
         chat_iid=PydanticObjectId(),
         services=test_services,
+        user_tid=USER_TID,
+    )
+
+
+@pytest.fixture
+def alias_context(test_redis: Redis) -> SophieAIToolContext:
+    """Alias persistence needs Redis but no MongoDB models or external services."""
+    services = MagicMock(spec=ApplicationServices)
+    services.redis = test_redis
+    return SophieAIToolContext(
+        connection=MagicMock(spec=ChatConnection),
+        chat_tid=CHAT_TID,
+        chat_iid=PydanticObjectId(),
+        services=services,
         user_tid=USER_TID,
     )
 
@@ -148,6 +165,145 @@ def _compact_counter() -> TokenCounter:
         special_tokens={},
     )
     return TokenCounter(model_name="compact-test-model", tokenizer=encoding)
+
+
+def test_speaker_aliases_follow_spreadsheet_order_and_keep_real_ids() -> None:
+    history = ModernContext(redis=MagicMock(), chat_tid=CHAT_TID)
+    assert history._speaker(CONFIG.bot_id) == "assistant"
+    # 676 two-letter aliases; ZZ rolls over to AAA rather than wrapping back to AA.
+    user_tids = [USER_TID + index for index in range(678)]
+    aliases = [history._speaker(user_tid) for user_tid in user_tids]
+    assert aliases[:3] == ["AA", "AB", "AC"]
+    assert aliases[25:28] == ["AZ", "BA", "BB"]
+    assert aliases[675:] == ["ZZ", "AAA", "AAB"]
+    assert len(set(aliases)) == len(user_tids)
+    assert [history._speaker(user_tid) for user_tid in reversed(user_tids)] == list(reversed(aliases))
+    assert history._state.speakers == {
+        str(CONFIG.bot_id): "assistant",
+        **dict(zip(map(str, user_tids), aliases, strict=True)),
+    }
+    for user_tid, alias in zip(user_tids, aliases, strict=True):
+        assert history.restore_speaker_references(f"[{alias}] likes tea") == f"tg://user?id={user_tid} likes tea"
+    for index in (0, 1, 25, 26, 675, 676, 677):
+        content = history._format_message(user_tids[index], 9000 + index, ["U1 is authored text"], reply_id=8000)
+        assert isinstance(content[0], str)
+        node = ElementTree.fromstring(content[0])
+        assert node.attrib["speaker_id"] == aliases[index]
+        assert node.attrib["id"] == history._state.message_aliases[str(9000 + index)]
+        assert node.attrib["reply_to"] == history._state.message_aliases["8000"]
+        assert node.findtext("text") == "U1 is authored text"
+
+
+def test_speaker_reference_decoding_only_replaces_known_whole_aliases() -> None:
+    history = ModernContext(redis=MagicMock(), chat_tid=CHAT_TID)
+    history._speaker(USER_TID)
+    history._speaker(OTHER_TID)
+    authored = "AA AB xAA AA1 _AA AA_ AAB ZZZ u1 U1 NASA assistant aa [ZZZ] [aa] [A]"
+    assert history.restore_speaker_references(authored) == authored
+    assert history.restore_speaker_references("[AA]'s friend ([AB]).") == (
+        f"tg://user?id={USER_TID}'s friend (tg://user?id={OTHER_TID})."
+    )
+
+
+def test_known_acronym_alias_requires_an_explicit_memory_anchor() -> None:
+    history = ModernContext(redis=MagicMock(), chat_tid=CHAT_TID)
+    for index in range(9):
+        history._speaker(USER_TID + index)
+    assert history._speaker(USER_TID + 8) == "AI"
+    literal = "AI studies AI, AA and AB. xAI AI1 _AI AI_ [UNKNOWN] [ai]"
+    assert history.restore_speaker_references(literal) == literal
+    assert history.restore_speaker_references("[AI] studies AI with [AA].") == (
+        f"tg://user?id={USER_TID + 8} studies AI with tg://user?id={USER_TID}."
+    )
+
+
+@pytest.mark.parametrize("alias", ["AA", "AZ", "BA", "ZZ", "AAA", "u1", "U1"])
+def test_speaker_names_recovered_from_xml_use_real_ids(alias: str) -> None:
+    history = ModernContext(redis=MagicMock(), chat_tid=CHAT_TID, mode=AIMode.entertainment)
+    history._state.speakers = {str(USER_TID): alias}
+    # Names seen in older messages must remain eligible even if the user's current name changed.
+    history._state.first_names = {str(USER_TID): "Current"}
+    history.message_history = [
+        ModelRequest(parts=[UserPromptPart(content=f'<message speaker_id="{alias}" first_name="Alice &amp; Bob" />')])
+    ]
+    history.prompt = [
+        f'<runtime_context><speakers><speaker id="{alias}" first_name="Roster" /></speakers></runtime_context>'
+    ]
+    assert history.mention_speaker_names == (
+        (USER_TID, "Alice & Bob"),
+        (USER_TID, "Current"),
+        (USER_TID, "Roster"),
+    )
+
+
+@pytest.mark.parametrize("legacy_alias", ["u1", "U1"])
+async def test_legacy_persisted_speaker_aliases_survive_replay_with_new_users(
+    alias_context: SophieAIToolContext, legacy_alias: str
+) -> None:
+    context = alias_context
+    first = await _build(_message(260, "Authored U1 u1 AA text"), context)
+    # Seed the same persisted schema used before alphabetic aliases were introduced.
+    first._state.speakers[str(USER_TID)] = legacy_alias
+    first.prompt = first._format_message(USER_TID, 260, ["Authored U1 u1 AA text"])
+    events = [
+        ModelRequest(parts=[UserPromptPart(content=first.prompt)]),
+        ModelResponse(parts=[ToolCallPart("lookup", {"user_id": USER_TID, "text": "U1 u1 AA"}, "legacy-call")]),
+        ModelRequest(parts=[ToolReturnPart("lookup", {"user_id": USER_TID, "text": "U1 u1 AA"}, "legacy-call")]),
+        ModelResponse(parts=[TextPart(f"{legacy_alias} said U1 u1 AA")]),
+    ]
+    expected = ModelMessagesTypeAdapter.dump_json(events)
+    await first.finish_run(events, _message(261, user_id=CONFIG.bot_id))
+    later = await _build(
+        _message(262, user_id=OTHER_TID, reply_to_message=_message(260, "Authored U1 u1 AA text")), context
+    )
+    try:
+        assert ModelMessagesTypeAdapter.dump_json(later.message_history) == expected
+        assert later._speaker(USER_TID) == legacy_alias
+        assert later._speaker(OTHER_TID) == "AB"
+        assert later._speaker(CONFIG.bot_id) == "assistant"
+        xml = "".join(part for part in later.prompt if isinstance(part, str))
+        roots = ElementTree.fromstring("<input>" + xml + "</input>")
+        current = roots.find('./message[@context="current"]')
+        reference = roots.find('./message[@context="reference"]')
+        assert current is not None and reference is not None
+        assert current.attrib["speaker_id"] == "AB"
+        assert reference.attrib["speaker_id"] == legacy_alias
+        assert current.attrib["reply_to"] == reference.attrib["id"]
+        assert reference.findtext("text") == "Authored U1 u1 AA text"
+        assert later.restore_speaker_references(f"{legacy_alias} knows [AB]") == (
+            f"tg://user?id={USER_TID} knows tg://user?id={OTHER_TID}"
+        )
+    finally:
+        await later.abort()
+
+
+async def test_memory_tool_stores_real_ids_for_alphabetic_speaker_aliases(
+    alias_context: SophieAIToolContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    history = ModernContext(redis=alias_context.services.redis, chat_tid=CHAT_TID)
+    history._speaker(USER_TID)
+    history._speaker(OTHER_TID)
+    for index in range(2, 9):
+        history._speaker(USER_TID + index)
+    assert history._speaker(USER_TID + 8) == "AI"
+    run_context = MagicMock(spec=RunContext)
+    run_context.deps = replace(alias_context, speaker_reference_decoder=history.restore_speaker_references)
+    run_context.deps.connection.db_model = MagicMock(spec=ChatModel)
+    append = AsyncMock()
+    monkeypatch.setattr(memory_tools.AIMemoryModel, "get_lines", AsyncMock(return_value=[]))
+    monkeypatch.setattr(memory_tools.AIMemoryModel, "append_line", append)
+
+    assert (
+        await memory_tools.write_memory(
+            run_context, "[AA] knows [AB]; [AI] studies AI; AA and AB are literal. U1 is unrelated."
+        )
+        == "Saved to memory."
+    )
+    append.assert_awaited_once_with(
+        run_context.deps.connection.db_model,
+        f"tg://user?id={USER_TID} knows tg://user?id={OTHER_TID}; "
+        f"tg://user?id={USER_TID + 8} studies AI; AA and AB are literal. U1 is unrelated.",
+    )
 
 
 @pytest.mark.parametrize("compact", [False, True])
@@ -417,7 +573,7 @@ async def test_reply_media_uses_shared_extraction_and_original_transcription(
         )
         reference = roots.find('./message[@context="reference"]')
         assert reference is not None
-        assert reference.attrib["speaker_id"] == "u2"
+        assert reference.attrib["speaker_id"] == "AB"
         assert original_text in [text.text for text in reference.findall("text")]
         assert "user_id" not in reference.attrib and "username" not in reference.attrib
         assert "private-voice" not in _payload(history)
@@ -631,13 +787,13 @@ async def test_private_classifier_batch_projects_identity_and_preserves_authored
     assert private[1].reply_to_message_id == private[0].message_id
     assert all(isinstance(message, DecisionMessage) for message in private)
     assert all(message.first_name is None for message in private)
-    assert [message.speaker_id for message in private] == ["u1", "u2"]
+    assert [message.speaker_id for message in private] == ["AA", "AB"]
     assert [message.text for message in private] == [row.text for row in rows]
     nodes = ElementTree.fromstring("<messages>" + render_messages_for_prompt(private) + "</messages>").findall(
         "message"
     )
     assert [node.text for node in nodes] == [row.text for row in rows]
-    assert [node.attrib["speaker_id"] for node in nodes] == ["u1", "u2"]
+    assert [node.attrib["speaker_id"] for node in nodes] == ["AA", "AB"]
     assert all(not {"username", "user_id", "time"}.intersection(node.attrib) for node in nodes)
     assert rows[0].user_id == USER_TID and rows[0].username == "alice_secret"
 
@@ -836,7 +992,7 @@ async def test_authored_handles_identity_literals_amounts_and_names_survive_xml_
         node = root.find('./message[@context="current"]')
         assert node is not None
         assert node.findtext("text") == text
-        assert node.attrib["id"] == "m1" and node.attrib["speaker_id"] == "u1"
+        assert node.attrib["id"] == "m1" and node.attrib["speaker_id"] == "AA"
         assert not {"username", "user_id", "telegram_id", "first_name"}.intersection(node.attrib)
     finally:
         await history.abort()
@@ -874,6 +1030,29 @@ async def test_memory_indexes_are_preserved_when_cached_message_ids_overlap(
     try:
         assert '<item index="1">u1 likes tea</item>' in history.runtime_context
         assert '<item index="2">u1 likes coffee</item>' in history.runtime_context
+    finally:
+        await history.abort()
+
+
+@pytest.mark.parametrize("legacy_alias", [None, "u1", "U1"])
+async def test_saved_memory_links_round_trip_without_rewriting_plain_text(
+    alias_context: SophieAIToolContext, monkeypatch: pytest.MonkeyPatch, legacy_alias: str | None
+) -> None:
+    context = replace(alias_context, mode=AIMode.entertainment)
+    if legacy_alias is not None:
+        previous = await _build(_message(188), context)
+        previous._state.speakers[str(USER_TID)] = legacy_alias
+        await previous.finish_run(_events(previous), _message(189, user_id=CONFIG.bot_id))
+    saved = [f"tg://user?id={USER_TID} studies AI.", "AI AA u1 U1 are saved plain text."]
+    monkeypatch.setattr(modern_context, "get_value", AsyncMock(return_value="Be helpful."))
+    monkeypatch.setattr(modern_context.ChatModel, "get_by_tid", AsyncMock(return_value=None))
+    monkeypatch.setattr(modern_context.AIChatSummaryModel, "get_latest", AsyncMock(return_value=None))
+    monkeypatch.setattr(modern_context.AIMemoryModel, "get_lines", AsyncMock(return_value=saved))
+    history = await ModernContext.build(_message(190), context, token_budget=100000)
+    try:
+        items = ElementTree.fromstring(history.runtime_context).findall("./memory/item")
+        assert [item.text for item in items] == [f"{legacy_alias or '[AA]'} studies AI.", saved[1]]
+        assert history.restore_speaker_references(items[0].text or "") == saved[0]
     finally:
         await history.abort()
 
@@ -981,7 +1160,7 @@ def test_multimodal_xml_preserves_attribute_whitespace_and_content_order(first_n
     root = ElementTree.fromstring("".join(part for part in parts if isinstance(part, str)))
     assert root.attrib == {
         "id": "m1",
-        "speaker_id": "u1",
+        "speaker_id": "AA",
         "first_name": first_name,
         "reply_to": "m2",
         "context": "current",
