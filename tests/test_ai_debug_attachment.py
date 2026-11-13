@@ -29,6 +29,7 @@ from pydantic_ai.messages import (
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
+from redis.exceptions import ConnectionError as RedisConnectionError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
@@ -252,7 +253,7 @@ async def test_debug_attachment_redacts_secrets_in_settings_context_and_tool_arg
         [
             "raw known key: configured-opaque-secret",
             "Authorization: Bearer auth-secret\nnext line",
-            "Bearer standalone-secret",
+            "Bearer sk-test-standalone-secret",
             'tool args: {"api_key": "argument-secret", "credentials": "credential-secret"}',
             "https://user:url-password@example.com/path",
             "sk-test-unconfigured-secret",
@@ -265,7 +266,7 @@ async def test_debug_attachment_redacts_secrets_in_settings_context_and_tool_arg
             ModelResponse(
                 parts=[ToolCallPart("inspect_context", '{"value": "api_key=tool-argument-secret"}', "call-1")]
             ),
-            ModelRequest(parts=[ToolReturnPart("inspect_context", "Bearer tool-return-secret", "call-1")]),
+            ModelRequest(parts=[ToolReturnPart("inspect_context", "Bearer sk-test-tool-return-secret", "call-1")]),
         ]
     )
     await chatbot_reply.ai_chatbot_reply(state["message"], state["connection"], services=test_services)
@@ -436,6 +437,49 @@ async def test_real_reply_continues_after_debug_document_delivery_failure(
         cache_reply.assert_awaited_once()
         assert cache_reply.await_args.args[1] is result
         assert cache_reply.await_args.args[2] == "<p>Answer</p>"
+
+
+@pytest.mark.parametrize("text", ["basic arithmetic", "bearer bonds", "a basic understanding of bearer instruments"])
+def test_debug_redaction_preserves_normal_auth_scheme_words(text: str) -> None:
+    assert chatbot_debug._redact_text(text, set()) == text
+
+
+@pytest.mark.parametrize("request_failed", [False, True])
+@pytest.mark.parametrize("build_error", [RedisConnectionError, ValueError, TypeError])
+async def test_real_reply_continues_after_debug_document_build_failure(
+    debug_pipeline: DebugPipeline,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+    request_failed: bool,
+    build_error: type[Exception],
+) -> None:
+    state = debug_pipeline
+    failure = AIRequestFailed("synthetic-reference")
+    if request_failed:
+        monkeypatch.setattr(chatbot_agent, "run_ai_text", AsyncMock(side_effect=failure))
+    builder = AsyncMock(side_effect=build_error("synthetic-secret"))
+    monkeypatch.setattr(chatbot_reply, "build_chatbot_debug_file", builder)
+    warning = MagicMock()
+    monkeypatch.setattr(chatbot_reply.log, "warning", warning)
+    cache_reply = AsyncMock()
+    monkeypatch.setattr(chatbot_reply, "_cache_chatbot_reply", cache_reply)
+
+    result = await chatbot_reply.ai_chatbot_reply(state["message"], state["connection"], services=test_services)
+
+    builder.assert_awaited_once()
+    assert not state["documents"]
+    warning.assert_called_once_with("Failed to deliver LLM diagnostics attachment", error_type=build_error.__name__)
+    if request_failed:
+        requests = state["bot"].capture.get_by_type(RequestType.SEND_MESSAGE)
+        assert len(requests) == 1
+        assert requests[0].text == chatbot_reply.ai_request_failed_message(error=failure)["text"]
+        assert isinstance(result, Message)
+        state["send_reply"].assert_not_awaited()
+        cache_reply.assert_not_awaited()
+    else:
+        assert result is state["message"]
+        state["send_reply"].assert_awaited_once()
+        cache_reply.assert_awaited_once()
 
 
 async def test_debug_attachment_reports_the_model_and_settings_that_served_after_failover(

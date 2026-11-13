@@ -5,8 +5,9 @@ from contextlib import AsyncExitStack
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import BufferedInputFile, Message
+from aiogram.types import Message
 from pydantic_ai.models import Model
+from redis.exceptions import RedisError
 from sentry_sdk.ai import set_conversation_id
 from stfu_tg import Doc
 from stfu_tg.doc import Element
@@ -59,6 +60,7 @@ from sophie_bot.modules.ai.utils.help_tip import (
 )
 from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
+from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.research import build_research_markdown_file, retrieve_latest_research_response
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
@@ -68,10 +70,19 @@ from sophie_bot.utils.logger import log
 __all__ = ("ai_chatbot_reply",)
 
 
-async def _send_chatbot_debug_document(message: Message, document: BufferedInputFile) -> None:
+async def _send_chatbot_debug_document(
+    message: Message,
+    history: OldContext | ModernContext,
+    result: AIAgentResult[str] | None,
+    model_plan: AIModelPlan,
+    context: SophieAIToolContext,
+    *,
+    service_tier: str | None,
+) -> None:
     try:
+        document = await build_chatbot_debug_file(history, result, model_plan, context, service_tier=service_tier)
         await message.reply_document(document, caption=_("LLM diagnostics"))
-    except TelegramAPIError as error:
+    except (TelegramAPIError, RedisError, TypeError, ValueError) as error:
         log.warning("Failed to deliver LLM diagnostics attachment", error_type=type(error).__name__)
 
 
@@ -358,8 +369,7 @@ async def ai_chatbot_reply(
         except AIRequestFailed as err:
             if explicit_debug_mode:
                 await _send_chatbot_debug_document(
-                    message,
-                    await build_chatbot_debug_file(history, None, model_plan, context, service_tier=service_tier),
+                    message, history, None, model_plan, context, service_tier=service_tier
                 )
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
 
@@ -368,10 +378,7 @@ async def ai_chatbot_reply(
         model = result.served_model or model
 
         if explicit_debug_mode:
-            await _send_chatbot_debug_document(
-                message,
-                await build_chatbot_debug_file(history, result, model_plan, context, service_tier=service_tier),
-            )
+            await _send_chatbot_debug_document(message, history, result, model_plan, context, service_tier=service_tier)
 
         show_model_name = await is_enabled(
             "ai_chatbot_show_model_name",

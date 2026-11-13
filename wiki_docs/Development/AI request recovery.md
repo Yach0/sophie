@@ -43,6 +43,11 @@ costs retain their precision. After `AIRequestFailed`, the attachment retains
 built context and labels execution data unavailable: effective model/provider,
 settings, usage, and prepared request are null. The model plan and default service
 tier remain available as configured defaults, not evidence of what executed.
+Diagnostic generation and delivery share an error boundary: Redis, serialization,
+and Telegram errors are logged by type without interrupting the normal reply.
+Redaction uses explicit authorization fields, credential keys, known secrets,
+and recognizable key formats. Ordinary words such as “basic” and “bearer” do not
+cause subsequent conversation text to be removed.
 
 A `prepare_model_request` hook applies each candidate's service tier, cache
 settings, and output token limit. Modern context is projected for each attempt

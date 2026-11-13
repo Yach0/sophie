@@ -32,7 +32,6 @@ _SECRET_ASSIGNMENT = re.compile(
     rf"""(?i)(["']?\b{_SECRET_NAME}\b["']?\s*[:=]\s*)(?:"[^"\n]*"|'[^'\n]*'|[^\s,;}}\]\n]+)"""
 )
 _AUTH_HEADER = re.compile(r"(?im)\b(?:proxy-)?authorization\s*:\s*[^\r\n]+")
-_BEARER = re.compile(r"""(?i)\b(?:bearer|basic)\s+[^\s"'<>;,}\]]+""")
 _URL_CREDENTIALS = re.compile(r"(?i)([a-z][a-z0-9+.-]*://)[^\s/@]+:[^\s/@]+@")
 _KEY_TOKEN = re.compile(r"\b(?:sk-[a-zA-Z0-9_-]+|\d{6,}:[a-zA-Z0-9_-]{20,})\b")
 
@@ -41,7 +40,6 @@ def _redact_plain_text(value: str, secrets: set[str]) -> str:
     for secret in sorted(secrets, key=len, reverse=True):
         value = value.replace(secret, "[REDACTED]")
     value = _AUTH_HEADER.sub("Authorization: [REDACTED]", value)
-    value = _BEARER.sub("[REDACTED]", value)
     value = _SECRET_ASSIGNMENT.sub(r"\1[REDACTED]", value)
     value = _URL_CREDENTIALS.sub(r"\1[REDACTED]@", value)
     return _KEY_TOKEN.sub("[REDACTED]", value)
