@@ -260,29 +260,100 @@ async def test_first_tool_clears_random_working_header_until_text_arrives(
 
 
 @pytest.mark.asyncio
-async def test_reasoning_as_tool_shows_one_bottom_activity_without_leaking_content(
+async def test_initial_reasoning_is_inline_and_stays_private_through_tool_and_text_transitions(
     monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
 ) -> None:
-    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it...")
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.chatbot_streaming.random_ai_thinking_text", lambda: "Working on it..."
+    )
     message = _message()
     streamer = await _streamer(message, monkeypatch, test_redis)
     assert streamer is not None
     streamer.throttle_seconds = 0
     await streamer.stream_reasoning("I should check the details.")
     html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
-    assert "<i>Reasoning...</i><br>" in html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> <i>Reasoning...</i><br>')
+    _assert_plain_progress(html)
     assert "I should check the details." not in html
     assert "<blockquote>" not in html
     assert "Working on it..." not in html
 
     await streamer.update_thinking_for_tool("web_search")
+    html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> <i>Reasoning...</i><br>')
+    assert any(f"<i>{activity}</i><br>" in html for activity in AI_TOOLS_BY_NAME["web_search"].activity_texts)
     previous_count = streamer.response_message.bot.edit_message_text.await_count
     await streamer.stream_reasoning("The next reasoning pass stays private.")
     assert streamer.response_message.bot.edit_message_text.await_count == previous_count
     html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert "The next reasoning pass" not in html
-    assert "<i>Reasoning...</i><br>" in html
+    assert html.count("<i>Reasoning...</i><br>") == 1
+
+    await streamer.stream("Public answer.")
+    html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> Public answer.')
+    assert "Reasoning..." not in html
+    assert not any(str(activity) in html for activity in AI_TOOLS_BY_NAME["web_search"].activity_texts)
+    _assert_plain_progress(html)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("prior_activity", ["tool", "processing", "retry"])
+async def test_reasoning_after_progress_stays_on_a_new_line(
+    prior_activity: str, monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()), status="Working on it...", throttle_seconds=0, redis=test_redis
+    )
+    response_message = _response_message()
+    streamer.response_message = cast(Message, response_message)
+    if prior_activity == "tool":
+        await streamer.update_thinking_for_tool("web_search")
+    elif prior_activity == "processing":
+        await streamer.update_processing_activity("Processing image...")
+    elif prior_activity == "retry":
+        await streamer.update_retrying(1, 5)
+    previous_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+
+    await streamer.stream_reasoning("Private details.")
+
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+    assert "<br><i>Reasoning...</i><br>" in html
+    assert html.replace("<i>Reasoning...</i><br>", "") == previous_html
+    assert "Private details." not in html
+    _assert_plain_progress(html)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("with_tool", [False, True])
+async def test_late_reasoning_preserves_public_text_and_tool_activity(
+    with_tool: bool, monkeypatch: pytest.MonkeyPatch, test_redis: object
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.chatbot_streaming.choice", lambda texts: texts[0])
+    streamer = ChatbotMessageStreamer(
+        source_message=cast(Message, _message()), status="Working on it...", throttle_seconds=0, redis=test_redis
+    )
+    response_message = _response_message()
+    streamer.response_message = cast(Message, response_message)
+    await streamer.stream("Public answer.")
+    if with_tool:
+        await streamer.update_thinking_for_tool("web_search")
+    previous_html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+
+    await streamer.stream_reasoning("Private details.")
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert html.replace("<i>Reasoning...</i><br>", "") == previous_html
+    assert "<br><i>Reasoning...</i><br>" in html
+    assert html.count("Public answer.") == 1
+    assert "Private details." not in html
+
+    await streamer.stream("Public answer.")
+    html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
+    assert "Reasoning..." not in html
+    assert "Searching the web..." not in html
+    assert html.count("Public answer.") == 1
 
 
 @pytest.mark.asyncio
@@ -307,7 +378,7 @@ async def test_stacked_activity_keeps_every_tool_retry_and_only_first_reasoning(
     await streamer.stream_reasoning("Second private reasoning.")
 
     html = streamer.response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
+    assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji> <i>Reasoning...</i><br>')
     assert html.count("<i>Reasoning...</i>") == 1
     assert html.count("<i>Searching the web...</i>") == 2
     assert "<i>Scanning notes...</i><br><i>Retrying (1/5)...</i><br>" in html

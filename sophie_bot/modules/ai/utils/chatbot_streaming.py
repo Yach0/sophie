@@ -66,6 +66,7 @@ class ChatbotMessageStreamer:
         self._mention_index_resolved = False
         self.placeholder = status or ""
         self.status: Element | None = None
+        self.inline_reasoning: Element | None = None
         self.activity_history: list[Element | str] = []
         self.activity_started = False
         self.reasoning_seen = False
@@ -97,6 +98,7 @@ class ChatbotMessageStreamer:
         had_status = self.status is not None
         had_activity = bool(self.activity_history)
         self.status = None
+        self.inline_reasoning = None
         self.activity_history.clear()
         self.latest_text = draft_text
         if draft_text == self.last_sent_text:
@@ -116,9 +118,12 @@ class ChatbotMessageStreamer:
         """Show the first nonempty reasoning pass as a private progress activity."""
         if self.response_message is None or self.reasoning_seen or not reasoning_text.strip():
             return
+        if not self.latest_text and not self.activity_started:
+            self.inline_reasoning = Italic(_("Reasoning..."))
+        else:
+            self.activity_history.append(_("Reasoning..."))
         self.reasoning_seen = True
         self.activity_started = True
-        self.activity_history.append(_("Reasoning..."))
         self.status = None
         await self._refresh_progress()
 
@@ -269,7 +274,7 @@ class ChatbotMessageStreamer:
         doc = (
             await self._render_doc(draft_text)
             if draft_text
-            else self._build_progress_doc("" if self.activity_started else self.placeholder)
+            else self._build_progress_doc(self.inline_reasoning or ("" if self.activity_started else self.placeholder))
         )
         await self._update(doc)
         self.last_sent_text = draft_text
