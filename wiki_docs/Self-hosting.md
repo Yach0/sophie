@@ -108,6 +108,9 @@ Classification runs locally without network access and loads the model once per 
 For source checkouts, run `make spam_model` before starting the bot. This downloads the
 artifact to `sophie_bot/spam_model_data/`; it is independent of the working directory.
 Rebuild the runtime image to deploy changes to the pinned model.
+The Nuitka targets `make build_onefile` and `make build_standalone` also prepare
+the model before compilation and include it at the package-relative path used by
+the classifier, inside the onefile payload or standalone distribution respectively.
 
 USSR currently ships a binary spam classifier. Sophie records its spam probability;
 NSFW probability is zero because this artifact has no NSFW output. This integration

@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Iterator
 from hashlib import sha256
 from pathlib import Path
+from shlex import split
+from subprocess import run
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -10,6 +12,26 @@ import pytest
 import requests
 
 from sophie_bot.utils import spam_classifier
+
+
+@pytest.mark.parametrize("target", ["build_onefile", "build_standalone"])
+def test_compiled_build_prepares_and_bundles_model(target: str) -> None:
+    project_root = Path(__file__).resolve().parents[1]
+    result = run(
+        ["make", "--dry-run", target, "ASS_PATH="],
+        cwd=project_root,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    commands = [split(line) for line in result.stdout.splitlines()]
+    preparation = ["uv", "run", "python", "sophie_bot/utils/spam_classifier.py"]
+    compilation = next(command for command in commands if command[:5] == ["uv", "run", "python", "-m", "nuitka"])
+    assert preparation in commands
+    assert commands.index(preparation) < commands.index(compilation)
+    model_path = spam_classifier.MODEL_PATH.relative_to(project_root).as_posix()
+    assert f"--include-data-files={model_path}={model_path}" in compilation
+    assert "--include-package=sklearn" in compilation
 
 
 @pytest.fixture
