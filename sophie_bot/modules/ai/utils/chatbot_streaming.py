@@ -121,7 +121,7 @@ class ChatbotMessageStreamer:
         if not self.latest_text and not self.activity_started:
             self.inline_reasoning = Italic(_("Reasoning..."))
         else:
-            self.activity_history.append(_("Reasoning..."))
+            self.activity_history.append(Italic(_("Reasoning...")))
         self.reasoning_seen = True
         self.activity_started = True
         self.status = None

@@ -13,6 +13,7 @@ import pytest
 from aiogram.types import Message, PhotoSize, Voice
 from pydantic_ai.messages import BinaryContent, ModelResponse, ToolCallPart
 from pydantic_ai.models import Model
+from stfu_tg import Italic
 from stfu_tg.ai_md import ai_markdown_to_doc
 
 from sophie_bot.modules.ai.utils.ai_header import (
@@ -318,10 +319,11 @@ async def test_reasoning_after_progress_stays_on_a_new_line(
 
     await streamer.stream_reasoning("Private details.")
 
+    assert isinstance(streamer.activity_history[-1], Italic)
     html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
     assert html.startswith(f'<tg-emoji emoji-id="{AI_GENERATING_EMOJI_ID}">💭</tg-emoji><br>')
-    assert "<br><i>Reasoning...</i><br>" in html
-    assert html.replace("<i>Reasoning...</i><br>", "") == previous_html
+    assert "<br><i><i>Reasoning...</i></i><br>" in html
+    assert html.replace("<i><i>Reasoning...</i></i><br>", "") == previous_html
     assert "Private details." not in html
     _assert_plain_progress(html)
 
@@ -344,8 +346,8 @@ async def test_late_reasoning_preserves_public_text_and_tool_activity(
 
     await streamer.stream_reasoning("Private details.")
     html = response_message.bot.edit_message_text.await_args.kwargs["rich_message"].html
-    assert html.replace("<i>Reasoning...</i><br>", "") == previous_html
-    assert "<br><i>Reasoning...</i><br>" in html
+    assert html.replace("<i><i>Reasoning...</i></i><br>", "") == previous_html
+    assert "<br><i><i>Reasoning...</i></i><br>" in html
     assert html.count("Public answer.") == 1
     assert "Private details." not in html
 
