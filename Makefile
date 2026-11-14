@@ -28,6 +28,11 @@ test_all: test_code_style test_codeanalysis run_tests
 locale: extract_lang update_lang compile_lang
 
 
+.PHONY: spam_model
+
+spam_model:
+	uv run python sophie_bot/utils/spam_classifier.py
+
 # Development with hot-reload
 dev_bot:
 	@echo "Starting bot with hot-reload..."

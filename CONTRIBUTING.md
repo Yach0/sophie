@@ -91,6 +91,7 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **New Features**: Must include new tests covering core logic and edge cases.
 - **Bug Fixes**: Must include a reproduction test that failed before the fix and passes after.
 - **Running Tests**: Use `make run_tests` or `make commit`.
+- **System Tools**: Install GNU Make before running tests. Build regression tests inspect the Makefile with `make --dry-run`; CI installs Make before it runs the checks.
 - **Isolated Feature-Flag Tests**: Patch the flag resolver explicitly when testing one context mode without a database fixture.
 - **Service Fixtures**: Keep `test_services` scoped to one test. Monkeypatch teardown can remove lazily created mock methods, so a shared bot mock can break later tests.
 - **Type Checker**: Keep `ty` at 0.0.90 until its aiogram filter compatibility is resolved. Version 0.0.99 treats aiogram's callable-field annotation for `Filter.__call__` as a mutable override and rejects valid custom filter methods. Do not disable this diagnostic across the project.

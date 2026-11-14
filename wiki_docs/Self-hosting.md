@@ -101,6 +101,24 @@ A prompt whose security note is an album is still posted to the chat: `sendMedia
 address one member, and splitting the album into separate ephemeral messages is no way around it —
 Telegram accepts at most five ephemeral messages per user.
 
+## USSR spam classifier
+
+The runtime image bundles a checksum-verified text model from a pinned USSR revision.
+Classification runs locally without network access and loads the model once per process.
+For source checkouts, run `make spam_model` before starting the bot. This downloads the
+artifact to `sophie_bot/spam_model_data/`; it is independent of the working directory.
+Rebuild the runtime image to deploy changes to the pinned model.
+
+
+USSR currently ships a binary spam classifier. Sophie records its spam probability;
+NSFW probability is zero because this artifact has no NSFW output. This integration
+collects matches for group message text and captions; it does not delete messages or
+run image classification. Administrators and group-whitelisted users are exempt.
+
+The artifact was trained with scikit-learn 1.8; the current dependency uses 1.9 and
+emits a version warning when loading it. The build and CI smoke checks exercise
+prediction with the installed version so an incompatible artifact fails before deployment.
+
 ## AI models and providers
 
 Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in
