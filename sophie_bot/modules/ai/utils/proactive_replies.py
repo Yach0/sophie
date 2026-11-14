@@ -5,6 +5,7 @@ from contextlib import AsyncExitStack
 from datetime import UTC, datetime
 from typing import Literal
 
+import ujson
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, Message, ReactionTypeEmoji, User
 from pydantic import BaseModel, Field
@@ -54,6 +55,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
     used_tool_labels,
 )
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.modern_context import (
     DecisionMessage,
@@ -167,6 +169,31 @@ _TELEGRAM_REACTION_EMOJIS: frozenset[str] = frozenset(
     }
 )
 _FALLBACK_REACTION_EMOJI = "👍"
+_REACTION_CACHE_TTL_SECONDS = 3600
+
+
+def _reaction_cache_key(bot_id: int, chat_tid: int) -> str:
+    return f"ai:proactive:{bot_id}:{chat_tid}:reactions"
+
+
+async def _get_allowed_reactions(chat_tid: int, *, services: ApplicationServices) -> frozenset[str]:
+    cache_key = _reaction_cache_key(services.bot.id, chat_tid)
+    cached = await services.redis.get(cache_key)
+    if cached is not None:
+        return frozenset(ujson.loads(cached))
+
+    chat_info = await services.bot.get_chat(chat_tid)
+    allowed_reactions = (
+        _TELEGRAM_REACTION_EMOJIS
+        if chat_info.available_reactions is None
+        else frozenset(
+            reaction.emoji
+            for reaction in chat_info.available_reactions
+            if isinstance(reaction, ReactionTypeEmoji) and reaction.emoji in _TELEGRAM_REACTION_EMOJIS
+        )
+    )
+    await services.redis.set(cache_key, ujson.dumps(sorted(allowed_reactions)), ex=_REACTION_CACHE_TTL_SECONDS)
+    return allowed_reactions
 
 
 class ProactiveAction(BaseModel):
@@ -242,6 +269,7 @@ async def _generate_decision(
     messages: tuple[MessageType, ...],
     settings: ProactiveReplySettings,
     *,
+    allowed_reactions: frozenset[str],
     services: ApplicationServices,
 ) -> ProactiveDecision:
     model_plan = await get_proactive_replies_model_plan(chat_tid, redis=services.redis)
@@ -266,7 +294,29 @@ async def _generate_decision(
         )
     history = OldContext(services=services)
     history.add_system(build_proactive_decision_instructions())
-    history.prompt = [build_decision_prompt(decision_messages, settings)]
+    if await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis):
+        evidence = (
+            await ModernContext.memory_for_batch(chat, messages, services=services)
+            if modern
+            else await memory_context(
+                chat,
+                MemoryQuery(text=" ".join(row.text for row in messages), social=True),
+                redis=services.redis,
+                feature="ai_memory_participation",
+            )
+        )
+        history.add_custom(evidence, name="Social memory evidence")
+        history.add_system(
+            "Use relevant group norms, personal preferences, open questions and recent bot interventions "
+            "when choosing reply, react or silence. Stay silent if someone already answered. "
+            "Unknown preferences are not permission to interrupt."
+        )
+    reaction_choices = (
+        "Allowed reaction emoji: " + " ".join(sorted(allowed_reactions))
+        if allowed_reactions
+        else "Reactions are disabled; choose only none or answer."
+    )
+    history.prompt = [build_decision_prompt(decision_messages, settings) + "\n" + reaction_choices]
     result = await run_structured_task(
         AIStructuredTask(
             output_type=ProactiveDecision,
@@ -317,6 +367,7 @@ async def _react_to_message(
     target_message: MessageType,
     emoji: str | None,
     *,
+    allowed_reactions: frozenset[str],
     services: ApplicationServices,
 ) -> None:
     reaction_emoji = _normalize_reaction_emoji(emoji)
@@ -325,6 +376,14 @@ async def _react_to_message(
             "Proactive AI reaction skipped without emoji", chat_id=chat_tid, message_id=target_message.message_id
         )
 
+        return
+    if reaction_emoji not in allowed_reactions:
+        _log_proactive_info(
+            "Proactive AI reaction skipped because emoji is not allowed",
+            chat_id=chat_tid,
+            message_id=target_message.message_id,
+            emoji=reaction_emoji,
+        )
         return
     _log_proactive_info(
         "Proactive AI reaction send started",
@@ -339,6 +398,16 @@ async def _react_to_message(
             reaction=[ReactionTypeEmoji(emoji=reaction_emoji)],
         )
     except TelegramBadRequest as error:
+        if "REACTION_INVALID" in error.message:
+            await services.redis.delete(_reaction_cache_key(services.bot.id, chat_tid))
+            track_ai_proactive_event("reaction_skipped", {**_METRIC_ATTRIBUTES, "reason": "reaction_invalid"})
+            _log_proactive_info(
+                "Proactive AI reaction skipped because emoji was rejected",
+                chat_id=chat_tid,
+                message_id=target_message.message_id,
+                emoji=reaction_emoji,
+            )
+            return
         if error.message != "Bad Request: message to react not found":
             raise
         # Cached targets can disappear while the AI generates its decision.
@@ -433,6 +502,13 @@ async def _answer_message(
     services: ApplicationServices,
     expected_epoch: int | None = None,
 ) -> None:
+    if expected_epoch is None:
+        expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
+    evidence_enabled = (
+        await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis)
+        or await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis)
+        or await is_enabled("ai_memory_controls", chat_tid=chat_tid, redis=services.redis)
+    )
     async with AsyncExitStack() as cleanup:
         connection = ChatConnection(
             type=chat.type,
@@ -442,7 +518,8 @@ async def _answer_message(
             db_model=chat,
         )
         modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
-        mode = await get_chat_mode(chat.iid) if modern else AIMode.support
+        retrieve = await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis)
+        mode = await get_chat_mode(chat.iid) if modern or retrieve else AIMode.support
         model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
         model = model_plan.primary
         service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat_tid=chat_tid, redis=services.redis)
@@ -459,11 +536,11 @@ async def _answer_message(
             chat_iid=chat.iid,
             mode=mode,
             user_text=target_message.text,
+            topic_id=target_message.message_thread_id,
+            reply_to_message_id=target_message.reply_to_message_id,
             user_tid=None,
             services=services,
         )
-        if expected_epoch is None:
-            expected_epoch = await read_context_epoch(chat_tid, redis=services.redis)
         history = await _build_answer_history(
             chat_tid, target_message, services=services, context=context, model_plan=model_plan
         )
@@ -529,6 +606,15 @@ async def _answer_message(
             message_id=target_message.message_id,
             output_length=len(doc.to_html()),
         )
+        if evidence_enabled and await read_context_epoch(chat_tid, redis=services.redis) != expected_epoch:
+            return
+        if await is_enabled("ai_memory_recheck_answers", chat_tid=chat_tid, redis=services.redis):
+            latest = await get_cached_messages(chat_tid, limit=100, redis=services.redis)
+            if any(
+                row.message_id > target_message.message_id and row.reply_to_message_id == target_message.message_id
+                for row in latest
+            ):
+                return
         sent_message = await send_ai_rich_message_to_chat(
             chat_tid,
             doc,
@@ -575,6 +661,7 @@ async def _execute_actions(
     decision: ProactiveDecision,
     settings: ProactiveReplySettings,
     *,
+    allowed_reactions: frozenset[str],
     services: ApplicationServices,
     expected_epoch: int | None = None,
 ) -> None:
@@ -605,6 +692,7 @@ async def _execute_actions(
                 chat_tid,
                 target_message,
                 action.emoji,
+                allowed_reactions=allowed_reactions,
                 services=services,
             )
         if action.action == "answer":
@@ -676,8 +764,11 @@ async def maybe_run_proactive_reply(
             chat_id=chat_tid,
             candidate_count=len(candidates),
         )
+        allowed_reactions = await _get_allowed_reactions(chat_tid, services=services)
         try:
-            decision = await _generate_decision(chat, chat_tid, candidates, settings, services=services)
+            decision = await _generate_decision(
+                chat, chat_tid, candidates, settings, allowed_reactions=allowed_reactions, services=services
+            )
         except (AIRequestFailed, *AI_PROVIDER_EXCEPTIONS) as error:
             # The shared runner preserves configuration and budget errors for explicit commands.
             if not isinstance(error, (AIRequestFailed, UsageLimitExceeded)) and not is_provider_configuration_error(
@@ -699,6 +790,7 @@ async def maybe_run_proactive_reply(
             candidates,
             decision,
             settings,
+            allowed_reactions=allowed_reactions,
             services=services,
             expected_epoch=expected_epoch,
         )

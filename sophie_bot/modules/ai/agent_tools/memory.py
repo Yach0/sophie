@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import re
+from datetime import datetime
+
 import sentry_sdk
 from pydantic_ai import ModelRetry, RunContext, Tool
 
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.metrics import track_ai_tool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.utils.feature_flags import is_enabled
 
 _MAX_MEMORY_LINES = 50
 _MAX_MEMORY_LINE_LENGTH = 500
@@ -86,3 +91,61 @@ forget_memory_tool = Tool(
     docstring_format="google",
     require_parameter_descriptions=True,
 )
+
+
+async def search_memory(
+    ctx: RunContext[SophieAIToolContext],
+    query: str,
+    people: list[str] | None = None,
+    reporter: str | None = None,
+    event: str | None = None,
+    as_of: str | None = None,
+    history: bool = False,
+) -> str:
+    """Retrieve attributed chat evidence, including historical versions.
+
+    Args:
+        ctx: Runtime context for this chat.
+        query: Words from the relevant exchange; empty for all matching records.
+        people: Up to 16 speaker references (uN or tg://user?id=ID), or omit for all people.
+        reporter: Restrict to claims made by this speaker reference, or omit.
+        event: Exact event name from a retrieved fact, or omit.
+        as_of: ISO 8601 timestamp with timezone for what was known then, or omit for now.
+        history: Include all versions instead of only current heads.
+    """
+    if not await is_enabled("ai_memory_retrieval", chat_tid=ctx.deps.chat_tid, redis=ctx.deps.services.redis):
+        raise ModelRetry("Evidence memory is disabled in this chat.")
+    if (as_of or history) and not await is_enabled(
+        "ai_memory_history", chat_tid=ctx.deps.chat_tid, redis=ctx.deps.services.redis
+    ):
+        raise ModelRetry("Historical memory search is disabled in this chat.")
+    requested_people = people or []
+    if len(requested_people) > 16:
+        raise ModelRetry("Search at most 16 people per call; use several calls for a larger group.")
+    identities: list[int] = []
+    for person in [*requested_people, *([reporter] if reporter else [])]:
+        reference = ctx.deps.speaker_reference_decoder(person) if ctx.deps.speaker_reference_decoder else person
+        match = re.fullmatch(r"tg://user\?id=(-?\d+)", reference)
+        if match is None:
+            raise ModelRetry("Use a speaker reference from the current context.")
+        identities.append(int(match[1]))
+    person_tids = identities[: len(requested_people)]
+    reporter_tid = identities[-1] if reporter else None
+    try:
+        timestamp = datetime.fromisoformat(as_of) if as_of else None
+    except ValueError as error:
+        raise ModelRetry("Use an ISO 8601 timestamp with timezone.") from error
+    if timestamp and timestamp.tzinfo is None:
+        raise ModelRetry("The timestamp must include a timezone.")
+    chat = ctx.deps.connection.db_model
+    return await memory_context(
+        chat,
+        MemoryQuery(
+            text=query, person_tids=person_tids, speaker_tid=reporter_tid, event=event, as_of=timestamp, history=history
+        ),
+        redis=ctx.deps.services.redis,
+        speaker=ctx.deps.speaker_reference_encoder,
+    )
+
+
+search_memory_tool = Tool(search_memory, takes_ctx=True, docstring_format="google", require_parameter_descriptions=True)

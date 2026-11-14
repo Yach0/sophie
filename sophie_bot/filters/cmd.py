@@ -84,9 +84,7 @@ class CMDFilter(BaseFilter):
         raise CommandException("Command did not match pattern")
 
     def do_magic(self, command: CommandObject) -> None:
-        if not self.magic:
-            return
-        if not self.magic.resolve(command):
+        if self.magic and not self.magic.resolve(command):
             raise CommandException("Rejected via magic filter")
 
     async def parse_command(self, text: str, bot: Bot) -> CommandObject:
@@ -100,7 +98,7 @@ class CMDFilter(BaseFilter):
 
     @staticmethod
     def check_mono(entities: list[MessageEntity]) -> bool:
-        return any(ent for ent in entities if ent.offset == 0 and ent.type in {"code", "pre"})
+        return any(ent.offset == 0 and ent.type in {"code", "pre"} for ent in entities)
 
     async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, CommandObject]:
         text = (message.text or message.caption) if self.allow_caption else message.text

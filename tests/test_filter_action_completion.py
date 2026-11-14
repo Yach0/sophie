@@ -142,6 +142,7 @@ async def test_warn_completion_precedes_count_bookkeeping(monkeypatch: pytest.Mo
     data["action_completion"] = completion
     warn = SimpleNamespace(save=AsyncMock())
     monkeypatch.setattr(warn_utils.WarnSettingsModel, "get_or_create", AsyncMock(return_value=Mock()))
+    monkeypatch.setattr(warn_utils, "expire_warns", AsyncMock())
     monkeypatch.setattr(warn_utils, "WarnModel", Mock(return_value=warn))
     warn_utils.WarnModel.count_user_warns = AsyncMock(side_effect=OperationFailure("count unavailable"))
     with pytest.raises(OperationFailure, match="count unavailable"):

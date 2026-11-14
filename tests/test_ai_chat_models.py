@@ -12,6 +12,7 @@ from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, Cata
 from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_default_model_plan,
     get_chat_filters_model_plan,
+    get_chat_model_plan,
     get_chat_summary_model_plan,
     get_chat_translations_model_plan,
 )
@@ -20,6 +21,7 @@ from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_m
 from sophie_bot.modules.ai.utils.ai_model_factory import get_ai_model
 from sophie_bot.modules.ai.utils.modern_context import build_chatbot_instructions
 from sophie_bot.modules.help.utils.wiki_pages import get_wiki_pages, read_wiki_page
+from sophie_bot.utils.feature_flags import set_chat_override
 
 ENTERTAINMENT_CHATBOT = "free/chatbot"
 ENTERTAINMENT_CHATBOT_BACKUP = "free/chatbot-backup"
@@ -42,6 +44,7 @@ def _catalog() -> AICatalog:
         MODERATION_FILTERS,
         SUPPORT_FILTERS,
         SUMMARY,
+        "gpt-6.1-terra",
     ]
 
     def _role(name: str, priority: int = 0) -> ResolvedRole:
@@ -76,6 +79,7 @@ def _catalog() -> AICatalog:
             (AIMode.moderation, AIModelPurpose.filters): (_role(MODERATION_FILTERS),),
             (AIMode.support, AIModelPurpose.filters): (_role(SUPPORT_FILTERS),),
             (AIMode.support, AIModelPurpose.summary): (_role(SUMMARY),),
+            (AIMode.entertainment, AIModelPurpose.memory_writer): (_role("gpt-6.1-terra"),),
         },
     )
 
@@ -377,3 +381,16 @@ def test_help_tool_lists_wiki_pages() -> None:
 
 def test_reading_an_unknown_wiki_page_returns_nothing() -> None:
     assert read_wiki_page("does-not-exist") is None
+
+
+async def test_memory_writer_uses_terra_and_its_own_override(monkeypatch: pytest.MonkeyPatch, test_redis: object,
+                                                          test_services: object) -> None:
+    _patch_model_builder(monkeypatch)
+    await set_chat_override("ai_summary_model", -100125, "custom/summary", redis=test_redis)
+    plan = await get_chat_model_plan(AIModelPurpose.memory_writer, None, chat_tid=-100125,
+                                     mode=AIMode.entertainment, redis=test_redis)
+    assert plan.model_names == ("gpt-6.1-terra",)
+    await set_chat_override("ai_memory_writer_model", -100125, "custom/writer", redis=test_redis)
+    plan = await get_chat_model_plan(AIModelPurpose.memory_writer, None, chat_tid=-100125,
+                                     mode=AIMode.entertainment, redis=test_redis)
+    assert plan.model_names == ("custom/writer", "gpt-6.1-terra")

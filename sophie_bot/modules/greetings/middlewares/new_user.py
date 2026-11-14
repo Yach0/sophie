@@ -265,20 +265,19 @@ class NewUserMiddleware(BaseMiddleware):
                 and db_item.welcome_security.enabled
                 and welcomecaptcha_enabled
                 and not join_is_too_old
+                and human_users
+                and not event.chat.join_by_request
             ):
-                # If group has join_by_request enabled, captcha is handled by join request handler
-                # Otherwise, use normal captcha
-                if human_users and not event.chat.join_by_request:
-                    sent_message = await self.on_captcha(
-                        event,
-                        db_item,
-                        chat_db,
-                        human_users,
-                        new_member,
-                        cleanservice_enabled,
-                        chat_rules,
-                        services=data["services"],
-                    )
+                sent_message = await self.on_captcha(
+                    event,
+                    db_item,
+                    chat_db,
+                    human_users,
+                    new_member,
+                    cleanservice_enabled,
+                    chat_rules,
+                    services=data["services"],
+                )
 
             # Cleanup
             await self.cleanup(

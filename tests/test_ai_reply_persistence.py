@@ -274,6 +274,7 @@ async def test_delivered_reply_retries_only_prepared_persistence(
             candidates: tuple[MessageType, ...],
             settings: proactive_replies.ProactiveReplySettings,
             *,
+            allowed_reactions: frozenset[str],
             services: ApplicationServices,
         ) -> proactive_replies.ProactiveDecision:
             nonlocal history
