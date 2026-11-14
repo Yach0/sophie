@@ -52,6 +52,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     get_context_epoch_key,
     reset_modern_context,
 )
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
@@ -609,12 +610,24 @@ class ModernContext:
             "ai_help_system_prompt" if context.mode == AIMode.sophie_help else "ai_chatbot_system_prompt"
         )
         system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid, redis=self._redis))
+        evidence_enabled = capabilities.memory and await is_enabled(
+            "ai_memory_retrieval", chat_tid=context.chat_tid, redis=self._redis
+        )
         stable = Doc(
             system_prompt,
             _("Prefer to use tables when comparing items"),
             _("Use the conversation history only for context, but respond specifically to the latest prompt."),
             _("You can use the web search tool to search for information. Include information sources as links."),
-            _("You can also save important things to the memory.") if capabilities.memory else None,
+            (
+                _(
+                    "Evidence memory is written independently from source messages. Use search_memory for earlier evidence, "
+                    "person and event queries, and historical states."
+                )
+                if evidence_enabled
+                else _("You can also save important things to the memory.")
+                if capabilities.memory
+                else None
+            ),
             _(
                 "If the user asks anything regarding using Sophie bot, make sure to execute the `sophie_help` tool "
                 "to obtain a help context, do not search internet for bot information. "
@@ -652,7 +665,21 @@ class ModernContext:
             if capabilities.notes_read and context.user_text
             else []
         )
-        memories = await AIMemoryModel.get_lines(context.chat_iid) if capabilities.memory else []
+
+        replace_legacy = evidence_enabled and await is_enabled(
+            "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=self._redis
+        )
+        memories = await AIMemoryModel.get_lines(context.chat_iid) if capabilities.memory and not replace_legacy else []
+        if evidence_enabled and chat:
+            evidence_text = await memory_context(
+                chat,
+                MemoryQuery(
+                    text=context.user_text or "", topic_id=context.topic_id, anchor_id=context.reply_to_message_id
+                ),
+                redis=self._redis,
+                speaker=self.speaker_reference,
+            )
+            ElementTree.SubElement(runtime, "memory_evidence").text = evidence_text
         runtime_speakers = self._current_speaker_ids.copy()
         for memory in memories:
             for reference in self._USER_LINK.finditer(memory):
@@ -668,7 +695,7 @@ class ModernContext:
                     )
         runtime.append(_chat_notes_xml(notes))
         memory_lines = [
-            self._USER_LINK.sub(lambda match: self._memory_anchor(int(match[1])), memory) for memory in memories
+            self._USER_LINK.sub(lambda match: self.speaker_reference(int(match[1])), memory) for memory in memories
         ]
         runtime.append(_memory_xml(memory_lines))
         return stable.to_md(), ElementTree.tostring(runtime, encoding="unicode")
@@ -735,6 +762,21 @@ class ModernContext:
         """Atomically clear every topic/mode session and fence previously acquired leases."""
         await reset_modern_context(chat_tid, redis=redis)
 
+    @classmethod
+    async def memory_for_batch(
+        cls, chat: ChatModel, messages: Sequence[MessageType], *, services: ApplicationServices
+    ) -> str:
+        history = cls(redis=services.redis, chat_tid=chat.tid, mode=AIMode.entertainment)
+        for row in messages:
+            history._register_cached(row)
+        return await memory_context(
+            chat,
+            MemoryQuery(text=" ".join(row.text for row in messages), social=True),
+            redis=services.redis,
+            speaker=history.speaker_reference,
+            feature="ai_memory_participation",
+        )
+
     def _speaker(self, user_tid: int) -> str:
         key = str(user_tid)
         if key not in self._state.speakers:
@@ -798,7 +840,7 @@ class ModernContext:
         ):
             self._message_alias(row.reply_to_message_id)
 
-    def _memory_anchor(self, user_tid: int) -> str:
+    def speaker_reference(self, user_tid: int) -> str:
         alias = self._speaker(user_tid)
         return f"[{alias}]" if alias.isalpha() and alias != "assistant" else alias
 
@@ -1213,7 +1255,24 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
         if related_notes:
             context_doc += render_chat_notes_for_prompt(related_notes)
     if capabilities.memory:
-        context_doc += render_memory_for_prompt(await AIMemoryModel.get_lines(context.chat_iid))
+        if chat_model and await is_enabled(
+            "ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis
+        ):
+            context_doc += _(
+                "Evidence memory is written independently from source messages. Use search_memory to retrieve evidence "
+                "by person, event, and time."
+            )
+            context_doc += await memory_context(
+                chat_model,
+                MemoryQuery(
+                    text=context.user_text or "", topic_id=context.topic_id, anchor_id=context.reply_to_message_id
+                ),
+                redis=context.services.redis,
+            )
+        if not await is_enabled(
+            "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=context.services.redis
+        ) or not await is_enabled("ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis):
+            context_doc += render_memory_for_prompt(await AIMemoryModel.get_lines(context.chat_iid))
     return context_doc
 
 

@@ -183,6 +183,7 @@ def test_speaker_aliases_follow_spreadsheet_order_and_keep_real_ids() -> None:
         **dict(zip(map(str, user_tids), aliases, strict=True)),
     }
     for user_tid, alias in zip(user_tids, aliases, strict=True):
+        assert history.speaker_reference(user_tid) == f"[{alias}]"
         assert history.restore_speaker_references(f"[{alias}] likes tea") == f"tg://user?id={user_tid} likes tea"
     for index in (0, 1, 25, 26, 675, 676, 677):
         content = history._format_message(user_tids[index], 9000 + index, ["U1 is authored text"], reply_id=8000)

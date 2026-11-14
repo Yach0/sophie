@@ -19,6 +19,7 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
+| `/ai_memory` | `<Memory operation and arguments>` | Inspect, correct, or forget your information in this chat's AI memory. |  |
 | `/research` | `<Research topic>` | Research a topic using multistage web search and return a summary with sources. | *Disable-able* |
 | `/ai_translate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text. | *Disable-able* |
 | `/ai_usage` | - | Check AI quota and usage details. |  |
