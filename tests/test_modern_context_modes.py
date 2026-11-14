@@ -161,11 +161,11 @@ def _assert_alias_metadata(messages: Sequence[ModelMessage]) -> None:
             assert not {"username", "user_id", "telegram_id", "last_name", "full_name"}.intersection(node.attrib)
         for node in root.findall(".//message"):
             assert re.fullmatch(r"m[1-9]\d*", node.attrib["id"])
-            assert re.fullmatch(r"u[1-9]\d*|assistant", node.attrib["speaker_id"])
+            assert re.fullmatch(r"[A-Z]{2,}|assistant", node.attrib["speaker_id"])
             if "reply_to" in node.attrib:
                 assert re.fullmatch(r"m[1-9]\d*", node.attrib["reply_to"])
         for node in root.findall("./runtime_context/speakers/speaker"):
-            assert re.fullmatch(r"u[1-9]\d*", node.attrib["id"])
+            assert re.fullmatch(r"[A-Z]{2,}", node.attrib["id"])
 
 
 @pytest.mark.asyncio
@@ -197,7 +197,7 @@ async def test_actor_attribution_exposes_first_names_only_in_entertainment(
         anchors = [node.attrib["speaker_id"] for node, _user in actors]
         assert len(set(anchors)) == 3
         for node, _user in actors:
-            assert re.fullmatch(r"u[1-9]\d*", node.attrib["speaker_id"])
+            assert re.fullmatch(r"[A-Z]{2,}", node.attrib["speaker_id"])
             assert re.fullmatch(r"m[1-9]\d*", node.attrib["id"])
         assert by_text[current.text].attrib["reply_to"] == by_text[reply.text].attrib["id"]
         if mode == AIMode.entertainment:
@@ -305,7 +305,7 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
             assert items[0].attrib["index"] == "1"
             memory_text = items[0].text or ""
             assert memory_text.endswith(fact)
-            remembered_actor = memory_text.removesuffix(fact)
+            remembered_actor = memory_text.removesuffix(fact).removeprefix("[").removesuffix("]")
             roster = _speaker_roster(messages)
             return ModelResponse(
                 parts=[TextPart(f"{remembered_actor} ({roster[remembered_actor]}) remembers Wonderland.")]
@@ -323,7 +323,9 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
         return ModelResponse(
             parts=[
                 ToolCallPart(
-                    "write_memory", {"information_to_save": current.attrib["speaker_id"] + fact}, "save-name-fact"
+                    "write_memory",
+                    {"information_to_save": f"[{current.attrib['speaker_id']}]" + fact},
+                    "save-name-fact",
                 ),
             ]
         )
@@ -392,7 +394,7 @@ async def test_native_memory_preserves_the_named_person_when_a_new_session_reord
         items = [
             node for root in _xml_roots(_model_input(second)) for node in root.findall("./runtime_context/memory/item")
         ]
-        assert [item.text for item in items] == [new_alice_anchor + fact]
+        assert [item.text for item in items] == [f"[{new_alice_anchor}]" + fact]
         assert _speaker_roster(_model_input(second))[new_alice_anchor] == alice.first_name
         second_result = await run_chatbot(
             ChatbotRunRequest(
