@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -31,11 +32,14 @@ pytestmark = [pytest.mark.asyncio, pytest.mark.usefixtures("db_init")]
 
 
 @pytest.fixture(autouse=True)
-def _no_version_bump():
+async def _no_version_bump() -> AsyncIterator[AsyncMock]:
     # bump_version writes to Redis, which the DB fixture does not provide; the routes are covered
     # for it by asserting the mock is awaited where it matters.
     with patch.object(catalog, "bump_version", AsyncMock()) as bump:
-        yield bump
+        try:
+            yield bump
+        finally:
+            await _clear()
 
 
 async def _clear() -> None:

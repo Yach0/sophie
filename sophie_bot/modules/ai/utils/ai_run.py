@@ -214,20 +214,27 @@ class AIAgentResult[OutputT](BaseModel):
 
 @dataclass(slots=True)
 class _StreamChannel:
-    """One indexed response buffer plus its debounced consumer."""
+    """Indexed current response, completed text, and their debounced consumer."""
 
     callback: TextStreamCallback | None
     parts: dict[int, list[str]] = field(default_factory=dict)
     last_emit: float = 0.0
     last_emitted_text: str = ""
+    completed_text: str = ""
 
     @property
     def empty(self) -> bool:
-        return not any(self.parts.values())
+        return not self.completed_text and not any(self.parts.values())
 
     def reset(self) -> None:
         self.parts.clear()
         self.last_emitted_text = ""
+        self.completed_text = ""
+
+    def next_response(self, completed_text: str) -> None:
+        """Keep accepted responses when part indices restart or a request fails over."""
+        self.completed_text = completed_text
+        self.parts.clear()
 
     def start(self, part_index: int, content: str) -> None:
         self.parts[part_index] = [content] if content else []
@@ -239,10 +246,11 @@ class _StreamChannel:
         self.parts[part_index] = [content] if content else []
 
     def replace(self, content: str) -> None:
+        self.completed_text = ""
         self.parts = {0: [content]} if content else {}
 
     def render(self) -> str:
-        return "".join("".join(self.parts[part_index]) for part_index in sorted(self.parts))
+        return self.completed_text + "".join("".join(self.parts[part_index]) for part_index in sorted(self.parts))
 
     async def emit(self, *, force: bool = False) -> None:
         if self.callback is None:
@@ -268,6 +276,26 @@ class _StreamOutcome:
     new_messages: list[ModelRequest | ModelResponse]
     first_token_seen: bool
     chunk_count: int
+
+
+def _public_response_text(messages: Sequence[ModelRequest | ModelResponse]) -> str:
+    return "".join(
+        part.content
+        for message in messages
+        if isinstance(message, ModelResponse)
+        for part in message.parts
+        if isinstance(part, TextPart)
+    )
+
+
+def _accumulated_public_text(terminal_output: str, new_messages: Sequence[ModelRequest | ModelResponse]) -> str:
+    """Prepend public text from earlier responses to the native terminal output.
+
+    Pydantic AI concatenates TextParts for string output, but only in the terminal
+    response. That response is already represented by output, so exclude it by
+    position, never by comparing text. Keep native history intact for tool replay.
+    """
+    return _public_response_text(new_messages[:-1]) + terminal_output
 
 
 def build_model_settings(
@@ -616,6 +644,10 @@ async def _run_with_metrics[DepsT, OutputT](
 
     served_model = requests.active.model
     message_history = result.all_messages()
+    new_messages = result.new_messages()
+    output = result.output
+    if operation_label == "text" and isinstance(output, str):
+        output = _accumulated_public_text(output, new_messages)
     retries = count_retries_from_messages(message_history)
 
     if result.usage:
@@ -624,15 +656,15 @@ async def _run_with_metrics[DepsT, OutputT](
             served_model,
             result.usage,
             message_history,
-            output_length=len(str(result.output)),
+            output_length=len(str(output)),
             retries=retries,
         )
 
     return AIAgentResult(
-        output=result.output,
+        output=output,
         retries=retries,
         message_history=message_history,
-        new_messages=result.new_messages(),
+        new_messages=new_messages,
         usage=result.usage,
         served_model=served_model,
         last_model_request=requests.last_model_request,
@@ -773,7 +805,7 @@ async def _stream_via_events[DepsT](
             match event:
                 case PartStartEvent(index=part_index, part=TextPart(content=content)):
                     if not text_response_started:
-                        text.reset()
+                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
                         text_response_started = True
                     text.start(part_index, content)
                     note_first_token()
@@ -786,7 +818,7 @@ async def _stream_via_events[DepsT](
                     await reasoning.emit()
                 case PartDeltaEvent(index=part_index, delta=TextPartDelta(content_delta=content_delta)):
                     if not text_response_started:
-                        text.reset()
+                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
                         text_response_started = True
                     chunk_count += 1
                     text.delta(part_index, content_delta or "")
@@ -800,7 +832,7 @@ async def _stream_via_events[DepsT](
                     await reasoning.emit()
                 case PartEndEvent(index=part_index, part=TextPart(content=content)):
                     if not text_response_started:
-                        text.reset()
+                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
                         text_response_started = True
                     text.end(part_index, content)
                     note_first_token()
@@ -819,14 +851,15 @@ async def _stream_via_events[DepsT](
                     await notify_tool_call(event.part.tool_name)
 
     result = await agent.run(**run_kwargs, event_stream_handler=event_stream_handler)
-    output_text = str(result.output)
+    new_messages = result.new_messages()
+    output_text = _accumulated_public_text(result.output, new_messages)
     text.replace(output_text)
     await text.emit(force=True)
     return _StreamOutcome(
         output_text=output_text,
         usage=result.usage,
         message_history=result.all_messages(),
-        new_messages=result.new_messages(),
+        new_messages=new_messages,
         first_token_seen=first_token_seen,
         chunk_count=chunk_count,
     )

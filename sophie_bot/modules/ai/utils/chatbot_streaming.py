@@ -9,7 +9,7 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
+from aiogram.types import InlineKeyboardMarkup, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
@@ -24,6 +24,7 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
+from sophie_bot.modules.ai.utils.rich_delivery import with_photo_url_fallback
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -66,6 +67,7 @@ class ChatbotMessageStreamer:
         self._mention_index_resolved = False
         self.placeholder = status or ""
         self.status: Element | None = None
+        self.inline_reasoning: Element | None = None
         self.activity_history: list[Element | str] = []
         self.activity_started = False
         self.reasoning_seen = False
@@ -97,6 +99,7 @@ class ChatbotMessageStreamer:
         had_status = self.status is not None
         had_activity = bool(self.activity_history)
         self.status = None
+        self.inline_reasoning = None
         self.activity_history.clear()
         self.latest_text = draft_text
         if draft_text == self.last_sent_text:
@@ -116,9 +119,12 @@ class ChatbotMessageStreamer:
         """Show the first nonempty reasoning pass as a private progress activity."""
         if self.response_message is None or self.reasoning_seen or not reasoning_text.strip():
             return
+        if not self.latest_text and not self.activity_started:
+            self.inline_reasoning = Italic(_("Reasoning..."))
+        else:
+            self.activity_history.append(_("Reasoning..."))
         self.reasoning_seen = True
         self.activity_started = True
-        self.activity_history.append(_("Reasoning..."))
         self.status = None
         await self._refresh_progress()
 
@@ -165,11 +171,15 @@ class ChatbotMessageStreamer:
             self.final_message_sent = True
             return self.response_message
 
-        result = await self._editing_bot().edit_message_text(
-            chat_id=self.response_message.chat.id,
-            message_id=self.response_message.message_id,
-            rich_message=InputRichMessage(html=rendered_rich),
-            reply_markup=reply_markup,
+        response_message = self.response_message
+        result = await with_photo_url_fallback(
+            rendered_rich,
+            lambda rich_message: self._editing_bot().edit_message_text(
+                chat_id=response_message.chat.id,
+                message_id=response_message.message_id,
+                rich_message=rich_message,
+                reply_markup=reply_markup,
+            ),
         )
         self._last_sent_rich = rendered_rich
         self._last_sent_reply_markup = reply_markup
@@ -269,7 +279,7 @@ class ChatbotMessageStreamer:
         doc = (
             await self._render_doc(draft_text)
             if draft_text
-            else self._build_progress_doc("" if self.activity_started else self.placeholder)
+            else self._build_progress_doc(self.inline_reasoning or ("" if self.activity_started else self.placeholder))
         )
         await self._update(doc)
         self.last_sent_text = draft_text
@@ -290,10 +300,14 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await self._editing_bot().edit_message_text(
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
+            response_message = self.response_message
+            await with_photo_url_fallback(
+                rendered_rich,
+                lambda rich_message: self._editing_bot().edit_message_text(
+                    chat_id=response_message.chat.id,
+                    message_id=response_message.message_id,
+                    rich_message=rich_message,
+                ),
             )
 
         self._last_sent_rich = rendered_rich

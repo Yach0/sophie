@@ -7,7 +7,7 @@ from typing import Any
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message
 from pydantic_ai.models import Model
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, WatchError
 from sentry_sdk.ai import set_conversation_id
 from stfu_tg import Doc
 from stfu_tg.doc import Element
@@ -19,13 +19,14 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
@@ -242,6 +243,7 @@ async def _cache_chatbot_reply(
     *,
     services: ApplicationServices,
     history: ModernContext | None = None,
+    expected_epoch: int | None = None,
 ) -> None:
     """Cache the fitted public body while preserving the complete native turn for follow-ups."""
     cached_message = MessageType(
@@ -261,15 +263,25 @@ async def _cache_chatbot_reply(
     if history is not None:
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
-        async with services.redis.pipeline(transaction=True) as pipe:
-            enqueue_cached_message(pipe, message.chat.id, cached_message)
-            await pipe.execute()
+        try:
+            async with services.redis.pipeline(transaction=True) as pipe:
+                if expected_epoch is not None:
+                    epoch_key = get_context_epoch_key(message.chat.id)
+                    await pipe.watch(epoch_key)
+                    if int(await pipe.get(epoch_key) or 0) != expected_epoch:
+                        return
+                    pipe.multi()
+                enqueue_cached_message(pipe, message.chat.id, cached_message)
+                await pipe.execute()
+        except WatchError:
+            return
         await remember_chatbot_tool_history(
             message.chat.id,
             final_message.message_id,
             result.message_history,
             previous_history,
             redis=services.redis,
+            expected_epoch=expected_epoch,
         )
 
 
@@ -293,6 +305,13 @@ async def ai_chatbot_reply(
     if not connection.db_model:
         return None
 
+    evidence_enabled = get_capabilities(mode).memory and (
+        await is_enabled("ai_memory_retrieval", chat_tid=message.chat.id, redis=services.redis)
+        or await is_enabled("ai_memory_controls", chat_tid=message.chat.id, redis=services.redis)
+    )
+    context_epoch = (
+        int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) if evidence_enabled else None
+    )
     async with track_ai_conversation(), AsyncExitStack() as cleanup:
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
@@ -316,6 +335,8 @@ async def ai_chatbot_reply(
             chat_iid=connection.db_model.iid,
             mode=mode,
             user_text=user_text,
+            topic_id=message.message_thread_id,
+            reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             user_tid=message.from_user.id if message.from_user else None,
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
@@ -359,7 +380,7 @@ async def ai_chatbot_reply(
                     service_tier=service_tier,
                     thread_id=message.message_thread_id,
                     callbacks=ChatbotRunCallbacks(
-                        on_text_stream=(message_streamer.stream if message_streamer else None),
+                        on_text_stream=(message_streamer.stream if message_streamer and not evidence_enabled else None),
                         on_tool_call=on_tool_call,
                         on_reasoning_stream=on_reasoning_stream,
                         on_retry=(message_streamer.update_retrying if message_streamer else None),
@@ -434,6 +455,14 @@ async def ai_chatbot_reply(
             if not kwargs.get("reply_markup"):
                 kwargs["reply_markup"] = build_help_mode_keyboard(message)
 
+        if (
+            context_epoch is not None
+            and int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) != context_epoch
+        ):
+            changed = Doc(_("Memory changed while processing. Please ask again."))
+            if message_streamer:
+                return await message_streamer.send_final(changed, **kwargs)
+            return await message.reply(changed.to_html())
         if message_streamer:
             final_message = await message_streamer.send_final(doc, **kwargs)
         else:
@@ -447,6 +476,7 @@ async def ai_chatbot_reply(
             previous_history,
             services=services,
             history=history if isinstance(history, ModernContext) else None,
+            expected_epoch=context_epoch,
         )
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))

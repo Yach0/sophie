@@ -26,10 +26,7 @@ class AIUsageModel(Document):
             return usage
 
         chat = await ChatModel.get_by_iid(chat_iid)
-        if not chat:
-            return None
-
-        return AIUsageModel(chat=chat)
+        return AIUsageModel(chat=chat) if chat else None
 
     @staticmethod
     async def get_today(chat_iid: PydanticObjectId) -> int:

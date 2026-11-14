@@ -25,6 +25,7 @@ class AIModelPurpose(str, Enum):
     translation = "translation"
     filters = "filters"
     summary = "summary"
+    memory_writer = "memory_writer"
     moderation_reason = "moderation_reason"
     sophie_inspect = "sophie_inspect"
     research = "research"
