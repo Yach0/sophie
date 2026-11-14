@@ -39,6 +39,14 @@ call. If no later candidate can fit it, the request fails with a budget error.
 
 ## Streaming and reporting
 
+Text replies retain public text from each accepted response before and between
+tool calls. The final reply and its fitted public cache use that accumulated
+answer. Native tool history stays intact; reasoning and tool returns are not
+part of the public text. Identical public responses are retained in order.
+Streaming uses accepted history as its prefix when a new response starts, then
+uses the completed run to produce the final answer. Structured output keeps the
+native validated terminal result.
+
 Native fallback can recover a stream failure before its first event. After
 stream output starts, a failure reaches the caller. The agent is not restarted.
 Response-based fallback is disabled for streamed requests, including text calls
