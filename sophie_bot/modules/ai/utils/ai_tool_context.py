@@ -22,6 +22,9 @@ class SophieAIToolContext:
     services: ApplicationServices
     mode: AIMode = AIMode.support
     user_text: str | None = None
+    topic_id: int | None = None
+    reply_to_message_id: int | None = None
     research_progress_callback: ResearchProgressCallback | None = None
     user_tid: int | None = None  # Telegram user ID of the person who triggered this AI call
+    speaker_reference_encoder: Callable[[int], str] | None = None
     speaker_reference_decoder: Callable[[str], str] | None = None

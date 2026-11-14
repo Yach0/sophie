@@ -16,6 +16,7 @@ MODEL_OVERRIDE_FLAG_BY_PURPOSE: dict[AIModelPurpose, FeatureType] = {
     AIModelPurpose.translation: "ai_translation_model",
     AIModelPurpose.filters: "ai_filter_handler_model",
     AIModelPurpose.summary: "ai_summary_model",
+    AIModelPurpose.memory_writer: "ai_memory_writer_model",
     AIModelPurpose.research: "ai_research_model",
     AIModelPurpose.moderation_reason: "ai_moderation_reason_model",
     AIModelPurpose.sophie_inspect: "ai_sophie_inspect_model",

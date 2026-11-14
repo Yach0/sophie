@@ -10,6 +10,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import Chat, Message, ReactionTypeEmoji, User
 from pydantic import BaseModel, Field
 from pydantic_ai.exceptions import UsageLimitExceeded
+from redis.exceptions import WatchError
 from sentry_sdk.ai import set_conversation_id
 
 from sophie_bot.config import CONFIG
@@ -36,7 +37,12 @@ from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message, get_cached_messages
+from sophie_bot.modules.ai.utils.cache_messages import (
+    MessageType,
+    enqueue_cached_message,
+    get_cached_messages,
+    get_context_epoch_key,
+)
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunRequest,
     run_chatbot,
@@ -50,6 +56,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
     used_tool_labels,
 )
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.modern_context import (
     DecisionMessage,
@@ -288,6 +295,23 @@ async def _generate_decision(
         )
     history = OldContext(services=services)
     history.add_system(build_proactive_decision_instructions())
+    if await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis):
+        evidence = (
+            await ModernContext.memory_for_batch(chat, messages, services=services)
+            if modern
+            else await memory_context(
+                chat,
+                MemoryQuery(text=" ".join(row.text for row in messages), social=True),
+                redis=services.redis,
+                feature="ai_memory_participation",
+            )
+        )
+        history.add_custom(evidence, name="Social memory evidence")
+        history.add_system(
+            "Use relevant group norms, personal preferences, open questions and recent bot interventions "
+            "when choosing reply, react or silence. Stay silent if someone already answered. "
+            "Unknown preferences are not permission to interrupt."
+        )
     reaction_choices = (
         "Allowed reaction emoji: " + " ".join(sorted(allowed_reactions))
         if allowed_reactions
@@ -478,6 +502,12 @@ async def _answer_message(
     *,
     services: ApplicationServices,
 ) -> None:
+    evidence_enabled = (
+        await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis)
+        or await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis)
+        or await is_enabled("ai_memory_controls", chat_tid=chat_tid, redis=services.redis)
+    )
+    context_epoch = int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0) if evidence_enabled else None
     async with AsyncExitStack() as cleanup:
         connection = ChatConnection(
             type=chat.type,
@@ -487,7 +517,8 @@ async def _answer_message(
             db_model=chat,
         )
         modern = await is_enabled("ai_chatbot_modern_context", chat_tid=chat_tid, redis=services.redis)
-        mode = await get_chat_mode(chat.iid) if modern else AIMode.support
+        retrieve = await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis)
+        mode = await get_chat_mode(chat.iid) if modern or retrieve else AIMode.support
         model_plan = await get_chat_default_model_plan(chat.iid, chat_tid=chat_tid, redis=services.redis)
         model = model_plan.primary
         service_tier = await resolve_chat_service_tier(AIModelPurpose.chatbot, chat_tid=chat_tid, redis=services.redis)
@@ -504,6 +535,8 @@ async def _answer_message(
             chat_iid=chat.iid,
             mode=mode,
             user_text=target_message.text,
+            topic_id=target_message.message_thread_id,
+            reply_to_message_id=target_message.reply_to_message_id,
             user_tid=None,
             services=services,
         )
@@ -572,6 +605,18 @@ async def _answer_message(
             message_id=target_message.message_id,
             output_length=len(doc.to_html()),
         )
+        if (
+            context_epoch is not None
+            and int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0) != context_epoch
+        ):
+            return
+        if await is_enabled("ai_memory_recheck_answers", chat_tid=chat_tid, redis=services.redis):
+            latest = await get_cached_messages(chat_tid, limit=100, redis=services.redis)
+            if any(
+                row.message_id > target_message.message_id and row.reply_to_message_id == target_message.message_id
+                for row in latest
+            ):
+                return
         sent_message = await send_ai_rich_message_to_chat(
             chat_tid,
             doc,
@@ -605,9 +650,18 @@ async def _answer_message(
         if isinstance(history, ModernContext):
             await history.finish_run(result.new_messages, sent_message, cached_message=cached_message)
         else:
-            async with services.redis.pipeline(transaction=True) as pipe:
-                enqueue_cached_message(pipe, chat_tid, cached_message)
-                await pipe.execute()
+            try:
+                async with services.redis.pipeline(transaction=True) as pipe:
+                    if context_epoch is not None:
+                        epoch_key = get_context_epoch_key(chat_tid)
+                        await pipe.watch(epoch_key)
+                        if int(await pipe.get(epoch_key) or 0) != context_epoch:
+                            return
+                        pipe.multi()
+                    enqueue_cached_message(pipe, chat_tid, cached_message)
+                    await pipe.execute()
+            except WatchError:
+                return
 
 
 async def _execute_actions(
