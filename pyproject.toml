@@ -47,6 +47,7 @@ dependencies = [
     "openapi-client",
     "psutil>=7.2.2,<8",
     "ussr @ git+https://gitlab.com/SophieBot/ussr.git",
+    "joblib>=1.5,<2",
     "torch>=2.13.0,<3",
     "torchvision>=0.29,<0.30",
 ]
