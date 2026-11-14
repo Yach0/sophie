@@ -14,11 +14,10 @@ import requests
 from sophie_bot.utils import spam_classifier
 
 
-@pytest.mark.parametrize("target", ["build_onefile", "build_standalone"])
-def test_compiled_build_prepares_and_bundles_model(target: str) -> None:
+def test_source_checkout_prepares_model() -> None:
     project_root = Path(__file__).resolve().parents[1]
     result = run(
-        ["make", "--dry-run", target, "ASS_PATH="],
+        ["make", "--dry-run", "spam_model", "ASS_PATH="],
         cwd=project_root,
         check=True,
         capture_output=True,
@@ -26,12 +25,7 @@ def test_compiled_build_prepares_and_bundles_model(target: str) -> None:
     )
     commands = [split(line) for line in result.stdout.splitlines()]
     preparation = ["uv", "run", "python", "sophie_bot/utils/spam_classifier.py"]
-    compilation = next(command for command in commands if command[:5] == ["uv", "run", "python", "-m", "nuitka"])
     assert preparation in commands
-    assert commands.index(preparation) < commands.index(compilation)
-    model_path = spam_classifier.MODEL_PATH.relative_to(project_root).as_posix()
-    assert f"--include-data-files={model_path}={model_path}" in compilation
-    assert "--include-package=sklearn" in compilation
 
 
 @pytest.fixture

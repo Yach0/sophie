@@ -19,42 +19,19 @@ ASS_PATH := $(shell uv run python -c "import ass_tg as _; print(_.__path__[0])" 
 # Use uv run for pybabel
 PYBABEL := uv run pybabel
 
-NUITKA := "python" "-m" "nuitka"
-SPAM_MODEL_FILE := sophie_bot/spam_model_data/ussr_text_classifier.joblib
-# joblib imports the serialized classifier's sklearn modules dynamically.
-NUITKA_ARGS := "--prefer-source-code" "--plugin-enable=pylint-warnings" "--follow-imports" \
-			   "--include-package=sophie_bot" "--include-package-data=babel" "--assume-yes-for-downloads" "--lto=yes" \
-			   "--include-package=sklearn" \
-			   "--include-data-files=$(SPAM_MODEL_FILE)=$(SPAM_MODEL_FILE)" \
-			   "--python-flag=no_annotations" "--python-flag=isolated" "--product-name=SophieBot" \
-			   "--output-dir=output/"
 LOCALES_DIR := $(CURDIR)/locales
 
 
-all: fix_code_style locale test_all clean build_onefile
+all: fix_code_style locale test_all
 commit: fix_code_style test_code_style test_codeanalysis run_tests gen_wiki api migrate_status
 test_all: test_code_style test_codeanalysis run_tests
 locale: extract_lang update_lang compile_lang
 
 
-# Build
-
-.PHONY: spam_model build_onefile build_standalone
-
-clean:
-	@echo "Cleaning build directories..."
-	rm -rf output/
+.PHONY: spam_model
 
 spam_model:
 	uv run python sophie_bot/utils/spam_classifier.py
-
-build_onefile: spam_model
-	@echo "Building onefile..."
-	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone --onefile --linux-onefile-icon=build/icon.png
-
-build_standalone: spam_model
-	@echo "Building standalone..."
-	uv run python -m nuitka $(PROJECT_DIR) $(NUITKA_ARGS) --standalone
 
 # Development with hot-reload
 dev_bot:

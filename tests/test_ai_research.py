@@ -13,6 +13,7 @@ from pydantic_ai.usage import RunUsage
 from stfu_tg import Title
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic
@@ -348,7 +349,7 @@ async def test_build_chatbot_usage_limits_maps_token_limit(test_redis: object, t
 
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(side_effect=value_side_effect)):
         limits = await build_chatbot_usage_limits(
-            SimpleNamespace(chat_tid=-100123, services=test_services)
+            SimpleNamespace(chat_tid=-100123, services=test_services, mode=AIMode.support)
         )
 
     assert limits.request_limit == 3
