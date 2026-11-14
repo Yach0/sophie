@@ -12,8 +12,8 @@ class DeleteButton(SophieButtonABC):
     def needed_type() -> tuple[LazyProxy, LazyProxy]:
         return l_("Delete Button"), l_("Delete Buttons")
 
-    @staticmethod
-    def examples() -> dict[str, LazyProxy | None] | None:
+    @property
+    def examples(self) -> dict[str, LazyProxy | None] | None:
         return {
             "[Button name](delmsg)": None,
         }

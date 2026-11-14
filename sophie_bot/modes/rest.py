@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import uvicorn
@@ -22,7 +22,7 @@ def create_rest_app(
     app = create_app(config)
 
     @asynccontextmanager
-    async def lifespan(active_app: FastAPI) -> AsyncIterator[None]:
+    async def lifespan(active_app: FastAPI) -> AsyncGenerator[None]:
         log.info("Starting up Sophie API...")
         async with build_rest_runtime(active_app, config=config, database=database) as runtime:
             await initialize_rest_mode(runtime)

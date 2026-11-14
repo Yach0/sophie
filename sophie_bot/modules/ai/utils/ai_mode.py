@@ -7,10 +7,12 @@ from aiogram.fsm.context import FSMContext
 from beanie import PydanticObjectId
 from redis.asyncio import Redis
 
+from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.utils.ai_help_mode import is_help_mode
 from sophie_bot.modules.ai.utils.cache_messages import reset_messages, reset_modern_context
+from sophie_bot.modules.ai.utils.evidence_memory import clear_memory, mutate_memory
 
 
 @dataclass(frozen=True, slots=True)
@@ -127,8 +129,7 @@ async def resolve_chat_mode(chat: ChatModel, state: FSMContext | None = None) ->
     """
     if chat.type == ChatType.private:
         help_mode = await is_help_mode(state)
-        mode = AIMode.sophie_help if help_mode else AIMode.sophie_pm
-        return mode
+        return AIMode.sophie_help if help_mode else AIMode.sophie_pm
     return await get_chat_mode(chat.iid, AIMode.disabled)
 
 
@@ -138,6 +139,11 @@ async def resolve_chat_capabilities(chat: ChatModel, state: FSMContext | None = 
 
 async def set_chat_mode(chat: ChatModel, mode: AIMode, *, redis: Redis) -> None:
     await AIModeModel.set_mode(chat, mode)
+
+    if not get_capabilities(mode).memory and await AIEvidenceMemoryModel.find_one(
+        AIEvidenceMemoryModel.chat.id == chat.iid
+    ):
+        await mutate_memory(chat, clear_memory)
 
     # Entering a mode that keeps no history must not leave the previous mode's messages behind.
     reset_history = not get_capabilities(mode).message_cache

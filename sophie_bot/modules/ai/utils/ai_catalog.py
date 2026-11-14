@@ -32,6 +32,7 @@ MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
             AIModelPurpose.translation,
             AIModelPurpose.filters,
             AIModelPurpose.summary,
+            AIModelPurpose.memory_writer,
             AIModelPurpose.moderation_reason,
             AIModelPurpose.research,
         }
@@ -167,7 +168,7 @@ async def load_documents[DocumentT: Document](
 
 
 async def load_catalog(*, redis: Redis) -> AICatalog:
-    global _catalog
+    global _catalog  # deepsource: skip - PYL-W0603 - catalog snapshot is a singleton reloaded on change
 
     providers = {
         provider.name: CatalogProvider(

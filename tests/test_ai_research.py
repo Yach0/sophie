@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import unescape
 from types import SimpleNamespace
 from typing import Any, Self, cast
 from unittest.mock import AsyncMock, patch
@@ -12,6 +13,7 @@ from pydantic_ai.usage import RunUsage
 from stfu_tg import Title
 
 from sophie_bot.config import CONFIG
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.agent_tools.kagi_search import KagiSearchResult, kagi_search_tool
 from sophie_bot.modules.ai.agent_tools.research import research_topic
@@ -261,7 +263,7 @@ async def test_research_tool_returns_report_and_updates_chatbot_progress(
 
 @pytest.mark.asyncio
 async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: object, test_services: object) -> None:
-    doc = await _build_fitting_reply_doc(
+    doc, fitted_output_text = await _build_fitting_reply_doc(
         Title("AI Chatbot"),
         "Long answer " * 600,
         model=None,
@@ -272,6 +274,37 @@ async def test_build_fitting_reply_doc_fits_rendered_html_limit(test_redis: obje
     )
 
     assert len(doc.to_html()) <= TELEGRAM_MESSAGE_SAFE_LIMIT
+    assert len(fitted_output_text) < len("Long answer " * 600)
+
+
+@pytest.mark.parametrize("render_limit", [TELEGRAM_MESSAGE_SAFE_LIMIT, 1])
+@pytest.mark.parametrize("output_text", ["Short answer.", "A & B " * 600 + "TAIL"])
+async def test_build_fitting_reply_doc_returns_exact_body(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    render_limit: int,
+    output_text: str,
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chatbot_reply.TELEGRAM_MESSAGE_SAFE_LIMIT", render_limit)
+    doc, fitted_output_text = await _build_fitting_reply_doc(
+        None,
+        output_text,
+        model=None,
+        result=None,
+        explicit_debug_mode=False,
+        chat_tid=-100123,
+        services=test_services,
+    )
+
+    assert doc.to_rich() == fitted_output_text
+    if output_text == "Short answer.":
+        assert fitted_output_text == f"<p>{output_text}</p>"
+    else:
+        assert fitted_output_text.endswith("...</p>")
+        assert "TAIL" not in fitted_output_text
+        assert len(fitted_output_text) < len(output_text)
+        if render_limit == 1:
+            assert len(unescape(fitted_output_text.removeprefix("<p>").removesuffix("</p>"))) <= 512
 
 
 def test_render_research_markdown_has_metadata_and_sources_without_blockquote() -> None:
@@ -316,7 +349,7 @@ async def test_build_chatbot_usage_limits_maps_token_limit(test_redis: object, t
 
     with patch("sophie_bot.modules.ai.utils.chatbot_agent.get_value", AsyncMock(side_effect=value_side_effect)):
         limits = await build_chatbot_usage_limits(
-            SimpleNamespace(chat_tid=-100123, services=test_services)
+            SimpleNamespace(chat_tid=-100123, services=test_services, mode=AIMode.support)
         )
 
     assert limits.request_limit == 3

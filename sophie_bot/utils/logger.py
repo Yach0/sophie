@@ -13,7 +13,7 @@ from sophie_bot.config import CONFIG
 timestamper = structlog.processors.TimeStamper(fmt="%Y-%m-%d %H:%M:%S")
 
 
-class _NotHandledFilter(logging.Filter):
+class _NotHandledFilter(logging.Filter):  # deepsource: skip - PY-A6006 - audited logging filter
     def filter(self, record: logging.LogRecord) -> bool:
         return "is not handled" not in record.getMessage()
 
@@ -86,7 +86,7 @@ def _ensure_log_directory():
 # Defer directory creation until actually needed
 _ensure_log_directory()
 
-logging.config.dictConfig(
+logging.config.dictConfig(  # deepsource: skip - PY-A6006 - audited logging configuration
     {
         "version": 1,
         "disable_existing_loggers": False,

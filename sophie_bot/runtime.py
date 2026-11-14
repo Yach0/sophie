@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 
@@ -48,7 +48,7 @@ class SchedulerModeRuntime:
 async def _build_application_services(
     config: Config,
     database: DatabaseResources | None,
-) -> AsyncIterator[ApplicationServices]:
+) -> AsyncGenerator[ApplicationServices]:
     if database is None:
         async with (
             open_database(config) as owned_database,
@@ -88,7 +88,7 @@ async def build_bot_runtime(
     *,
     config: Config = CONFIG,
     database: DatabaseResources | None = None,
-) -> AsyncIterator[BotModeRuntime]:
+) -> AsyncGenerator[BotModeRuntime]:
     async with _build_application_services(config, database) as services:
         dispatcher, storage = create_dispatcher(config)
         dispatcher.workflow_data["services"] = services
@@ -104,7 +104,7 @@ async def build_rest_runtime(
     *,
     config: Config = CONFIG,
     database: DatabaseResources | None = None,
-) -> AsyncIterator[RestModeRuntime]:
+) -> AsyncGenerator[RestModeRuntime]:
     async with _build_application_services(config, database) as services:
         app.state.services = services
         try:
@@ -118,7 +118,7 @@ async def build_scheduler_runtime(
     *,
     config: Config = CONFIG,
     database: DatabaseResources | None = None,
-) -> AsyncIterator[SchedulerModeRuntime]:
+) -> AsyncGenerator[SchedulerModeRuntime]:
     async with _build_application_services(config, database) as services:
         scheduler = create_scheduler(config)
         yield SchedulerModeRuntime(config=config, services=services, scheduler=scheduler)

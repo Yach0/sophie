@@ -13,7 +13,9 @@ from pydantic_ai.messages import (
     ToolReturnPart,
 )
 from redis.asyncio import Redis
+from redis.exceptions import WatchError
 
+from sophie_bot.modules.ai.utils.cache_messages import get_context_epoch_key
 from sophie_bot.utils.feature_flags import get_value
 
 ToolExchange = ModelRequest | ModelResponse
@@ -119,7 +121,8 @@ async def _trim_tool_history(chat_tid: int, *, redis: Redis) -> None:
     message_ids = sorted(int(field) for raw_field in raw_fields if (field := _decode_field(raw_field)).isdigit())
     if len(message_ids) <= TOOL_HISTORY_RUN_LIMIT:
         return
-    await redis.hdel(key, *(str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT]))  # type: ignore[misc]
+    stale_ids = (str(message_id) for message_id in message_ids[:-TOOL_HISTORY_RUN_LIMIT])
+    await redis.hdel(key, *stale_ids)  # type: ignore[misc]
 
 
 async def store_tool_exchanges(
@@ -128,6 +131,7 @@ async def store_tool_exchanges(
     exchanges: Sequence[ToolExchange],
     *,
     redis: Redis,
+    expected_epoch: int | None = None,
 ) -> None:
     """Persist the tool exchanges that produced the answer sent as ``message_id``."""
     if not exchanges:
@@ -135,10 +139,21 @@ async def store_tool_exchanges(
     with sentry_sdk.start_span(op="ai.cache", name="Store tool history") as span:
         key = tool_history_key(chat_tid)
         payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
-        async with redis.pipeline(transaction=True) as pipe:
-            pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
-            pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
-            await pipe.execute()
+        try:
+            async with redis.pipeline(transaction=True) as pipe:
+                # A reset changes this version before clearing history. WATCH makes the check
+                # and write atomic, so an older request cannot restore deleted tool results.
+                if expected_epoch is not None:
+                    epoch_key = get_context_epoch_key(chat_tid)
+                    await pipe.watch(epoch_key)
+                    if int(await pipe.get(epoch_key) or 0) != expected_epoch:
+                        return
+                    pipe.multi()
+                pipe.hset(key, str(message_id), payload)  # type: ignore[misc]
+                pipe.expire(key, int(TOOL_HISTORY_TTL.total_seconds()))
+                await pipe.execute()
+        except WatchError:
+            return
         await _trim_tool_history(chat_tid, redis=redis)
         span.set_data("ai.cache.exchange_count", len(exchanges))
 
@@ -169,6 +184,7 @@ async def remember_chatbot_tool_history(
     previous_history: Sequence[ToolExchange],
     *,
     redis: Redis,
+    expected_epoch: int | None = None,
 ) -> None:
     """Store the tool exchanges a finished chatbot run performed, excluding replayed ones."""
     max_content_chars = int(
@@ -185,4 +201,4 @@ async def remember_chatbot_tool_history(
         skip_tool_call_ids=skipped_call_ids,
     )
 
-    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis)
+    await store_tool_exchanges(chat_tid, message_id, exchanges, redis=redis, expected_epoch=expected_epoch)

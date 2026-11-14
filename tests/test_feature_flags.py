@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
+from typing import ClassVar
 
 import pytest
 
@@ -43,67 +44,68 @@ STRING_FEATURE = "ai_translations_service_tier"
 CHAT_TID_A = -1002950100
 CHAT_TID_B = -1002950101
 CHAT_TID_C = -1002950102
-_current_redis: object = None
+class _TestContext:
+    redis: ClassVar[object] = None
 
 
 async def bump_rollout(feature: FeatureType, percentage: int) -> FeatureRollout:
-    return await ff.bump_rollout(feature, percentage, redis=_current_redis)
+    return await ff.bump_rollout(feature, percentage, redis=_TestContext.redis)
 
 
 async def delete_chat_override(feature: FeatureType, chat_tid: int) -> None:
-    await ff.delete_chat_override(feature, chat_tid, redis=_current_redis)
+    await ff.delete_chat_override(feature, chat_tid, redis=_TestContext.redis)
 
 
 async def delete_override(feature: FeatureType) -> None:
-    await ff.delete_override(feature, redis=_current_redis)
+    await ff.delete_override(feature, redis=_TestContext.redis)
 
 
 async def delete_rollout(feature: FeatureType) -> None:
-    await ff.delete_rollout(feature, redis=_current_redis)
+    await ff.delete_rollout(feature, redis=_TestContext.redis)
 
 
 async def get_chat_override(feature: FeatureType, chat_tid: int) -> FeatureValue | None:
-    return await ff.get_chat_override(feature, chat_tid, redis=_current_redis)
+    return await ff.get_chat_override(feature, chat_tid, redis=_TestContext.redis)
 
 
 async def get_rollout(feature: FeatureType) -> FeatureRollout | None:
-    return await ff.get_rollout(feature, redis=_current_redis)
+    return await ff.get_rollout(feature, redis=_TestContext.redis)
 
 
 async def get_service_tier(feature: FeatureType, chat_tid: int | None = None) -> str | None:
-    return await ff.get_service_tier(feature, chat_tid=chat_tid, redis=_current_redis)
+    return await ff.get_service_tier(feature, chat_tid=chat_tid, redis=_TestContext.redis)
 
 
 async def get_value(feature: FeatureType, chat_tid: int | None = None) -> FeatureValue:
-    return await ff.get_value(feature, chat_tid=chat_tid, redis=_current_redis)
+    return await ff.get_value(feature, chat_tid=chat_tid, redis=_TestContext.redis)
 
 
 async def is_enabled(feature: FeatureType, chat_tid: int | None = None) -> bool:
-    return await ff.is_enabled(feature, chat_tid=chat_tid, redis=_current_redis)
+    return await ff.is_enabled(feature, chat_tid=chat_tid, redis=_TestContext.redis)
 
 
 async def list_all() -> dict[FeatureType, FeatureValue]:
-    return await ff.list_all(redis=_current_redis)
+    return await ff.list_all(redis=_TestContext.redis)
 
 
 async def list_chat_overrides(chat_tid: int) -> dict[FeatureType, FeatureValue]:
-    return await ff.list_chat_overrides(chat_tid, redis=_current_redis)
+    return await ff.list_chat_overrides(chat_tid, redis=_TestContext.redis)
 
 
 async def list_rollouts() -> dict[FeatureType, FeatureRollout]:
-    return await ff.list_rollouts(redis=_current_redis)
+    return await ff.list_rollouts(redis=_TestContext.redis)
 
 
 async def set_chat_override(feature: FeatureType, chat_tid: int, value: FeatureValue) -> None:
-    await ff.set_chat_override(feature, chat_tid, value, redis=_current_redis)
+    await ff.set_chat_override(feature, chat_tid, value, redis=_TestContext.redis)
 
 
 async def set_enabled(feature: FeatureType, enabled: bool) -> None:
-    await ff.set_enabled(feature, enabled, redis=_current_redis)
+    await ff.set_enabled(feature, enabled, redis=_TestContext.redis)
 
 
 async def set_rollout(feature: FeatureType, percentage: int, value: FeatureValue) -> None:
-    await ff.set_rollout(feature, percentage, value, redis=_current_redis)
+    await ff.set_rollout(feature, percentage, value, redis=_TestContext.redis)
 
 
 async def set_timed_rollout(
@@ -113,11 +115,11 @@ async def set_timed_rollout(
     *,
     now: datetime | None = None,
 ) -> None:
-    await ff.set_timed_rollout(feature, days, value, now=now, redis=_current_redis)
+    await ff.set_timed_rollout(feature, days, value, now=now, redis=_TestContext.redis)
 
 
 async def set_value(feature: FeatureType, value: FeatureValue) -> None:
-    await ff.set_value(feature, value, redis=_current_redis)
+    await ff.set_value(feature, value, redis=_TestContext.redis)
 
 
 def _find_rollout_chat_tid(*, expected_in_rollout: bool) -> int:
@@ -134,12 +136,11 @@ async def _reset_feature_flag_overrides(
     db_init: object,
     test_redis: object,
 ) -> AsyncGenerator[None]:
-    global _current_redis
-    _current_redis = test_redis
+    _TestContext.redis = test_redis
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
     yield
     await FeatureFlagOverride.get_pymongo_collection().delete_many({})
-    _current_redis = None
+    _TestContext.redis = None
 
 # ===========================================================================
 # Pure-function unit tests (no DB / Redis needed)

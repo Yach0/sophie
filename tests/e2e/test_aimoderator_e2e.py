@@ -10,10 +10,10 @@ import httpx
 import httpx2
 import pytest
 from aiogram import F, Router
-from aiogram.types import Chat, InlineKeyboardMarkup, Message, User
+from aiogram.types import Chat, Message, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
-from aiogram_test_framework.types import RequestType
+from aiogram_test_framework.types import CapturedRequest, RequestType
 from mistralai.client.errors import SDKError
 from openai import InternalServerError, RateLimitError
 from tenacity import wait_none
@@ -31,16 +31,21 @@ from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
+from tests.utils.rich_html import parse_rich_html
 
 
-def _callbacks(requests: list) -> list[str]:
-    markup_data = next(
-        (request.params.get("reply_markup") for request in requests if request.params.get("reply_markup")),
+def _callbacks(requests: list[CapturedRequest]) -> list[str]:
+    rich = next(
+        (request.params["rich_message"]["html"] for request in requests if request.params.get("rich_message")),
         None,
     )
-    assert markup_data is not None
-    markup = InlineKeyboardMarkup.model_validate(markup_data)
-    return [button.callback_data or "" for row in markup.inline_keyboard for button in row]
+    assert rich is not None
+    root = parse_rich_html(rich)
+    return [
+        button.attrib["data"]
+        for button in root.findall(".//table/tr/td/tg-button")
+        if button.attrib["data"].startswith("ai_mod_cat:")
+    ]
 
 
 @pytest.mark.asyncio
@@ -87,7 +92,7 @@ async def test_aimoderator_requires_admin(test_client: TestClient) -> None:
 
     requests = await test_client.send_command(command="aimoderator", from_user=stranger.user, chat=group)
 
-    assert not any(request.params.get("reply_markup") for request in requests), (
+    assert not any(request.params.get("rich_message") for request in requests), (
         "A non-admin should not get the category picker"
     )
 

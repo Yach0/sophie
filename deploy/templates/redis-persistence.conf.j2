@@ -1,0 +1,3 @@
+[Container]
+Volume={{ redis_data_dir }}:/data:rw,Z
+Exec={{ redis_exec }} --save "900 1 300 10 60 10000" --dir /data --dbfilename dump.rdb

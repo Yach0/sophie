@@ -6,6 +6,7 @@ from stfu_tg import Bold, Doc, KeyValue, Section, Template, UserLink, VList
 from sophie_bot.db.models import ChatModel, WarnModel, WarnSettingsModel
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.warns.utils import expire_warns
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -49,6 +50,7 @@ class WarnsGroupHandler(SophieMessageHandler):
 
         # Group: List warns in current chat
         chat_iid = self.connection.db_model.iid
+        await expire_warns(self.connection.db_model, redis=self.services.redis)
         warns = await WarnModel.get_user_warns(chat_iid, target_user_model.iid)
         settings = await WarnSettingsModel.get_or_create(chat_iid)
 

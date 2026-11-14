@@ -20,7 +20,7 @@ from sophie_bot.modules.filters.api.schemas import (
     FilterCreate,
     FilterUpdate,
 )
-from sophie_bot.modules.filters.api.utils import build_filter_response
+from sophie_bot.modules.filters.api.utils import build_filter_response, validate_filter_handler
 from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
 
 
@@ -79,17 +79,18 @@ def _services(
 
 
 @pytest.mark.asyncio
-async def test_create_filter_creates_modern_filter() -> None:
+@pytest.mark.parametrize("handler", ["spam", "re:.*", "re:^never-matches-this-random-text$"])
+async def test_create_filter_creates_modern_filter(handler: str) -> None:
     chat_iid = PydanticObjectId()
     user = MagicMock(tid=99)
     chat = MagicMock(iid=chat_iid, tid=-100123)
     payload = FilterCreate(
-        handler="spam",
+        handler=handler,
         actions=[FilterActionPayload(name="dummy", data={})],
     )
     filter_item = MagicMock(
         id=PydanticObjectId(),
-        handler="spam",
+        handler=handler,
         action=None,
         actions={"dummy": {"label": "default"}},
         time=None,
@@ -117,7 +118,7 @@ async def test_create_filter_creates_modern_filter() -> None:
     ):
         response = await create_filter(chat_iid, payload, user, _services())
 
-    assert response.handler == "spam"
+    assert response.handler == handler
     assert response.version == 2
     assert response.actions[0].name == "dummy"
     assert response.actions[0].data == {"label": "default"}
@@ -155,7 +156,8 @@ async def test_create_filter_rejects_non_filter_action() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_filter_updates_modern_filter() -> None:
+@pytest.mark.parametrize("handler", ["updated", "re:.*", "re:^never-matches-this-random-text$"])
+async def test_update_filter_updates_modern_filter(handler: str) -> None:
     chat_iid = PydanticObjectId()
     filter_id = PydanticObjectId()
     user = MagicMock(tid=88)
@@ -172,10 +174,8 @@ async def test_update_filter_updates_modern_filter() -> None:
     )
     filter_item.chat.id = chat_iid
     payload = FilterUpdate(
-        handler="updated",
-        actions=[
-            FilterActionPayload(name="dummy", data={"label": "done"})
-        ],
+        handler=handler,
+        actions=[FilterActionPayload(name="dummy", data={"label": "done"})],
     )
 
     with (
@@ -208,11 +208,73 @@ async def test_update_filter_updates_modern_filter() -> None:
             _services(),
         )
 
-    assert filter_item.handler == "updated"
+    assert filter_item.handler == handler
     assert filter_item.version == 2
     assert filter_item.action is None
     assert filter_item.actions == {"dummy": {"label": "done"}}
     assert response.actions[0].description == "Run done"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["create", "update"])
+@pytest.mark.parametrize("handler", ["re:[", "re:(", "  re:*  "])
+async def test_filter_api_rejects_malformed_regex(operation: str, handler: str) -> None:
+    chat_iid = PydanticObjectId()
+    filter_id = PydanticObjectId()
+    chat = MagicMock(iid=chat_iid)
+    filter_item = MagicMock(id=filter_id, handler="original", save=AsyncMock())
+    filter_item.chat.id = chat_iid
+
+    with (
+        patch(
+            "sophie_bot.modules.filters.api.utils.ChatModel.get_by_iid",
+            new=AsyncMock(return_value=chat),
+        ),
+        patch(
+            "sophie_bot.modules.filters.api.utils.FiltersModel.get_by_keyword",
+            new=AsyncMock(return_value=None),
+        ),
+        patch(
+            "sophie_bot.modules.filters.api.filters.FiltersModel.get_by_id",
+            new=AsyncMock(return_value=filter_item),
+        ),
+        patch("sophie_bot.modules.filters.api.filters.FiltersModel.insert", new=AsyncMock()) as insert,
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        if operation == "create":
+            await create_filter(
+                chat_iid,
+                FilterCreate(handler=handler, actions=[FilterActionPayload(name="dummy", data={})]),
+                MagicMock(),
+                _services(),
+            )
+        else:
+            await update_filter(chat_iid, filter_id, FilterUpdate(handler=handler), MagicMock(), _services())
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Provided regex pattern is invalid"
+    insert.assert_not_awaited()
+    filter_item.save.assert_not_awaited()
+    assert filter_item.handler == "original"
+
+
+@pytest.mark.asyncio
+async def test_filter_api_regex_timeout_remains_bad_request() -> None:
+    with (
+        patch(
+            "sophie_bot.modules.filters.api.utils.FiltersModel.get_by_keyword",
+            new=AsyncMock(return_value=None),
+        ),
+        patch("sophie_bot.modules.filters.api.utils.regex.match", side_effect=TimeoutError) as match,
+        pytest.raises(HTTPException) as exc_info,
+    ):
+        await validate_filter_handler(PydanticObjectId(), "re:.*")
+
+    assert exc_info.value.status_code == 400
+    assert exc_info.value.detail == "Provided regex pattern is too slow to execute"
+    match.assert_called_once()
+    assert match.call_args.args[0] == ".*"
+    assert match.call_args.kwargs == {"timeout": 0.2}
 
 
 def test_build_filter_response_returns_modern_actions() -> None:

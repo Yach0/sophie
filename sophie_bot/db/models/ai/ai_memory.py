@@ -34,7 +34,6 @@ class AIMemoryModel(Document):
 
         model.lines.pop(index)
         await model.save()
-
         return True
 
     @staticmethod

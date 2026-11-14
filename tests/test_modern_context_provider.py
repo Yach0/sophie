@@ -17,7 +17,7 @@ from sophie_bot.modules.ai.utils import ai_catalog, ai_run
 from sophie_bot.modules.ai.utils.ai_catalog import AICatalog, CatalogModel, CatalogProvider
 from sophie_bot.modules.ai.utils.ai_model_factory import pinned_candidate, registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
-from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, _candidate_run_kwargs
+from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, _candidate_model_settings
 
 SESSION_ID = "8df4ba52-4f4c-4e48-90d7-6e1e93246a92"
 
@@ -29,9 +29,7 @@ def _completion(model_name: str) -> dict[str, Any]:
         "created": 0,
         "model": model_name,
         "provider": "Anthropic" if model_name.startswith("anthropic/") else "OpenAI",
-        "choices": [
-            {"index": 0, "message": {"role": "assistant", "content": "hello"}, "finish_reason": "stop"}
-        ],
+        "choices": [{"index": 0, "message": {"role": "assistant", "content": "hello"}, "finish_reason": "stop"}],
         "usage": {
             "prompt_tokens": 20,
             "completion_tokens": 2,
@@ -76,16 +74,15 @@ async def test_modern_cache_controls_reach_supported_wire_payloads(
             return "message_1"
 
         agent = Agent(model, instructions="Stable alias-only instructions.", tools=[lookup])
-        kwargs = _candidate_run_kwargs(
-            {"user_prompt": "speaker_1: hello"},
+        settings = _candidate_model_settings(
             None,
             AIRequestOptions(
                 user_tracking_id=-1001234567890, session_id=SESSION_ID, service_tier="flex", prompt_cache=True
             ),
             AIModelCandidate(model=model, model_name=model_name, service_tier="none"),
-            model,
+            None,
         )
-        result = await agent.run(**kwargs)
+        result = await agent.run("speaker_1: hello", model_settings=settings)
 
     payload = payloads[0]
     encoded = json.dumps(payload)
@@ -98,7 +95,12 @@ async def test_modern_cache_controls_reach_supported_wire_payloads(
         assert "prompt_cache_key" not in payload
         assert result.usage.cache_write_tokens == 4
         if explicit_cache:
-            assert payload["messages"][0]["content"][-1]["cache_control"]["type"] == "ephemeral"
+            assert any(
+                message["role"] in ("system", "developer")
+                and isinstance(message["content"], list)
+                and message["content"][-1].get("cache_control", {}).get("type") == "ephemeral"
+                for message in payload["messages"]
+            ), payload["messages"]
             assert payload["messages"][-1]["content"][-1]["cache_control"]["type"] == "ephemeral"
             assert payload["tools"][-1]["cache_control"]["type"] == "ephemeral"
     else:
@@ -112,9 +114,7 @@ async def test_modern_cache_controls_reach_supported_wire_payloads(
 
 
 def _registered_capacities(monkeypatch: pytest.MonkeyPatch, capacities: dict[str, int | None]) -> None:
-    provider = CatalogProvider(
-        name="openrouter", kind=AIProviderKind.openrouter, base_url=None, api_key="offline"
-    )
+    provider = CatalogProvider(name="openrouter", kind=AIProviderKind.openrouter, base_url=None, api_key="offline")
     monkeypatch.setattr(
         ai_catalog,
         "_catalog",
@@ -170,10 +170,10 @@ def test_runtime_capacity_includes_registered_last_resort(monkeypatch: pytest.Mo
     primary = TestModel(model_name="primary")
     fallback = TestModel(model_name="fallback", profile={"context_window": 65536})
     monkeypatch.setattr(ai_run, "get_ai_model", lambda _: fallback)
-    plan = AIModelPlan(
-        candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),)
-    )
-    assert ai_run.modern_context_window_tokens(plan) == 4096
+    plan = AIModelPlan(candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),))
+    candidates = ai_run.modern_context_candidates(plan)
+    assert {candidate.model_name for candidate in candidates} == {"primary", ai_run.AI_FALLBACK_MODEL_NAME}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 4096
 
 
 @pytest.mark.parametrize("register_fallback", [False, True])
@@ -184,11 +184,9 @@ def test_runtime_rejects_last_resort_without_registered_size(
     primary = TestModel(model_name="primary")
     fallback = TestModel(model_name="fallback", profile={"context_window": 32768})
     monkeypatch.setattr(ai_run, "get_ai_model", lambda _: fallback)
-    plan = AIModelPlan(
-        candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),)
-    )
+    plan = AIModelPlan(candidates=(AIModelCandidate(model=primary, model_name="primary", context_window_tokens=32768),))
     with pytest.raises(ValueError, match=f"{ai_run.AI_FALLBACK_MODEL_NAME}.*context_window_tokens"):
-        ai_run.modern_context_window_tokens(plan)
+        ai_run.modern_context_candidates(plan)
 
 
 def test_runtime_capacity_only_includes_candidates_within_attempt_limit(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -200,7 +198,38 @@ def test_runtime_capacity_only_includes_candidates_within_attempt_limit(monkeypa
             for name, size in (("primary", 32768), ("second", 65536), ("third", 8192), ("not-tried", None))
         )
     )
-    assert ai_run.modern_context_window_tokens(plan) == 8192
+    candidates = ai_run.modern_context_candidates(plan)
+    assert "not-tried" not in {candidate.model_name for candidate in candidates}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 8192
+
+
+def test_runtime_capacity_includes_image_candidate_beyond_text_attempt_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _registered_capacities(monkeypatch, {ai_run.AI_FALLBACK_MODEL_NAME: 16384})
+    monkeypatch.setattr(ai_run, "get_ai_model", lambda _: TestModel(model_name="fallback"))
+    plan = AIModelPlan(
+        candidates=(
+            *(
+                AIModelCandidate(
+                    model=TestModel(model_name=f"text-{index}"),
+                    model_name=f"text-{index}",
+                    context_window_tokens=32768,
+                    supports_images=False,
+                )
+                for index in range(3)
+            ),
+            AIModelCandidate(
+                model=TestModel(model_name="visual"),
+                model_name="visual",
+                context_window_tokens=4096,
+                supports_images=True,
+            ),
+        ),
+    )
+    candidates = ai_run.modern_context_candidates(plan)
+    assert "visual" in {candidate.model_name for candidate in candidates}
+    assert min(candidate.require_context_window_tokens() for candidate in candidates) == 4096
 
 
 def test_pinned_candidate_copies_registry_size(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -237,9 +266,7 @@ def test_unregistered_agent_model_receives_no_profile_capacity(monkeypatch: pyte
 
 
 def test_registered_capacity_lookup_accepts_exact_upstream_alias(monkeypatch: pytest.MonkeyPatch) -> None:
-    provider = CatalogProvider(
-        name="custom", kind=AIProviderKind.openai_compatible, base_url=None, api_key="offline"
-    )
+    provider = CatalogProvider(name="custom", kind=AIProviderKind.openai_compatible, base_url=None, api_key="offline")
     monkeypatch.setattr(
         ai_catalog,
         "_catalog",
@@ -262,9 +289,7 @@ def test_registered_capacity_lookup_accepts_exact_upstream_alias(monkeypatch: py
 
 
 @pytest.mark.parametrize("missing_name", ["primary", "backup"])
-def test_runtime_rejects_unconfigured_primary_or_backup(
-    monkeypatch: pytest.MonkeyPatch, missing_name: str
-) -> None:
+def test_runtime_rejects_unconfigured_primary_or_backup(monkeypatch: pytest.MonkeyPatch, missing_name: str) -> None:
     _registered_capacities(monkeypatch, {ai_run.AI_FALLBACK_MODEL_NAME: 32768})
     monkeypatch.setattr(ai_run, "get_ai_model", lambda _: TestModel(model_name="fallback"))
     plan = AIModelPlan(
@@ -278,15 +303,13 @@ def test_runtime_rejects_unconfigured_primary_or_backup(
         )
     )
     with pytest.raises(ValueError, match=f"{missing_name}.*context_window_tokens"):
-        ai_run.modern_context_window_tokens(plan)
+        ai_run.modern_context_candidates(plan)
 
 
 def test_ambiguous_upstream_alias_does_not_choose_a_registry_capacity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    provider = CatalogProvider(
-        name="custom", kind=AIProviderKind.openai_compatible, base_url=None, api_key="offline"
-    )
+    provider = CatalogProvider(name="custom", kind=AIProviderKind.openai_compatible, base_url=None, api_key="offline")
     monkeypatch.setattr(
         ai_catalog,
         "_catalog",

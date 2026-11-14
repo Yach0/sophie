@@ -9,7 +9,12 @@ from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
 from sophie_bot.modules.ai.handlers.aimode import AIModeSelectCallback, AIModeSetting
-from sophie_bot.modules.ai.handlers.aimoderator import AIModeratorCategoryToggle, AIModeratorSetting
+from sophie_bot.modules.ai.handlers.aimoderator import (
+    AIModeratorCategoryToggle,
+    AIModeratorControl,
+    AIModeratorEnabledToggle,
+    AIModeratorSetting,
+)
 from sophie_bot.modules.ai.handlers.autotranslate_setting import (
     AIAutotrans,
     AutoTranslateLanguageHandler,
@@ -19,6 +24,7 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesSetting,
     AINoteTitlesSetting,
 )
+from sophie_bot.modules.ai.handlers.memory import AIMemoryControl
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -51,6 +57,7 @@ from sophie_bot.modules.ai.middlewares.cache_user_messages import (
     CacheUserMessagesMiddleware,
 )
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
+from sophie_bot.modules.ai.schedules.write_memory import WriteMemory
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
 from sophie_bot.services.application import ApplicationServices
@@ -81,6 +88,14 @@ async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
 
 def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
     scheduler.add_job(
+        track_scheduler_callback(WriteMemory(services).handle, services),
+        "interval",
+        minutes=1,
+        jobstore="ram",
+        max_instances=1,
+        coalesce=True,
+    )
+    scheduler.add_job(
         track_scheduler_callback(GenerateChatSummaries(services).handle, services),
         "cron",
         minute="*",
@@ -102,7 +117,9 @@ module_manifest = ModuleManifest(
         OpAIModel,
         AIModeSetting,
         AIModeSelectCallback,
+        AIModeratorControl,
         AIModeratorSetting,
+        AIModeratorEnabledToggle,
         AIModeratorCategoryToggle,
         AIAutotrans,
         AutoTranslateLanguageHandler,
@@ -113,6 +130,7 @@ module_manifest = ModuleManifest(
         AIFilterAddHandler,
         AiPmInitialize,
         AIContextReset,
+        AIMemoryControl,
         ResearchCmd,
         AiTranslate,
         AiUsage,

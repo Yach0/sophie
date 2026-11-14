@@ -69,7 +69,8 @@ async def validate_filter_handler(chat_iid: ObjectId, keyword: str, editing_id: 
                 _("AI filter prompt cannot be empty. Please provide a description of when to trigger the filter."),
                 Template(
                     _(
-                        "AI filter prompt cannot be empty. Please provide a description of when to trigger the filter.\n"
+                        "AI filter prompt cannot be empty. "
+                        "Please provide a description of when to trigger the filter.\n"
                         "Example: ai:Message contains crypto scam"
                     )
                 ),
@@ -101,7 +102,8 @@ async def validate_filter_handler(chat_iid: ObjectId, keyword: str, editing_id: 
             log.info("validate_filter_handler: regex too slow")
             raise InvalidFilterHandler(
                 _(
-                    "Provided regex pattern is too slow to execute. Please review the pattern and try adding the filter again."
+                    "Provided regex pattern is too slow to execute. "
+                    "Please review the pattern and try adding the filter again."
                 )
             )
         except regex.error:

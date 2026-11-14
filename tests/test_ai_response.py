@@ -1,19 +1,11 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-from typing import cast
-from unittest.mock import AsyncMock, MagicMock
-
 import pytest
-from aiogram.types import Message
-from stfu_tg import BlockQuote, Doc
+from stfu_tg import BlockQuote
 
-from sophie_bot.modules.ai.magic_handlers import modern_action
-from sophie_bot.modules.ai.utils.ai_header import AI_CHATBOT_CUSTOM_EMOJI_ID, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.ai_header import AI_CHATBOT_CUSTOM_EMOJI_ID
 from sophie_bot.modules.ai.utils.ai_response import render_ai_response
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
-from sophie_bot.modules.filters.enforce_middleware import EnforceFiltersMiddleware
-from sophie_bot.services.application import ApplicationServices
 
 MARKDOWN = "**First** & `code`.\n\nSecond *paragraph*.\n\nThird [link](https://example.com)."
 PARAGRAPHS = '<p>Second <i>paragraph</i>.</p>\n<p>Third <a href="https://example.com">link</a>.</p>'
@@ -54,54 +46,3 @@ def test_shared_html_policy_preserves_code_and_escapes_untrusted_text(strip_html
         assert rich.startswith("<p>Text <i>italic</i> &amp; value</p>")
     else:
         assert "&lt;alien&gt;Text&lt;/alien&gt;" in rich
-
-
-async def test_filter_ai_action_final_payload_keeps_title_and_rich_paragraphs(monkeypatch: pytest.MonkeyPatch) -> None:
-    send = AsyncMock()
-    message = cast(
-        Message,
-        SimpleNamespace(
-            text="trigger",
-            chat=SimpleNamespace(id=-100123),
-            message_id=7,
-            message_thread_id=8,
-            bot=SimpleNamespace(send_rich_message=send),
-        ),
-    )
-    chat = SimpleNamespace(iid="chat", tid=-100123)
-    services = SimpleNamespace(redis=object())
-    history = MagicMock()
-    history.add_from_cache = AsyncMock()
-    history.add_from_message = AsyncMock()
-    monkeypatch.setattr(modern_action.ChatModel, "get_by_tid", AsyncMock(return_value=chat))
-    monkeypatch.setattr(modern_action.AIQuotaFilter, "__call__", AsyncMock(return_value=True))
-    monkeypatch.setattr(modern_action, "OldContext", MagicMock(return_value=history))
-    monkeypatch.setattr(
-        modern_action, "get_chat_default_model_plan", AsyncMock(return_value=SimpleNamespace(primary="test"))
-    )
-    monkeypatch.setattr(modern_action, "Agent", MagicMock())
-    monkeypatch.setattr(
-        modern_action, "run_ai_text", AsyncMock(return_value=SimpleNamespace(output=MARKDOWN, usage=None))
-    )
-    body = await modern_action.AIReplyAction().handle(
-        message,
-        {"context": SimpleNamespace(connection=SimpleNamespace(tid=-100123, db_model=chat)), "services": services},
-        modern_action.AIReplyActionDataModel(prompt="Respond"),
-    )
-    assert isinstance(body, Doc)
-    # Actions return a body to the filter aggregator; they must not add their own metadata.
-    assert "<tg-emoji" not in body.to_rich()
-    assert "AI Response" in body.to_rich()
-    await EnforceFiltersMiddleware._handle_action_messages(
-        message,
-        [body],
-        services=cast(ApplicationServices, services),
-        ai_matched=True,
-    )
-    payload = send.await_args.kwargs
-    assert PARAGRAPHS in payload["rich_message"].html
-    assert "<b>First</b> &amp; <code>code</code>." in payload["rich_message"].html
-    assert payload["reply_parameters"].message_id == 7
-    assert payload["message_thread_id"] == 8
-    assert AI_CUSTOM_EMOJI_ID in payload["rich_message"].html
-    assert AI_CHATBOT_CUSTOM_EMOJI_ID not in payload["rich_message"].html

@@ -12,7 +12,7 @@ from sophie_bot.modules.logging.events import LogEvent
 from sophie_bot.modules.logging.utils import log_event
 from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.warns.utils import warn_user
-from sophie_bot.shared.actions import ActionDefinition, ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition, ModernActionABC, mark_action_completed
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -112,6 +112,8 @@ class WarnModernAction(ModernActionABC[WarnActionDataModel]):
             action_context=data,
             services=data["services"],
         )
+
+        mark_action_completed(data)
 
         if "filter_id" in data:
             await log_event(

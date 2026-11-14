@@ -18,6 +18,9 @@ COPY libs libs
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project --compile-bytecode
 
+COPY sophie_bot/utils/ai_tokenizer_assets.py sophie_bot/utils/ai_tokenizer_assets.py
+RUN uv run --no-sync python sophie_bot/utils/ai_tokenizer_assets.py
+
 # Copy the project source code
 COPY sophie_bot sophie_bot
 COPY locales locales

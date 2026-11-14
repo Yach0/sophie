@@ -60,7 +60,7 @@ class NotesListResponse(BaseModel):
 class NoteCreate(RestSaveable):
     names: tuple[str, ...]
     file: NoteFile | None = None
-    parse_mode: SaveableParseMode = SaveableParseMode.html
+    parse_mode: SaveableParseMode | None = SaveableParseMode.html
     description: str | None = None
     ai_description: bool = False
     note_group: str | None = None

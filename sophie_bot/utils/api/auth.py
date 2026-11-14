@@ -32,8 +32,7 @@ def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = 
     expire = datetime.now(UTC) + (expires_delta or timedelta(minutes=15))
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, CONFIG.api_jwt_secret, algorithm="HS256")
-    return encoded_jwt
+    return jwt.encode(to_encode, CONFIG.api_jwt_secret, algorithm="HS256")
 
 
 def generate_token(length: int = 32) -> str:

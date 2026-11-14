@@ -331,8 +331,8 @@ def model_action_wizard(
     async def save_draft(
         chat_iid: PydanticObjectId,
         draft: ActionDraft,
-        callback_query: CallbackQuery,
-        connection: ChatConnection,
+        _callback_query: CallbackQuery,
+        _connection: ChatConnection,
     ) -> None:
         if len(draft.actions) > max_actions:
             raise ValueError(f"Draft exceeds maximum allowed actions ({max_actions})")

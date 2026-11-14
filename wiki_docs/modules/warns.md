@@ -30,7 +30,10 @@ icon: ⚠️
 | `/reset_warns` `/del_warns` | `<User>` | Resets all warnings of a user in the current chat. | *Only in groups* |
 | `/reset_all_warns` `/del_all_warns` | - | Resets all warnings of all users in the current chat. | *Only in groups* |
 | `/warn_limit` | `<?New value>` | Shows / changes the warn limit for this chat. |  |
+| `/warn_expiration` | `<Warning lifetime (e.g., 2h, 7d, 2w)>` | Shows / changes how long each warning lasts. |  |
+| `/disable_warn_expiration` | - | Disables warning expiration in this chat. |  |
 | `/warn_action` | - | Configures warn actions. |  |
 | `/warn_action_each` | - | Configures actions triggered on each warning. |  |
 | `/warn_action_max` | - | Configures actions triggered when the warn limit is reached. |  |
 {.card-view-on-mobile}
+---

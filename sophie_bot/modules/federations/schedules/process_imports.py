@@ -190,7 +190,6 @@ async def _execute_import_task(services: ApplicationServices, task: FederationTa
 
     imported_count = 0
     failed_count = 0
-    pending_bans: list[FederationBan] = []
 
     # Read all rows first
     rows = list(reader)
@@ -198,6 +197,7 @@ async def _execute_import_task(services: ApplicationServices, task: FederationTa
     # Group into batches
     for i in range(0, len(rows), BATCH_SIZE):
         batch_rows = rows[i : i + BATCH_SIZE]
+        pending_bans: dict[int, FederationBan] = {}
 
         # Fetch only existing bans for this batch
         batch_user_ids = []
@@ -255,8 +255,10 @@ async def _execute_import_task(services: ApplicationServices, task: FederationTa
                     await _update_existing_ban(existing_ban, ban_data["reason"])
                     imported_count += 1
                 else:
-                    ban = _create_ban_entry(ban_data, task.id)
-                    pending_bans.append(ban)
+                    if user_id in pending_bans:
+                        pending_bans[user_id].reason = ban_data["reason"]
+                    else:
+                        pending_bans[user_id] = _create_ban_entry(ban_data, task.id)
                     imported_count += 1
 
             except BanValidationError as e:
@@ -264,13 +266,12 @@ async def _execute_import_task(services: ApplicationServices, task: FederationTa
                 log.warning("Failed to import ban row", task_id=str(task.id), row=real_row_num, error=str(e))
 
         if pending_bans:
-            await FederationBan.insert_many(pending_bans)
+            await FederationBan.insert_many(list(pending_bans.values()))
             await FederationCacheService.incr_ban_count(
                 federation.fed_id,
                 len(pending_bans),
                 redis=services.redis,
             )
-            pending_bans.clear()
 
     return {"imported_count": imported_count, "failed_count": failed_count, "federation": federation}
 

@@ -105,3 +105,23 @@ class ModernActionABC[ACTION_DATA: BaseModel | None](ABC):
     ) -> ActionResult | None:
         """Handle the action and return its result."""
         raise NotImplementedError
+
+
+@dataclass(slots=True)
+class ActionCompletion:
+    """Execution status, independent of presentation and failure notifications."""
+
+    completed: bool = False
+    deferred: bool = False
+
+
+def mark_action_completed(data: dict[str, Any], *, deferred: bool = False) -> None:
+    """Signal success to an execution observer when one is installed.
+
+    Text-only replies defer completion until the dispatcher delivers their text.
+    Other action consumers do not need to install an observer.
+    """
+    completion = data.get("action_completion")
+    if isinstance(completion, ActionCompletion):
+        completion.completed = True
+        completion.deferred = deferred

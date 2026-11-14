@@ -141,7 +141,8 @@ class ConnectionsMiddleware(BaseMiddleware):
                 data["bot"].send_message(
                     real_chat.id,
                     _(
-                        "Connected chat not found in the database. You have been disconnected and will remain disconnected."
+                        "Connected chat not found in the database. "
+                        "You have been disconnected and will remain disconnected."
                     ),
                 )
             )

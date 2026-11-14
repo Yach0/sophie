@@ -9,10 +9,11 @@ from mem_top import mem_top
 
 from sophie_bot.utils.logger import log
 
-FIRST_SNAPSHOT = None
-
 
 class TracemallocMiddleware(BaseMiddleware):
+    def __init__(self) -> None:
+        self.first_snapshot: tracemalloc.Snapshot | None = None
+
     async def __call__(
         self,
         handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
@@ -21,9 +22,8 @@ class TracemallocMiddleware(BaseMiddleware):
     ) -> Any:
         result = await handler(event, data)
 
-        global FIRST_SNAPSHOT
-        if not FIRST_SNAPSHOT:
-            FIRST_SNAPSHOT = tracemalloc.take_snapshot()
+        if not self.first_snapshot:
+            self.first_snapshot = tracemalloc.take_snapshot()
             log.info("Tracemalloc: first snapshot taken...")
             return result
 

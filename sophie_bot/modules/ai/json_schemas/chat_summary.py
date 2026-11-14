@@ -9,7 +9,9 @@ class AIChatSummaryGroup(BaseModel):
     message_refs: list[int] = Field(
         default_factory=list,
         min_length=1,
-        description="References to the transcript lines this topic is built from, exactly as shown at the start of each line.",
+        description=(
+            "References to the transcript lines this topic is built from, exactly as shown at the start of each line."
+        ),
     )
 
 

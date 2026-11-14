@@ -67,11 +67,9 @@ class AIChatSummaryModel(Document):
         return model
 
     @staticmethod
-    async def get_recent_lines(chat_iid: PydanticObjectId, limit: int = 5) -> list[AIChatSummaryLine]:
-        summaries = await (
+    async def get_latest(chat_iid: PydanticObjectId) -> AIChatSummaryModel | None:
+        return await (
             AIChatSummaryModel.find(AIChatSummaryModel.chat.id == chat_iid)
             .sort([("summary_date", DESCENDING)])
-            .limit(limit)
-            .to_list()
+            .first_or_none()
         )
-        return [line for summary in reversed(summaries) for line in summary.lines]

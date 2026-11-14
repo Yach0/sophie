@@ -15,6 +15,24 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOv
 
 # Public types
 FeatureType: TypeAlias = Literal[  # noqa: UP040
+    "ai_memory_capture",
+    "ai_memory_writer",
+    "ai_memory_writer_model",
+    "ai_memory_personal",
+    "ai_memory_group",
+    "ai_memory_updates",
+    "ai_memory_shared_decisions",
+    "ai_memory_retrieval",
+    "ai_memory_branches",
+    "ai_memory_member_coverage",
+    "ai_memory_history",
+    "ai_memory_participation",
+    "ai_memory_recheck_answers",
+    "ai_memory_controls",
+    "ai_memory_replace_legacy",
+    "ai_memory_request_limit",
+    "ai_memory_tool_calls_limit",
+    "ai_memory_retention_days",
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_filter_daily_chat_limit",
@@ -85,9 +103,12 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "cleannotes",
     "filters",
     "filters_silent_mode",
+    "filter_stats",
     "antiflood",
+    "warn_expiration",
     "locks",
     "group_user_whitelist",
+    "welcome_security_settings_panel",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "ai_translations_service_tier",
@@ -216,6 +237,24 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
+    "ai_memory_capture": _feature(False),
+    "ai_memory_writer": _feature(False),
+    "ai_memory_writer_model": _feature("gpt-6.1-terra", _AI_MODEL_FEATURE),
+    "ai_memory_personal": _feature(False),
+    "ai_memory_group": _feature(False),
+    "ai_memory_updates": _feature(False),
+    "ai_memory_shared_decisions": _feature(False),
+    "ai_memory_retrieval": _feature(False),
+    "ai_memory_branches": _feature(False),
+    "ai_memory_member_coverage": _feature(False),
+    "ai_memory_history": _feature(False),
+    "ai_memory_participation": _feature(False),
+    "ai_memory_recheck_answers": _feature(False),
+    "ai_memory_controls": _feature(False),
+    "ai_memory_replace_legacy": _feature(False),
+    "ai_memory_request_limit": _feature(8),
+    "ai_memory_tool_calls_limit": _feature(12),
+    "ai_memory_retention_days": _feature(30),
     "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
@@ -230,16 +269,41 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "ai_translation_model": _feature("", _AI_MODEL_FEATURE),
     "ai_search_provider": _feature("kagi", _SEARCH_PROVIDER_FEATURE),
     "ai_chatbot_system_prompt": _feature(
-        "You're a telegram bot named Sophie.\nBe funny when the topic is casual.\nSend short messages unless longer explanations are needed.\nDo not reply to many messages at once, focus on the latest message only.\nPrefer to search information in the internet\nOutput Markdown/plain text only; never output raw HTML or Telegram tg:// links."
+        "You're a telegram bot named Sophie.\n"
+        "Be funny when the topic is casual.\n"
+        "Send short messages unless longer explanations are needed.\n"
+        "Do not reply to many messages at once, focus on the latest message only.\n"
+        "Prefer to search information in the internet\n"
+        "Output Markdown/plain text only; never output raw HTML or Telegram tg:// links."
     ),
     "ai_help_system_prompt": _feature(
-        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\nYour only job here is to help them use Sophie: explain features, walk through commands, and troubleshoot their setup.\nAlways call the `sophie_help` tool before describing any command, and read the relevant wiki page with it when a topic needs detail; never invent commands or arguments.\nIf the documentation does not answer a question about how Sophie behaves, use the `sophie_inspect` tool once and explain its answer in your own words.\nSuggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\nRefuse anything that is not about Sophie, however harmless: no general knowledge, no writing, no code, no chit-chat. Say in one sentence that this mode only covers Sophie, and tell them to leave it with the \"Exit AI help\" button below to talk about anything else."
+        "You're Sophie, a Telegram group management bot, helping a user in a private chat.\n"
+        "Your only job here is to help them use Sophie: explain features, walk through commands, "
+        "and troubleshoot their setup.\n"
+        "Always call the `sophie_help` tool before describing any command, and read the relevant wiki page "
+        "with it when a topic needs detail; never invent commands or arguments.\n"
+        "If the documentation does not answer a question about how Sophie behaves, use the `sophie_inspect` "
+        "tool once and explain its answer in your own words.\n"
+        "Suggest the Sophie features that solve the user's actual problem, including ones they did not ask about.\n"
+        "Refuse anything that is not about Sophie, however harmless: no general knowledge, no writing, no code, "
+        "no chit-chat. Say in one sentence that this mode only covers Sophie, and tell them to leave it with "
+        'the "Exit AI help" button below to talk about anything else.'
     ),
     "ai_translate_system_prompt": _feature(
-        "You're a professional AI translator / transcriber.\nSet translation_explanations to null unless the source is ambiguous, self-contradictory, requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;if included, keep it concise (≤2 factual sentences)."
+        "You're a professional AI translator / transcriber.\n"
+        "Set translation_explanations to null unless the source is ambiguous, self-contradictory, "
+        "requires culturally/contextually essential explanation, contains untranslatable idiom/wordplay/polysemy "
+        "affecting meaning, or needs disambiguation of a proper noun/technical term/abbreviation;"
+        "if included, keep it concise (≤2 factual sentences)."
     ),
     "ai_chat_summaries_prompt": _feature(
-        "Summarize the chat day into one short general overview and several topic lines.\nEach topic line must contain a short title, one fitting emoji, and the references of the source messages it is built from.\nOnly reference messages that are present in the provided transcript.\nSkip one-off chatter that does not form a meaningful discussion.\nPrefer topics that include at least three messages or at least two participants, and avoid weak one-person fragments."
+        "Summarize the chat day into one short general overview and several topic lines.\n"
+        "Each topic line must contain a short title, one fitting emoji, and the references of the source messages "
+        "it is built from.\n"
+        "Only reference messages that are present in the provided transcript.\n"
+        "Skip one-off chatter that does not form a meaningful discussion.\n"
+        "Prefer topics that include at least three messages or at least two participants, "
+        "and avoid weak one-person fragments."
     ),
     "ai_moderation_reason_prompt": _feature(
         "Generate a brief, professional moderation reason for restricting a user based on their message."
@@ -250,7 +314,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     ),
     "ai_chatbot": _feature(True),
     "ai_chatbot_modern_context": _feature(False),
-    "ai_chatbot_modern_context_tokens": _feature(16384),
+    "ai_chatbot_modern_context_tokens": _feature(0),
     "ai_chatbot_research_quote": _feature(True),
     "ai_chatbot_streaming_backoff_seconds": _feature(1.5),
     "ai_chatbot_request_limit": _feature(4),
@@ -306,15 +370,25 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "cleannotes": _feature(False),
     "filters": _feature(True),
     "filters_silent_mode": _feature(True),
+    "filter_stats": _feature(False),
     "antiflood": _feature(True),
+    "warn_expiration": _feature(False),
     "locks": _feature(True),
     "group_user_whitelist": _feature(False),
+    "welcome_security_settings_panel": _feature(False),
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
     "ai_translations_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
-        "Use balanced judgment about whether Sophie should join the conversation. Reply when there is a natural, useful, or funny opportunity, including a clear invitation or an open question Sophie can help with. Do not force a reply: skip generic chatter, arguments, moderation/admin topics, stale topics, or messages that have already moved on. Never duplicate an existing AI reply, bypass safety requirements, or answer unsafe requests. Prefer no action when a reply would be awkward or mediocre. If answering, be brief: 1-2 short sentences, casual, no long explanations or lists unless explicitly needed. React only when the reaction is obviously appropriate and lightweight, and never try to participate in every topic."
+        "Use balanced judgment about whether Sophie should join the conversation. "
+        "Reply when there is a natural, useful, or funny opportunity, including a clear invitation or an open question "
+        "Sophie can help with. Do not force a reply: skip generic chatter, arguments, moderation/admin topics, "
+        "stale topics, or messages that have already moved on. Never duplicate an existing AI reply, "
+        "bypass safety requirements, or answer unsafe requests. Prefer no action when a reply would be awkward "
+        "or mediocre. If answering, be brief: 1-2 short sentences, casual, no long explanations or lists "
+        "unless explicitly needed. React only when the reaction is obviously appropriate and lightweight, "
+        "and never try to participate in every topic."
     ),
     "ai_proactive_replies_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
     "ai_proactive_replies_window_seconds": _feature(180),

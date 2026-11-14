@@ -32,8 +32,7 @@ class WSUserModel(Document):
     @staticmethod
     async def ensure_user(user: "ChatModel", group: "ChatModel", is_join_request: bool) -> "WSUserModel":
         membership = await UserInGroupModel.get_user_in_group(user.iid, group.iid)
-        membership_id = membership.id if membership is not None else None
-        joined_message_id = membership.joined_message_id if membership is not None else None
+        membership_id, joined_message_id = (membership.id, membership.joined_message_id) if membership else (None, None)
         user_filter = {
             "user.$id": user.iid,
             "group.$id": group.iid,

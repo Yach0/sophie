@@ -13,11 +13,10 @@ from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatMode
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_header import build_ai_message_doc
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_cached_messages_between, get_context_epoch_key
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.summary_transcript import SummaryTranscript, build_summary_transcript
 from sophie_bot.modules.utils_.scheduler.chat_language import UseChatLanguage
@@ -160,11 +159,7 @@ def _build_summary_doc(
         Template(_("Chat history of {today}"), today=format_date(summary_date, format="long", locale=current_locale))
     )
 
-    return build_ai_message_doc(
-        "🔋",
-        title,
-        rendered_lines,
-    )
+    return Doc(title, rendered_lines)
 
 
 def _track_summary_metrics(
@@ -336,6 +331,11 @@ class GenerateChatSummaries:
         current_time = now or datetime.now(UTC)
         if window_start is None or window_end is None:
             window_start, window_end = _build_summary_window(current_time)
+        context_epoch = (
+            int(await self.services.redis.get(get_context_epoch_key(chat.tid)) or 0)
+            if await is_enabled("ai_memory_controls", chat_tid=chat.tid, redis=self.services.redis)
+            else None
+        )
         cached_messages = await get_cached_messages_between(
             chat.tid,
             window_start,
@@ -360,6 +360,11 @@ class GenerateChatSummaries:
         transcript = build_summary_transcript(cached_messages, anonymize=anonymize)
         groups = await self.generate_verified_summary_groups(transcript, chat, strict=anonymize)
         if groups is None:
+            return
+        if (
+            context_epoch is not None
+            and int(await self.services.redis.get(get_context_epoch_key(chat.tid)) or 0) != context_epoch
+        ):
             return
         messages_by_reference = transcript.messages_by_reference
         known_refs = {

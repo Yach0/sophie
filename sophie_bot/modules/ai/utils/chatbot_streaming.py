@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 import time
-from collections.abc import Sequence
-from contextlib import suppress
+from collections.abc import AsyncGenerator, Sequence
+from contextlib import asynccontextmanager, suppress
 from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import InlineKeyboardMarkup, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
@@ -23,8 +24,10 @@ from sophie_bot.modules.ai.utils.research import (
     ResearchProgressStage,
     random_research_progress_text,
 )
+from sophie_bot.modules.ai.utils.rich_delivery import with_photo_url_fallback
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 _DEFAULT_STREAM_BACKOFF_SECONDS = 1.5
 _MIN_STREAM_BACKOFF_SECONDS = 0.5
@@ -64,6 +67,7 @@ class ChatbotMessageStreamer:
         self._mention_index_resolved = False
         self.placeholder = status or ""
         self.status: Element | None = None
+        self.inline_reasoning: Element | None = None
         self.activity_history: list[Element | str] = []
         self.activity_started = False
         self.reasoning_seen = False
@@ -72,16 +76,20 @@ class ChatbotMessageStreamer:
         self.mention_policy = mention_policy
         self.speaker_names = speaker_names
         self.response_message: Message | None = None
+        self.final_message_sent = False
         self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
+        # Compare the rendered payload, since rich replies can have message.text=None.
         self._last_sent_rich: str | None = None
+        self._last_sent_reply_markup: InlineKeyboardMarkup | None = None
         self._pending_update_task: asyncio.Task[None] | None = None
 
     async def send_thinking_message(self) -> None:
         doc = self._build_progress_doc(self.placeholder)
         self.response_message = await send_ai_rich_message(self.source_message, doc)
         self._last_sent_rich = doc.to_rich()
+        self._last_sent_reply_markup = None
 
     async def stream(self, text: str) -> None:
         if not text.strip():
@@ -91,6 +99,7 @@ class ChatbotMessageStreamer:
         had_status = self.status is not None
         had_activity = bool(self.activity_history)
         self.status = None
+        self.inline_reasoning = None
         self.activity_history.clear()
         self.latest_text = draft_text
         if draft_text == self.last_sent_text:
@@ -110,9 +119,12 @@ class ChatbotMessageStreamer:
         """Show the first nonempty reasoning pass as a private progress activity."""
         if self.response_message is None or self.reasoning_seen or not reasoning_text.strip():
             return
+        if not self.latest_text and not self.activity_started:
+            self.inline_reasoning = Italic(_("Reasoning..."))
+        else:
+            self.activity_history.append(_("Reasoning..."))
         self.reasoning_seen = True
         self.activity_started = True
-        self.activity_history.append(_("Reasoning..."))
         self.status = None
         await self._refresh_progress()
 
@@ -143,25 +155,48 @@ class ChatbotMessageStreamer:
     async def send_final(self, doc: Doc, **reply_kwargs: Any) -> Message:
         await self._cancel_pending_update()
         rendered_rich = doc.to_rich()
-        if self.response_message is None:
-            return await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
-
         reply_markup = editable_reply_markup(reply_kwargs.get("reply_markup"))
-        if rendered_rich == self._last_sent_rich and reply_markup is None:
+        if reply_markup is not None and not reply_markup.inline_keyboard:
+            reply_markup = None
+        if self.response_message is None:
+            self.response_message = await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
+            self._last_sent_rich = rendered_rich
+            self._last_sent_reply_markup = reply_markup
+            self.final_message_sent = True
             return self.response_message
 
-        result = await self._editing_bot().edit_message_text(
-            chat_id=self.response_message.chat.id,
-            message_id=self.response_message.message_id,
-            rich_message=InputRichMessage(html=rendered_rich),
-            reply_markup=reply_markup,
+        if rendered_rich == self._last_sent_rich and (
+            "reply_markup" not in reply_kwargs or reply_markup == self._last_sent_reply_markup
+        ):
+            self.final_message_sent = True
+            return self.response_message
+
+        response_message = self.response_message
+        result = await with_photo_url_fallback(
+            rendered_rich,
+            lambda rich_message: self._editing_bot().edit_message_text(
+                chat_id=response_message.chat.id,
+                message_id=response_message.message_id,
+                rich_message=rich_message,
+                reply_markup=reply_markup,
+            ),
         )
         self._last_sent_rich = rendered_rich
+        self._last_sent_reply_markup = reply_markup
+        self.final_message_sent = True
         return result if isinstance(result, Message) else self.response_message
 
     async def stop(self) -> None:
         """Cancel a deferred draft edit when the run ends without a normal final reply."""
         await self._cancel_pending_update()
+
+    async def delete_progress(self) -> None:
+        """Delete unfinished progress placeholder message if present."""
+        if self.response_message is not None:
+            await self._editing_bot().delete_message(
+                chat_id=self.response_message.chat.id,
+                message_id=self.response_message.message_id,
+            )
 
     # ── Private helpers ────────────────────────────────────────────────────────
 
@@ -244,7 +279,7 @@ class ChatbotMessageStreamer:
         doc = (
             await self._render_doc(draft_text)
             if draft_text
-            else self._build_progress_doc("" if self.activity_started else self.placeholder)
+            else self._build_progress_doc(self.inline_reasoning or ("" if self.activity_started else self.placeholder))
         )
         await self._update(doc)
         self.last_sent_text = draft_text
@@ -265,14 +300,46 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            await self._editing_bot().edit_message_text(
-                chat_id=self.response_message.chat.id,
-                message_id=self.response_message.message_id,
-                rich_message=InputRichMessage(html=rendered_rich),
+            response_message = self.response_message
+            await with_photo_url_fallback(
+                rendered_rich,
+                lambda rich_message: self._editing_bot().edit_message_text(
+                    chat_id=response_message.chat.id,
+                    message_id=response_message.message_id,
+                    rich_message=rich_message,
+                ),
             )
 
         self._last_sent_rich = rendered_rich
+        self._last_sent_reply_markup = None
         self.last_sent_at = time.monotonic()
+
+
+@asynccontextmanager
+async def chatbot_streaming_session(streamer: ChatbotMessageStreamer | None) -> AsyncGenerator[None]:
+    """Preserve reply failures through cleanup; propagate cleanup failures otherwise."""
+    completed = False
+    try:
+        yield
+        completed = True
+    finally:
+        original_error = sys.exception()
+        if streamer is not None:
+            try:
+                await streamer.stop()
+            except BaseException as error:
+                # Cleanup must not replace an active failure, including cancellation.
+                if original_error is None:
+                    raise
+                log.warning("chatbot_streaming_session: Failed to stop streamer", error=str(error))
+            finally:
+                if not completed and not streamer.final_message_sent and streamer.response_message is not None:
+                    try:
+                        await streamer.delete_progress()
+                    except BaseException as error:
+                        if original_error is None:
+                            raise
+                        log.warning("chatbot_streaming_session: Failed to delete unfinished progress", error=str(error))
 
 
 async def build_message_streamer(

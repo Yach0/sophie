@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from aiogram.types import Message
 from beanie import PydanticObjectId
+from redis.asyncio import Redis
 
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.db.models.warns import WarnModel, WarnSettingsModel
@@ -15,9 +17,26 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
 )
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.shared.action_registry import resolve_action_duration
-from sophie_bot.shared.actions import RestrictionAction, StoredAction
+from sophie_bot.shared.actions import RestrictionAction, StoredAction, mark_action_completed
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
+
+
+async def expire_warns(chat: ChatModel, *, redis: Redis) -> None:
+    """Lazily remove dated warnings; legacy records without a BSON date stay active."""
+    settings = await WarnSettingsModel._find_by_chat_iid(chat.iid)
+    if settings is None or settings.expiration_seconds is None:
+        return
+    if not await is_enabled("warn_expiration", chat_tid=chat.tid, redis=redis):
+        return
+
+    cutoff = datetime.now(UTC) - timedelta(seconds=settings.expiration_seconds)
+    await WarnModel.find(
+        WarnModel.chat.id == chat.iid,
+        # $type and $lte also match array elements; only scalar dates may expire.
+        {"date": {"$type": "date", "$lte": cutoff, "$not": {"$type": "array"}}},
+    ).delete()
 
 
 async def _execute_restriction_action(
@@ -103,6 +122,7 @@ async def _execute_warn_actions(
             )
             continue
         runtime_data: dict[str, Any] = dict(action_context or {})
+        runtime_data.pop("action_completion", None)
         request_context = runtime_data.get("context")
         if isinstance(request_context, RequestContext):
             runtime_data["context"] = replace(
@@ -137,11 +157,14 @@ async def warn_user(
     settings = await WarnSettingsModel.get_or_create(chat.iid)
 
     # Create warn record
-    warn = WarnModel(chat=chat.iid, user=user.iid, admin=admin.iid, reason=reason)
+    warn = WarnModel(chat=chat, user=user, admin=admin, reason=reason)
     await warn.save()
+    if action_context is not None:
+        mark_action_completed(action_context)
     track_moderation_action("warn")
 
     # Check counts
+    await expire_warns(chat, redis=services.redis)
     current_warns = await WarnModel.count_user_warns(chat.iid, user.iid)
     max_warns = settings.max_warns
 

@@ -39,6 +39,7 @@ def distribution_metric(
     kwargs: dict[str, Any] = {"attributes": _normalize_attributes(attributes)}
     if unit is not None:
         kwargs["unit"] = unit
+    # deepsource: skip - PYL-E1123 - sentry_sdk metrics methods accept attributes
     sentry_sdk.metrics.distribution(name, value, **kwargs)
 
 
@@ -56,6 +57,7 @@ def set_gauge_metric(
     kwargs: dict[str, Any] = {"attributes": normalized_attributes}
     if unit is not None:
         kwargs["unit"] = unit
+    # deepsource: skip - PYL-E1123 - sentry_sdk metrics methods accept attributes
     sentry_sdk.metrics.gauge(name, value, **kwargs)
 
 
@@ -73,6 +75,7 @@ def change_gauge_metric(
     kwargs: dict[str, Any] = {"attributes": normalized_attributes}
     if unit is not None:
         kwargs["unit"] = unit
+    # deepsource: skip - PYL-E1123 - sentry_sdk metrics methods accept attributes
     sentry_sdk.metrics.gauge(name, next_value, **kwargs)
 
 

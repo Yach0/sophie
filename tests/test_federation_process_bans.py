@@ -31,6 +31,12 @@ REPLY_CHAT_TID = -100_900_003
 REPLY_MESSAGE_ID = 4242
 
 
+@pytest.fixture(autouse=True)
+async def reset_federations(db_init: object) -> None:
+    """Keep chat totals independent in the session-scoped mock database."""
+    await Federation.delete_all()
+
+
 async def _make_user(tid: int, name: str) -> ChatModel:
     """Create a user the way production does, then read it back.
 
@@ -189,21 +195,23 @@ async def test_ban_task_restricts_present_users_in_subscribed_federation(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("direct_count", [0, 1, 2])
 async def test_ban_task_reports_successful_subscriber_chat_count_in_reply_and_log(
-    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object
+    db_init: Any, monkeypatch: pytest.MonkeyPatch, test_services: object, direct_count: int
 ) -> None:
     task, edit_message = await _make_ban_task(monkeypatch, test_services=test_services, banned_count=2)
     origin_federation = await Federation.find_one(Federation.fed_id == task.fed_id)
     assert origin_federation is not None
-    second_origin_chat = await _make_group(-100_900_005, "Second Origin Group")
-    origin_federation.chats.append(second_origin_chat)
+    for chat_number in range(1, 8):
+        origin_chat = await _make_group(REPLY_CHAT_TID - chat_number, f"Origin Group {chat_number}")
+        origin_federation.chats.append(origin_chat)
     await origin_federation.save()
 
     first_subscriber_federation = Mock(fed_id="fed-subscriber-1", fed_name="SubscriberFed1")
     first_subscriber_ban = Mock()
     second_subscriber_federation = Mock(fed_id="fed-subscriber-2", fed_name="SubscriberFed2")
     second_subscriber_ban = Mock()
-    ban_in_chats = AsyncMock(side_effect=[2, 2, 1])
+    ban_in_chats = AsyncMock(side_effect=[direct_count, 2, 1])
     lazy_ban = AsyncMock(
         return_value=[
             (first_subscriber_federation, first_subscriber_ban),
@@ -228,15 +236,22 @@ async def test_ban_task_reports_successful_subscriber_chat_count_in_reply_and_lo
     await ProcessFederationBans(test_services).handle()
 
     reply_text = _edited_text(edit_message)
-    assert "Banned in <code>2</code> chats" in reply_text
-    assert "<code>3</code> chats in subscribed federations" in reply_text
-    assert "<code>2</code> subscribed federations" in reply_text
     log_text = post_log.await_args.args[1]
-    assert "2 out of 2 chats in the federation" in log_text
-    assert "3 chats in subscribed federations" in log_text
+    for rendered in (reply_text, log_text):
+        assert f"User banned in {direct_count} out of 8 chats in the federation" in rendered
+        assert "User banned in 3 chats in subscribed federations" in rendered
+        assert "Subscribed federations" not in rendered
+        assert f"(<code>{TARGET_TID}</code>)" in rendered
+    assert "fed-1" not in reply_text
+    assert "#FedBan" not in reply_text
+    assert reply_text.splitlines()[0] == "<b>[🏛 User Banned from Federation]</b>"
+    assert log_text.splitlines()[0] == "<b>[🏛 User Banned from Federation #FedBan]</b>"
+    assert log_text.count("#FedBan") == 1
+    assert "OrangeFoxFed (fed-1)" in log_text
+    assert ban_in_chats.await_count == 3
     reloaded = await FederationTask.get(task.id)
     assert reloaded is not None
-    assert reloaded.banned_count == 2
+    assert reloaded.banned_count == direct_count
     assert reloaded.lazy_ban_count == 2
 
 
@@ -263,8 +278,8 @@ async def test_ban_task_reports_zero_successful_subscriber_chats(
     await ProcessFederationBans(test_services).handle()
 
     reply_text = _edited_text(edit_message)
-    assert "<code>0</code> chats in subscribed federations" in reply_text
-    assert "0 chats in subscribed federations" in post_log.await_args.args[1]
+    assert "User banned in 0 chats in subscribed federations" in reply_text
+    assert "User banned in 0 chats in subscribed federations" in post_log.await_args.args[1]
 
 
 @pytest.mark.asyncio

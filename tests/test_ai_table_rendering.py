@@ -5,7 +5,10 @@ from typing import Any
 import pytest
 
 from sophie_bot.modules.ai.utils import chatbot_response
+from sophie_bot.modules.ai.utils.ai_chatbot_reply import _build_fitting_reply_doc
 from sophie_bot.modules.ai.utils.mention_usernames import build_mention_index
+from sophie_bot.services.application import ApplicationServices
+from sophie_bot.utils.feature_flags import set_chat_override
 
 
 async def _render(text: str, *, redis: Any) -> str:
@@ -70,3 +73,39 @@ async def test_ai_table_overrides_and_protected_html(test_redis: Any, monkeypatc
     assert "<td><b>one</b></td><td><b>kept</b></td>" in rich
     assert "two" not in rich
     assert "Discarded" not in rich
+
+
+@pytest.mark.parametrize("render_limit", [3900, 1], ids=["normal", "fallback"])
+@pytest.mark.parametrize("ragged", [False, True], ids=["rectangular", "ragged"])
+async def test_fitted_table_public_body_keeps_every_delivered_cell(
+    monkeypatch: pytest.MonkeyPatch,
+    test_services: ApplicationServices,
+    render_limit: int,
+    ragged: bool,
+) -> None:
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_chatbot_reply.TELEGRAM_MESSAGE_SAFE_LIMIT", render_limit)
+    for feature, value in (
+        ("ai_chatbot_table_max_columns", 3),
+        ("ai_chatbot_table_max_rows", 2),
+        ("ai_chatbot_table_card_threshold", -1),
+    ):
+        await set_chat_override(feature, -1001509876, value, redis=test_services.redis)
+    header = "| Name | Value |" if ragged else "| Name | Value | Extra | Omitted |"
+    separator = "| --- | --- |" if ragged else "| --- | --- | --- | --- |"
+    answer = f"{header}\n{separator}\n| kept | visible | extra_visible | secret_column |\n| unseen_row | secret_row |"
+
+    doc, public_body = await _build_fitting_reply_doc(
+        "quota",
+        answer,
+        model=None,
+        result=None,
+        explicit_debug_mode=False,
+        chat_tid=-1001509876,
+        services=test_services,
+    )
+
+    assert "extra_visible" in public_body
+    assert public_body in doc.to_rich()
+    assert "<td>kept</td><td>visible</td><td>extra_visible</td>" in public_body
+    assert "secret" not in public_body and "unseen" not in public_body and "Omitted" not in public_body
+    assert "quota" not in public_body

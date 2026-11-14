@@ -4,8 +4,10 @@ from typing import Final
 
 from beanie import PydanticObjectId
 
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.moderation.categories import ModerationCategory
 
 # The order a category walks through when its button is pressed.
@@ -37,7 +39,11 @@ async def set_category_level(
     category: ModerationCategory,
     level: DetectionLevel,
 ) -> AIModeratorModel:
-    settings = await get_moderator_settings(chat.iid) or AIModeratorModel(chat=chat)
-    setattr(settings, category.value, level)
-    await settings.save()
-    return settings
+    return await AIModeratorModel.update_fields(chat, {category.value: level})
+
+
+def get_enabled(settings: AIModeratorModel | None, mode: AIMode) -> bool:
+    """Resolve the chat switch without turning category edits into an enable override."""
+    if settings is not None and settings.enabled is not None:
+        return settings.enabled
+    return get_capabilities(mode).moderator

@@ -75,7 +75,7 @@ class AIModelPlan:
         """Smallest registry capacity, failing if any candidate has no configured size.
 
         Runtime appends a last-resort candidate; modern callers use
-        ``ai_run.modern_context_window_tokens`` to include that candidate and the attempt limit.
+        ``ai_run.modern_context_candidates`` and budget each candidate with its own tokenizer.
         """
         if not self.candidates:
             raise ValueError("An AI model plan with no candidates cannot provide a context size")

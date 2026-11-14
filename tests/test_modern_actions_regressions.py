@@ -52,7 +52,7 @@ def _warn_action_data(message: SimpleNamespace) -> dict[str, Any]:
             actor=SimpleNamespace(tid=777, iid="user_iid"),
         ),
         "services": SimpleNamespace(
-            redis=AsyncMock(),
+            redis=AsyncMock(hget=AsyncMock(return_value=b"0")),
             modules=SimpleNamespace(
                 actions={action.definition.name: action.definition},
                 action_handlers={action.definition.name: action},
@@ -71,10 +71,7 @@ def test_dataless_actions_expose_data_object(action_cls: type) -> None:
 
 
 def test_build_filter_action_catalog_handles_dataless_actions() -> None:
-    actions = {
-        action_class.definition.name: action_class.definition
-        for action_class in DATALESS_ACTIONS
-    }
+    actions = {action_class.definition.name: action_class.definition for action_class in DATALESS_ACTIONS}
     catalog = build_filter_action_catalog(actions)
 
     assert {item.name for item in catalog} == {

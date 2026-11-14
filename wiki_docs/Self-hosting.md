@@ -233,7 +233,7 @@ unmatched model, including last-resort candidates, before enabling it:
 
 ```text
 /op_ff ^chat=<chat_id> ai_chatbot_modern_context true
-/op_ff ^chat=<chat_id> ai_chatbot_modern_context_tokens 16384
+/op_ff ^chat=<chat_id> ai_chatbot_modern_context_tokens unset
 ```
 
 `ModernContext` keeps one serialized session per chat, topic and AI mode. It appends
@@ -241,14 +241,79 @@ new chat messages and native assistant/tool exchanges once, rather than rebuildi
 the complete recent-message block on every turn. When the budget is reached, it
 deletes old background batches first, then whole completed turns. Tool calls and
 returns stay paired. There is no generated summary or compaction message; an oversized
-current request fails instead of being truncated. Text budgeting uses a conservative
-UTF-8 byte bound and images reserve 4096 estimated tokens each, not an exact tokenizer.
-Unlimited response-limit settings remain supported; admission reserves 2048 tokens
-for output plus the context safety margin.
+current request fails instead of being truncated.
 
-Stable instructions precede append-only history. Date-only runtime snapshots,
-escaped XML chat notes and 1-based XML memory items are appended when runtime data
-changes. The latest runtime snapshot supersedes earlier snapshots. Current/replied
+Admission counts model-facing instructions, text and tool arguments/results with each
+candidate's local tokenizer, not the serialized session JSON. Known OpenAI model names
+use `tiktoken` (including `gpt-5.6-luna` / `openai/gpt-5.6-luna`, using the GPT-5
+`o200k_base` mapping). GLM-5.3 and GLM-5.3-Flash use Hugging Face `tokenizers` with only
+`zai-org/GLM-5.3`'s `tokenizer.json`, pinned to revision
+`ba32f8c19c8738e2c57c71798c601d477a7bf844`; provider prefixes and routing suffixes
+on both model names are accepted.
+Unrecognized model names use the bundled OpenAI `cl100k_base` tokenizer as an
+estimate. `UNKNOWN_TOKENIZER_CONTEXT_CAP=8192` and
+`UNKNOWN_TOKENIZER_INPUT_PERCENT=80` in `ai_tokens.py` define an application policy:
+limit exposure to estimation error by capping the registered capacity at 8192 and
+keeping 80% of the input left after output and tool-schema reserves. These chosen
+safety limits are not a measured tokenizer ratio or a provider context-window claim;
+models with known tokenizers use their registered capacities. A smaller registered
+window still wins, and exhausted reserves leave zero input capacity, so admission
+rejects that candidate. This policy cannot guarantee a fit for an unknown tokenizer;
+register a supported tokenizer to use a model's larger window confidently.
+No model weights or remote token-counting API are used.
+
+Persisted history is pruned with the primary model's tokenizer and capacity.
+Each attempted candidate, including image-eligible fallbacks and the last-resort
+model, gets an independently budgeted request projection; smaller fallback windows
+never delete primary session history. Runtime snapshots are restored in the projection
+if pruning removes the turn carrying them. An oversized current request fails before
+it reaches that candidate's provider.
+
+The default `ai_chatbot_modern_context_tokens=0` uses the registered model capacity
+minus reserves. Positive values remain explicit input caps, including existing chat
+and global overrides; clear these overrides with `/op_ff ... unset` to use the
+model-aware default. This setting does not replace the registered capacities. Admission also
+reserves the configured response limit (2048 tokens when unlimited), 4096 tokens of safety/tool-schema headroom, and
+per-message/part framing allowances. Each image reserves 4096 estimated tokens,
+independently of its transport size. These are conservative allowances, not a guarantee
+of exact provider usage: chat templates, image handling and hidden provider additions
+can differ. Stored event costs are recounted on each build, so changing models or
+tokenizers does not reuse stale token estimates.
+
+Cache retention is separate from these budgets: the shared message cache expires
+after 48 hours, but retained native session events are pruned by tokens, not age.
+The modern builder reads the eligible cache without a latest-10 seed cap;
+legacy/count-limited seed policies do not control native session growth. Changes
+to cold-start seed selection or 48-hour cache retention are deferred.
+
+Admission budgets the history before a run; newly generated tool results can grow
+beyond the reserved headroom. It does not impose a new per-tool-step truncation policy.
+
+The runtime Docker image bundles the pinned GLM tokenizer and every OpenAI encoding
+provided by its installed `tiktoken` version during the dependency build stage.
+Loading a tokenizer never downloads assets at runtime and does not require writable
+caches. Missing or invalid assets for a recognized model fail the request rather than
+silently changing its token estimate.
+
+For source-checkout development, prepare the same assets once with network access:
+
+```sh
+uv run python sophie_bot/utils/ai_tokenizer_assets.py
+```
+
+Generated files live in `sophie_bot/tokenizer_data/` and are excluded from Git and
+the Docker build context. CI test setup runs the same generator and smoke-checks
+the required tokenizers before running pytest. The image always generates its own
+assets from the locked dependencies and pinned GLM revision. No model weights or
+provider credentials are needed. Tokenizer instances load off the event loop and
+are cached per process.
+
+Stable instructions precede conversation history. Each request carries one current
+runtime snapshot with the date, escaped XML chat notes and 1-based XML memory items;
+earlier runtime blocks are removed structurally from replayed history. Previous-chat
+summary context uses only the newest stored daily summary for that chat, with its
+`summary_date` rendered in both runtime XML and chatbot instructions. An empty or
+missing latest summary clears that context without generating a replacement. Current/replied
 speakers and memory references can appear in the entertainment roster; old private
 alias maps do not grow the roster forever.
 Group and channel titles are included as escaped XML in runtime snapshots, never in

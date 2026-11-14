@@ -6,10 +6,10 @@ from stfu_tg.doc import Element
 
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.modules.notes.utils.parse import parse_saveable
-from sophie_bot.modules.notes.utils.send import send_saveable
+from sophie_bot.modules.notes.utils.send import SaveableDelivery, send_saveable
 from sophie_bot.modules.utils_.action_config_wizard import ActionWizardSetting, ActionWizardSpec
 from sophie_bot.modules.utils_.common_try import common_try
-from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC
+from sophie_bot.shared.actions import ActionDefinition, ActionResult, ModernActionABC, mark_action_completed
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
@@ -80,6 +80,7 @@ class ReplyModernAction(ModernActionABC[Saveable]):
         title = Bold(Title(Template("🪄 {text}", text=_("Reply"))))
         if filter_data.buttons or filter_data.file or filter_data.files or filter_data.rich_message is not None:
             sent_messages: list[Message] = []
+            delivery = SaveableDelivery()
             await common_try(
                 send_saveable(
                     message,
@@ -90,10 +91,14 @@ class ReplyModernAction(ModernActionABC[Saveable]):
                     owner_chat_tid=data["context"].connection.db_model.tid,
                     collect_sent=sent_messages,
                     bot=data["services"].bot,
+                    delivery=delivery,
                 )
             )
+            if delivery.completed:
+                mark_action_completed(data)
             return sent_messages
 
+        mark_action_completed(data, deferred=True)
         return Doc(
             title,
             PreformattedHTML(filter_data.text),

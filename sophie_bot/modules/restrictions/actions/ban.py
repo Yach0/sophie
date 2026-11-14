@@ -33,7 +33,8 @@ def build_action_wizard_specs() -> dict[str, ActionWizardSpec]:
                     icon="⏰",
                     setup_message=make_duration_setup_message(
                         l_(
-                            "Please write the duration, for example 2h for 2 hours, 7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
+                            "Please write the duration, for example 2h for 2 hours, "
+                            "7d for 7 days or 2w for 2 weeks. Or 0 for permanent."
                         )
                     ),
                     setup_confirm=make_duration_setup_confirm(

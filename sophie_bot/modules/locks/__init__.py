@@ -57,7 +57,8 @@ module_manifest = ModuleManifest(
         lambda: Doc(
             l_("Allows administrators to lock specific types of messages in chats."),
             l_(
-                "Prevents users from sending certain content types like stickers, GIFs, URLs, sticker packs, and languages."
+                "Prevents users from sending certain content types like stickers, GIFs, "
+                "URLs, sticker packs, and languages."
             ),
         )
     ),

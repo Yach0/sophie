@@ -36,6 +36,19 @@ async def test_filter_save_revalidates_before_persisting() -> None:
     validate.assert_awaited_once_with(chat_iid, "spam", None)
 
 
+async def test_filter_save_rejects_empty_actions_before_persisting() -> None:
+    with (
+        patch("sophie_bot.modules.filters.filter_wizard.validate_filter_handler", AsyncMock()) as validate,
+        patch.object(FiltersModel, "save", AsyncMock()) as save,
+        pytest.raises(ValueError, match="No actions configured"),
+    ):
+        await _save_filter(
+            PydanticObjectId(), FilterDraft(handler="spam"), SimpleNamespace(from_user=None), SimpleNamespace(tid=-100)
+        )
+    validate.assert_not_awaited()
+    save.assert_not_awaited()
+
+
 @pytest.mark.usefixtures("db_init")
 @pytest.mark.asyncio
 async def test_invalid_filter_id_is_rejected_without_loading_model() -> None:

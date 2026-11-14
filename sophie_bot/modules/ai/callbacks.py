@@ -15,6 +15,10 @@ class AIChatCallback(CallbackData, prefix="ai_chat"):
     pass
 
 
+class AIModeratorEnabledCallback(CallbackData, prefix="ai_mod_enabled"):
+    pass
+
+
 class AIModeratorCategoryCallback(CallbackData, prefix="ai_mod_cat"):
     category: str
 

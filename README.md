@@ -98,6 +98,11 @@ We use `make` for common development tasks. Please read our **[CONTRIBUTING.md](
 - **Type checking:** `make test_codeanalysis`
 - **Translations:** `make locale`
 
+Modern AI context uses Python's `xml.etree.ElementTree` to serialize message metadata,
+runtime snapshots, notes, and memory. Pass raw text and attribute values to the XML
+elements; do not pre-escape them. Media stays in native provider content parts between
+XML fragments, in its original order.
+
 ### 🧩 Local ASS/STFU development
 
 Sophie uses the in-house [`ass-tg`](https://gitlab.com/SophieBot/ass) and [`stfu-tg`](https://gitlab.com/SophieBot/stf) libraries. By default, `uv sync` installs them from the Git sources configured in `pyproject.toml`.

@@ -6,7 +6,7 @@ import inspect
 import math
 import random
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from typing import Any, ParamSpec, TypeVar, cast
 
@@ -63,7 +63,7 @@ class RedisCache:
         task.add_done_callback(self._background_tasks.discard)
 
     @asynccontextmanager
-    async def lock(self, key: str) -> AsyncIterator[None]:
+    async def lock(self, key: str) -> AsyncGenerator[None]:
         entry = self._locks.acquire_entry(key)
         try:
             async with entry.lock:

@@ -123,7 +123,10 @@ def _build_locktype_help_text() -> Section:
         Section(
             KeyValue(
                 Code("stickerpack:PACK_ID"),
-                "Locks a specific sticker pack by its ID. Suggest this only when the prompt explicitly targets one sticker pack.",
+                (
+                    "Locks a specific sticker pack by its ID. "
+                    "Suggest this only when the prompt explicitly targets one sticker pack."
+                ),
             ),
             title="Special handler forms",
         ),
@@ -137,11 +140,13 @@ def _build_system_prompt(base_prompt: str) -> str:
         Section(
             VList(
                 Template(
-                    "Plain text is the default and does a simple substring match, so it is best for loose matching. Example: {handler}",
+                    "Plain text is the default and does a simple substring match, "
+                    "so it is best for loose matching. Example: {handler}",
                     handler=Code("PHRASE"),
                 ),
                 Template(
-                    "{handler} matches whole words or exact tokenized phrases, so it avoids partial-word false positives. Example: {example}",
+                    "{handler} matches whole words or exact tokenized phrases, "
+                    "so it avoids partial-word false positives. Example: {example}",
                     handler=Code("word:"),
                     example=Code("word:WORD"),
                 ),
@@ -156,11 +161,17 @@ def _build_system_prompt(base_prompt: str) -> str:
                     example=Code("re:crypto|btc|bitcoin"),
                 ),
                 Template(
-                    "{handler} uses semantic AI evaluation and should be used only when literal text rules are too weak. Example: {example}",
+                    "{handler} uses semantic AI evaluation and should be used only "
+                    "when literal text rules are too weak. Example: {example}",
                     handler=Code("ai:PROMPT"),
                     example=Code("ai:messages promoting cryptocurrency scams"),
                 ),
-                "Some supported lock types, such as url, photo, language:xx, or stickerpack:..., detect message/content types or structured Telegram properties rather than free-form text. Other lock types such as cyrillic, rtl, or zalgo do match text patterns, but they are still built-in Telegram-content detectors, not plain text / word / exact / regex / ai handlers.",
+                (
+                    "Some supported lock types, such as url, photo, language:xx, or stickerpack:..., "
+                    "detect message/content types or structured Telegram properties rather than free-form text. "
+                    "Other lock types such as cyrillic, rtl, or zalgo do match text patterns, but they are "
+                    "still built-in Telegram-content detectors, not plain text / word / exact / regex / ai handlers."
+                ),
             ),
             title="Matcher behavior",
         ),

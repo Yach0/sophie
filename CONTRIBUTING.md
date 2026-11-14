@@ -52,6 +52,8 @@ When you're ready to submit changes, please:
 
 ## Development Setup
 
+The runtime container runs `python -m sophie_bot` directly. `make all` prepares translations and runs code checks and tests; it does not produce a compiled executable.
+
 Please refer to the [README.md](README.md#1-installation) for detailed installation and setup instructions. We use `uv` as our package manager and `make` for common development tasks.
 
 ---
@@ -65,6 +67,7 @@ Key points:
 - **Type Safety**: **ALWAYS** use type annotations for all function parameters and return values.
 - **Functional Programming**: We prefer pure functions and async/await patterns.
 - **Explicit Runtime State**: Runtime resources belong to `ApplicationServices`; per-update state belongs to `RequestContext`. Do not add module-level bot, dispatcher, Redis, or database proxies.
+- **Module Registry**: Modules must export a matching `ModuleManifest`. Discover them with `discover_modules` and consume the runtime registry through `services.modules`; manifests define handlers, actions, exports, statistics, and transport hooks. System statistics count loaded registry modules once.
 - **Runtime Configuration**: Use the mode runtime's `config` when initializing its resources. Pass it to database initialization so a custom runtime does not inherit process-global index settings.
 - **Explicit Naming**: Use `chat_tid` for Telegram Chat IDs (int) and `chat_iid` for database IDs (ObjectId). **NEVER** confuse them.
 
@@ -89,8 +92,11 @@ We use `pytest` for unit testing and `aiogram-test-framework` for end-to-end tes
 - **Bug Fixes**: Must include a reproduction test that failed before the fix and passes after.
 - **Running Tests**: Use `make run_tests` or `make commit`.
 - **Isolated Feature-Flag Tests**: Patch the flag resolver explicitly when testing one context mode without a database fixture.
+- **Service Fixtures**: Keep `test_services` scoped to one test. Monkeypatch teardown can remove lazily created mock methods, so a shared bot mock can break later tests.
+- **Type Checker**: Keep `ty` at 0.0.90 until its aiogram filter compatibility is resolved. Version 0.0.99 treats aiogram's callable-field annotation for `Filter.__call__` as a mutable override and rejects valid custom filter methods. Do not disable this diagnostic across the project.
 - **Migration Checks**: CI runs `tests/test_migration_helper.py` separately and excludes it from the unit-test job; use `uv run pytest tests/test_migration_helper.py -v` to run that suite locally.
 - **AI Rendering Checks**: Cover content, escaping, preserved body blocks, and draft-to-final transitions. Do not pin incidental footer wrappers such as `<p>` tags or mock removed layout helpers.
+- **AI Filter Replies**: AI actions send their own replies and return Telegram messages, not documents for aggregation. Check delivery, streaming, and history through `tests/e2e/test_ai_filter_reply_pipeline.py`.
 
 ---
 

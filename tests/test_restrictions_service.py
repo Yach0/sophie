@@ -740,3 +740,60 @@ async def test_successful_welcome_replacement_no_longer_owns_old_mute_state(mock
     result = await execute_restriction(mock_bot, RestrictionAction.UNMUTE, CHAT_TID, USER_TID)
     assert result.applied is False
     assert mock_bot.restrict_chat_member.await_count == 2
+
+
+@pytest.mark.parametrize("action", [RestrictionAction.BAN, RestrictionAction.KICK, RestrictionAction.MUTE])
+async def test_restriction_observes_success_before_database_cleanup(
+    action: RestrictionAction, mock_bot: AsyncMock, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    observed = []
+    # Lock cleanup is after the Telegram operation for every restriction type.
+    monkeypatch.setattr(
+        "sophie_bot.modules.restrictions.utils.restrictions.MutePermissionsLockModel.get_pymongo_collection",
+        lambda: SimpleNamespace(
+            find_one_and_update=AsyncMock(return_value={"_id": "lock"}),
+            delete_one=AsyncMock(side_effect=RuntimeError("cleanup failed")),
+        ),
+    )
+    with pytest.raises(RuntimeError, match="cleanup failed"):
+        await execute_restriction(
+            mock_bot,
+            action,
+            CHAT_TID,
+            USER_TID,
+            is_current=AsyncMock(return_value=True),
+            on_applied=lambda: observed.append(action),
+        )
+    assert observed == [action]
+
+
+@pytest.mark.parametrize(
+    ("action", "checks"),
+    [
+        (RestrictionAction.BAN, [False]),
+        (RestrictionAction.KICK, [False]),
+        (RestrictionAction.MUTE, [False]),
+        (RestrictionAction.RESTRICT, [False]),
+        (RestrictionAction.UNMUTE, [False]),
+        (RestrictionAction.MUTE, [True, False]),
+        (RestrictionAction.RESTRICT, [True, False]),
+    ],
+)
+async def test_stale_restriction_does_not_report_success(
+    action: RestrictionAction, checks: list[bool], mock_bot: AsyncMock
+) -> None:
+    observed: list[RestrictionAction] = []
+    result = await execute_restriction(
+        mock_bot,
+        action,
+        CHAT_TID,
+        USER_TID,
+        is_current=AsyncMock(side_effect=checks),
+        on_applied=lambda: observed.append(action),
+    )
+    assert result.applied is False
+    assert observed == []
+    mock_bot.ban_chat_member.assert_not_awaited()
+    mock_bot.unban_chat_member.assert_not_awaited()
+    mock_bot.restrict_chat_member.assert_not_awaited()
+    assert await MutePermissionsModel.find_one({"chat_tid": CHAT_TID}) is None

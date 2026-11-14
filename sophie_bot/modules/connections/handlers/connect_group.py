@@ -61,7 +61,8 @@ class ConnectGroupCmd(SophieMessageHandler):
         except TelegramForbiddenError:
             await self.event.reply(
                 _(
-                    "You must start the bot in DM first to connect. Once you initialize connection with Sophie, you'll be connected."
+                    "You must start the bot in DM first to connect. "
+                    "Once you initialize connection with Sophie, you'll be connected."
                 ),
                 reply_markup=InlineKeyboardMarkup(
                     inline_keyboard=[

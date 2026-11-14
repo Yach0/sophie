@@ -18,6 +18,7 @@ from .filter_wizard import (
 from .handlers.filter_del import FilterDeleteHandler
 from .handlers.filter_edit import FilterEditHandler
 from .handlers.filter_new import FilterNewHandler
+from .handlers.filter_stats import FilterStatsHandler
 from .handlers.filters_list import (
     FilterDeleteConfirmHandler,
     FilterDeletePromptHandler,
@@ -46,6 +47,7 @@ module_manifest = ModuleManifest(
         FilterNewHandler,
         FilterEditHandler,
         FiltersListHandler,
+        FilterStatsHandler,
         FiltersPageHandler,
         FilterEditFromListHandler,
         FilterDeletePromptHandler,
@@ -64,7 +66,8 @@ module_manifest = ModuleManifest(
             l_("Filters allow invoking different actions for different messages."),
             l_("For example, muting the users when they mention crypto."),
             l_(
-                "Sophie supports many different actions you can configure to automatize chat moderation in many different ways."
+                "Sophie supports many different actions you can configure to "
+                "automatize chat moderation in many different ways."
             ),
         )
     ),
