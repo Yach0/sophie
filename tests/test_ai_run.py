@@ -13,6 +13,7 @@ from pydantic_ai import (
     PartDeltaEvent,
     PartEndEvent,
     PartStartEvent,
+    RunContext,
     TextPart,
     TextPartDelta,
     ThinkingPart,
@@ -123,7 +124,14 @@ class FakeEventAgent:
             if self.raises is not None:
                 raise self.raises
 
-        await event_stream_handler(None, stream())
+        context = RunContext(
+            deps=None,
+            model=self.model,
+            usage=RunUsage(),
+            prompt=kwargs["user_prompt"],
+            messages=list(kwargs.get("message_history") or []),
+        )
+        await event_stream_handler(context, stream())
         return FakeRunResult(self.final_output)
 
 
