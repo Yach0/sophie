@@ -1153,6 +1153,27 @@ class ModernContext:
         finally:
             await self.abort()
 
+    def debug_budget(self) -> dict[str, object]:
+        """Describe retained context using the counters already loaded for admission."""
+        return {
+            "input_budget": self._budget,
+            "retained_events": len(self._state.events),
+            "models": [
+                {
+                    "model": budget.counter.model_name,
+                    "context_window_tokens": budget.context_window_tokens,
+                    "input_tokens": budget.input_tokens,
+                    "estimated_history_tokens": budget.counter.count_messages(self.message_history),
+                    "estimated_prompt_tokens": budget.counter.count_content(self.prompt),
+                    "estimated_instruction_tokens": budget.counter.count_text(self.instructions),
+                    "tokenizer": "model tokenizer" if budget.counter.tokenizer is not None else "cl100k estimate",
+                }
+                for budget in self._token_budgets
+            ],
+            "trimming": "Context is already pruned; per-candidate projections may retain fewer messages. "
+            "Pre-trim content and removed-event counts are not retained.",
+        }
+
     def history_debug(self) -> Element:
         items = VList(prefix="\n")
         items.append(KeyValue("Instructions", self.instructions))
