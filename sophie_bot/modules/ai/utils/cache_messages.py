@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import sentry_sdk
+from aiogram.types import Animation, Audio, Document, Message, PhotoSize, Sticker, Video, VideoNote, Voice
 from pydantic import BaseModel
 from redis.asyncio import Redis
 from redis.asyncio.client import Pipeline
@@ -11,11 +12,47 @@ from redis.exceptions import WatchError
 MESSAGE_CACHE_TTL = timedelta(hours=48)
 
 
+class CachedMedia(BaseModel):
+    """Telegram attachment references only; extraction belongs to AI input construction."""
+
+    photo: list[PhotoSize] | None = None
+    animation: Animation | None = None
+    document: Document | None = None
+    sticker: Sticker | None = None
+    voice: Voice | None = None
+    audio: Audio | None = None
+    video: Video | None = None
+    video_note: VideoNote | None = None
+
+    @classmethod
+    def from_message(cls, message: Message) -> CachedMedia | None:
+        fields = {name: getattr(message, name) for name in cls.model_fields if getattr(message, name)}
+        if message.photo:
+            fields["photo"] = [message.photo[-1]]
+        if message.document and message.document.mime_type != "image/gif":
+            del fields["document"]
+        return cls.model_validate(fields) if fields else None
+
+    def as_message(self, row: MessageType, chat_tid: int) -> Message:
+        return Message.model_validate(
+            {
+                "message_id": row.message_id,
+                "date": row.created_at or datetime.now(UTC),
+                "chat": {"id": chat_tid, "type": "supergroup"},
+                "from": {"id": row.user_id, "is_bot": row.is_bot, "first_name": "Context"},
+                "caption": row.text,
+                "message_thread_id": row.message_thread_id,
+                **self.model_dump(exclude_none=True),
+            }
+        )
+
+
 class MessageType(BaseModel):
     user_id: int
     is_bot: bool = False
     message_id: int
     text: str
+    media: CachedMedia | None = None
     created_at: datetime | None = None
     username: str | None = None
     message_thread_id: int | None = None
@@ -81,16 +118,18 @@ async def cache_message(
     proactively_answered: bool = False,
     proactively_reacted: bool = False,
     expected_epoch: int | None = None,
+    media: CachedMedia | None = None,
 ) -> None:
-    """Caches a message if text is provided."""
-    if not text:
+    """Cache text and attachment references without downloading media."""
+    if not text and media is None:
         return
 
     msg = MessageType(
         user_id=user_id,
         is_bot=is_bot,
         message_id=message_id,
-        text=text,
+        text=text or "",
+        media=media,
         created_at=created_at,
         username=username,
         message_thread_id=message_thread_id,

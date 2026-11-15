@@ -41,7 +41,7 @@ from sophie_bot.modules.ai.utils import ai_run, ai_tokens, chatbot_context, mode
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message, get_cached_messages
+from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, MessageType, cache_message, get_cached_messages
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.modules.ai.utils.modern_context import (
     DecisionMessage,
@@ -235,6 +235,53 @@ def test_speaker_names_recovered_from_xml_use_real_ids(alias: str) -> None:
         (USER_TID, "Current"),
         (USER_TID, "Roster"),
     )
+
+
+@pytest.mark.parametrize("original_name", [None, "Earlier name"])
+async def test_cached_media_replay_survives_speaker_name_changes(
+    original_name: str | None, alias_context: SophieAIToolContext, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    history = ModernContext(redis=alias_context.services.redis, chat_tid=CHAT_TID, mode=AIMode.entertainment)
+    history._request_id = 10
+    history._budget = 100000
+    history._token_budgets = (ModelTokenBudget(_byte_counter("test"), 100000),)
+    if original_name is not None:
+        history._state.first_names[str(USER_TID)] = original_name
+    rows = [
+        MessageType(user_id=USER_TID, message_id=message_id, text="same caption", handled_by_ai=True)
+        for message_id in (1, 2, 3)
+    ]
+    rows[1].media = CachedMedia(voice=Voice(file_id="cached-voice", file_unique_id="voice", duration=2))
+    rows.append(MessageType(user_id=CONFIG.bot_id, message_id=4, text="earlier answer"))
+    history._ingest(rows, (), include_background=True)
+    event = history._state.events[0]
+    original_messages = event.messages()
+    persisted = event.messages_json
+    history._state.first_names[str(USER_TID)] = "Current name"
+    image = BinaryContent(data=b"cached image", media_type="image/jpeg")
+    monkeypatch.setattr(
+        modern_context,
+        "build_cached_message_parts",
+        AsyncMock(return_value=["same caption", image, "cached transcript"]),
+    )
+
+    await history._resolve_cached_media(alias_context.services, on_activity=None)
+    _, messages = history.project_for_candidate(AIModelCandidate(model=TestModel(), model_name="test"))
+
+    assert len(messages) == 4
+    assert messages[0] == original_messages[0]
+    assert messages[2:] == original_messages[2:]
+    media_request = messages[1]
+    assert isinstance(media_request, ModelRequest)
+    media_part = media_request.parts[0]
+    assert isinstance(media_part, UserPromptPart)
+    assert not isinstance(media_part.content, str)
+    assert image in media_part.content
+    assert "cached transcript" in str(media_part.content)
+    assert 'first_name="Current name"' in str(media_part.content)
+    assert event.messages_json == persisted
+    legacy_event = event.model_copy(update={"media_rows": []})
+    assert history._event_messages(legacy_event) == original_messages
 
 
 @pytest.mark.parametrize("legacy_alias", ["u1", "U1"])
@@ -1253,7 +1300,8 @@ async def test_prepared_history_uses_model_capacity_or_explicit_chat_cap(
     name: str,
 ) -> None:
     counter = await ai_tokens.load_token_counter(name)
-    primary_budget = ModelTokenBudget.for_model(counter, 200000, 0, 2048)
+    # Reserve space for the trusted media policy even with the conservative fallback tokenizer.
+    primary_budget = ModelTokenBudget.for_model(counter, 200000, 0, 1024)
     for turn in range(4):
         old = await _build(
             _message(500 + turn * 2, f"previous question {turn}"),
@@ -1273,7 +1321,7 @@ async def test_prepared_history_uses_model_capacity_or_explicit_chat_cap(
     monkeypatch.setattr(chatbot_context, "is_enabled", AsyncMock(return_value=True))
 
     async def flag_value(feature: str, **kwargs: object) -> int:
-        return configured_limit if feature == "ai_chatbot_modern_context_tokens" else 2048
+        return configured_limit if feature == "ai_chatbot_modern_context_tokens" else 1024
 
     monkeypatch.setattr(chatbot_context, "get_value", flag_value)
     monkeypatch.setattr(ModernContext, "_default_context", AsyncMock(return_value=("Be helpful.", "")))
