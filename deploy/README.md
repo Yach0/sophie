@@ -9,7 +9,11 @@ installation. The existing `redis.container` must name the container `redis` and
 The persistence drop-in retains the base quadlet's `Exec` command (or the image's
 default `redis-server`), appending only RDB settings. Existing authentication,
 config-file arguments, image, published ports and default `noeviction` behavior stay
-in place. Other drop-ins must not override this drop-in's `Exec` or mount `/data`.
+in place. The drop-in resets inherited `Volume=` entries, restores the base
+quadlet's volumes except `/data`, and adds the durable `/data` mount. Empty
+`Volume=` resets in the base quadlet are respected. Keep volume settings in the
+base quadlet; other drop-ins must not change volumes or override this drop-in's
+`Exec`. Existing `Mount=` or `PodmanArgs=` settings must not also mount `/data`.
 No AOF is enabled. The automatic snapshot policy uses these thresholds:
 900 seconds / 1 change, 300 seconds / 10 changes, or 60 seconds / 10000 changes.
 Redis loads `/data/dump.rdb` automatically at startup.
@@ -28,7 +32,10 @@ atomically replaces the durable dump only after copying succeeds.
 Staging uses no credentials; if configured, the existing `redis_username` and
 `redis_password` facts are passed to redis-cli, with the password through
 `REDISCLI_AUTH` and sensitive task output suppressed. Snapshot/auth/copy failures
-abort before replacing the container. A failed SAVE may mean an RDB background save
+abort before replacing the container. In GitLab, set `STABLE_REDIS_USERNAME` and
+`STABLE_REDIS_PASSWORD` without surrounding quotes. The username `default` must be
+unmasked because it is shorter than GitLab's masking minimum; keep the password
+masked. A failed SAVE may mean an RDB background save
 is in progress; wait for it to finish before retrying. The live dataset is not
 atomically transferred: quiesce writers during the first rollout to retain writes
 between SAVE and restart. Without that, the copied snapshot is the recovery point.
