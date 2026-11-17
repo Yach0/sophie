@@ -22,7 +22,7 @@ from pydantic_ai import (
 )
 from pydantic_ai.capabilities import Hooks, ModelFallback, WrapModelRequestHandler
 from pydantic_ai.exceptions import RetryModelRequest, UsageLimitExceeded
-from pydantic_ai.messages import ModelRequest, ModelResponse, UserContent, UserPromptPart
+from pydantic_ai.messages import ModelRequest, ModelResponse, SystemPromptPart, UserContent, UserPromptPart
 from pydantic_ai.models import Model, ModelRequestContext
 from pydantic_ai.models.fallback import FallbackOn
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
@@ -288,6 +288,22 @@ def _public_response_text(messages: Sequence[ModelRequest | ModelResponse]) -> s
     )
 
 
+def _current_run_messages(
+    ctx: RunContext[object], messages: Sequence[ModelRequest | ModelResponse]
+) -> list[ModelRequest | ModelResponse]:
+    """Locate the SDK-stamped current turn after history normalization, including later tool rounds.
+
+    Pydantic AI merges historical requests and removes orphan results before appending the
+    current prompt. Its public run ID survives those changes; the caller's history length does not.
+    Use persistent/preparation messages here, before the adapter merges outgoing requests again.
+    """
+    start = next(
+        (index for index, message in enumerate(messages) if ctx.run_id is not None and message.run_id == ctx.run_id),
+        len(messages),
+    )
+    return list(messages[start:])
+
+
 def _accumulated_public_text(terminal_output: str, new_messages: Sequence[ModelRequest | ModelResponse]) -> str:
     """Prepend public text from earlier responses to the native terminal output.
 
@@ -452,7 +468,6 @@ class _ModelRequests:
     request_options: AIRequestOptions | None
     model_settings: Mapping[str, object] | None
     usage_limits: UsageLimits | None
-    history_size: int
     allow_plan_failover: bool
     on_retry: AIRetryCallback | None
     operation_label: str
@@ -483,7 +498,6 @@ class _ModelRequests:
             request_options=request_options,
             model_settings=model_settings,
             usage_limits=run_kwargs.get("usage_limits"),
-            history_size=len(run_kwargs.get("message_history") or ()),
             allow_plan_failover=model_plan is not None,
             on_retry=on_retry,
             operation_label=operation_label,
@@ -528,7 +542,7 @@ class _ModelRequests:
         messages = request_context.messages
         options = self.request_options
         if options is not None and options.context_projection is not None:
-            current = messages[self.history_size :]
+            current = _current_run_messages(_ctx, messages)
             try:
                 prompt, history = options.context_projection(self.active, current[1:])
             except ValueError as error:
@@ -537,14 +551,30 @@ class _ModelRequests:
                     raise RetryModelRequest(self.candidates[index + 1].model) from error
                 raise ai_request_failed_from_error(error, self.error_context()) from error
             first_request = cast(ModelRequest, current[0])
+            # The SDK puts the run's prompt first, before hooks append extra user parts.
+            # Earlier hooks may rewrite it, so its content need not still match ctx.prompt.
+            prompt_part = next(part for part in first_request.parts if isinstance(part, UserPromptPart))
             first_request = replace(
                 first_request,
-                parts=[
-                    replace(part, content=prompt) if isinstance(part, UserPromptPart) else part
-                    for part in first_request.parts
-                ],
+                parts=[replace(part, content=prompt) if part is prompt_part else part for part in first_request.parts],
             )
-            messages = [*history, first_request, *current[1:]]
+            # Carry only standing prompts from omitted history. Moving a request-scoped
+            # prompt out of its answered request would make it applicable again.
+            # Avoid copying prompts already retained by the projection or the current request.
+            system_parts = [
+                part
+                for message in messages
+                for part in message.parts
+                if isinstance(part, SystemPromptPart)
+                and part.scope == "conversation"
+                and not any(part in retained.parts for retained in [*history, *current])
+            ]
+            messages = [
+                *([ModelRequest(parts=system_parts)] if system_parts else []),
+                *history,
+                first_request,
+                *current[1:],
+            ]
         settings = _candidate_model_settings(
             {**(request_context.model_settings or {}), **(self.model_settings or {})},
             options,
@@ -805,7 +835,7 @@ async def _stream_via_events[DepsT](
             match event:
                 case PartStartEvent(index=part_index, part=TextPart(content=content)):
                     if not text_response_started:
-                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
+                        text.next_response(_public_response_text(_current_run_messages(_ctx, _ctx.messages)))
                         text_response_started = True
                     text.start(part_index, content)
                     note_first_token()
@@ -818,7 +848,7 @@ async def _stream_via_events[DepsT](
                     await reasoning.emit()
                 case PartDeltaEvent(index=part_index, delta=TextPartDelta(content_delta=content_delta)):
                     if not text_response_started:
-                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
+                        text.next_response(_public_response_text(_current_run_messages(_ctx, _ctx.messages)))
                         text_response_started = True
                     chunk_count += 1
                     text.delta(part_index, content_delta or "")
@@ -832,7 +862,7 @@ async def _stream_via_events[DepsT](
                     await reasoning.emit()
                 case PartEndEvent(index=part_index, part=TextPart(content=content)):
                     if not text_response_started:
-                        text.next_response(_public_response_text(_ctx.messages[requests.history_size :]))
+                        text.next_response(_public_response_text(_current_run_messages(_ctx, _ctx.messages)))
                         text_response_started = True
                     text.end(part_index, content)
                     note_first_token()
