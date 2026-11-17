@@ -50,6 +50,7 @@ class CachedMedia(BaseModel):
 class MessageType(BaseModel):
     user_id: int
     is_bot: bool = False
+    from_sender_chat: bool = False
     message_id: int
     text: str
     media: CachedMedia | None = None
@@ -106,6 +107,7 @@ async def cache_message(
     *,
     redis: Redis,
     is_bot: bool = False,
+    from_sender_chat: bool = False,
     message_thread_id: int | None = None,
     handled_by_ai: bool = False,
     eligible_for_proactive_ai: bool = True,
@@ -127,6 +129,7 @@ async def cache_message(
     msg = MessageType(
         user_id=user_id,
         is_bot=is_bot,
+        from_sender_chat=from_sender_chat,
         message_id=message_id,
         text=text or "",
         media=media,

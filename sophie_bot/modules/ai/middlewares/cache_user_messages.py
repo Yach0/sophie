@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_messag
 from sophie_bot.modules.ai.utils.evidence_memory import capture_source, memory_cutoff, mutate_memory, prune_memory
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
+from sophie_bot.modules.ai.utils.support_replies import maybe_run_support_reply
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
@@ -72,11 +73,24 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 )
             else:
                 memory_generation = memory_state.generation
+        support_proactive = bool(
+            isinstance(event, Message)
+            and event.chat.type in {"group", "supergroup"}
+            and chat_db
+            and mode == AIMode.support
+            and await is_enabled("ai_proactive_support", chat_tid=chat_db.tid, redis=data["services"].redis)
+        )
+        data["ai_support_proactive"] = support_proactive
         result = await handler(event, data)
         if data.get("ai_moderation_blocked"):
             return result
 
-        if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
+        if (
+            isinstance(event, Message)
+            and chat_db
+            and (event.from_user or event.sender_chat)
+            and capabilities.message_cache
+        ):
             text = event.text or event.caption or ""
             media = CachedMedia.from_message(event)
             if not text and media is None:
@@ -86,10 +100,16 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 log.debug("CacheUserMessagesMiddleware: skipping reset command")
                 return result
 
-            user_id = event.from_user.id
+            sender = event.from_user
+            sender_chat = event.sender_chat
+            if sender:
+                user_id, username = sender.id, sender.username or sender.full_name
+            elif sender_chat and support_proactive:
+                user_id, username = sender_chat.id, sender_chat.title
+            else:
+                return result
             msg_id = event.message_id
             log.debug("CacheUserMessagesMiddleware: caching message", chat_id=chat_db.tid)
-            username = event.from_user.username or event.from_user.full_name
             reply_to_message = event.reply_to_message
             reply_to_user = reply_to_message.from_user if reply_to_message else None
             reply_to_is_sophie_ai = bool(
@@ -115,7 +135,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 msg_id,
                 event.date,
                 username,
-                is_bot=event.from_user.is_bot,
+                is_bot=bool(sender and sender.is_bot),
+                from_sender_chat=event.sender_chat is not None,
                 message_thread_id=event.message_thread_id,
                 handled_by_ai=handled_by_ai,
                 eligible_for_proactive_ai=eligible_for_proactive_ai,
@@ -129,10 +150,8 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 media=media,
                 redis=data["services"].redis,
             )
-            if text and memory_generation is not None and not event.from_user.is_bot and not event.sender_chat:
+            if text and memory_generation is not None and sender and not sender.is_bot and not event.sender_chat:
                 cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
-
-                sender = event.from_user
 
                 def remember(state: MemoryState) -> None:
                     if state.generation != memory_generation:
@@ -161,5 +180,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                     )
             if eligible_for_proactive_ai and capabilities.proactive_replies:
                 await maybe_run_proactive_reply(event, chat_db, services=data["services"])
+            elif support_proactive and not (handled_by_ai or is_command or has_ai_command) and text.strip():
+                await maybe_run_support_reply(event, chat_db, services=data["services"])
 
         return result

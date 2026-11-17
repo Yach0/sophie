@@ -18,8 +18,8 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 @flags.ai_cache(cache_handler_result=True)
 class AiReplyHandler(SophieMessageHandler):
     @staticmethod
-    async def filter(message: Message):
-        if message.pinned_message:
+    async def filter(message: Message, ai_support_proactive: bool = False) -> bool:
+        if ai_support_proactive or message.pinned_message:
             return False
 
         if not message.reply_to_message:
