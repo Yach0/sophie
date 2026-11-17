@@ -92,7 +92,7 @@ UPDATE appends a new version with the same speaker, subjects, layer, scope, topi
 Several reply roots can support one explicitly named event. Event matching remains a writer judgment.
 All actions in a batch pass validation before any fact is changed. After three invalid outputs, that batch's messages
 remain available as raw evidence but no longer block extraction of later messages. Failed provider requests remain pending. Expected provider, configuration, quota, and storage errors are logged per chat;
-the scheduler continues to later chats. Shared history writes use Redis WATCH transactions and context epochs so in-flight messages cannot restore a reset history. Unexpected programming errors still reach the scheduler error handler.
+the scheduler continues to later chats. Redis discovery failures preserve already discovered chats; malformed cache keys are skipped, and per-key cleanup failures do not abort the run. Shared history writes use Redis WATCH transactions and context epochs so in-flight messages cannot restore a reset history. Unexpected programming errors still reach the scheduler error handler.
 
 Beanie revisions and a unique chat index prevent lost concurrent writes. Sources are marked processed only with the
 accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy changes rotate a generation token;

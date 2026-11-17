@@ -105,3 +105,48 @@ async def test_writer_does_not_hide_programming_errors(
     monkeypatch.setattr(worker, "process_chat", AsyncMock(side_effect=TypeError("unexpected")))
     with pytest.raises(TypeError, match="unexpected"):
         await worker.handle()
+
+
+@pytest.mark.parametrize("discover_new_chat", [False, True])
+async def test_scan_failure_preserves_discovered_chats(
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+    discover_new_chat: bool,
+) -> None:
+    known = await ChatModel.upsert_group(Chat(id=-1001995, type="supergroup", title="Known"))
+    await mutate_memory(known, lambda state: None, redis=test_services.redis)
+    new = await ChatModel.upsert_group(Chat(id=-1001996, type="supergroup", title="New"))
+
+    async def failing_scan(*args: object, **kwargs: object) -> AsyncIterator[bytes]:
+        if discover_new_chat:
+            yield f"messages:{new.tid}".encode()
+        raise RedisError("Interrupted scan")
+
+    monkeypatch.setattr(test_services.redis, "scan_iter", failing_scan)
+    worker = WriteMemory(test_services)
+    process = AsyncMock()
+    monkeypatch.setattr(worker, "process_chat", process)
+    await worker.handle()
+    assert {call.args[0].tid for call in process.await_args_list} == (
+        {known.tid, new.tid} if discover_new_chat else {known.tid}
+    )
+
+
+async def test_invalid_keys_and_trim_failures_do_not_block_other_chats(
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    redis = test_services.redis
+    for chat_tid in (-1001997, -1001998):
+        await ChatModel.upsert_group(Chat(id=chat_tid, type="supergroup", title="Cached"))
+        await redis.zadd(f"messages:{chat_tid}", {"entry": datetime.now(UTC).timestamp()})
+    await redis.set("messages:invalid", "not a chat")
+    await redis.set(b"messages:\xff", "not an integer")
+    trim = AsyncMock(side_effect=[RedisError("Cleanup failed"), 0])
+    monkeypatch.setattr(redis, "zremrangebyscore", trim)
+    worker = WriteMemory(test_services)
+    process = AsyncMock()
+    monkeypatch.setattr(worker, "process_chat", process)
+    await worker.handle()
+    assert trim.await_count == 2
+    assert {call.args[0].tid for call in process.await_args_list} == {-1001997, -1001998}

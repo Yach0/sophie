@@ -69,9 +69,23 @@ class WriteMemory:
                     "Memory writer could not resolve chat", memory_iid=str(document.id), error_type=type(error).__name__
                 )
         cutoff = (datetime.now(UTC) - MESSAGE_CACHE_TTL).timestamp()
-        async for key in self.services.redis.scan_iter(match="messages:*"):
-            await self.services.redis.zremrangebyscore(key, 0, cutoff)
-            chat_tids.add(int(key.decode().split(":")[1] if isinstance(key, bytes) else key.split(":")[1]))
+        try:
+            async for key in self.services.redis.scan_iter(match="messages:*"):
+                try:
+                    suffix = key.removeprefix(b"messages:") if isinstance(key, bytes) else key.removeprefix("messages:")
+                    chat_tid = int(suffix)
+                except ValueError:
+                    log.warning("Memory writer skipped invalid message cache key")
+                    continue
+                chat_tids.add(chat_tid)
+                try:
+                    await self.services.redis.zremrangebyscore(key, 0, cutoff)
+                except RedisError as error:
+                    log.warning(
+                        "Memory writer could not trim history", chat_tid=chat_tid, error_type=type(error).__name__
+                    )
+        except RedisError as error:
+            log.warning("Memory writer cache discovery failed", error_type=type(error).__name__)
         for chat_tid in sorted(chat_tids):
             try:
                 chat = await ChatModel.get_by_tid(chat_tid)
