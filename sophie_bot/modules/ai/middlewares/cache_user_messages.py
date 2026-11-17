@@ -5,16 +5,13 @@ from typing import Any
 from aiogram import BaseMiddleware
 from aiogram.filters.command import CommandObject
 from aiogram.types import Message, TelegramObject
-from beanie.exceptions import RevisionIdWasChanged
-from pymongo.errors import DuplicateKeyError
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
-from sophie_bot.db.models.ai.ai_evidence_memory import MemorySource, MemoryState
+from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_context_epoch_key
-from sophie_bot.modules.ai.utils.evidence_memory import capture_source, memory_cutoff, mutate_memory, prune_memory
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.modules.ai.utils.support_replies import maybe_run_support_reply
@@ -58,21 +55,15 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         expected_epoch = None
         if isinstance(event, Message) and chat_db and capabilities.message_cache:
             expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
-        memory_generation = None
-        if (
+        memory_enabled = bool(
             chat_db
             and capabilities.memory
             and await is_enabled("ai_memory_capture", chat_tid=chat_db.tid, redis=data["services"].redis)
-        ):
-            cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
-            try:
-                memory_state = await mutate_memory(chat_db, lambda current: prune_memory(current, cutoff))
-            except (RevisionIdWasChanged, DuplicateKeyError) as error:
-                log.warning(
-                    "Memory capture initialization conflicted", chat_tid=chat_db.tid, error_type=type(error).__name__
-                )
-            else:
-                memory_generation = memory_state.generation
+        )
+        excluded_users: list[int] = []
+        if memory_enabled and chat_db:
+            memory = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat_db.iid)
+            excluded_users = memory.state.excluded_users if memory else []
         support_proactive = bool(
             isinstance(event, Message)
             and event.chat.type in {"group", "supergroup"}
@@ -81,6 +72,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             and await is_enabled("ai_proactive_support", chat_tid=chat_db.tid, redis=data["services"].redis)
         )
         data["ai_support_proactive"] = support_proactive
+
         result = await handler(event, data)
         if data.get("ai_moderation_blocked"):
             return result
@@ -146,38 +138,20 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 reply_to_is_sophie_ai=reply_to_is_sophie_ai,
                 has_ai_command=has_ai_command,
                 is_ai_filter_reply=bool(data.get("ai_filter_handled", False)),
+                eligible_for_memory=bool(
+                    memory_enabled
+                    and bool(text)
+                    and sender is not None
+                    and not sender.is_bot
+                    and not event.sender_chat
+                    and user_id not in excluded_users
+                ),
+                speaker_name=sender.full_name if sender else "",
                 expected_epoch=expected_epoch,
                 media=media,
                 redis=data["services"].redis,
             )
-            if text and memory_generation is not None and sender and not sender.is_bot and not event.sender_chat:
-                cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
 
-                def remember(state: MemoryState) -> None:
-                    if state.generation != memory_generation:
-                        return
-                    capture_source(
-                        state,
-                        MemorySource(
-                            message_id=msg_id,
-                            speaker_tid=user_id,
-                            speaker_name=sender.full_name,
-                            username=sender.username,
-                            text=text,
-                            sent_at=event.date,
-                            topic_id=event.message_thread_id,
-                            reply_to_message_id=reply_to_message.message_id if reply_to_message else None,
-                            branch_id=reply_to_message.message_id if reply_to_message else msg_id,
-                        ),
-                    )
-                    prune_memory(state, cutoff)
-
-                try:
-                    await mutate_memory(chat_db, remember)
-                except (RevisionIdWasChanged, DuplicateKeyError) as error:
-                    log.warning(
-                        "Memory capture write conflicted", chat_tid=chat_db.tid, error_type=type(error).__name__
-                    )
             if eligible_for_proactive_ai and capabilities.proactive_replies:
                 await maybe_run_proactive_reply(event, chat_db, services=data["services"])
             elif support_proactive and not (handled_by_ai or is_command or has_ai_command) and text.strip():

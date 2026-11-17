@@ -56,11 +56,18 @@ class MemoryFact(BaseModel):
         return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
-class MemoryState(BaseModel):
-    sources: list[MemorySource] = Field(default_factory=list)
+class StoredMemoryState(BaseModel):
     facts: list[MemoryFact] = Field(default_factory=list)
     excluded_users: list[int] = Field(default_factory=list)
     generation: str = Field(default_factory=lambda: uuid4().hex)
+    processed_ids: list[int] = Field(default_factory=list)
+    writer_attempts: dict[str, int] = Field(default_factory=dict)
+
+
+class MemoryState(StoredMemoryState):
+    """Working view: original messages are hydrated from Redis, never stored in MongoDB."""
+
+    sources: list[MemorySource] = Field(default_factory=list)
 
 
 class MemoryAction(BaseModel):
@@ -79,12 +86,12 @@ class MemoryAction(BaseModel):
 
 
 class MemoryActions(BaseModel):
-    actions: list[MemoryAction] = Field(default_factory=list, max_length=40)
+    actions: list[MemoryAction] = Field(default_factory=list, max_length=60)
 
 
 class AIEvidenceMemoryModel(Document):
     chat: Link[ChatModel]
-    state: MemoryState = Field(default_factory=MemoryState)
+    state: StoredMemoryState = Field(default_factory=StoredMemoryState)
 
     class Settings:
         name = "ai_evidence_memory"
