@@ -96,7 +96,9 @@ What Sophie's AI does in a chat, and what it is given, depends on the mode chose
   checked and discarded, never cached. Switching a chat into this mode deletes any history cached
   by a previous mode.
 * **Support** — the chatbot answers questions using the chat's notes, and the AI moderator runs.
-  Recent messages are cached to provide conversation context.
+  Recent messages are cached to provide conversation context. If proactive support is enabled for the
+  group, Sophie can send conversation context and relevant notes to the AI provider to decide whether
+  to offer an answer.
 
 Cached message history is held for at most 48 hours and can be cleared at any time with /ai_reset.
 
