@@ -13,8 +13,9 @@ Support mode can volunteer a reply backed by a group note. To pilot it in one gr
 
 Sophie gives people 16 seconds to respond before evaluating a member's message. It can
 evaluate a single message and uses the recent conversation in the same Telegram topic.
-Owners, admins, bots and messages sent as a group or channel are ineligible, including on
-replies to Sophie. They can still request help with `/ai` under the usual command rules.
+Owners, admins, operators, bots, and messages sent as a group or channel cannot trigger
+proactive replies. Owners, admins, and operators can continue by replying directly to an AI
+message from Sophie. The usual command rules apply to `/ai`.
 
 A staff reply on the same branch during the grace period cancels the pending response before
 Sophie looks up notes. Sophie checks again for staff replies before sending. It stays quiet

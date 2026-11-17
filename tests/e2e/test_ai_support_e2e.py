@@ -6,17 +6,19 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.types import Chat, Message, Update, User
+from aiogram.types import Chat, Message, RichBlockParagraph, RichMessage, RichTextCustomEmoji, Update, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory
 from aiogram_test_framework.types import RequestType
 from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.db.models.ai.ai_mode import AIMode, AIModeModel
-from sophie_bot.modules.ai.handlers import ai_cmd
+from sophie_bot.modules.ai.handlers import ai_cmd, reply
 from sophie_bot.modules.ai.utils import support_replies
+from sophie_bot.modules.ai.utils.ai_header import AI_CUSTOM_EMOJI_ID
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.support_replies import SupportDecision
 from sophie_bot.services.application import ApplicationServices
@@ -196,3 +198,65 @@ async def test_proactive_support(
             if scenario == "staff_during_grace":
                 assert "staff_replied" in skips
                 embed.assert_not_awaited()
+
+
+@pytest.mark.parametrize("role", ("admin", "operator", "member", "channel", "bot"))
+async def test_direct_reply_to_sophie_with_proactive_support(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+    role: str,
+) -> None:
+    sender, group, _sender_model = await create_test_user_and_group(test_client)
+    await grant_admin(group.id, sender.id if role in {"admin", "channel", "bot"} else next_user_id())
+    if role == "operator":
+        monkeypatch.setattr(CONFIG, "operators", [*CONFIG.operators, sender.id])
+    if role == "bot":
+        sender = sender.model_copy(update={"is_bot": True})
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.support)
+    await set_feature(test_client, "ai_moderation", False, chat_tid=group.id)
+    await set_feature(test_client, "ai_proactive_support", True, chat_tid=group.id)
+    direct_reply = AsyncMock()
+    monkeypatch.setattr(reply, "ai_chatbot_reply", direct_reply)
+    embed = AsyncMock(return_value=None)
+    monkeypatch.setattr("sophie_bot.utils.notes_search.create_embedding", embed)
+    monkeypatch.setattr(support_replies, "sleep", AsyncMock())
+
+    parent = Message(
+        message_id=next_message_id(),
+        date=datetime.now(UTC).replace(microsecond=0),
+        chat=group,
+        from_user=User(id=CONFIG.bot_id, first_name="Sophie", is_bot=True),
+        rich_message=RichMessage(
+            blocks=[
+                RichBlockParagraph(
+                    text=[
+                        RichTextCustomEmoji(custom_emoji_id=AI_CUSTOM_EMOJI_ID, alternative_text="✨"),
+                        "Use the beta form.",
+                    ]
+                )
+            ],
+        ),
+    )
+    message = Message(
+        message_id=next_message_id(),
+        date=parent.date,
+        chat=group,
+        from_user=sender,
+        sender_chat=group if role == "channel" else None,
+        text="Where is that form?",
+        reply_to_message=parent,
+    )
+    await test_client.dispatcher.feed_update(test_client.bot, Update(update_id=next_message_id(), message=message))
+    await asyncio.gather(*tuple(test_services.background_tasks))
+
+    if role in {"admin", "operator"}:
+        direct_reply.assert_awaited_once()
+    else:
+        direct_reply.assert_not_awaited()
+    if role == "member":
+        embed.assert_awaited_once()
+    else:
+        embed.assert_not_awaited()
