@@ -26,7 +26,10 @@ _MODULE = "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users"
 
 @pytest.fixture(autouse=True)
 def _untracked_membership(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(f"{_MODULE}.UserInGroupModel.get_user_in_group", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.pending_session.UserInGroupModel.get_user_in_group",
+        AsyncMock(return_value=None),
+    )
 
 
 def _make_ws_user(*, is_join_request: bool) -> SimpleNamespace:
@@ -36,6 +39,8 @@ def _make_ws_user(*, is_join_request: bool) -> SimpleNamespace:
         is_join_request=is_join_request,
         membership_id=None,
         membership_join_message_id=None,
+        cleanup_message_ids=[],
+        cleanup_ephemeral_message_ids=[],
         added_at=datetime.now(UTC) - WELCOMESECURITY_EXPIRE_DEFAULT_TIME - timedelta(hours=1),
         user=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),
         group=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),
@@ -241,9 +246,7 @@ async def test_contended_pending_user_does_not_starve_later_expired_users(
     await KickUnpassedUsers(test_services).handle()
 
     contended_user.delete.assert_not_awaited()
-    execute_restriction.assert_awaited_once_with(
-        test_services.bot, RestrictionAction.KICK, group.tid, users[1].tid
-    )
+    execute_restriction.assert_awaited_once_with(test_services.bot, RestrictionAction.KICK, group.tid, users[1].tid)
     expired_user.delete.assert_awaited_once()
     assert await test_services.redis.get(_pending_user_lock_key(group.tid, users[0].tid)) == b"captcha-owner"
     assert await test_services.redis.get(_pending_user_lock_key(group.tid, users[1].tid)) is None

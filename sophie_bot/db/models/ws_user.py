@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 from typing import Any, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
+from beanie.odm.operators.update.array import AddToSet
 from beanie.odm.operators.update.general import Set
 from pydantic import Field
 
@@ -18,6 +19,10 @@ class WSUserModel(Document):
     added_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     membership_id: PydanticObjectId | None = None
     membership_join_message_id: int | None = None
+    # Only messages observed in this pending session; membership IDs alone do not
+    # prove that a service message belongs to just this member.
+    cleanup_message_ids: list[int] = Field(default_factory=list)
+    cleanup_ephemeral_message_ids: list[int] = Field(default_factory=list)
 
     class Settings:
         name = "ws_users"
@@ -72,11 +77,30 @@ class WSUserModel(Document):
                         WSUserModel.membership_join_message_id: joined_message_id,
                         WSUserModel.added_at: datetime.now(UTC),
                         WSUserModel.is_join_request: is_join_request,
+                        WSUserModel.cleanup_message_ids: [],
+                        WSUserModel.cleanup_ephemeral_message_ids: [],
                     }
                 )
             )
 
         return await WSUserModel.find_one(user_filter)
+
+    async def remember_cleanup_messages(self, message_ids: list[int], ephemeral_message_ids: list[int]) -> None:
+        """Record owned group messages without resurrecting a completed session."""
+        await WSUserModel.find_one(
+            WSUserModel.id == self.id,
+            {"passed": False},
+            WSUserModel.membership_id == self.membership_id,
+            WSUserModel.membership_join_message_id == self.membership_join_message_id,
+            WSUserModel.added_at == self.added_at,
+        ).update(
+            AddToSet(
+                {
+                    WSUserModel.cleanup_message_ids: {"$each": message_ids},
+                    WSUserModel.cleanup_ephemeral_message_ids: {"$each": ephemeral_message_ids},
+                }
+            )
+        )
 
     @staticmethod
     async def remove_user(user_iid: PydanticObjectId, group_iid: PydanticObjectId) -> Optional["WSUserModel"]:
