@@ -10,7 +10,7 @@ unchanged when the flags are off. Each flag supports the existing global/chat ov
 
 | Flag | Effect when enabled |
 | --- | --- |
-| `ai_memory_capture` | Retain original human messages in entertainment mode, including silent conversations. |
+| `ai_memory_capture` | Mark original human messages in the existing Redis history as memory-eligible in entertainment mode, including silent conversations. |
 | `ai_memory_writer_model` | Select the independent writer model; default `gpt-6.1-terra` through OpenRouter. |
 | `ai_memory_writer` | Run batch extraction independently of replies. Requires at least one extraction scope below. |
 | `ai_memory_personal` | Allow the writer to create personal facts and observations about other people. |
@@ -34,7 +34,7 @@ The existing response-token limit still applies. Background capture, extraction,
 does not select these larger limits. Legacy requests keep `ai_chatbot_request_limit` (default `4`) and
 `ai_chatbot_tool_calls_limit` (default `6`), including their existing overrides.
 
-`ai_memory_retention_days` defaults to `30` and is clamped to 1–365 days. Attribution, source checks, scope validation,
+`ai_memory_retention_days` controls extracted facts only; it defaults to `30` and is clamped to 1–365 days. Original messages always use the shared Redis history’s 48-hour retention. Attribution, source checks, scope validation,
 chat boundaries, retention, and deletion propagation are mandatory integrity rules whenever the new store is used.
 They cannot be disabled to admit invalid records.
 
@@ -57,14 +57,16 @@ Capture, extraction, retrieval, and participation can each be disabled independe
 Leaving entertainment mode clears evidence and facts. Chat reset also clears existing new-store data. Both operations
 preserve opt-outs. No new memory document is created by normal mode changes or reset when the new features are unused.
 
+The `20261117_190031_unify_memory_sources_in_redis` migration copies unexpired `state.sources` into the existing Redis history before removing that field from MongoDB. Existing cache metadata, extracted facts, opt-outs, writer progress, and generation fences are preserved. Older originals are discarded under the 48-hour policy. The migration is idempotent and stops before deleting originals if Redis writes fail. Stop the bot and scheduler, run `make migrate_up`, then restart both on the new build; old processes must not write MongoDB sources after migration. Rollback reconstructs only still-retained Redis sources; expired originals are deliberately not backed up.
+
 The new `ai_evidence_memory` collection is registered with Beanie. Startup creates its unique chat index.
-No old records need a schema migration. Legacy text memories have no evidence and are not copied into the new store.
+No legacy text memories need a schema migration. Legacy text memories have no evidence and are not copied into the new store.
 Legacy prompt memory and `write_memory`/`forget_memory` remain available during additive retrieval.
 Only `ai_memory_replace_legacy`, together with retrieval, removes them.
 
 ## Storage and writer
 
-Each chat has one revision-protected document. It holds two bounded tracks:
+Each chat has one revision-protected MongoDB document for extracted facts, opt-outs, generation fences, and writer progress IDs. Original message bodies are stored only in the existing `messages:<chat_tid>` Redis sorted set. The working memory view combines:
 
 1. Original human text or captions, speaker ID, name/username snapshots, sent time, Telegram topic, reply parent, and reply root.
 2. Derived records with a stable ID, speaker, subjects, person/group scope, layer, claim kind, event name,
@@ -76,30 +78,27 @@ Reports about a person do not establish that person's position. A decision or no
 This structural check does not establish semantic agreement. The writer must classify dissent as disputed;
 retrieval explicitly tells the answerer that silence does not prove consensus.
 
-Capture runs in the message middleware after moderation, whether or not Sophie replies.
+Capture runs in the message middleware after moderation, whether or not Sophie replies. The ordinary history write includes memory eligibility, speaker-name, and optional branch metadata; there is no second message body or per-message MongoDB write. Bots, anonymous senders, excluded users, and messages captured before the flag was enabled are filtered out of memory reads.
 Anonymous chat senders and bots are excluded to avoid assigning their statements to a user.
 `/ai_memory` and `/ai_reset` are not captured as ordinary conversation. A correction stores its command as evidence.
 The bot receives new message events; Telegram does not supply ordinary deleted-message events to bots.
 Use the memory controls to delete retained copies. Original text may contain authored names; modern context aliases
 identity fields but does not rewrite the authored text.
 
-The scheduler checks every minute. It reads at most 40 pending messages, relevant current fact heads, their source
+The scheduler checks every 10 minutes and calls the writer only when at least 10 eligible unprocessed messages are available. It processes at most 60 pending messages per chat per run, relevant current fact heads, their source
 exchanges, and a speaker roster. It requests typed ADD/UPDATE/NOOP actions. Validation rejects missing sources,
 unknown actors, cross-topic evidence, invalid scope/layer pairs, and changes to another speaker's fact chain.
 UPDATE appends a new version with the same speaker, subjects, layer, scope, topic, and event identity.
 Several reply roots can support one explicitly named event. Event matching remains a writer judgment.
 All actions in a batch pass validation before any fact is changed. After three invalid outputs, that batch's messages
 remain available as raw evidence but no longer block extraction of later messages. Failed provider requests remain pending. Expected provider, configuration, quota, and storage errors are logged per chat;
-the scheduler continues to later chats. Exhausted capture conflicts are logged without blocking the message handler
-or the proactive reply path. Unexpected programming errors still reach the scheduler error handler.
+the scheduler continues to later chats. Redis discovery failures preserve already discovered chats; malformed cache keys are skipped, and per-key cleanup failures do not abort the run. Shared history writes use Redis WATCH transactions and context epochs so in-flight messages cannot restore a reset history. Unexpected programming errors still reach the scheduler error handler.
 
 Beanie revisions and a unique chat index prevent lost concurrent writes. Sources are marked processed only with the
 accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy changes rotate a generation token;
 a writer result from an earlier generation cannot restore deleted records.
 
-Both tracks expire together. Reads enforce the cutoff immediately; the scheduler removes expired data from MongoDB,
-even with capture flags disabled. The store keeps at most 1,000 sources and 1,000 fact versions per chat. Size eviction
-also removes facts that lost any evidence. Thus old history is available only within retention and capacity limits.
+Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their configured fact retention expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
 
 ## Retrieval and participation
 
@@ -113,7 +112,7 @@ remain explicitly unknown even when another person has made a claim about them.
 
 When member coverage is enabled, up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
 The two budgets are independent: up to 16 facts and 16 raw matches. Fact selection also has a 48-source provenance budget;
-every selected fact keeps all its evidence. One reply-parent expansion supplies local context. Structured identities use
+every selected fact keeps all still-retained evidence. Facts whose original text expired remain available with explicit missing-source IDs. One reply-parent expansion supplies local context. Structured identities use
 the current session's speaker aliases in modern context. Cross-chat retrieval is not supported.
 
 Participation decisions get relevant norms, preferences, open questions, and source exchanges. The decision prompt asks
@@ -126,10 +125,10 @@ semantic answers without a reply link still depend on the decision model and rec
 These commands require `ai_memory_controls` and work in the current connected chat. Inspection, personal corrections,
 and on require no admin rights. Forget and off require chat administrator rights because they clear shared state:
 
-- `/ai_memory show [PAGE]`: inspect facts where you are the speaker or a subject, including IDs, versions, timestamps,
+- `/ai_memory show`: inspect facts where you are the speaker or a subject, including IDs, versions, timestamps,
   and evidence references. Each page holds three items, with separate ID, text, speaker, source, version, and time fields.
-  `/ai_memory show 2` shows the next page; `/ai_memory help` lists examples.
-- `/ai_memory sources [PAGE]`: inspect your retained original text. Long messages span pages.
+  Previous/Next buttons use the shared paginator; `/ai_memory help` lists examples. Only the original requester can use the buttons. Every click reloads current data so deleted items cannot reappear from a page snapshot.
+- `/ai_memory sources`: inspect your original text from the shared 48-hour Redis history, using Previous/Next buttons. Long messages span pages.
 - `/ai_memory correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
   Send corrections in the original chat and topic. You cannot rewrite someone else's observation or a group decision. You can state your own position in chat.
 - `/ai_memory forget` (admins): clear retained information without disabling future capture.
@@ -147,7 +146,7 @@ Deletion cannot recall data already sent to Telegram or an AI provider.
 
 ## Evaluation before training
 
-Run `tests/test_ai_evidence_memory.py` and `tests/e2e/test_ai_memory_e2e.py` for deterministic replay and command checks.
+Run `tests/test_ai_evidence_memory.py`, `tests/test_shared_memory_cache.py`, `tests/test_memory_sources_migration.py`, and `tests/e2e/test_ai_memory_e2e.py` for deterministic replay and command checks.
 The cases cover attribution, reports versus direct positions, quiet members, changes over time, overlapping topics,
 branch and event filters, invalid consensus evidence, source expiry, personal correction ownership, opt-out, and deletion
 while the writer is running. The existing proactive and native-context tests cover the surrounding answer path.
