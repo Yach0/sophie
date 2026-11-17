@@ -24,7 +24,7 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesSetting,
     AINoteTitlesSetting,
 )
-from sophie_bot.modules.ai.handlers.memory import AIMemoryControl
+from sophie_bot.modules.ai.handlers.memory import AIMemoryControl, AIMemoryPageHandler
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -90,7 +90,7 @@ def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) 
     scheduler.add_job(
         track_scheduler_callback(WriteMemory(services).handle, services),
         "interval",
-        minutes=1,
+        minutes=10,
         jobstore="ram",
         max_instances=1,
         coalesce=True,
@@ -131,6 +131,7 @@ module_manifest = ModuleManifest(
         AiPmInitialize,
         AIContextReset,
         AIMemoryControl,
+        AIMemoryPageHandler,
         ResearchCmd,
         AiTranslate,
         AiUsage,

@@ -40,7 +40,7 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 
-START = datetime(2026, 11, 1, tzinfo=UTC)
+START = datetime.now(UTC) - timedelta(hours=2)
 
 
 def source(
@@ -159,7 +159,8 @@ def test_retention_deletes_dependent_versions_and_sources() -> None:
     state = MemoryState(sources=[source(1)])
     write(state, [action(1)], {1})
     prune_memory(state, START + timedelta(days=1))
-    assert not state.sources and not state.facts
+    assert not state.facts
+    assert state.sources  # Raw expiry is enforced by the shared Redis cache.
 
 
 def test_edit_invalidates_derived_facts_and_pending_writer() -> None:
@@ -214,14 +215,14 @@ async def test_db_roundtrip_boundaries_revision_and_utc(db_init: object, test_re
     chat = await ChatModel.get_by_tid(-1001122)
     other = await ChatModel.get_by_tid(-1001123)
     assert chat and other
-    await mutate_memory(chat, lambda state: capture_source(state, source(1)))
-    state = await read_memory(chat.iid, START)
+    await mutate_memory(chat, lambda state: capture_source(state, source(1)), redis=test_redis)
+    state = await read_memory(chat, START, redis=test_redis)
     assert state.sources[0].sent_at.tzinfo is not None
-    assert not (await read_memory(other.iid, START)).sources
+    assert not (await read_memory(other, START, redis=test_redis)).sources
     await set_chat_override("ai_memory_retrieval", chat.tid, True, redis=test_redis)
     assert "Picnic" in await memory_context(chat, MemoryQuery(), redis=test_redis)
     await set_chat_mode(chat, AIMode.support, redis=test_redis)
-    assert not (await read_memory(chat.iid, START)).sources
+    assert not (await read_memory(chat, START, redis=test_redis)).sources
 
 
 async def test_independent_writer_and_stale_result(
@@ -243,7 +244,12 @@ async def test_independent_writer_and_stale_result(
     for flag in ("ai_memory_writer", "ai_memory_personal"):
         await set_chat_override(flag, chat.tid, True, redis=test_services.redis)
     now = datetime.now(UTC)
-    await mutate_memory(chat, lambda state: capture_source(state, source(1).model_copy(update={"sent_at": now})))
+
+    def seed_first_batch(state: MemoryState) -> None:
+        for identity in range(1, 11):
+            capture_source(state, source(identity).model_copy(update={"sent_at": now}))
+
+    await mutate_memory(chat, seed_first_batch, redis=test_services.redis)
     monkeypatch.setattr(write_memory, "get_chat_model_plan", AsyncMock())
     monkeypatch.setattr(write_memory, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
     runner = AsyncMock(return_value=SimpleNamespace(output=MemoryActions(actions=[action(1)])))
@@ -254,15 +260,20 @@ async def test_independent_writer_and_stale_result(
     assert document and document.state.facts
     await worker.handle()
     assert runner.await_count == 1
-    await mutate_memory(chat, lambda state: capture_source(state, source(2).model_copy(update={"sent_at": now})))
+
+    def seed_second_batch(state: MemoryState) -> None:
+        for identity in range(11, 21):
+            capture_source(state, source(identity).model_copy(update={"sent_at": now}))
+
+    await mutate_memory(chat, seed_second_batch, redis=test_services.redis)
 
     async def forget_during_write(*args: object, **kwargs: object) -> SimpleNamespace:
-        await mutate_memory(chat, clear_memory)
-        return SimpleNamespace(output=MemoryActions(actions=[action(2)]))
+        await mutate_memory(chat, clear_memory, redis=test_services.redis)
+        return SimpleNamespace(output=MemoryActions(actions=[action(11)]))
 
     runner.side_effect = forget_during_write
     await worker.handle()
-    assert not (await read_memory(chat.iid, START)).facts
+    assert not (await read_memory(chat, START, redis=test_services.redis)).facts
 
 
 async def test_rollout_preserves_legacy_tools_until_replacement_is_enabled(
