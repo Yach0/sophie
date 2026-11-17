@@ -182,7 +182,7 @@ def build_lockable_doc(full_languages: bool = False) -> Doc:
 class ListLockableHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return (CMDFilter(("lockable", "lock_types")),)
+        return (CMDFilter(("lockable", "lock_types", "lockables")),)
 
     async def handle(self) -> Any:
         message: Message = self.event
