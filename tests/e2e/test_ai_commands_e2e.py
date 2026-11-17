@@ -8,7 +8,6 @@ from __future__ import annotations
 import re
 from contextlib import ExitStack
 from datetime import UTC, date, datetime
-from io import BytesIO
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -499,7 +498,6 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
         )
     )
     run_task = AsyncMock(return_value=mock_ai_result)
-    services = test_client.dispatcher.workflow_data["services"]
 
     with ExitStack() as stack:
         _apply_ai_admin_patches(stack)
@@ -512,10 +510,9 @@ async def test_translate_replied_video_includes_thumbnail_and_audio(test_client:
             )
         )
         stack.enter_context(
-            patch.object(
-                services.bot,
-                "download",
-                AsyncMock(return_value=BytesIO(b"thumbnail-bytes")),
+            patch(
+                "sophie_bot.modules.ai.utils.modern_context.download_media",
+                AsyncMock(return_value=b"thumbnail-bytes"),
             )
         )
         stack.enter_context(
