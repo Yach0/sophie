@@ -13,7 +13,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_evidence_memory import MemorySource, MemoryState
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
-from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_context_epoch_key
+from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.evidence_memory import capture_source, memory_cutoff, mutate_memory, prune_memory
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
@@ -77,8 +77,9 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             return result
 
         if isinstance(event, Message) and chat_db and event.from_user and capabilities.message_cache:
-            text = event.text or event.caption
-            if not text:
+            text = event.text or event.caption or ""
+            media = CachedMedia.from_message(event)
+            if not text and media is None:
                 return result
 
             if cache_state.command and cache_state.command.command in {"ai_reset", "ai_memory"}:
@@ -125,9 +126,10 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 has_ai_command=has_ai_command,
                 is_ai_filter_reply=bool(data.get("ai_filter_handled", False)),
                 expected_epoch=expected_epoch,
+                media=media,
                 redis=data["services"].redis,
             )
-            if memory_generation is not None and not event.from_user.is_bot and not event.sender_chat:
+            if text and memory_generation is not None and not event.from_user.is_bot and not event.sender_chat:
                 cutoff = await memory_cutoff(chat_db.tid, redis=data["services"].redis)
 
                 sender = event.from_user

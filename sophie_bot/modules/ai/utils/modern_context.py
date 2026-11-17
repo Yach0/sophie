@@ -13,11 +13,17 @@ from typing import BinaryIO, Literal
 from uuid import uuid4
 from xml.etree import ElementTree  # deepsource: skip - BAN-B405 - only serializing XML, no parsing
 
+import av
+import httpx
+import httpx2
 import sentry_sdk
 from aiogram import Bot
 from aiogram.enums import ChatMemberStatus
+from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, User
+from aiohttp import ClientError
 from beanie.operators import In
+from mistralai.client.errors import MistralError, NoResponseError
 from normality import normalize
 from pydantic import BaseModel, Field
 from pydantic_ai.messages import (
@@ -46,6 +52,7 @@ from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import (
+    MESSAGE_CACHE_TTL,
     MessageType,
     enqueue_cached_message,
     get_cached_messages,
@@ -54,8 +61,10 @@ from sophie_bot.modules.ai.utils.cache_messages import (
 )
 from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
+from sophie_bot.modules.ai.utils.media_download import MediaLimitError, download_media
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
-from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
+from sophie_bot.modules.ai.utils.transform_animation import ANIMATION_INSTRUCTION, extract_animation_samples
+from sophie_bot.modules.ai.utils.transform_audio import EmptyAudioError, transform_voice_to_text
 from sophie_bot.modules.ai.utils.transform_video import transform_video_to_text
 from sophie_bot.modules.utils_.admin import get_admin_record
 from sophie_bot.services.application import ApplicationServices
@@ -211,6 +220,7 @@ async def build_message_parts(
     bot: Bot,
     redis: Redis,
     on_activity: ActivityCallback | None = None,
+    transcribe_video: bool = True,
 ) -> list[UserContent]:
     """Build the list of message parts for the AI context."""
     # Message's text
@@ -224,13 +234,43 @@ async def build_message_parts(
         )
     ]
 
+    media = message.animation or (
+        message.document if message.document and message.document.mime_type == "image/gif" else None
+    )
+    if media:
+        if on_activity is not None:
+            await on_activity(_("Processing image..."))
+        group = uuid4().hex
+        source = hashlib.sha256(f"{message.chat.id}:{message.message_id}".encode()).hexdigest()
+        # Only positive Telegram duration can authorize the short thumbnail path.
+        if message.animation and 0 < message.animation.duration < 5 and media.thumbnail:
+            try:
+                image = await download_media(media.thumbnail.file_id, media.thumbnail.file_size, bot=bot)
+            except (OSError, TimeoutError, MediaLimitError, TelegramAPIError, ClientError):
+                image = b""
+            if image:
+                prompt.append(
+                    f"[GIF/animation single still; group={group}; source_message={source}; "
+                    "sample=1/1; Telegram thumbnail; image follows]"
+                )
+                prompt.append(BinaryContent(media_type="image/jpeg", data=image))
+                prompt.append(f"[End GIF/animation group={group}]")
+                return prompt
+        samples = await extract_animation_samples(media, bot=bot)
+        for ordinal, sample in enumerate(samples, 1):
+            mode = "sampled progression" if sample.progression else "single still"
+            prompt.append(
+                f"[GIF/animation {mode}; group={group}; source_message={source}; "
+                f"sample={ordinal}/{len(samples)}; "
+                f"frame_index={sample.index}; total_frames={sample.count}; image follows]"
+            )
+            prompt.append(BinaryContent(media_type="image/jpeg", data=sample.data))
+        if samples:
+            prompt.append(f"[End GIF/animation group={group}]")
+        return prompt
+
     # Visual media
-    if (
-        message.photo
-        or message.sticker
-        or message.animation
-        or (message.document and message.document.mime_type == "image/gif" and message.document.thumbnail)
-    ):
+    if message.photo or message.sticker:
         # Determine a file_id to download irrespective of underlying Telegram type
         if message.photo:
             image_file_id = message.photo[-1].file_id
@@ -238,16 +278,8 @@ async def build_message_parts(
             message.sticker and (message.sticker.is_animated or message.sticker.is_video) and message.sticker.thumbnail
         ):
             image_file_id = message.sticker.thumbnail.file_id
-        elif message.animation and message.animation.thumbnail:
-            image_file_id = message.animation.thumbnail.file_id
-        elif message.document and message.document.mime_type == "image/gif" and message.document.thumbnail:
-            image_file_id = message.document.thumbnail.file_id
         elif message.sticker:
             image_file_id = message.sticker.file_id
-        else:
-            # Animation without thumbnail — cannot extract visual media, skip gracefully
-            log.warning("Skipping visual media extraction: %s without thumbnail", message.animation)
-            return prompt
 
         if on_activity is not None:
             await on_activity(_("Processing image..."))
@@ -264,15 +296,19 @@ async def build_message_parts(
         )
 
     # Voice
-    if message.voice:
+    if audio := message.voice or message.audio:
         if on_activity is not None:
             await on_activity(_("Transcribing voice message..."))
-        voice_text = await transform_voice_to_text(
-            message.voice,
-            bot=bot,
-            redis=redis,
-        )
-        prompt.append(voice_text)
+        try:
+            voice_text = await transform_voice_to_text(
+                audio,
+                bot=bot,
+                redis=redis,
+            )
+        except (MediaLimitError, TimeoutError):
+            voice_text = ""
+        if voice_text:
+            prompt.append(voice_text)
 
     # Video - extract thumbnail and transcribe audio
     if message.video or message.video_note:
@@ -283,18 +319,17 @@ async def build_message_parts(
         # Add video thumbnail if available
         if video and video.thumbnail:
             thumbnail_file_id = video.thumbnail.file_id
-            downloaded_thumbnail: BinaryIO | None = await bot.download(thumbnail_file_id)
-
-            if downloaded_thumbnail:
+            thumbnail = await download_media(thumbnail_file_id, video.thumbnail.file_size, bot=bot)
+            if thumbnail:
                 prompt.append(
                     BinaryContent(
                         media_type="image/jpeg",
-                        data=downloaded_thumbnail.read(),
+                        data=thumbnail,
                     )
                 )
 
         # Transcribe video audio
-        if video:
+        if video and transcribe_video:
             if on_activity is not None:
                 await on_activity(_("Transcribing video audio..."))
             video_transcription = await transform_video_to_text(
@@ -309,6 +344,69 @@ async def build_message_parts(
 
 
 _build_message_parts = build_message_parts
+
+
+BACKGROUND_MEDIA_TIMEOUT_SECONDS = 5.0
+BACKGROUND_MEDIA_BUDGET_SECONDS = 10.0
+
+
+class BackgroundMediaBudget:
+    """One request's optional media work must leave time for the model response."""
+
+    def __init__(self) -> None:
+        self.deadline = asyncio.get_running_loop().time() + BACKGROUND_MEDIA_BUDGET_SECONDS
+
+    def remaining_timeout(self) -> float:
+        return min(BACKGROUND_MEDIA_TIMEOUT_SECONDS, self.deadline - asyncio.get_running_loop().time())
+
+
+async def build_cached_message_parts(
+    message: Message,
+    content_text: str,
+    *,
+    bot: Bot,
+    redis: Redis,
+    on_activity: ActivityCallback | None = None,
+    transcribe_video: bool = False,
+    budget: BackgroundMediaBudget | None,
+) -> list[UserContent]:
+    """Resolve optional cached media, retaining text when its processing budget expires.
+
+    Explicit cached replies use no budget to preserve current-request media behavior.
+    Background video decoding remains disabled by default.
+    """
+    timeout = budget.remaining_timeout() if budget is not None else None
+    if timeout is not None and timeout <= 0:
+        return [content_text]
+    try:
+        async with asyncio.timeout(timeout):
+            return await build_message_parts(
+                message,
+                content_text,
+                "",
+                None,
+                True,
+                bot=bot,
+                redis=redis,
+                on_activity=on_activity,
+                transcribe_video=transcribe_video,
+            )
+    except (
+        TelegramAPIError,
+        ClientError,
+        MistralError,
+        NoResponseError,
+        httpx.HTTPError,
+        httpx2.HTTPError,
+        SophieException,
+        MediaLimitError,
+        EmptyAudioError,
+        av.FFmpegError,
+        OSError,
+        TimeoutError,
+    ) as error:
+        log.debug("Skipping unavailable cached media", message_id=message.message_id, error_type=type(error).__name__)
+        return [content_text]
 
 
 def _chat_notes_xml(notes: Sequence[NoteModel]) -> ElementTree.Element:
@@ -349,6 +447,7 @@ class _Event(BaseModel):
     # Use the native adapter, including its base64 binary encoding, rather than a lossy text format.
     messages_json: str
     original_ids: set[int] = Field(default_factory=set)
+    media_rows: list[MessageType] = Field(default_factory=list)
 
     def messages(self) -> list[ModelRequest | ModelResponse]:
         return list(ModelMessagesTypeAdapter.validate_json(self.messages_json))
@@ -425,6 +524,8 @@ class ModernContext:
         self._runtime_update = ""
         self._budget = 0
         self._token_budgets: tuple[ModelTokenBudget, ...] = ()
+        self._include_images = True
+        self._resolved_media: dict[int, list[UserContent]] = {}
         self._request_id = 0
         self._current_message_ids: set[int] = set()
         self._current_speaker_ids: set[int] = set()
@@ -526,7 +627,9 @@ class ModernContext:
                     "usernames, Telegram IDs or Telegram mentions."
                 )
             )
-            instructions_with_policy = instructions + "\n\n" + cls.TAGGING_LEGEND + "\n" + policy
+            instructions_with_policy = (
+                instructions + "\n\n" + cls.TAGGING_LEGEND + "\n" + ANIMATION_INSTRUCTION + "\n" + policy
+            )
             instruction_hash = hashlib.sha256(instructions_with_policy.encode()).hexdigest()
             if instruction_hash != history._state.instruction_hash:
                 history._state.instruction_hash = instruction_hash
@@ -571,8 +674,15 @@ class ModernContext:
                 )
             )
             history._state.watermark = max(history._state.watermark, message.message_id)
+            cutoff = datetime.now(UTC) - MESSAGE_CACHE_TTL
+            for event in history._state.events:
+                event.media_rows = [row for row in event.media_rows if row.created_at and row.created_at >= cutoff]
             history._prune()
-            history.message_history = [event for batch in history._state.events for event in batch.messages()]
+            await history._resolve_cached_media(context.services, on_activity=on_activity)
+            history._prune()
+            history.message_history = [
+                message for batch in history._state.events for message in history._event_messages(batch)
+            ]
             return history
         except BaseException:
             await history.abort()
@@ -615,6 +725,7 @@ class ModernContext:
         )
         stable = Doc(
             system_prompt,
+            ANIMATION_INSTRUCTION,
             _("Prefer to use tables when comparing items"),
             _("Use the conversation history only for context, but respond specifically to the latest prompt."),
             _("You can use the web search tool to search for information. Include information sources as links."),
@@ -959,17 +1070,20 @@ class ModernContext:
         kind: Literal["background", "turn"],
         *,
         original_ids: Collection[int] = (),
+        media_rows: Sequence[MessageType] = (),
     ) -> _Event:
         return _Event(
             kind=kind,
             messages_json=ModelMessagesTypeAdapter.dump_json(list(messages)).decode(),
             original_ids=set(original_ids),
+            media_rows=list(media_rows),
         )
 
     def _ingest(self, cached: Sequence[MessageType], excluded: Collection[int], *, include_background: bool) -> None:
         watermark = self._state.watermark
         pending: list[ModelRequest | ModelResponse] = []
         pending_ids: set[int] = set()
+        pending_media: list[MessageType] = []
         for row in sorted(
             cached, key=lambda item: (item.created_at or datetime.min.replace(tzinfo=UTC), item.message_id)
         ):
@@ -999,26 +1113,106 @@ class ModernContext:
             if row.user_id == CONFIG.bot_id:
                 pending.append(ModelResponse(parts=[TextPart(content=row.text)]))
                 pending_ids.add(row.message_id)
-                self._state.events.append(self._event(pending, "turn", original_ids=pending_ids))
+                self._state.events.append(
+                    self._event(pending, "turn", original_ids=pending_ids, media_rows=pending_media)
+                )
                 pending = []
                 pending_ids.clear()
+                pending_media = []
             elif dialogue and not row.is_bot:
                 pending.append(ModelRequest(parts=[UserPromptPart(content=content)]))
                 pending_ids.add(row.message_id)
+                if row.media:
+                    pending_media.append(row)
             elif include_background:
                 if pending:
-                    self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
+                    self._state.events.append(
+                        self._event(pending, "background", original_ids=pending_ids, media_rows=pending_media)
+                    )
                     pending = []
                     pending_ids.clear()
+                pending_media = []
                 self._state.events.append(
                     self._event(
                         [ModelRequest(parts=[UserPromptPart(content=content)])],
                         "background",
                         original_ids={row.message_id},
+                        media_rows=[row] if row.media else [],
                     )
                 )
         if pending and include_background:
-            self._state.events.append(self._event(pending, "background", original_ids=pending_ids))
+            self._state.events.append(
+                self._event(pending, "background", original_ids=pending_ids, media_rows=pending_media)
+            )
+
+    async def _resolve_cached_media(
+        self, services: ApplicationServices, *, on_activity: ActivityCallback | None
+    ) -> None:
+        # Pruning selected the usable history first. Bound historical media work per request;
+        # keep only Telegram references in persisted events, never downloaded background bytes.
+        selected = [row for event in self._state.events for row in event.media_rows][-4:]
+        budget = BackgroundMediaBudget()
+        for row in selected:
+            if row.media is None:
+                continue
+            parts = await build_cached_message_parts(
+                row.media.as_message(row, self._chat_tid),
+                row.text,
+                budget=budget,
+                bot=services.bot,
+                redis=services.redis,
+                on_activity=on_activity,
+            )
+            self._resolved_media[row.message_id] = self._format_message(
+                row.user_id, row.message_id, parts, reply_id=row.reply_to_message_id, reference=True
+            )
+
+    def _event_messages(self, event: _Event) -> list[ModelRequest | ModelResponse]:
+        messages = event.messages()
+        for row in event.media_rows:
+            content = self._resolved_media.get(row.message_id)
+            if content is None:
+                continue
+            # Match the persisted message identity; speaker names can change between requests.
+            message_prefix = f'<message id="{self._message_alias(row.message_id)}" '
+            messages = [
+                replace(
+                    message,
+                    parts=[
+                        replace(part, content=content)
+                        if isinstance(part, UserPromptPart)
+                        and (_user_prompt_text(part.content) or "").startswith(message_prefix)
+                        else part
+                        for part in message.parts
+                    ],
+                )
+                if isinstance(message, ModelRequest)
+                else message
+                for message in messages
+            ]
+        if not self._include_images:
+            messages = [
+                replace(
+                    message,
+                    parts=[
+                        replace(
+                            part,
+                            content=[
+                                item
+                                for item in part.content
+                                if not (isinstance(item, BinaryContent) and item.media_type.startswith("image/"))
+                            ],
+                        )
+                        if isinstance(part, UserPromptPart) and not isinstance(part.content, str)
+                        else part
+                        for part in message.parts
+                    ],
+                )
+                if isinstance(message, ModelRequest)
+                else message
+                for message in messages
+            ]
+        return messages
 
     def project_for_candidate(
         self, candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse] = ()
@@ -1037,7 +1231,13 @@ class ModernContext:
         budget = matching_budget or ModelTokenBudget(TokenCounter(candidate.model.model_name), self._budget)
         projection = copy(self)
         projection._state = self._state.model_copy(deep=True)
-        projection.prompt = list(self.prompt)
+        projection._include_images = candidate.supports_images
+        projection.prompt = [
+            part
+            for part in self.prompt
+            if candidate.supports_images
+            or not (isinstance(part, BinaryContent) and part.media_type.startswith("image/"))
+        ]
         projection._token_budgets = (budget,)
         projection._budget = budget.input_tokens - budget.counter.count_messages(continuation)
         projection._prune()
@@ -1053,7 +1253,7 @@ class ModernContext:
         ):
             projection.prompt.insert(0, self._runtime_update)
             projection._prune()
-        messages = [message for event in projection._state.events for message in event.messages()]
+        messages = [message for event in projection._state.events for message in projection._event_messages(event)]
         return projection.prompt, messages
 
     def _prune(self, *, include_current: bool = True) -> None:
@@ -1069,7 +1269,15 @@ class ModernContext:
                 "current content is never truncated"
             )
         # Counts are run-local: persisted events can cross model/tokenizer/config changes.
-        counts = [counter.count_messages(event.messages()) for event in self._state.events]
+        counts = [
+            counter.count_messages(self._event_messages(event))
+            + sum(
+                counter.IMAGE_TOKEN_RESERVE
+                for row in event.media_rows
+                if self._include_images and row.message_id not in self._resolved_media
+            )
+            for event in self._state.events
+        ]
         total = sum(counts)
         target = total if total <= available else int(available * 0.8)
         removed: set[int] = set()
@@ -1214,6 +1422,7 @@ class ModernContext:
 def _base_chatbot_instruction_doc(system_prompt: str, today: datetime) -> Doc:
     return Doc(
         system_prompt,
+        ANIMATION_INSTRUCTION,
         _("Prefer to use tables when comparing items"),
         _("Use the conversation history only for context, but respond specifically to the latest prompt."),
         _("Today is ") + today.strftime("%d %B %Y") + f" ({today.tzname()})",

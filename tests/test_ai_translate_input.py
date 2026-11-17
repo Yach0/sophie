@@ -11,6 +11,7 @@ from sophie_bot.modules.ai.handlers import translate
 from sophie_bot.modules.ai.handlers.translate import _resolve_translation_input
 from sophie_bot.modules.ai.json_schemas.translate import AITranslateResponseSchema
 from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, AI_CUSTOM_EMOJI_ID
+from sophie_bot.modules.ai.utils.transform_animation import AnimationSample
 from sophie_bot.services.application import ApplicationServices
 
 
@@ -81,7 +82,7 @@ async def test_only_sophie_authored_rich_replies_lose_ai_decorations(
     ("mime_type", "has_thumbnail", "caption", "accepted"),
     [
         ("image/gif", True, None, True),
-        ("image/gif", False, None, False),
+        ("image/gif", False, None, True),
         ("application/pdf", True, None, False),
         ("image/png", True, None, False),
         ("image/gif", False, "Translate me", True),
@@ -114,6 +115,10 @@ async def test_translate_document_reply(
     )
     command = reply.model_copy(
         update={"message_id": 2, "document": None, "caption": None, "text": "/tr", "reply_to_message": reply}
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.modern_context.extract_animation_samples",
+        AsyncMock(return_value=[AnimationSample(b"decoded still", 0, 1, False)]),
     )
     download = AsyncMock(return_value=BytesIO(b"downloaded thumbnail"))
     monkeypatch.setattr(test_services.bot, "download", download)
@@ -155,9 +160,7 @@ async def test_translate_document_reply(
     model.assert_awaited_once()
     context = model.call_args.args[2]
     media = [part for part in context.prompt if isinstance(part, BinaryContent)]
-    if has_thumbnail:
-        assert media == [BinaryContent(data=b"downloaded thumbnail", media_type="image/jpeg")]
-        download.assert_awaited_once_with("thumbnail")
-    else:
-        assert context.prompt == [caption]
-        download.assert_not_awaited()
+    assert media == [BinaryContent(data=b"decoded still", media_type="image/jpeg")]
+    if caption:
+        assert caption in context.prompt
+    download.assert_not_awaited()

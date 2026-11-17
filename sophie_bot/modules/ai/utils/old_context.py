@@ -26,10 +26,12 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.modules.ai.utils import modern_context
 from sophie_bot.modules.ai.utils.cache_messages import (
+    CachedMedia,
     MessageType,
     get_cached_messages,
 )
 from sophie_bot.modules.ai.utils.chatbot_tool_history import ToolExchange
+from sophie_bot.modules.ai.utils.transform_animation import ANIMATION_INSTRUCTION
 from sophie_bot.services.application import ApplicationServices
 
 CHATBOT_CACHE_MESSAGE_LIMIT = 35
@@ -50,6 +52,7 @@ class OldContext:
         self.prompt = []
         self.context_lines = []
         self._cached_message_ids: set[tuple[int, int]] = set()
+        self._cached_media: list[MessageType] = []
         # Share in-flight lookups as well as results across this build's concurrent transforms.
         self._chat_models: dict[int, Task[ChatModel | None]] = {}
 
@@ -163,6 +166,7 @@ class OldContext:
             redis=self.services.redis,
         )
         self._cached_message_ids.update((chat_id, message.message_id) for message in messages)
+        self._cached_media = [message for message in messages if message.media]
         exchanges = tool_exchanges or {}
         if not fold_background:
             for msg, transformed in zip(
@@ -233,10 +237,54 @@ class OldContext:
         )
 
         self.prompt = prompt
+        if allow_reply_messages:
+            await self._add_cached_media(message, on_activity=on_activity)
+
+    async def _add_cached_media(self, message: Message, *, on_activity: modern_context.ActivityCallback | None) -> None:
+        reply = message.reply_to_message
+        selected = [
+            row
+            for row in self._cached_media
+            if (row.message_thread_id or 0) == (message.message_thread_id or 0)
+            and row.message_id != message.message_id
+            and (reply is None or row.message_id != reply.message_id)
+        ][-4:]
+        if reply and (message.chat.id, reply.message_id) in self._cached_message_ids:
+            media = CachedMedia.from_message(reply)
+            if media and reply.from_user:
+                selected.append(
+                    MessageType(
+                        user_id=reply.from_user.id,
+                        message_id=reply.message_id,
+                        text=modern_context.extract_message_content(reply, None, False, False),
+                        media=media,
+                    )
+                )
+        references: list[UserContent] = []
+        budget = modern_context.BackgroundMediaBudget()
+        for row in selected:
+            if row.media is None:
+                continue
+            line = await self._format_context_line(message.chat.id, row)
+            references.extend(
+                await modern_context.build_cached_message_parts(
+                    row.media.as_message(row, message.chat.id),
+                    modern_context.AIUserMessageFormatter.context_block([line]),
+                    bot=self.services.bot,
+                    redis=self.services.redis,
+                    on_activity=on_activity,
+                    transcribe_video=reply is not None and row.message_id == reply.message_id,
+                    budget=None if reply is not None and row.message_id == reply.message_id else budget,
+                )
+            )
+        self.prompt = [*references, *self.prompt]
+        self._cached_media = []
 
     def add_system(self, content: str) -> None:
         """Add a system message to the message history."""
-        self.message_history.append(ModelRequest(parts=[SystemPromptPart(content=content)]))
+        self.message_history.append(
+            ModelRequest(parts=[SystemPromptPart(content=content + "\n\n" + ANIMATION_INSTRUCTION)])
+        )
 
     def add_custom(self, content: str, name: str | None) -> None:
         """Add a custom user message to the message history."""
