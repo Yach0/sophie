@@ -48,7 +48,6 @@ from sophie_bot.modules.ai.magic_handlers.modern_action import (
 )
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.middlewares.ai_status import AiStatusMiddleware
-from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMiddleware
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
     CacheBotMessagesMiddleware,
@@ -82,7 +81,6 @@ async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())
-    bot_router.message.outer_middleware(AiTimeoutMiddleware())
     bot_router.message.outer_middleware(AiAutoTranslateMiddleware())
 
 

@@ -29,6 +29,7 @@ from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
 from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.usage import RunUsage, UsageLimits
 
+from sophie_bot.config import CONFIG
 from sophie_bot.metrics import (
     count_retries_from_messages,
     track_ai_agent_result,
@@ -417,6 +418,7 @@ def _candidate_model_settings(
         usage_limits,
     )
     settings = dict(resolved_model_settings or {})
+    settings.setdefault("timeout", CONFIG.ai_request_timeout_seconds)
     settings.setdefault("max_retries", AI_REQUEST_RETRY_ATTEMPTS - 1)
     return settings
 
