@@ -42,6 +42,13 @@ Keep speaker and subjects separate. Never infer a quiet member's view. Silence i
 Distinguish jokes, questions, proposals, commitments, decisions and disputed claims using kind.
 A decision or norm needs direct supporting exchanges from at least two speakers; dissent means disputed,
 not consensus. Never use a mere proposal or reported agreement as a group decision.
+Every ADD and UPDATE must include nonempty text and a nonempty stable event name, including personal facts/preferences.
+For personal facts/preferences, event names identify the specific attribute (for example, preferred_drink).
+Every ADD and UPDATE must set speaker_tid to a speaker of at least one cited evidence message, including group events.
+For layer=personal, subject_tids must contain only speaker_tid and every cited message must be by that speaker.
+For layer=observation, subject_tids must identify the people the speaker describes; never turn their claim into a personal fact.
+Use scope=person only with layer=personal or observation, and include at least one subject. Use scope=group with layer=event or norm.
+All evidence_ids for each action must belong to exactly one topic_id; never combine topic_id=null and a numbered topic.
 Use a stable specific event name; separate simultaneous events and reply branches, even in the same topic.
 UPDATE only a current head with identical speaker, subjects, scope, layer and event coordinates.
 Append changes/corrections; never overwrite old states. Use ADD for another speaker's different view.

@@ -10,6 +10,7 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
     AIEvidenceMemoryModel,
     MemoryAction,
     MemoryActions,
+    MemoryFact,
     MemorySource,
     MemoryState,
 )
@@ -236,3 +237,78 @@ async def test_memory_buttons_paginate_and_reject_other_users(
     await test_client.send_command(command="ai_memory forget", from_user=user, chat=group)
     requests = await test_client.send_callback(callback, from_user=user, message=message)
     assert all("Source 4" not in (request.text or "") for request in requests)
+
+
+async def test_all_memories_requires_current_admin_rights_and_stays_in_chat(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+) -> None:
+    user, group, _user_model = await create_test_user_and_group(test_client)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat
+    other = test_client.create_user(first_name="Other")
+    await set_feature(test_client, "ai_memory_controls", True, chat_tid=chat.tid)
+    now = datetime.now(UTC)
+
+    def seed(state: MemoryState) -> None:
+        for identity in range(1, 5):
+            state.facts.append(
+                MemoryFact(
+                    speaker_tid=other.user.id,
+                    subject_tids=[other.user.id] if identity < 4 else [],
+                    scope="person" if identity < 4 else "group",
+                    layer="personal" if identity < 4 else "event",
+                    kind="preference" if identity < 4 else "proposal",
+                    event="preferences",
+                    text=f"Other member fact {identity}",
+                    topic_id=None,
+                    branch_ids=[identity],
+                    evidence_ids=[identity],
+                    recorded_at=now,
+                    occurred_at=now,
+                )
+            )
+
+    await mutate_memory(chat, seed, redis=test_services.redis)
+    _other_user, other_group, _other_model = await create_test_user_and_group(test_client)
+    other_chat = await ChatModel.get_by_tid(other_group.id)
+    assert other_chat
+
+    def seed_other_chat(state: MemoryState) -> None:
+        seed(state)
+        for fact in state.facts:
+            fact.text = "Another chat secret"
+
+    await mutate_memory(other_chat, seed_other_chat, redis=test_services.redis)
+    await grant_admin(other_chat.tid, user.id)
+    requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=group)
+    assert any("Only chat administrators" in (request.text or "") for request in requests)
+    assert all("Other member fact" not in (request.text or "") for request in requests)
+    admin = await grant_admin(chat.tid, user.id)
+    requests = await test_client.send_command(command="ai_memory show", from_user=user, chat=group)
+    assert all("Other member fact" not in (request.text or "") for request in requests)
+    requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=group)
+    reply = next(request for request in requests if "Other member fact 1" in (request.text or ""))
+    assert "All AI memories in this chat:" in reply.text
+    assert "Other member fact 3" in reply.text and "Other member fact 4" not in reply.text
+    assert "Another chat secret" not in reply.text
+    assert reply.reply_markup
+    callback = reply.reply_markup["inline_keyboard"][0][0]["callback_data"]
+    assert AIMemoryPageCallback.unpack(callback).operation == "all"
+    message = MessageFactory.create(
+        text="Memory", from_user=UserFactory.create(user_id=42, first_name="Sophie", is_bot=True), chat=group
+    )
+    requests = await test_client.send_callback(callback, from_user=user, message=message)
+    assert any("Other member fact 4" in (request.text or "") for request in requests)
+    assert all("Another chat secret" not in (request.text or "") for request in requests)
+    other_admin = await grant_admin(chat.tid, other.user.id)
+    requests = await test_client.send_callback(callback, from_user=other.user, message=message)
+    assert any("another user" in (request.text or "") for request in requests)
+    await admin.delete()
+    requests = await test_client.send_callback(callback, from_user=user, message=message)
+    assert any("Only chat administrators" in (request.text or "") for request in requests)
+    assert all("Other member fact" not in (request.text or "") for request in requests)
+    forged = AIMemoryPageCallback(owner_tid=other.user.id, operation="all", page=1).pack()
+    await other_admin.delete()
+    requests = await test_client.send_callback(forged, from_user=other.user, message=message)
+    assert any("Only chat administrators" in (request.text or "") for request in requests)

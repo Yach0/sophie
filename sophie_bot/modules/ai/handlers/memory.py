@@ -41,6 +41,7 @@ def _memory_examples() -> Section:
     return Section(
         VList(
             KeyValue(Code("/ai_memory show"), _("Inspect your facts and find their IDs.")),
+            KeyValue(Code("/ai_memory all"), _("Admins: inspect all members’ facts in this chat.")),
             KeyValue(Code("/ai_memory sources"), _("Inspect your source messages. Use the buttons to change pages.")),
             KeyValue(
                 Code(Template("/ai_memory correct FACT_ID {text}", text=_("I prefer short replies."))),
@@ -72,10 +73,12 @@ class AIMemoryControl(SophieMessageHandler):
         user_tid = sender.id
         request = (self.data.get("request") or "show").strip()
         operation, _separator, argument = request.partition(" ")
-        if operation in {"show", "sources"}:
+        if operation in {"show", "sources", "all"}:
+            if operation == "all" and not await is_user_admin(chat.tid, user_tid):
+                return await self.event.reply(_("Only chat administrators can view all members’ AI memories."))
             if argument:
                 return await self.event.reply(
-                    _("Use /ai_memory show or /ai_memory sources, then navigate with the buttons.")
+                    _("Use /ai_memory show, all, or sources, then navigate with the buttons.")
                 )
             text, markup = await _memory_page(chat, user_tid, operation, 0, redis=self.services.redis)
             return await self.event.reply(text, reply_markup=markup)
@@ -182,7 +185,7 @@ class AIMemoryControl(SophieMessageHandler):
             )
         return await self.event.reply(
             Doc(
-                _("Use /ai_memory show, sources, forget, off, on, or correct FACT_ID TEXT."),
+                _("Use /ai_memory show, all, sources, forget, off, on, or correct FACT_ID TEXT."),
                 _memory_examples(),
             ).to_html()
         )
@@ -198,16 +201,20 @@ class AIMemoryControl(SophieMessageHandler):
 async def _memory_page(
     chat: ChatModel,
     user_tid: int,
-    operation: Literal["show", "sources"],
+    operation: Literal["show", "sources", "all"],
     requested_page: int,
     *,
     redis: Redis,
 ) -> tuple[str, InlineKeyboardMarkup | None]:
     state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
-    doc = Doc(_("Your AI memory in this chat:"))
-    if operation == "show":
-        own = [fact for fact in state.facts if user_tid == fact.speaker_tid or user_tid in fact.subject_tids]
-        pagination = paginate(own, 3, requested_page)
+    doc = Doc(_("All AI memories in this chat:") if operation == "all" else _("Your AI memory in this chat:"))
+    if operation in {"show", "all"}:
+        facts = [
+            fact
+            for fact in state.facts
+            if operation == "all" or user_tid == fact.speaker_tid or user_tid in fact.subject_tids
+        ]
+        pagination = paginate(facts, 3, requested_page)
         for fact in pagination.items:
             doc += Section(
                 VList(
@@ -266,8 +273,11 @@ class AIMemoryPageHandler(SophieCallbackQueryHandler):
                 _("These memory controls belong to another user. Run /ai_memory yourself."), show_alert=True
             )
             return
-        if data.operation not in {"show", "sources"} or not isinstance(callback.message, Message):
+        if data.operation not in {"show", "sources", "all"} or not isinstance(callback.message, Message):
             await callback.answer(_("Invalid memory page."), show_alert=True)
+            return
+        if data.operation == "all" and not await is_user_admin(self.connection.db_model.tid, data.owner_tid):
+            await callback.answer(_("Only chat administrators can view all members’ AI memories."), show_alert=True)
             return
         text, markup = await _memory_page(
             self.connection.db_model,

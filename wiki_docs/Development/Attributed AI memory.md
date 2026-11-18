@@ -46,7 +46,7 @@ and the answer recheck separately. Keep legacy replacement off until the new pat
 Enable controls before giving people access to retained evidence, and leave controls enabled when disabling capture
 or retrieval so that people can still inspect and delete existing records.
 
-The writer uses the `memory_writer` purpose and its own `ai_memory_writer_model` setting, with standard provider fallback.
+The writer uses the `memory_writer` purpose and its own `ai_memory_writer_model` setting, with standard provider fallback. The catalog name `gpt-6.1-terra` maps to the upstream OpenRouter name `openai/gpt-6.1-terra` through `api_name`; OpenRouter requires the upstream provider prefix.
 Its default is `gpt-6.1-terra` through OpenRouter; it does not inherit the summary model override.
 The catalog migration adds that model and its entertainment-mode writer role. It preserves existing model/provider
 settings. If OpenRouter is absent, it adds an empty provider entry; configure its key before enabling the writer.
@@ -123,11 +123,12 @@ semantic answers without a reply link still depend on the decision model and rec
 ## Personal controls
 
 These commands require `ai_memory_controls` and work in the current connected chat. Inspection, personal corrections,
-and on require no admin rights. Forget and off require chat administrator rights because they clear shared state:
+and on require no admin rights. All, forget, and off require chat administrator rights. Forget and off clear shared state:
 
 - `/ai_memory show`: inspect facts where you are the speaker or a subject, including IDs, versions, timestamps,
   and evidence references. Each page holds three items, with separate ID, text, speaker, source, version, and time fields.
   Previous/Next buttons use the shared paginator; `/ai_memory help` lists examples. Only the original requester can use the buttons. Every click reloads current data so deleted items cannot reappear from a page snapshot.
+- `/ai_memory all` (admins): inspect all members’ facts and group records in this chat, including retained versions. Uses the same three-item pages; every page click checks current administrator rights.
 - `/ai_memory sources`: inspect your original text from the shared 48-hour Redis history, using Previous/Next buttons. Long messages span pages.
 - `/ai_memory correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
   Send corrections in the original chat and topic. You cannot rewrite someone else's observation or a group decision. You can state your own position in chat.
