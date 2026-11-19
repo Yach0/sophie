@@ -240,11 +240,20 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
 ) -> None:
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
-    async def operation(_active: str) -> str:
-        raise _model_http_error()
+    failures = {
+        "primary/model": _model_http_error(502),
+        "backup/model": _model_http_error(503),
+    }
+
+    async def operation(active: str) -> str:
+        raise failures[active]
 
     with pytest.raises(AIRequestFailed) as raised:
         await _run_candidates(operation)
+
+    cause = raised.value.__cause__
+    assert isinstance(cause, ExceptionGroup)
+    assert cause.exceptions == tuple(failures.values())
 
     rescue_event, terminal_event = sentry_events
     assert rescue_event["level"] == "warning"
