@@ -16,7 +16,7 @@ class IsConnectedFilter(Filter):
         self.allow_abort = allow_abort
         super().__init__()
 
-    async def __call__(self, event: Message | CallbackQuery, context: RequestContext) -> bool:
+    async def __call__(self, event: Message | CallbackQuery, context: RequestContext) -> bool:  # ty: ignore[incompatible-mutable-override]
         connection = context.connection
         return bool(connection and connection.is_connected and event.from_user)
 
@@ -29,7 +29,7 @@ class GroupOrConnectedFilter(Filter):
         self.require_admin = require_admin
         super().__init__()
 
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self, event: Message | CallbackQuery, context: RequestContext, *args: Any, **kwargs: Any
     ) -> bool | dict[str, Any]:
         if await ChatTypeFilter(ChatType.GROUP, ChatType.SUPERGROUP).__call__(

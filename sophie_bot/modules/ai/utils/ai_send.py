@@ -19,9 +19,13 @@ def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
 async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
     """Send a rich AI reply, falling back to a plain message if its source was deleted."""
 
+    bot = message.bot
+    if bot is None:
+        raise RuntimeError("AI replies require a message bound to a bot")
+
     async def send(rich_message: InputRichMessage) -> Message:
         try:
-            return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
+            return await bot.send_rich_message(
                 chat_id=message.chat.id,
                 rich_message=rich_message,
                 reply_parameters=ReplyParameters(message_id=message.message_id),
@@ -31,7 +35,7 @@ async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) 
         except TelegramBadRequest as error:
             if not any(error_text in error.message for error_text in (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID)):
                 raise
-            return await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
+            return await bot.send_rich_message(
                 chat_id=message.chat.id,
                 rich_message=rich_message,
                 message_thread_id=message.message_thread_id,

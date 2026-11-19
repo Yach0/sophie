@@ -33,7 +33,7 @@ class AICapabilityFilter(Filter):
         self.admins_bypass = admins_bypass
         self.quiet = quiet
 
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self,
         message: Message,
         context: RequestContext,
