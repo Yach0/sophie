@@ -93,9 +93,17 @@ async def test_silent_capture_controls_and_chat_boundaries(
         assert await AIChatSummaryModel.get_for_date(chat.iid, summary_date) is not None
     admin = await grant_admin(chat.tid, user.id)
     message = _bot_message(group)
-    requests = await test_client.send_command(command="ai_memory off", from_user=user, chat=group)
-    assert "Search: off" in _message_text(requests)
-    assert "for everyone" not in _message_text(requests)
+    for legacy, replacement in (
+        ("show", "ai_memory"),
+        ("sources", "ai_memory_sources"),
+        ("forget", "ai_memory_forget"),
+        ("off", "ai_memory_off"),
+        ("on", "ai_memory_on"),
+    ):
+        requests = await test_client.send_command(command=f"ai_memory {legacy}", from_user=user, chat=group)
+        assert _message_text(requests) == f"This command moved. Use /{replacement}."
+        assert not any(request.reply_markup for request in requests)
+    assert await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid) is None
     prompt = await test_client.send_command(command="ai_memory_off", from_user=user, chat=group)
     assert "for everyone" in _message_text(prompt)
     assert "stops AI memory capture for you" in _message_text(prompt)
@@ -219,6 +227,13 @@ async def test_personal_correction_ownership_and_invalid_arguments(
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
     assert document
     fact_id = document.state.facts[0].fact_id
+    legacy = MessageFactory.create_command(
+        "ai_memory", args=f"correct {fact_id} Saturday", from_user=user, chat=group
+    ).model_copy(update={"message_thread_id": topic_id, "is_topic_message": True})
+    requests = await _feed(test_client, legacy)
+    assert _message_text(requests) == "Use /ai_memory_correct with a memory ID and replacement text."
+    unchanged = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+    assert unchanged and [fact.text for fact in unchanged.state.facts] == ["Friday"]
     wrong_topic = await test_client.send_command(
         command=f"ai_memory_correct {fact_id} Saturday", from_user=user, chat=group
     )
@@ -404,6 +419,9 @@ async def test_browse_memories_by_mention_reply_or_search(
     assert "Search: 2042" in _message_text(search) and "My plan for 2042" in _message_text(search)
     search = await test_client.send_command(command="ai_memory @sample_user notes", from_user=user, chat=group)
     assert "Search: @sample_user notes" in _message_text(search)
+    for query in ("off topic", "correct billing errors"):
+        search = await test_client.send_command(command=f"ai_memory {query}", from_user=user, chat=group)
+        assert f"Search: {query}" in _message_text(search)
     unknown = await test_client.send_command(command="ai_memory @unknown_user", from_user=user, chat=group)
     assert "could not find that username" in _message_text(unknown)
 

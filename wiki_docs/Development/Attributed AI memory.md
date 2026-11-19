@@ -151,7 +151,8 @@ semantic answers without a reply link still depend on the decision model and rec
 
 The **Memory** section under **Sophie AI** in `/help` lists these commands when `ai_memory_controls` is enabled in
 the help catalog. The commands work in the current connected chat. Chat admins can clear shared memory with
-`/ai_memory_forget` or `/ai_memory_off`.
+`/ai_memory_forget` or `/ai_memory_off`. Former subcommands such as `/ai_memory off` show the replacement command
+without changing any memory settings.
 
 - `/ai_memory` lists current memories where you are the speaker or a subject, newest first. Use
   `/ai_memory <text>` to search them, or `/ai_memory @username` to view another user's current memories in this chat.

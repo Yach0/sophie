@@ -10,7 +10,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, User
 from ass_tg.types import OptionalArg, OrArg, TextArg, UserMentionArg, WordArg
 from redis.asyncio import Redis
-from stfu_tg import Doc
+from stfu_tg import Doc, Template
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryAction, MemoryActions, MemorySource, MemoryState
@@ -63,6 +63,13 @@ def _clear_key(chat_tid: int, message_chat_tid: int, data: AIMemoryClearCallback
 
 
 _MEMORY_HELP_GROUP = l_("Memory")
+_LEGACY_MEMORY_COMMANDS = {
+    "show": MemoryCommand.browse,
+    "sources": MemoryCommand.sources,
+    "forget": MemoryCommand.forget,
+    "off": MemoryCommand.off,
+    "on": MemoryCommand.on,
+}
 
 
 class _AIMemoryCommand(SophieMessageHandler):
@@ -117,6 +124,17 @@ class AIMemoryBrowse(_AIMemoryBrowse):
             member = MemoryMember(tid=query.id, name=query.full_name)
         elif query:
             search = " ".join(query.split())
+            if replacement := _LEGACY_MEMORY_COMMANDS.get(search):
+                return await self.event.reply(
+                    Template(_("This command moved. Use {command}."), command=f"/{replacement}").to_html()
+                )
+            if fullmatch(r"correct(?: [0-9a-f]{32}(?: .*)?)?", search):
+                return await self.event.reply(
+                    Template(
+                        _("Use {command} with a memory ID and replacement text."),
+                        command=f"/{MemoryCommand.correct}",
+                    ).to_html()
+                )
             if fullmatch(r"@[A-Za-z0-9_]{1,32}", search):
                 user = await ChatModel.find_one(
                     ChatModel.type == ChatType.private, {"username": {"$regex": f"^{search[1:]}$", "$options": "i"}}
