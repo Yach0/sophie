@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from aiogram import Router
+from aiogram.dispatcher.flags import get_flag
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stfu_tg import Doc
 
 from sophie_bot.constants import AI_EMOJI
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
@@ -24,7 +26,13 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesSetting,
     AINoteTitlesSetting,
 )
-from sophie_bot.modules.ai.handlers.memory import AIMemoryControl, AIMemoryPageHandler
+from sophie_bot.modules.ai.handlers.memory import (
+    AIMemoryBrowse,
+    AIMemoryClearHandler,
+    AIMemoryDelete,
+    AIMemoryEditHandler,
+    AIMemoryPageHandler,
+)
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -59,6 +67,7 @@ from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChat
 from sophie_bot.modules.ai.schedules.write_memory import WriteMemory
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
+from sophie_bot.modules.ai.utils.evidence_memory import require_memory_policy_migration
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -71,13 +80,19 @@ router = Router(name="ai")
 
 
 async def initialize(services: ApplicationServices) -> None:
+    await require_memory_policy_migration()
     await load_catalog(redis=services.redis)
 
 
 async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
-    cache_user_messages = CacheUserMessagesMiddleware()
-    bot_router.message.outer_middleware(cache_user_messages)
-    bot_router.message.middleware(cache_user_messages.capture_command)
+    excluded_commands = tuple(
+        event_filter.callback
+        for handler in bot_router.message.handlers
+        if get_flag(handler, "ai_cache", default={}).get("exclude_user_command")
+        for event_filter in handler.filters or ()
+        if isinstance(event_filter.callback, CMDFilter)
+    )
+    bot_router.message.outer_middleware(CacheUserMessagesMiddleware(excluded_commands))
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())
@@ -128,8 +143,11 @@ module_manifest = ModuleManifest(
         AIFilterAddHandler,
         AiPmInitialize,
         AIContextReset,
-        AIMemoryControl,
+        AIMemoryBrowse,
+        AIMemoryDelete,
+        AIMemoryEditHandler,
         AIMemoryPageHandler,
+        AIMemoryClearHandler,
         ResearchCmd,
         AiTranslate,
         AiUsage,

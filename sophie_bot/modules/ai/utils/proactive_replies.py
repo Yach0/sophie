@@ -56,7 +56,7 @@ from sophie_bot.modules.ai.utils.chatbot_response import (
     truncate_output,
     used_tool_labels,
 )
-from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context, repair_pending_memory_context
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings, get_proactive_reply_settings
 from sophie_bot.modules.ai.utils.modern_context import (
     DecisionMessage,
@@ -296,7 +296,7 @@ async def _generate_decision(
         )
     history = OldContext(services=services)
     history.add_system(build_proactive_decision_instructions())
-    if await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis):
+    if await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis):
         evidence = (
             await ModernContext.memory_for_batch(chat, messages, services=services)
             if modern
@@ -304,7 +304,6 @@ async def _generate_decision(
                 chat,
                 MemoryQuery(text=" ".join(row.text for row in messages), social=True),
                 redis=services.redis,
-                feature="ai_memory_participation",
             )
         )
         history.add_custom(evidence, name="Social memory evidence")
@@ -503,12 +502,8 @@ async def _answer_message(
     *,
     services: ApplicationServices,
 ) -> None:
-    evidence_enabled = (
-        await is_enabled("ai_memory_participation", chat_tid=chat_tid, redis=services.redis)
-        or await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis)
-        or await is_enabled("ai_memory_controls", chat_tid=chat_tid, redis=services.redis)
-    )
-    context_epoch = int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0) if evidence_enabled else None
+    await repair_pending_memory_context(chat, redis=services.redis)
+    context_epoch = int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0)
     async with AsyncExitStack() as cleanup:
         connection = ChatConnection(
             type=chat.type,
@@ -606,12 +601,10 @@ async def _answer_message(
             message_id=target_message.message_id,
             output_length=len(doc.to_html()),
         )
-        if (
-            context_epoch is not None
-            and int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0) != context_epoch
-        ):
+        await repair_pending_memory_context(chat, redis=services.redis)
+        if int(await services.redis.get(get_context_epoch_key(chat_tid)) or 0) != context_epoch:
             return
-        if await is_enabled("ai_memory_recheck_answers", chat_tid=chat_tid, redis=services.redis):
+        if await is_enabled("ai_memory_retrieval", chat_tid=chat_tid, redis=services.redis):
             latest = await get_cached_messages(chat_tid, limit=100, redis=services.redis)
             if any(
                 row.message_id > target_message.message_id and row.reply_to_message_id == target_message.message_id

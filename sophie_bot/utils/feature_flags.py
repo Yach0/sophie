@@ -15,24 +15,9 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOv
 
 # Public types
 FeatureType: TypeAlias = Literal[  # noqa: UP040
-    "ai_memory_capture",
     "ai_memory_writer",
-    "ai_memory_writer_model",
-    "ai_memory_personal",
-    "ai_memory_group",
-    "ai_memory_updates",
-    "ai_memory_shared_decisions",
     "ai_memory_retrieval",
-    "ai_memory_branches",
-    "ai_memory_member_coverage",
-    "ai_memory_history",
-    "ai_memory_participation",
-    "ai_memory_recheck_answers",
     "ai_memory_controls",
-    "ai_memory_replace_legacy",
-    "ai_memory_request_limit",
-    "ai_memory_tool_calls_limit",
-    "ai_memory_retention_days",
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_filter_daily_chat_limit",
@@ -238,24 +223,9 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
-    "ai_memory_capture": _feature(False),
     "ai_memory_writer": _feature(False),
-    "ai_memory_writer_model": _feature("gpt-6.1-terra", _AI_MODEL_FEATURE),
-    "ai_memory_personal": _feature(False),
-    "ai_memory_group": _feature(False),
-    "ai_memory_updates": _feature(False),
-    "ai_memory_shared_decisions": _feature(False),
     "ai_memory_retrieval": _feature(False),
-    "ai_memory_branches": _feature(False),
-    "ai_memory_member_coverage": _feature(False),
-    "ai_memory_history": _feature(False),
-    "ai_memory_participation": _feature(False),
-    "ai_memory_recheck_answers": _feature(False),
     "ai_memory_controls": _feature(False),
-    "ai_memory_replace_legacy": _feature(False),
-    "ai_memory_request_limit": _feature(8),
-    "ai_memory_tool_calls_limit": _feature(12),
-    "ai_memory_retention_days": _feature(30),
     "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
@@ -574,7 +544,7 @@ def get_rollout_percentage(rollout: FeatureRollout, now: datetime | None = None)
     return int(percentage)
 
 
-def _chat_rollout_bucket(feature: FeatureType, chat_tid: int) -> int:
+def _chat_rollout_bucket(feature: str, chat_tid: int) -> int:
     digest = hashlib.sha256(f"{feature}:{chat_tid}".encode()).digest()
     return int.from_bytes(digest[:8], byteorder="big") % 100
 

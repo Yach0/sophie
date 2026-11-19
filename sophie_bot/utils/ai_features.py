@@ -5,6 +5,7 @@ from typing import Literal, TypeAlias
 
 AIFeature: TypeAlias = Literal[  # noqa: UP040
     "chatbot",
+    "memory_writer",
     "translate",
     "auto_translate",
     "filter",
@@ -13,6 +14,7 @@ AIFeature: TypeAlias = Literal[  # noqa: UP040
 ]
 
 AI_FEATURE_CHATBOT: AIFeature = "chatbot"
+AI_FEATURE_MEMORY_WRITER: AIFeature = "memory_writer"
 AI_FEATURE_TRANSLATE: AIFeature = "translate"
 AI_FEATURE_AUTO_TRANSLATE: AIFeature = "auto_translate"
 AI_FEATURE_FILTER: AIFeature = "filter"
@@ -29,6 +31,7 @@ class AIFeatureInfo:
 
 AI_FEATURES: tuple[AIFeatureInfo, ...] = (
     AIFeatureInfo(AI_FEATURE_CHATBOT, "Chatbot", "\U0001f916"),
+    AIFeatureInfo(AI_FEATURE_MEMORY_WRITER, "AI Memory", "\U0001f9e0"),
     AIFeatureInfo(AI_FEATURE_TRANSLATE, "Translate", "\U0001f310"),
     AIFeatureInfo(AI_FEATURE_AUTO_TRANSLATE, "Auto-translate", "\U0001f5e3\ufe0f"),
     AIFeatureInfo(AI_FEATURE_FILTER, "AI Filter", "\U0001f9ee"),

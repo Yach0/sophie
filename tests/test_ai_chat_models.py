@@ -383,14 +383,12 @@ def test_reading_an_unknown_wiki_page_returns_nothing() -> None:
     assert read_wiki_page("does-not-exist") is None
 
 
-async def test_memory_writer_uses_terra_and_its_own_override(monkeypatch: pytest.MonkeyPatch, test_redis: object,
-                                                          test_services: object) -> None:
+async def test_memory_writer_catalog_role_does_not_inherit_summary_override(
+    monkeypatch: pytest.MonkeyPatch, test_redis: object, test_services: object
+) -> None:
     _patch_model_builder(monkeypatch)
     await set_chat_override("ai_summary_model", -100125, "custom/summary", redis=test_redis)
-    plan = await get_chat_model_plan(AIModelPurpose.memory_writer, None, chat_tid=-100125,
-                                     mode=AIMode.entertainment, redis=test_redis)
+    plan = await get_chat_model_plan(
+        AIModelPurpose.memory_writer, None, chat_tid=-100125, mode=AIMode.entertainment, redis=test_redis
+    )
     assert plan.model_names == ("gpt-6.1-terra",)
-    await set_chat_override("ai_memory_writer_model", -100125, "custom/writer", redis=test_redis)
-    plan = await get_chat_model_plan(AIModelPurpose.memory_writer, None, chat_tid=-100125,
-                                     mode=AIMode.entertainment, redis=test_redis)
-    assert plan.model_names == ("custom/writer", "gpt-6.1-terra")

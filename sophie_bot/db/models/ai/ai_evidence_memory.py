@@ -49,6 +49,7 @@ class MemoryFact(BaseModel):
     recorded_at: datetime
     occurred_at: datetime
     previous_id: str | None = None
+    editor_tid: int | None = None
 
     @field_validator("recorded_at", "occurred_at")
     @classmethod
@@ -62,6 +63,7 @@ class StoredMemoryState(BaseModel):
     generation: str = Field(default_factory=lambda: uuid4().hex)
     processed_ids: list[int] = Field(default_factory=list)
     writer_attempts: dict[str, int] = Field(default_factory=dict)
+    pending_context_reset: bool = False
 
 
 class MemoryState(StoredMemoryState):
@@ -97,3 +99,12 @@ class AIEvidenceMemoryModel(Document):
         name = "ai_evidence_memory"
         use_revision = True
         indexes: ClassVar[list[IndexModel]] = [IndexModel([("chat.$id", 1)], unique=True)]
+
+
+class AIMemoryRetentionPolicy(Document):
+    chat_tid: int
+    days: int = Field(ge=1, le=365)
+
+    class Settings:
+        name = "ai_memory_retention_policy"
+        indexes: ClassVar[list[IndexModel]] = [IndexModel("chat_tid", unique=True)]

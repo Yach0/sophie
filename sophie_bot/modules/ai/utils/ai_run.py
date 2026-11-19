@@ -182,6 +182,7 @@ class AIRequestOptions:
     session_id: str | None = None
     service_tier: str | None = None
     prompt_cache: bool = False
+    single_model: bool = False
     context_projection: (
         Callable[
             [AIModelCandidate, Sequence[ModelRequest | ModelResponse]],
@@ -490,10 +491,14 @@ class _ModelRequests:
         operation_label: str,
     ) -> _ModelRequests:
         agent_model = _get_agent_model(agent)
-        candidates = resolve_candidates(
-            agent_model,
-            model_plan,
-            request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
+        candidates = (
+            [_agent_candidate(agent_model, model_plan)]
+            if request_options and request_options.single_model
+            else resolve_candidates(
+                agent_model,
+                model_plan,
+                request_has_images(run_kwargs.get("user_prompt"), run_kwargs.get("message_history")),
+            )
         )
         return cls(
             candidates=candidates,

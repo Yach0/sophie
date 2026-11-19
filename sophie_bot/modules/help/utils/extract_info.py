@@ -41,6 +41,7 @@ class HandlerHelp:
     only_chats: bool
     alias_to_modules: list[str]
     disableable: str | None
+    group: LazyProxy | str | None = None
 
 
 @dataclass
@@ -164,12 +165,13 @@ async def gather_cmds_help(
             cmds=cmds,
             args=args,
             description=help_flags.get("description", "") if help_flags else "",
-            only_admin=only_admin,
+            only_admin=only_admin or bool(help_flags and help_flags.get("only_admin")),
             only_op=only_op,
             only_pm=only_pm,
             only_chats=only_chats,
             alias_to_modules=help_flags.get("alias_to_modules", []) if help_flags else [],
             disableable=disableable,
+            group=help_flags.get("group") if help_flags else None,
         )
         helps.append(cmd)
 

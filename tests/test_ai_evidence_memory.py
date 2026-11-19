@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from beanie import PydanticObjectId
 from fakeredis import FakeAsyncRedis
 from pydantic_ai.messages import ModelRequest, ToolReturnPart
+from redis.exceptions import RedisError
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_evidence_memory import (
@@ -21,6 +22,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.schedules import write_memory
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
+from sophie_bot.modules.ai.utils import evidence_memory
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, set_chat_mode
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_context_epoch_key
@@ -37,6 +39,8 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     read_memory,
     retrieve_memory,
 )
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditRejected, delete_memory_facts
+from sophie_bot.modules.ai.utils.memory_writer import WriterAction, WriterOutput
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 
@@ -241,8 +245,7 @@ async def test_independent_writer_and_stale_result(
     chat = await ChatModel.get_by_tid(-1001124)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
-    for flag in ("ai_memory_writer", "ai_memory_personal"):
-        await set_chat_override(flag, chat.tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=test_services.redis)
     now = datetime.now(UTC)
 
     def seed_first_batch(state: MemoryState) -> None:
@@ -250,9 +253,10 @@ async def test_independent_writer_and_stale_result(
             capture_source(state, source(identity).model_copy(update={"sent_at": now}))
 
     await mutate_memory(chat, seed_first_batch, redis=test_services.redis)
-    monkeypatch.setattr(write_memory, "get_chat_model_plan", AsyncMock())
+    monkeypatch.setattr(write_memory, "single_model_plan", Mock())
     monkeypatch.setattr(write_memory, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
-    runner = AsyncMock(return_value=SimpleNamespace(output=MemoryActions(actions=[action(1)])))
+    output = WriterOutput(actions=[WriterAction.model_validate(action(1).model_dump())])
+    runner = AsyncMock(return_value=SimpleNamespace(output=output))
     monkeypatch.setattr(write_memory, "run_structured_task", runner)
     worker = write_memory.WriteMemory(test_services)
     await worker.handle()
@@ -269,14 +273,15 @@ async def test_independent_writer_and_stale_result(
 
     async def forget_during_write(*args: object, **kwargs: object) -> SimpleNamespace:
         await mutate_memory(chat, clear_memory, redis=test_services.redis)
-        return SimpleNamespace(output=MemoryActions(actions=[action(11)]))
+        return SimpleNamespace(output=output)
 
     runner.side_effect = forget_during_write
     await worker.handle()
+    assert runner.await_count == 2
     assert not (await read_memory(chat, START, redis=test_services.redis)).facts
 
 
-async def test_rollout_preserves_legacy_tools_until_replacement_is_enabled(
+async def test_retrieval_replaces_legacy_memory_tools(
     db_init: object,
     test_services: ApplicationServices,
 ) -> None:
@@ -298,17 +303,14 @@ async def test_rollout_preserves_legacy_tools_until_replacement_is_enabled(
         mode=AIMode.entertainment,
     )
     capabilities = get_capabilities(AIMode.entertainment)
-    await set_chat_override("ai_memory_capture", chat.tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=test_services.redis)
     names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
     assert {"write_memory", "forget_memory"} <= names
     assert "search_memory" not in names
     await set_chat_override("ai_memory_retrieval", chat.tid, True, redis=test_services.redis)
     names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
-    assert {"write_memory", "forget_memory", "search_memory"} <= names
-    await set_chat_override("ai_memory_replace_legacy", chat.tid, True, redis=test_services.redis)
-    names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
     assert "search_memory" in names
-    assert not {"write_memory", "forget_memory"} & names
+    assert not {"write_memory", "forget_memory", "manage_memory"} & names
 
 
 def test_reply_anchor_and_attribution_filters() -> None:
@@ -359,6 +361,45 @@ async def test_summary_discards_output_after_memory_reset(
     assert await AIChatSummaryModel.get_latest(chat.iid) is None
 
 
+async def test_retrying_a_delete_repairs_context_after_redis_failure(
+    test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chat = await ChatModel(
+        tid=-1001132,
+        type=ChatType.supergroup,
+        first_name_or_title="Delete recovery",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    ).insert()
+    chat = await ChatModel.get_by_tid(-1001132)
+    assert chat
+    redis = test_services.redis
+
+    def seed(state: MemoryState) -> None:
+        capture_source(state, source(1))
+        assert apply_actions(state, MemoryActions(actions=[action(1)]), {1}, state.generation, START)
+
+    state = await mutate_memory(chat, seed, redis=redis)
+    fact_id = state.facts[0].fact_id
+    await store_tool_exchanges(
+        chat.tid, 2, [ModelRequest(parts=[ToolReturnPart("search_memory", "stale")])], redis=redis
+    )
+    with monkeypatch.context() as patch_context:
+        patch_context.setattr(evidence_memory, "reset_modern_context", AsyncMock(side_effect=RedisError("unavailable")))
+        with pytest.raises(RedisError):
+            await delete_memory_facts(chat, [fact_id], 1, admin=False, redis=redis)
+
+    document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+    assert document and not document.state.facts and document.state.pending_context_reset
+    assert await get_tool_exchanges(chat.tid, redis=redis)
+    with pytest.raises(MemoryEditRejected, match="not found"):
+        await delete_memory_facts(chat, [fact_id], 1, admin=False, redis=redis)
+    document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+    assert document and not document.state.pending_context_reset
+    assert not await get_tool_exchanges(chat.tid, redis=redis)
+
+
 @pytest.mark.parametrize(
     ("mode", "retrieval", "request_limit", "tool_calls_limit"),
     [
@@ -376,7 +417,7 @@ async def test_agentic_memory_turn_budget_is_limited_to_active_retrieval(
 ) -> None:
     chat_tid = -1001140
     await set_chat_override("ai_memory_retrieval", chat_tid, retrieval, redis=test_services.redis)
-    await set_chat_override("ai_memory_capture", chat_tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat_tid, True, redis=test_services.redis)
     context = SophieAIToolContext(
         connection=SimpleNamespace(),
         chat_tid=chat_tid,
@@ -389,18 +430,12 @@ async def test_agentic_memory_turn_budget_is_limited_to_active_retrieval(
     assert limits.tool_calls_limit == tool_calls_limit
 
 
-@pytest.mark.parametrize(("request_limit", "tool_calls_limit", "expected"), [(10, 18, (10, 18)), (0, -1, (8, 12))])
-async def test_agentic_memory_budget_overrides_and_safe_defaults(
+async def test_agentic_memory_budget_uses_fixed_limits_and_preserves_output_limit(
     test_services: ApplicationServices,
-    request_limit: int,
-    tool_calls_limit: int,
-    expected: tuple[int, int],
 ) -> None:
     chat_tid = -1001141
     redis = test_services.redis
     await set_chat_override("ai_memory_retrieval", chat_tid, True, redis=redis)
-    await set_chat_override("ai_memory_request_limit", chat_tid, request_limit, redis=redis)
-    await set_chat_override("ai_memory_tool_calls_limit", chat_tid, tool_calls_limit, redis=redis)
     await set_chat_override("ai_chatbot_request_limit", chat_tid, 3, redis=redis)
     await set_chat_override("ai_chatbot_tool_calls_limit", chat_tid, 5, redis=redis)
     await set_chat_override("ai_chatbot_response_tokens_limit", chat_tid, 2048, redis=redis)
@@ -412,7 +447,7 @@ async def test_agentic_memory_budget_overrides_and_safe_defaults(
         mode=AIMode.entertainment,
     )
     limits = await build_chatbot_usage_limits(context)
-    assert (limits.request_limit, limits.tool_calls_limit) == expected
+    assert (limits.request_limit, limits.tool_calls_limit) == (8, 12)
     assert limits.output_tokens_limit == 2048
     await set_chat_override("ai_memory_retrieval", chat_tid, False, redis=redis)
     legacy_limits = await build_chatbot_usage_limits(context)

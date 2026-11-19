@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from fakeredis import FakeAsyncRedis
 
-from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel, MemoryActions, MemoryFact, MemoryState
+from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel, MemoryFact, MemoryState
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.schedules import write_memory
@@ -21,6 +21,7 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     read_memory,
     retrieve_memory,
 )
+from sophie_bot.modules.ai.utils.memory_writer import WriterOutput
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 
@@ -80,11 +81,11 @@ async def test_writer_waits_for_ten_messages_and_limits_batch_to_sixty(
     chat = await ChatModel.get_by_tid(chat.tid)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=redis)
-    for flag in ("ai_memory_writer", "ai_memory_personal"):
-        await set_chat_override(flag, chat.tid, True, redis=redis)
-    runner = AsyncMock(return_value=SimpleNamespace(output=MemoryActions()))
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=redis)
+    runner = AsyncMock(return_value=SimpleNamespace(output=WriterOutput(actions=[])))
     monkeypatch.setattr(write_memory, "run_structured_task", runner)
-    monkeypatch.setattr(write_memory, "get_chat_model_plan", AsyncMock())
+    select_model = Mock()
+    monkeypatch.setattr(write_memory, "single_model_plan", select_model)
     monkeypatch.setattr(write_memory, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
     for identity in range(1, 10):
         await cache_message("Preference", chat.tid, 1, identity, now, None, eligible_for_memory=True, redis=redis)
@@ -101,6 +102,9 @@ async def test_writer_waits_for_ten_messages_and_limits_batch_to_sixty(
         await cache_message("Preference", chat.tid, 1, identity, now, None, eligible_for_memory=True, redis=redis)
     await worker.process_chat(chat)
     runner.assert_awaited_once()
+    select_model.assert_called_once_with("openai/gpt-6-luna")
+    assert runner.call_args.args[0].output_type is WriterOutput
+    assert runner.call_args.kwargs["single_model"] is True
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
     assert document and len(document.state.processed_ids) == 60
     stored = await test_services.db.database["ai_evidence_memory"].find_one({"_id": document.id})

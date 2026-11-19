@@ -38,7 +38,7 @@ async def test_shared_capture_does_not_write_mongo(
     telegram_chat = Chat(id=-1001991, type="supergroup", title="Busy chat")
     chat = await ChatModel.upsert_group(telegram_chat)
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
-    await set_chat_override("ai_memory_capture", chat.tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=test_services.redis)
     insert = AsyncMock(side_effect=AssertionError("Capture must not insert a memory document"))
     replace = AsyncMock(side_effect=AssertionError("Capture must not replace a memory document"))
     monkeypatch.setattr(AIEvidenceMemoryModel, "insert", insert)
@@ -53,7 +53,7 @@ async def test_shared_capture_does_not_write_mongo(
         from_user=User(id=1122, is_bot=False, first_name="Member"),
         text="Hello",
     )
-    result = await cache_user_messages.CacheUserMessagesMiddleware()(
+    result = await cache_user_messages.CacheUserMessagesMiddleware(excluded_commands=())(
         handler,
         message,
         {"context": SimpleNamespace(event_chat=chat), "services": test_services},

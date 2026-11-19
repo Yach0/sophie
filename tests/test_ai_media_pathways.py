@@ -240,7 +240,7 @@ async def test_captionless_background_cache_is_metadata_only_and_epoch_fenced(
     message = _media_message("audio")
     chat = SimpleNamespace(tid=CHAT_TID)
     download = _download(test_services.bot, b"audio", monkeypatch)
-    middleware = CacheUserMessagesMiddleware()
+    middleware = CacheUserMessagesMiddleware(excluded_commands=())
     monkeypatch.setattr(
         "sophie_bot.modules.ai.middlewares.cache_user_messages.resolve_chat_mode", AsyncMock(return_value="support")
     )

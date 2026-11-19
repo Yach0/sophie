@@ -1,0 +1,297 @@
+[
+  {
+    "name": "personal preference",
+    "state": {
+      "sources": [
+        {
+          "message_id": 1,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "For future reference, I prefer short replies.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        }
+      ],
+      "facts": []
+    },
+    "pending": [
+      1
+    ],
+    "expected": [
+      {
+        "subject_tids": [
+          101
+        ],
+        "evidence_ids": [
+          1
+        ],
+        "kind": "preference",
+        "layer": "personal",
+        "previous_id": null,
+        "speaker_tids": [
+          101
+        ],
+        "text_contains": [
+          "short"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "hearsay keeps reporter and subject distinct",
+    "state": {
+      "sources": [
+        {
+          "message_id": 1,
+          "speaker_tid": 102,
+          "speaker_name": "Bob",
+          "text": "Hi everyone",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        },
+        {
+          "message_id": 2,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "Bob told me he prefers morning demos.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": 1
+        }
+      ],
+      "facts": []
+    },
+    "pending": [
+      2
+    ],
+    "expected": [
+      {
+        "subject_tids": [
+          102
+        ],
+        "evidence_ids": [
+          2
+        ],
+        "kind": "preference",
+        "layer": "observation",
+        "previous_id": null,
+        "speaker_tids": [
+          101
+        ],
+        "text_contains": [
+          "morning"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "explicit agreement from two speakers",
+    "state": {
+      "sources": [
+        {
+          "message_id": 1,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "Let's make Friday our regular demo day.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        },
+        {
+          "message_id": 2,
+          "speaker_tid": 102,
+          "speaker_name": "Bob",
+          "text": "Agreed. Friday is now our demo day.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": 1
+        }
+      ],
+      "facts": []
+    },
+    "pending": [
+      1,
+      2
+    ],
+    "expected": [
+      {
+        "subject_tids": [],
+        "evidence_ids": [
+          1,
+          2
+        ],
+        "kind": "decision",
+        "layer": "event",
+        "previous_id": null,
+        "speaker_tids": [
+          101,
+          102
+        ],
+        "text_contains": [
+          "friday"
+        ],
+        "optional_subject_tids": [
+          101,
+          102
+        ]
+      }
+    ]
+  },
+  {
+    "name": "temporary chatter",
+    "state": {
+      "sources": [
+        {
+          "message_id": 1,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "lol",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        },
+        {
+          "message_id": 2,
+          "speaker_tid": 102,
+          "speaker_name": "Bob",
+          "text": "brb",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": 1
+        }
+      ],
+      "facts": []
+    },
+    "pending": [
+      1,
+      2
+    ],
+    "expected": []
+  },
+  {
+    "name": "existing personal preference changes",
+    "state": {
+      "sources": [
+        {
+          "message_id": 2,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "I no longer like studying in the morning. I prefer evenings now.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        }
+      ],
+      "facts": [
+        {
+          "fact_id": "study-time",
+          "speaker_tid": 101,
+          "subject_tids": [
+            101
+          ],
+          "scope": "person",
+          "layer": "personal",
+          "kind": "preference",
+          "event": "study time",
+          "text": "Prefers studying in the morning",
+          "topic_id": 9,
+          "branch_ids": [
+            1
+          ],
+          "evidence_ids": [
+            1
+          ],
+          "recorded_at": "2026-09-30T09:00:00Z",
+          "occurred_at": "2026-09-30T09:00:00Z"
+        }
+      ]
+    },
+    "pending": [
+      2
+    ],
+    "expected": [
+      {
+        "subject_tids": [
+          101
+        ],
+        "evidence_ids": [
+          2
+        ],
+        "kind": "preference",
+        "layer": "personal",
+        "previous_id": "study-time",
+        "speaker_tids": [
+          101
+        ],
+        "text_contains": [
+          "evening"
+        ]
+      }
+    ]
+  },
+  {
+    "name": "explicit dissent is not consensus",
+    "state": {
+      "sources": [
+        {
+          "message_id": 1,
+          "speaker_tid": 101,
+          "speaker_name": "Alice",
+          "text": "Let's make Friday our regular demo day.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": null
+        },
+        {
+          "message_id": 2,
+          "speaker_tid": 102,
+          "speaker_name": "Bob",
+          "text": "I disagree. Friday conflicts with customer calls.",
+          "sent_at": "2026-10-01T09:00:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": 1
+        }
+      ],
+      "facts": []
+    },
+    "pending": [
+      1,
+      2
+    ],
+    "expected": [
+      {
+        "subject_tids": [],
+        "evidence_ids": [
+          1,
+          2
+        ],
+        "kind": "disputed",
+        "layer": "event",
+        "previous_id": null,
+        "speaker_tids": [
+          101,
+          102
+        ],
+        "text_contains": [
+          "friday"
+        ],
+        "optional_subject_tids": [
+          101,
+          102
+        ]
+      }
+    ]
+  }
+]

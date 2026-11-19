@@ -1,4 +1,3 @@
-from html.parser import HTMLParser
 from typing import Any
 
 from aiogram import F
@@ -28,26 +27,15 @@ from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
-from sophie_bot.utils.pagination import build_pagination_row, paginate
+from sophie_bot.utils.pagination import build_pagination_row, paginate, telegram_html_length
 
 _PAGE_SIZE = 8
 _MAX_FILTER_TEXT_LENGTH = 3900  # Keep room below Telegram's 4096-character text limit.
 _FILTER_EXCERPT_LENGTH = 512
 
 
-class _VisibleTextLength(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__(convert_charrefs=True)
-        self.length = 0
-
-    def handle_data(self, data: str) -> None:
-        self.length += len(data.encode("utf-16-le")) // 2
-
-
 def _fits_telegram_message(document: Doc) -> bool:
-    counter = _VisibleTextLength()
-    counter.feed(document.to_rich())
-    return counter.length <= _MAX_FILTER_TEXT_LENGTH
+    return telegram_html_length(document.to_rich()) <= _MAX_FILTER_TEXT_LENGTH
 
 
 @flags.disableable(name="filters")

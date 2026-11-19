@@ -1,20 +1,33 @@
 from __future__ import annotations
 
-import json
+import asyncio
+from collections.abc import Mapping
 from datetime import UTC, datetime
+from uuid import uuid4
 
 from beanie.exceptions import RevisionIdWasChanged
+from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.models import Model
+from pydantic_ai.models.openrouter import OpenRouterModel
+from pydantic_ai.usage import UsageLimits
 from pymongo.errors import PyMongoError
-from redis.exceptions import RedisError
+from redis.exceptions import RedisError, WatchError
 
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
-from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel, MemoryActions, MemoryState
+from sophie_bot.db.models.ai.ai_evidence_memory import (
+    AIEvidenceMemoryModel,
+    MemoryActions,
+    MemorySource,
+    MemoryState,
+)
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS, AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
+from sophie_bot.modules.ai.utils.ai_model_factory import single_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
+from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.ai_tokens import load_token_counter
 from sophie_bot.modules.ai.utils.cache_messages import MESSAGE_CACHE_TTL
 from sophie_bot.modules.ai.utils.evidence_memory import (
     MAX_BATCH,
@@ -24,10 +37,18 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     mutate_memory,
     prune_memory,
     read_memory,
+    repair_pending_memory_context,
+)
+from sophie_bot.modules.ai.utils.memory_writer import (
+    WriterOutput,
+    WriterPrompt,
+    build_writer_prompt,
+    deduplicate_batch,
 )
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
+from sophie_bot.services.sentry_metrics import count_metric
+from sophie_bot.utils.ai_features import AI_FEATURE_MEMORY_WRITER
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
@@ -42,12 +63,32 @@ Keep speaker and subjects separate. Never infer a quiet member's view. Silence i
 Distinguish jokes, questions, proposals, commitments, decisions and disputed claims using kind.
 A decision or norm needs direct supporting exchanges from at least two speakers; dissent means disputed,
 not consensus. Never use a mere proposal or reported agreement as a group decision.
-Use a stable specific event name; separate simultaneous events and reply branches, even in the same topic.
+Every action needs a short, descriptive event name. Do not use a numeric topic or message label as its name.
+Keep simultaneous events and reply branches separate, even in the same topic.
 UPDATE only a current head with identical speaker, subjects, scope, layer and event coordinates.
 Append changes/corrections; never overwrite old states. Use ADD for another speaker's different view.
 Use NOOP when no durable evidence exists. Cite only messages in one topic per action. Multiple reply branches may support the same specific event.
 Retain separate event identities when discussions overlap. Do not merge branches merely because words match.
 """
+
+COMPACT_INSTRUCTIONS = """Use request-local labels only. Batch and support rows are
+[message ID, speaker ID, topic, reply branch, parent message ID (or null), UTC time, text].
+People maps speaker IDs to known names. Heads rows are [fact ID (string), speaker ID, subjects,
+topic, branches, scope, layer, kind, event, text]. Subjects and speakers are integer person labels.
+Only batch rows count as new evidence. Support rows supply context and may corroborate a batch row.
+For UPDATE, copy the selected head's event exactly.
+Always use the speaker ID of a cited author. For a group record, use a participant whose cited message establishes
+the result, such as the confirming speaker for a decision. Cite the proposal and confirmation, or both sides of a dispute.
+Kind describes the claim itself: use preference for a stated preference even if reported by someone else.
+An explicit group agreement on a plan or schedule is layer event and kind decision, even for a recurring schedule.
+Use layer norm for a pattern of demonstrated group behavior.
+Record the final decision or dispute for a single exchange without also saving its intermediate proposal.
+Return an empty actions list when nothing should be saved.
+"""
+
+
+def _pending_sources(state: MemoryState) -> list[MemorySource]:
+    return [source for source in state.sources if not source.processed and source.writer_attempts < 3][:MAX_BATCH]
 
 
 class WriteMemory:
@@ -107,111 +148,207 @@ class WriteMemory:
                 )
 
     async def process_chat(self, chat: ChatModel) -> None:
-        cutoff = await memory_cutoff(chat.tid, redis=self.services.redis)
-        state = await read_memory(chat, cutoff, redis=self.services.redis)
+        redis = self.services.redis
+        key = f"ai:memory:writer:{chat.tid}"
+        owner = uuid4().hex
+        # The deadline is shorter than the claim TTL so a live worker stops before another can take over.
+        if not await redis.set(key, owner, nx=True, ex=180):
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "claimed"})
+            return
+        try:
+            async with asyncio.timeout(150):
+                await self._process_claimed_chat(chat)
+        finally:
+            async with redis.pipeline(transaction=True) as pipeline:
+                try:
+                    await pipeline.watch(key)
+                    if await pipeline.get(key) in (owner, owner.encode()):
+                        pipeline.multi()
+                        pipeline.delete(key)
+                        await pipeline.execute()
+                except WatchError:
+                    pass
+
+    async def _process_claimed_chat(self, chat: ChatModel) -> None:
+        redis = self.services.redis
+        await repair_pending_memory_context(chat, redis=redis)
+        cutoff = await memory_cutoff(chat.tid)
+        state = await read_memory(chat, cutoff, redis=redis)
         if await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid):
-            await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=self.services.redis)
+            state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=redis)
         if not (await resolve_chat_capabilities(chat)).memory:
             return
-        if not await is_enabled("ai_memory_writer", chat_tid=chat.tid, redis=self.services.redis):
+        if not await is_enabled("ai_memory_writer", chat_tid=chat.tid, redis=redis):
             return
-        personal = await is_enabled("ai_memory_personal", chat_tid=chat.tid, redis=self.services.redis)
-        group = await is_enabled("ai_memory_group", chat_tid=chat.tid, redis=self.services.redis)
-        updates = await is_enabled("ai_memory_updates", chat_tid=chat.tid, redis=self.services.redis)
-        shared = await is_enabled("ai_memory_shared_decisions", chat_tid=chat.tid, redis=self.services.redis)
-        if not personal and not group:
-            return
-        pending = [source for source in state.sources if not source.processed and source.writer_attempts < 3][
-            :MAX_BATCH
-        ]
-        if len(pending) < MIN_BATCH or not (await check_quota(chat.iid, redis=self.services.redis)).allowed:
-            return
-        # Establish a persistent generation before the first external writer call.
-        state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=self.services.redis)
-        pending = [source for source in state.sources if not source.processed and source.writer_attempts < 3][
-            :MAX_BATCH
-        ]
+        pending = _pending_sources(state)
         if len(pending) < MIN_BATCH:
             return
-        heads = {fact.previous_id for fact in state.facts}
-        topics = {source.topic_id for source in pending}
-        current_facts = [fact for fact in state.facts if fact.fact_id not in heads and fact.topic_id in topics][-40:]
-        context_ids = {identity for fact in current_facts for identity in fact.evidence_ids}
-        context_ids.update(source.reply_to_message_id for source in pending if source.reply_to_message_id is not None)
-        context_sources = [source for source in state.sources if source.message_id in context_ids][-80:]
-        history = OldContext(services=self.services)
-        history.add_system(WRITER_INSTRUCTIONS)
-        history.add_system(
-            f"Enabled output: personal={personal}, group={group}, UPDATE={updates}, decisions/norms={shared}. "
-            "Use NOOP for disabled categories. Do not turn updates into ADD to bypass disabled UPDATE."
-        )
-        history.prompt = [
-            json.dumps(
-                {
-                    "batch": [source.model_dump(mode="json") for source in pending],
-                    "roster": [
-                        {
-                            "speaker_tid": identity,
-                            "names": sorted(
-                                {
-                                    source.speaker_name
-                                    for source in state.sources
-                                    if source.speaker_tid == identity and source.speaker_name
-                                }
-                            ),
-                        }
-                        for identity in sorted(
-                            {source.speaker_tid for source in state.sources}
-                            | {identity for fact in state.facts for identity in (fact.speaker_tid, *fact.subject_tids)}
-                        )
-                    ],
-                    "heads": [fact.model_dump(mode="json") for fact in current_facts],
-                    "supporting_exchanges": [source.model_dump(mode="json") for source in context_sources],
-                }
-            )
-        ]
-        plan = await get_chat_model_plan(
-            AIModelPurpose.memory_writer, chat.iid, chat_tid=chat.tid, redis=self.services.redis
-        )
-        result = await run_structured_task(
-            AIStructuredTask(output_type=MemoryActions, name="memory:writer", feature=AI_FEATURE_CHATBOT),
-            plan,
-            history,
-            chat_iid=chat.iid,
-            chat_tid=chat.tid,
-            redis=self.services.redis,
-        )
-        if not (await resolve_chat_capabilities(chat)).memory:
-            return
-        if not await is_enabled("ai_memory_writer", chat_tid=chat.tid, redis=self.services.redis):
-            return
-        cutoff = await memory_cutoff(chat.tid, redis=self.services.redis)
-        batch_ids = {source.message_id for source in pending}
 
-        def apply(current: MemoryState) -> None:
-            for action in result.output.actions:
-                if action.action == "NOOP":
-                    continue
-                if (
-                    (action.scope == "person" and not personal)
-                    or (action.scope == "group" and not group)
-                    or (action.action == "UPDATE" and not updates)
-                    or ((action.kind == "decision" or action.layer == "norm") and not shared)
-                ):
-                    raise ValueError("Memory writer used a disabled category")
-            prune_memory(current, cutoff)
-            apply_actions(current, result.output, batch_ids, state.generation, datetime.now(UTC))
-            prune_memory(current, cutoff)
-
+        # Establish a persistent generation before the first external writer call.
+        state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=redis)
+        pending = _pending_sources(state)
+        if len(pending) < MIN_BATCH:
+            return
+        unique, duplicates = deduplicate_batch(state.sources, pending)
+        already_processed = {source.message_id for source in state.sources if source.processed}
+        completed: set[int] = set()
+        output = MemoryActions()
+        attempted: set[int] = set()
         try:
-            await mutate_memory(chat, apply, redis=self.services.redis)
-        except ValueError as error:
+            if unique and (await check_quota(chat.iid, redis=redis)).allowed:
+                compact_state = state.model_copy(
+                    update={"sources": [source for source in state.sources if source.message_id not in duplicates]}
+                )
+                output, completed = await self._extract_output(chat, compact_state, unique, attempted)
+            skipped = {
+                duplicate
+                for duplicate, representative in duplicates.items()
+                if representative in already_processed or representative in completed
+            }
+            if not completed and not skipped:
+                return
+            if not await self._can_continue(chat, state.generation):
+                return
+            cutoff = await memory_cutoff(chat.tid)
+            originals = {source.message_id: source.text for source in state.sources}
+            evidence_ids = {identity for action in output.actions for identity in action.evidence_ids}
+            required = completed | skipped | evidence_ids | {duplicates[duplicate] for duplicate in skipped}
+            saved: int | None = None
+
+            def apply(current: MemoryState) -> None:
+                nonlocal saved
+                saved = None
+                if current.generation != state.generation:
+                    return
+                actual = {source.message_id: source.text for source in current.sources}
+                if any(actual.get(identity) != originals.get(identity) for identity in required):
+                    return
+                prune_memory(current, cutoff)
+                before = len(current.facts)
+                if apply_actions(current, output, completed | skipped, state.generation, datetime.now(UTC)):
+                    saved = len(current.facts) - before
+                prune_memory(current, cutoff)
+
+            await mutate_memory(chat, apply, redis=redis)
+            if saved is not None:
+                count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "accepted"})
+                count_metric("sophie.ai.memory_writer.saved_memories", saved)
+                count_metric("sophie.ai.memory_writer.skipped_duplicates", len(skipped))
+            else:
+                count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "stale"})
+        except ValueError:
+            if not attempted:
+                raise
 
             def reject(current: MemoryState) -> None:
                 if current.generation == state.generation:
                     for source in current.sources:
-                        if source.message_id in batch_ids:
+                        if source.message_id in attempted and not source.processed:
                             source.writer_attempts += 1
 
-            await mutate_memory(chat, reject, redis=self.services.redis)
-            log.warning("Memory writer rejected invalid actions", chat_tid=chat.tid, reason=str(error))
+            await mutate_memory(chat, reject, redis=redis)
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "rejected"})
+            log.warning("Memory writer rejected invalid actions", chat_tid=chat.tid)
+
+    async def _can_continue(self, chat: ChatModel, generation: str) -> bool:
+        redis = self.services.redis
+        if not (await resolve_chat_capabilities(chat)).memory or not await is_enabled(
+            "ai_memory_writer", chat_tid=chat.tid, redis=redis
+        ):
+            return False
+        document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+        return bool(document and document.state.generation == generation)
+
+    async def _extract_output(
+        self,
+        chat: ChatModel,
+        state: MemoryState,
+        pending: list[MemorySource],
+        attempted: set[int],
+    ) -> tuple[MemoryActions, set[int]]:
+        redis = self.services.redis
+        counter = await load_token_counter("gpt-4")
+        prompt = build_writer_prompt(state, pending, counter)
+        if not prompt.batch_ids or not await self._can_continue(chat, state.generation):
+            return MemoryActions(), set()
+
+        latest = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
+        if latest.generation != state.generation:
+            return MemoryActions(), set()
+        originals = {source.message_id: source.text for source in state.sources}
+        live_sources = {source.message_id: source for source in latest.sources}
+        live_heads = {fact.fact_id for fact in latest.facts} - {fact.previous_id for fact in latest.facts}
+        if any(
+            (live := live_sources.get(source.message_id)) is None
+            or live.text != originals[source.message_id]
+            or (source.message_id in prompt.batch_ids and live.processed)
+            for source in prompt.messages.values()
+        ) or any(head.fact_id not in live_heads for head in prompt.heads.values()):
+            return MemoryActions(), set()
+
+        attempted.update(prompt.batch_ids)
+        result = await self._run_writer(chat, prompt)
+        if result.output is None:
+            return MemoryActions(), set()
+        return MemoryActions(actions=prompt.decode_actions(result.output.actions)), set(prompt.batch_ids)
+
+    async def _run_writer(self, chat: ChatModel, prompt: WriterPrompt) -> AIAgentResult[WriterOutput]:
+        plan = single_model_plan("openai/gpt-6-luna")
+        history = OldContext(services=self.services)
+        history.add_system(WRITER_INSTRUCTIONS)
+        history.add_system(COMPACT_INSTRUCTIONS)
+        history.prompt = [prompt.text]
+        responses = 0
+        model_settings = None
+        primary = plan.primary
+        if isinstance(primary, OpenRouterModel):
+            routing = (primary.settings or {}).get("openrouter_provider")
+            model_settings = {
+                "openrouter_provider": {
+                    **(routing if isinstance(routing, Mapping) else {}),
+                    "require_parameters": True,
+                },
+            }
+
+        async def observe(model: Model, response: ModelResponse) -> None:
+            nonlocal responses
+            attributes = {"tier": "single", "model": model.model_name, "retry": responses > 0}
+            responses += 1
+            count_metric("sophie.ai.memory_writer.responses", attributes=attributes)
+            if response.usage is not None:
+                count_metric("sophie.ai.memory_writer.input_tokens", response.usage.input_tokens, attributes=attributes)
+                count_metric(
+                    "sophie.ai.memory_writer.output_tokens", response.usage.output_tokens, attributes=attributes
+                )
+            cost = (response.provider_details or {}).get("cost")
+            if isinstance(cost, int | float):
+                count_metric("sophie.ai.memory_writer.reported_cost_usd", cost, attributes=attributes)
+
+        try:
+            return await run_structured_task(
+                AIStructuredTask(
+                    output_type=WriterOutput,
+                    name="memory:writer:single",
+                    feature=AI_FEATURE_MEMORY_WRITER,
+                    model_settings=model_settings,
+                ),
+                plan,
+                history,
+                chat_iid=chat.iid,
+                chat_tid=chat.tid,
+                redis=self.services.redis,
+                single_model=True,
+                usage_limits=UsageLimits(request_limit=2, output_tokens_limit=3_000),
+                on_response=observe,
+            )
+        except (UnexpectedModelBehavior, UsageLimitExceeded) as error:
+            raise ValueError("Memory writer did not return valid structured output") from error
+        except AIRequestFailed as error:
+            invalid_output = isinstance(error.__cause__, (UnexpectedModelBehavior, UsageLimitExceeded))
+            if invalid_output:
+                raise ValueError("Memory writer did not return valid structured output") from error
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": "single"})
+            raise
+        except AI_PROVIDER_EXCEPTIONS:
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": "single"})
+            raise

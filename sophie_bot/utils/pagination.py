@@ -2,11 +2,29 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Any
 
 from aiogram.types import InlineKeyboardButton
+from stfu_tg import Footer, Template
 
 from sophie_bot.utils.i18n import gettext as _
+
+
+class _VisibleTextLength(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.length = 0
+
+    def handle_data(self, data: str) -> None:
+        self.length += len(data.encode("utf-16-le")) // 2
+
+
+def telegram_html_length(html: str) -> int:
+    counter = _VisibleTextLength()
+    counter.feed(html)
+    counter.close()
+    return counter.length
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +53,12 @@ def paginate[ItemT](items: Sequence[ItemT], page_size: int, requested_page: int 
         has_previous=page > 0,
         has_next=page < total_pages - 1,
     )
+
+
+def build_pagination_footer(page_index: int, total_pages: int) -> Footer | None:
+    if total_pages <= 1:
+        return None
+    return Footer(Template(_("Page {page} of {pages}"), page=page_index + 1, pages=total_pages))
 
 
 def build_pagination_row(

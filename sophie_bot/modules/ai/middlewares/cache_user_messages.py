@@ -1,15 +1,14 @@
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
 from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.filters.command import CommandObject
 from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
@@ -19,23 +18,9 @@ from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 
-@dataclass(slots=True)
-class MessageCacheState:
-    command: CommandObject | None = None
-
-
 class CacheUserMessagesMiddleware(BaseMiddleware):
-    @staticmethod
-    async def capture_command(
-        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
-        event: TelegramObject,
-        data: dict[str, Any],
-    ) -> Any:
-        # Inner middleware runs after filters. Share the identity with the outer middleware,
-        # since aiogram copies the data dictionary while routing to a matched handler.
-        cache_state: MessageCacheState = data["ai_message_cache_state"]
-        cache_state.command = data.get("command")
-        return await handler(event, data)
+    def __init__(self, excluded_commands: tuple[CMDFilter, ...]) -> None:
+        self.excluded_commands = excluded_commands
 
     async def __call__(
         self,
@@ -50,15 +35,14 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         data["ai_mode"] = mode
         data["ai_capabilities"] = capabilities
 
-        cache_state = MessageCacheState()
-        data["ai_message_cache_state"] = cache_state
         expected_epoch = None
         if isinstance(event, Message) and chat_db and capabilities.message_cache:
             expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
+        data["ai_message_cache_epoch"] = expected_epoch
         memory_enabled = bool(
             chat_db
             and capabilities.memory
-            and await is_enabled("ai_memory_capture", chat_tid=chat_db.tid, redis=data["services"].redis)
+            and await is_enabled("ai_memory_writer", chat_tid=chat_db.tid, redis=data["services"].redis)
         )
         excluded_users: list[int] = []
         if memory_enabled and chat_db:
@@ -88,9 +72,15 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             if not text and media is None:
                 return result
 
-            if cache_state.command and cache_state.command.command in {"ai_reset", "ai_memory"}:
-                log.debug("CacheUserMessagesMiddleware: skipping reset command")
-                return result
+            # Check command syntax even when a feature or permission filter blocks its handler.
+            for command_filter in self.excluded_commands:
+                if (
+                    text
+                    and text[0] in command_filter.prefix
+                    and await command_filter(event, data["services"].bot, event.chat)
+                ):
+                    log.debug("CacheUserMessagesMiddleware: skipping command excluded from AI history")
+                    return result
 
             sender = event.from_user
             sender_chat = event.sender_chat
@@ -141,6 +131,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 eligible_for_memory=bool(
                     memory_enabled
                     and bool(text)
+                    and not (event.text and event.text[0] in CONFIG.commands_prefix)
                     and sender is not None
                     and not sender.is_bot
                     and not event.sender_chat

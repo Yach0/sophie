@@ -68,6 +68,7 @@ class MessageType(BaseModel):
     proactively_answered: bool = False
     proactively_reacted: bool = False
     eligible_for_memory: bool = False
+    memory_source_requires_commit: bool = False
     speaker_name: str = ""
     memory_branch_id: int | None = None
 
@@ -215,7 +216,9 @@ async def reset_messages(chat_id: int, *, redis: Redis) -> None:
     await redis.delete(key)
 
 
-async def reset_modern_context(chat_tid: int, *, redis: Redis, clear_messages: bool = True) -> None:
+async def reset_modern_context(
+    chat_tid: int, *, redis: Redis, clear_messages: bool = True, additional_keys: tuple[str, ...] = ()
+) -> None:
     epoch_key = get_context_epoch_key(chat_tid)
     index_key = f"ai:modern_context:sessions:{chat_tid}"
     while True:
@@ -225,7 +228,7 @@ async def reset_modern_context(chat_tid: int, *, redis: Redis, clear_messages: b
                 session_keys = await pipe.smembers(index_key)
                 pipe.multi()
                 pipe.incr(epoch_key)
-                pipe.delete(index_key, *session_keys)
+                pipe.delete(index_key, *session_keys, *additional_keys)
                 if clear_messages:
                     pipe.delete(get_message_cache_key(chat_tid))
                 await pipe.execute()
