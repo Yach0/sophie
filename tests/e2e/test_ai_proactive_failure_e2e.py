@@ -5,12 +5,14 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock
 
 import pytest
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMessage
 from aiogram.types import Update
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory
 from fakeredis._socket import _base as redis_socket
 from pydantic_ai.exceptions import ModelHTTPError
-from pydantic_ai.messages import ModelMessage, ModelResponse, ToolCallPart
+from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 
 from sophie_bot.db.models import ChatModel
@@ -108,3 +110,86 @@ async def test_terminal_proactive_decision_failure_lifecycle(
     assert not await test_services.redis.exists(lock_key(group.id))
     # Existing success cleanup clears the selected batch (15 of 17 messages).
     assert await test_services.redis.zcard(eligible_key(group.id)) == 2
+
+
+async def test_missing_proactive_answer_target_does_not_reach_error_handler(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    user, group, _user_model = await create_test_user_and_group(test_client)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await AIModeModel.set_mode(chat, AIMode.entertainment)
+    await set_feature(test_client, "ai_moderation", False, chat_tid=group.id)
+    await set_feature(test_client, "ai_chatbot_modern_context", False, chat_tid=group.id)
+    target_id = 0
+    attempts: list[str] = []
+
+    async def decide(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        attempts.append("decision")
+        return ModelResponse(
+            parts=[
+                ToolCallPart(
+                    info.output_tools[0].name,
+                    {
+                        "actions": [{"action": "answer", "message_id": target_id}],
+                    },
+                )
+            ]
+        )
+
+    async def answer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        attempts.append("answer")
+        return ModelResponse(parts=[TextPart("**Offline answer**")])
+
+    decision_model = FunctionModel(decide, model_name="offline-decision")
+    answer_model = FunctionModel(answer, model_name="offline-answer")
+    monkeypatch.setattr(
+        proactive_replies,
+        "get_proactive_replies_model_plan",
+        AsyncMock(
+            return_value=AIModelPlan(
+                candidates=(AIModelCandidate(decision_model, "offline-decision"),),
+            )
+        ),
+    )
+    monkeypatch.setattr(
+        proactive_replies,
+        "get_chat_default_model_plan",
+        AsyncMock(
+            return_value=AIModelPlan(
+                candidates=(AIModelCandidate(answer_model, "offline-answer"),),
+            )
+        ),
+    )
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.ai_quota.estimate_model_credit_cost", AsyncMock(return_value=0))
+    report_error = Mock()
+    monkeypatch.setattr("sophie_bot.modules.error.handlers.error.capture_sentry", report_error)
+    missing = TelegramBadRequest(
+        method=SendMessage(chat_id=group.id, text="answer"),
+        message="Bad Request: message to be replied not found",
+    )
+    send = AsyncMock(side_effect=missing)
+    monkeypatch.setattr(test_services.bot, "send_rich_message", send)
+    await proactive_replies._get_allowed_reactions(group.id, services=test_services)
+    test_client.capture.clear()
+
+    for message_number in range(16):
+        message = MessageFactory.create(
+            text=f"ordinary chatter {message_number}",
+            from_user=user,
+            chat=group,
+            date=datetime.now(UTC) - timedelta(seconds=1),
+        )
+        target_id = message.message_id
+        await test_client.dispatcher.feed_update(test_client.bot, Update(update_id=next_message_id(), message=message))
+
+    assert attempts == ["decision", "answer"]
+    send.assert_awaited_once()
+    assert send.await_args.kwargs["reply_parameters"].message_id != 0
+    report_error.assert_not_called()
+    assert test_client.capture.all_requests == [], "No error card, fallback answer, or other Telegram write"
+    assert not await test_services.redis.exists(lock_key(group.id))
+    assert await test_services.redis.zcard(eligible_key(group.id)) == 1
