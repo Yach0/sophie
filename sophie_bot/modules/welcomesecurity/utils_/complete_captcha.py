@@ -99,19 +99,17 @@ async def _complete_captcha(
             "You don't need to solve the CAPTCHA again."
         )
     )
-    await bot.edit_message_media(
-        media=InputMediaPhoto(media=BufferedInputFile(captcha.image, "captcha.jpeg"), caption=caption),
-        chat_id=captcha_message.chat.id,
-        message_id=captcha_message.message_id,
-    )
+    try:
+        await bot.edit_message_media(
+            media=InputMediaPhoto(media=BufferedInputFile(captcha.image, "captcha.jpeg"), caption=caption),
+            chat_id=captcha_message.chat.id,
+            message_id=captcha_message.message_id,
+        )
+    finally:
+        if restriction_succeeded:
+            if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
+                await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
+                await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
 
-    if not restriction_succeeded:
-        return
-
-    # Clean up the security note message from the group
-    if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
-        await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
-        await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
-
-    if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
-        await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))
+            if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
+                await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))

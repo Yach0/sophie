@@ -504,3 +504,45 @@ async def test_failed_captcha_restoration_has_manual_recovery_without_new_challe
     requests = await test_client.send_command(command="unmute", from_user=admin, args=str(user.tid), chat=group)
     assert _restricts(requests, user.tid)
     assert await WSUserModel.is_user(user.iid, chat.iid) is None
+
+
+@pytest.mark.parametrize("is_join_request", [False, True])
+async def test_successful_captcha_restoration_cleans_prompts_when_confirmation_edit_fails(
+    test_client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+    is_join_request: bool,
+) -> None:
+    _admin, group, _model = await create_test_user_and_group(test_client)
+    await grant_bot_admin(group.id)
+    chat = await _enable_ws(group.id)
+    _chat, user, captcha_message = await _register_pending_user(test_client, group.id)
+    await _solve_fsm_captcha(test_client, user.tid)
+    services = test_client.dispatcher.workflow_data["services"]
+    security_prompt_key = f"chat_ws_message:{chat.iid}:{user.iid}"
+    await services.redis.set(security_prompt_key, 555)
+    if is_join_request:
+        await services.redis.set(f"join_request_message:{chat.iid}:{user.iid}", 556)
+    original_make_request = test_client.bot.session.make_request
+
+    async def fail_confirmation_edit(bot: Bot, method: TelegramMethod, timeout: int | None = None) -> Any:
+        if isinstance(method, EditMessageMedia):
+            raise TelegramBadRequest(method=method, message="message to edit not found")
+        return await original_make_request(bot, method, timeout=timeout)
+
+    monkeypatch.setattr(test_client.bot.session, "make_request", fail_confirmation_edit)
+    confirm = WelcomeSecurityConfirmCB(chat_iid=str(chat.iid), is_join_request=is_join_request).pack()
+    requests = await test_client.send_callback(
+        confirm,
+        from_user=User(id=user.tid, is_bot=False, first_name="Solver"),
+        message=captcha_message,
+    )
+
+    assert _restricts(requests, user.tid)
+    assert await WSUserModel.is_user(user.iid, chat.iid) is None
+    assert not await services.redis.exists(security_prompt_key)
+    deleted = {
+        request.params["message_id"]
+        for request in requests
+        if request.request_type == RequestType.DELETE_MESSAGE and request.chat_id == group.id
+    }
+    assert deleted == ({555, 556} if is_join_request else {555})
