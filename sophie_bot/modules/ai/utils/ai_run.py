@@ -55,6 +55,7 @@ from sophie_bot.modules.ai.utils.ai_model_plan import (
     request_has_images,
 )
 from sophie_bot.modules.ai.utils.ai_refusal import is_refusal_output
+from sophie_bot.modules.ai.utils.ai_retry_status import ai_retry_status
 
 TextStreamCallback = Callable[[str], Awaitable[None]]
 ToolCallCallback = Callable[[str], Awaitable[None]]
@@ -596,7 +597,7 @@ class _ModelRequests:
         if allowed and self.active is not self.candidates[-1]:
             capture_ai_error(error, self.error_context(), level="warning")
             if self.on_retry is not None:
-                await self.on_retry(self.candidates.index(self.active) + 1, len(self.candidates))
+                await self.on_retry(1, AI_REQUEST_RETRY_ATTEMPTS)
         return allowed
 
     def reject_response(self, response: ModelResponse) -> bool:
@@ -670,7 +671,8 @@ async def _run_with_metrics[DepsT, OutputT](
         agent, run_kwargs, request_options, model_settings, model_plan, on_retry, operation_label
     )
     try:
-        result = await agent.run(**requests.run_kwargs(run_kwargs))
+        with ai_retry_status(on_retry):
+            result = await agent.run(**requests.run_kwargs(run_kwargs))
     except AI_PROVIDER_EXCEPTIONS as error:
         requests.raise_failure(error)
 
@@ -917,16 +919,17 @@ async def run_ai_stream[DepsT](
     run_kwargs.update(extra_run_kwargs)
     requests = _ModelRequests.create(agent, run_kwargs, request_options, model_settings, model_plan, on_retry, "stream")
     try:
-        outcome = await _stream_via_events(
-            agent,
-            requests.run_kwargs(run_kwargs),
-            requests,
-            on_text_stream,
-            on_reasoning_stream,
-            on_before_tool_call,
-            on_tool_call,
-            set(),
-        )
+        with ai_retry_status(on_retry):
+            outcome = await _stream_via_events(
+                agent,
+                requests.run_kwargs(run_kwargs),
+                requests,
+                on_text_stream,
+                on_reasoning_stream,
+                on_before_tool_call,
+                on_tool_call,
+                set(),
+            )
     except AI_PROVIDER_EXCEPTIONS as error:
         requests.raise_failure(error)
     served_model = requests.active.model

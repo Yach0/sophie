@@ -22,6 +22,7 @@ from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_fa
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
+from sophie_bot.modules.ai.utils.ai_retry_status import ai_retry_status
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
@@ -329,6 +330,7 @@ async def ai_chatbot_reply(
             strip_alien_html_tags=strip_alien_html_tags,
         )
         await cleanup.enter_async_context(chatbot_streaming_session(message_streamer))
+        cleanup.enter_context(ai_retry_status(message_streamer.update_retrying if message_streamer else None))
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=connection.tid,

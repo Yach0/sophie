@@ -8,6 +8,7 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.providers.openrouter import OpenRouterProvider
 
 from sophie_bot.modules.ai.utils.ai_catalog import CatalogProvider
+from sophie_bot.modules.ai.utils.ai_retry_status import retry_status_http_client
 
 TESTING = "pytest" in sys.modules or os.environ.get("TESTING") == "1"
 
@@ -37,8 +38,13 @@ def get_openrouter_provider(provider: CatalogProvider | None = None) -> Provider
     api_key = _api_key(provider.api_key if provider else "")
     if not api_key:
         raise ValueError("OpenRouter API key is missing from the AI catalog; configure /op_ai_provider openrouter")
-    return _cached(provider, lambda: OpenRouterProvider(api_key=api_key))
+    return _cached(provider, lambda: OpenRouterProvider(api_key=api_key, http_client=retry_status_http_client()))
 
 
 def get_openai_provider(provider: CatalogProvider) -> Provider:
-    return _cached(provider, lambda: OpenAIProvider(base_url=provider.base_url, api_key=_api_key(provider.api_key)))
+    return _cached(
+        provider,
+        lambda: OpenAIProvider(
+            base_url=provider.base_url, api_key=_api_key(provider.api_key), http_client=retry_status_http_client()
+        ),
+    )

@@ -17,6 +17,7 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     capture_ai_error,
     is_retryable_ai_provider_error,
 )
+from sophie_bot.modules.ai.utils.ai_retry_status import retry_status_http_client
 from sophie_bot.utils.logger import log
 
 EMBEDDING_MODEL: Final[str] = "openai/text-embedding-3-small"
@@ -45,6 +46,7 @@ async def create_embedding(text: str, *, redis: Redis) -> list[float] | None:
             base_url="https://openrouter.ai/api/v1",
             timeout=CONFIG.ai_request_timeout_seconds,
             max_retries=AI_REQUEST_RETRY_ATTEMPTS - 1,
+            http_client=retry_status_http_client(),
         ) as client:
             response = await client.embeddings.create(model=EMBEDDING_MODEL, input=text)
     except (APIConnectionError, APIStatusError) as error:

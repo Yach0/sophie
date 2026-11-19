@@ -7,3 +7,5 @@ Provider requests use four SDK retries: up to five attempts per model, including
 There is no whole-handler timeout that can cancel the retry budget. Retries repeat the provider request, not the whole agent run, so completed tools are not replayed. Transport timeouts apply to connection and I/O waits, not the total time spent generating an active stream. A timeout after streaming has started is not retried by the SDK; replaying that stream could duplicate output.
 
 Note-search embedding requests use the same timeout and five-attempt SDK budget. If transport errors or retryable HTTP errors exhaust that budget, note retrieval falls back to text search so AI prompt construction can continue. Invalid credentials and other nonretryable API errors still propagate.
+
+When an AI progress message is enabled, SDK retries update it with the next attempt number, from `Retrying (2/5)...` through `Retrying (5/5)...`. This includes note embeddings during prompt construction and streamed or non-streamed chat requests. Model failover starts another model at attempt 1/5. Progress callbacks are scoped to each request so cached provider clients cannot update another chat.

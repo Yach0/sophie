@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from functools import partial
 from unittest.mock import AsyncMock
 
 import httpx2
 import pytest
 from beanie import PydanticObjectId
-from openai import AsyncOpenAI, AuthenticationError
+from openai import AsyncOpenAI, AuthenticationError, DefaultAsyncHttpxClient
 from redis.asyncio import Redis
 
+from sophie_bot.modules.ai.utils import ai_retry_status
 from sophie_bot.modules.ai.utils.modern_context import semantic_search_notes
 from sophie_bot.utils import notes_search
 
@@ -49,24 +51,24 @@ async def test_note_search_retries_embedding_requests_before_falling_back(
             },
         )
 
-    def client(*, api_key: str, base_url: str, timeout: float = 600, max_retries: int = 2) -> AsyncOpenAI:
-        return AsyncOpenAI(
-            api_key=api_key,
-            base_url=base_url,
-            timeout=timeout,
-            max_retries=max_retries,
-            http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(handle)),
-        )
-
-    monkeypatch.setattr(notes_search, "AsyncOpenAI", client)
+    monkeypatch.setattr(
+        ai_retry_status,
+        "DefaultAsyncHttpxClient",
+        partial(DefaultAsyncHttpxClient, transport=httpx2.MockTransport(handle)),
+    )
+    progress = AsyncMock()
     chat_iid = PydanticObjectId()
     redis = AsyncMock(spec=Redis)
-    if status_code == 401:
-        with pytest.raises(AuthenticationError):
-            await semantic_search_notes(chat_iid, "hello", redis=redis)
-        lexical_search.assert_not_awaited()
-    else:
-        assert await semantic_search_notes(chat_iid, "hello", redis=redis) == []
-        lexical_search.assert_awaited_once_with(chat_iid, "hello")
+    with ai_retry_status.ai_retry_status(progress):
+        if status_code == 401:
+            with pytest.raises(AuthenticationError):
+                await semantic_search_notes(chat_iid, "hello", redis=redis)
+            lexical_search.assert_not_awaited()
+        else:
+            assert await semantic_search_notes(chat_iid, "hello", redis=redis) == []
+            lexical_search.assert_awaited_once_with(chat_iid, "hello")
     assert len(requests) == expected_attempts
     assert all(request.extensions["timeout"]["read"] == 15 for request in requests)
+    assert [call.args for call in progress.await_args_list] == [
+        (attempt, 5) for attempt in range(2, expected_attempts + 1)
+    ]
