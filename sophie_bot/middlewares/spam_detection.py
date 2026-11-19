@@ -8,7 +8,6 @@ from aiogram import BaseMiddleware
 from aiogram.exceptions import TelegramAPIError
 from aiogram.types import Message, TelegramObject, Update
 from pymongo.errors import PyMongoError
-from ussr import predict_message
 
 from sophie_bot.db.models.spam_match import SpamMatchModel
 from sophie_bot.middlewares.request_context import RequestContext
@@ -16,6 +15,7 @@ from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
+from sophie_bot.utils.spam_classifier import predict_message
 
 
 class SpamDetectionMiddleware(BaseMiddleware):
@@ -61,11 +61,8 @@ class SpamDetectionMiddleware(BaseMiddleware):
 
         try:
             result = await asyncio.to_thread(predict_message, text)
-            if not result:
-                return
-
-            spam_prob = result.get("spam_probability", 0.0)
-            nsfw_prob = result.get("nsfw_probability", 0.0)
+            spam_prob = result["spam_probability"]
+            nsfw_prob = result["nsfw_probability"]
 
             if spam_prob > 0.5 or nsfw_prob > 0.5:
                 log.info(

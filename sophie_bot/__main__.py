@@ -5,7 +5,6 @@ from sophie_bot.modes import SOPHIE_MODE, SophieModes
 from sophie_bot.services.sentry import init_sentry
 from sophie_bot.utils.logger import log
 
-# Import misc stuff
 if CONFIG.sentry_url:
     init_sentry()
 

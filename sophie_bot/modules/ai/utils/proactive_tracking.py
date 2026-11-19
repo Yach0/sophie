@@ -34,8 +34,9 @@ def eligible_key(chat_tid: int) -> str:
     return _ELIGIBLE_KEY_TEMPLATE.format(chat_tid=chat_tid)
 
 
-def lock_key(chat_tid: int) -> str:
-    return _LOCK_KEY_TEMPLATE.format(chat_tid=chat_tid)
+def lock_key(chat_tid: int, topic_id: int | None = None) -> str:
+    key = _LOCK_KEY_TEMPLATE.format(chat_tid=chat_tid)
+    return key if topic_id is None else f"{key}:{topic_id}"
 
 
 def decision_failure_key(bot_id: int, chat_tid: int) -> str:
@@ -120,11 +121,11 @@ async def clear_tracked_messages(
     log_proactive_info("Proactive AI tracked messages cleared", chat_id=chat_tid, message_count=len(messages))
 
 
-async def acquire_lock(chat_tid: int, *, redis: Redis) -> bool:
+async def acquire_lock(chat_tid: int, *, redis: Redis, topic_id: int | None = None) -> bool:
     acquired = bool(
         await cast(
             Awaitable[bool | None],
-            redis.set(lock_key(chat_tid), "1", ex=_LOCK_TTL_SECONDS, nx=True),
+            redis.set(lock_key(chat_tid, topic_id), "1", ex=_LOCK_TTL_SECONDS, nx=True),
         )
     )
 
@@ -132,7 +133,7 @@ async def acquire_lock(chat_tid: int, *, redis: Redis) -> bool:
     return acquired
 
 
-async def release_lock(chat_tid: int, *, redis: Redis) -> None:
-    await redis.delete(lock_key(chat_tid))
+async def release_lock(chat_tid: int, *, redis: Redis, topic_id: int | None = None) -> None:
+    await redis.delete(lock_key(chat_tid, topic_id))
 
     log_proactive_info("Proactive AI lock released", chat_id=chat_tid)

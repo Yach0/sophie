@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.dispatcher.event.bases import SkipHandler
@@ -47,6 +47,7 @@ def _make_greetings(**overrides: Any) -> SimpleNamespace:
     }
     defaults.update(overrides)
     return SimpleNamespace(**defaults)
+
 
 def _data(
     chat_db: object,
@@ -173,6 +174,16 @@ async def test_security_note_fillings_resolve_to_the_joiner(monkeypatch: pytest.
     _patch_common(monkeypatch, greetings, is_admin=False)
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.NewUserMiddleware.is_join_request", AsyncMock(return_value=False))
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.ws_on_new_users_mute", AsyncMock(return_value=[True]))
+    monkeypatch.setattr(f"{MIDDLEWARE_PATH}.pending_user_lock", MagicMock(return_value=AsyncMock()))
+    monkeypatch.setattr(f"{MIDDLEWARE_PATH}.is_current_session", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        f"{MIDDLEWARE_PATH}.WSUserModel.is_user",
+        AsyncMock(
+            return_value=SimpleNamespace(
+                passed=False, membership_join_message_id=SERVICE_MESSAGE_ID, remember_cleanup_messages=AsyncMock()
+            )
+        ),
+    )
     monkeypatch.setattr(f"{MIDDLEWARE_PATH}.send_welcome", send_welcome)
 
     with pytest.raises(SkipHandler):

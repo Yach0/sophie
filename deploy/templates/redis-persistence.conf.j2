@@ -1,3 +1,19 @@
 [Container]
+{% set volumes = namespace(entries=[]) %}
+{% for setting in redis_volumes %}
+{% set volume = setting | trim %}
+{% if volume %}
+{% set volumes.entries = volumes.entries + [volume] %}
+{% else %}
+{% set volumes.entries = [] %}
+{% endif %}
+{% endfor %}
+Volume=
+{% for volume in volumes.entries %}
+{% set destination = volume.split(':')[1] if ':' in volume else volume %}
+{% if destination != '/data' %}
+Volume={{ volume }}
+{% endif %}
+{% endfor %}
 Volume={{ redis_data_dir }}:/data:rw,Z
 Exec={{ redis_exec }} --save "900 1 300 10 60 10000" --dir /data --dbfilename dump.rdb

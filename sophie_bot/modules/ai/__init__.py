@@ -24,7 +24,7 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesSetting,
     AINoteTitlesSetting,
 )
-from sophie_bot.modules.ai.handlers.memory import AIMemoryControl
+from sophie_bot.modules.ai.handlers.memory import AIMemoryControl, AIMemoryPageHandler
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -48,7 +48,6 @@ from sophie_bot.modules.ai.magic_handlers.modern_action import (
 )
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.middlewares.ai_status import AiStatusMiddleware
-from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMiddleware
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
     CacheBotMessagesMiddleware,
@@ -82,7 +81,6 @@ async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())
-    bot_router.message.outer_middleware(AiTimeoutMiddleware())
     bot_router.message.outer_middleware(AiAutoTranslateMiddleware())
 
 
@@ -90,7 +88,7 @@ def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) 
     scheduler.add_job(
         track_scheduler_callback(WriteMemory(services).handle, services),
         "interval",
-        minutes=1,
+        minutes=10,
         jobstore="ram",
         max_instances=1,
         coalesce=True,
@@ -131,6 +129,7 @@ module_manifest = ModuleManifest(
         AiPmInitialize,
         AIContextReset,
         AIMemoryControl,
+        AIMemoryPageHandler,
         ResearchCmd,
         AiTranslate,
         AiUsage,

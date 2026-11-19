@@ -15,12 +15,15 @@ from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS, AIRequ
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
+from sophie_bot.modules.ai.utils.cache_messages import MESSAGE_CACHE_TTL
 from sophie_bot.modules.ai.utils.evidence_memory import (
     MAX_BATCH,
+    MIN_BATCH,
     apply_actions,
     memory_cutoff,
     mutate_memory,
     prune_memory,
+    read_memory,
 )
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
@@ -52,14 +55,42 @@ class WriteMemory:
         self.services = services
 
     async def handle(self) -> None:
+        # Discover new chats from the existing cache; capture no longer creates Mongo documents.
+        chat_tids: set[int] = set()
         async for document in AIEvidenceMemoryModel.find_all():
-            chat_tid: int | None = None
             try:
                 chat = await document.chat.fetch()
-                if not isinstance(chat, ChatModel):
+                if isinstance(chat, ChatModel):
+                    chat_tids.add(chat.tid)
+                else:
                     await document.delete()
+            except PyMongoError as error:
+                log.warning(
+                    "Memory writer could not resolve chat", memory_iid=str(document.id), error_type=type(error).__name__
+                )
+        cutoff = (datetime.now(UTC) - MESSAGE_CACHE_TTL).timestamp()
+        try:
+            async for key in self.services.redis.scan_iter(match="messages:*"):
+                try:
+                    suffix = key.removeprefix(b"messages:") if isinstance(key, bytes) else key.removeprefix("messages:")
+                    chat_tid = int(suffix)
+                except ValueError:
+                    log.warning("Memory writer skipped invalid message cache key")
                     continue
-                chat_tid = chat.tid
+                chat_tids.add(chat_tid)
+                try:
+                    await self.services.redis.zremrangebyscore(key, 0, cutoff)
+                except RedisError as error:
+                    log.warning(
+                        "Memory writer could not trim history", chat_tid=chat_tid, error_type=type(error).__name__
+                    )
+        except RedisError as error:
+            log.warning("Memory writer cache discovery failed", error_type=type(error).__name__)
+        for chat_tid in sorted(chat_tids):
+            try:
+                chat = await ChatModel.get_by_tid(chat_tid)
+                if chat is None:
+                    continue
                 await self.process_chat(chat)
             except (
                 AIRequestFailed,
@@ -72,13 +103,14 @@ class WriteMemory:
                 log.warning(
                     "Memory writer failed for chat",
                     chat_tid=chat_tid,
-                    memory_iid=str(document.id),
                     error_type=type(error).__name__,
                 )
 
     async def process_chat(self, chat: ChatModel) -> None:
         cutoff = await memory_cutoff(chat.tid, redis=self.services.redis)
-        state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff))
+        state = await read_memory(chat, cutoff, redis=self.services.redis)
+        if await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid):
+            await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=self.services.redis)
         if not (await resolve_chat_capabilities(chat)).memory:
             return
         if not await is_enabled("ai_memory_writer", chat_tid=chat.tid, redis=self.services.redis):
@@ -92,7 +124,14 @@ class WriteMemory:
         pending = [source for source in state.sources if not source.processed and source.writer_attempts < 3][
             :MAX_BATCH
         ]
-        if not pending or not (await check_quota(chat.iid, redis=self.services.redis)).allowed:
+        if len(pending) < MIN_BATCH or not (await check_quota(chat.iid, redis=self.services.redis)).allowed:
+            return
+        # Establish a persistent generation before the first external writer call.
+        state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=self.services.redis)
+        pending = [source for source in state.sources if not source.processed and source.writer_attempts < 3][
+            :MAX_BATCH
+        ]
+        if len(pending) < MIN_BATCH:
             return
         heads = {fact.previous_id for fact in state.facts}
         topics = {source.topic_id for source in pending}
@@ -121,7 +160,10 @@ class WriteMemory:
                                 }
                             ),
                         }
-                        for identity in sorted({source.speaker_tid for source in state.sources})
+                        for identity in sorted(
+                            {source.speaker_tid for source in state.sources}
+                            | {identity for fact in state.facts for identity in (fact.speaker_tid, *fact.subject_tids)}
+                        )
                     ],
                     "heads": [fact.model_dump(mode="json") for fact in current_facts],
                     "supporting_exchanges": [source.model_dump(mode="json") for source in context_sources],
@@ -162,7 +204,7 @@ class WriteMemory:
             prune_memory(current, cutoff)
 
         try:
-            await mutate_memory(chat, apply)
+            await mutate_memory(chat, apply, redis=self.services.redis)
         except ValueError as error:
 
             def reject(current: MemoryState) -> None:
@@ -171,5 +213,5 @@ class WriteMemory:
                         if source.message_id in batch_ids:
                             source.writer_attempts += 1
 
-            await mutate_memory(chat, reject)
+            await mutate_memory(chat, reject, redis=self.services.redis)
             log.warning("Memory writer rejected invalid actions", chat_tid=chat.tid, reason=str(error))

@@ -40,6 +40,7 @@ from sophie_bot.modules.ai.utils.ai_header import AI_BATTERY_CUSTOM_EMOJI_IDS, A
 from sophie_bot.modules.ai.utils.cache_messages import MessageType, cache_message
 from sophie_bot.modules.ai.utils.modern_context import AIUserMessageFormatter
 from sophie_bot.modules.ai.utils.old_context import OldContext
+from sophie_bot.modules.ai.utils.transform_animation import ANIMATION_INSTRUCTION
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.handlers import SophieMessageHandler
 from tests.e2e.helpers import grant_admin, next_group_id, next_user_id
@@ -359,7 +360,7 @@ def test_message_history_moderation_extracts_text_roles(
     history.prompt = ["current prompt"]
 
     assert history.to_moderation == [
-        {"role": "system", "content": "system prompt"},
+        {"role": "system", "content": f"system prompt\n\n{ANIMATION_INSTRUCTION}"},
         {"role": "user", "content": "Tester: user prompt"},
         {"role": "assistant", "content": "assistant reply"},
         {"role": "user", "content": "current prompt"},

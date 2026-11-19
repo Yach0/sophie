@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from aiogram.enums import ChatType
@@ -144,6 +144,19 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.ws_on_new_user",
         AsyncMock(return_value=True),
     )
+    pending = SimpleNamespace(passed=False, is_join_request=True, remember_cleanup_messages=AsyncMock())
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.WSUserModel.is_user",
+        AsyncMock(return_value=pending),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.is_current_session",
+        AsyncMock(return_value=True),
+    )
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.pending_user_lock",
+        MagicMock(return_value=AsyncMock()),
+    )
     monkeypatch.setattr(
         "sophie_bot.modules.welcomesecurity.handlers.chat_join_request.RulesModel.get_rules",
         AsyncMock(return_value=None),
@@ -182,4 +195,5 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
 
     send_saveable.assert_not_awaited()
     send_message.assert_awaited_once()
+    pending.remember_cleanup_messages.assert_awaited_once_with([777], [])
     assert redis_set.await_count == 2

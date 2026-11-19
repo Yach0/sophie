@@ -85,6 +85,7 @@ from sophie_bot.modules.ai.utils.proactive_tracking import (
 from sophie_bot.modules.ai.utils.proactive_tracking import (
     track_eligible_message as _track_eligible_message,
 )
+from sophie_bot.modules.utils_.telegram_exceptions import REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.feature_flags import get_service_tier, is_enabled
@@ -615,13 +616,25 @@ async def _answer_message(
                 for row in latest
             ):
                 return
-        sent_message = await send_ai_rich_message_to_chat(
-            chat_tid,
-            doc,
-            reply_to_message_id=target_message.message_id,
-            message_thread_id=target_message.message_thread_id,
-            bot=services.bot,
-        )
+        try:
+            sent_message = await send_ai_rich_message_to_chat(
+                chat_tid,
+                doc,
+                reply_to_message_id=target_message.message_id,
+                message_thread_id=target_message.message_thread_id,
+                bot=services.bot,
+            )
+        except TelegramBadRequest as error:
+            if error.message.removeprefix("Bad Request: ") not in (REPLIED_NOT_FOUND, REPLY_MESSAGE_INVALID):
+                raise
+            # Unsolicited answers need their reply context; never retry as a standalone message.
+            track_ai_proactive_event("answer_skipped", {**_METRIC_ATTRIBUTES, "reason": "target_missing"})
+            _log_proactive_info(
+                "Proactive AI answer skipped because target message is unavailable",
+                chat_id=chat_tid,
+                message_id=target_message.message_id,
+            )
+            return
 
         track_ai_proactive_event("answer_sent", _METRIC_ATTRIBUTES)
         _log_proactive_info(

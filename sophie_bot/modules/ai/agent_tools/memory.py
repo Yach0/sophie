@@ -23,6 +23,8 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
     Args:
         ctx: Runtime context for the current chat.
         information_to_save: The fact, preference, or instruction to remember for this chat.
+            In modern XML context, use [AA], [AB], etc. for alphabetic speaker identities;
+            bare alphabetic words are literal text. Legacy uN/UN identities remain bare.
     """
     normalized_information = information_to_save.strip()
     if ctx.deps.speaker_reference_decoder is not None:
@@ -107,7 +109,7 @@ async def search_memory(
     Args:
         ctx: Runtime context for this chat.
         query: Words from the relevant exchange; empty for all matching records.
-        people: Up to 16 speaker references (uN or tg://user?id=ID), or omit for all people.
+        people: Up to 16 speaker references ([AA], legacy uN, or tg://user?id=ID), or omit for all people.
         reporter: Restrict to claims made by this speaker reference, or omit.
         event: Exact event name from a retrieved fact, or omit.
         as_of: ISO 8601 timestamp with timezone for what was known then, or omit for now.

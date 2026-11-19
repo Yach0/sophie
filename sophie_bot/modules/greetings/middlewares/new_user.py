@@ -12,7 +12,7 @@ from stfu_tg import Doc
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
-from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
+from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
 from sophie_bot.db.models.button_action import ButtonAction
 from sophie_bot.db.models.notes import Saveable
 from sophie_bot.db.models.notes_buttons import Button
@@ -20,12 +20,15 @@ from sophie_bot.modules.greetings.default_welcome import (
     get_default_security_message,
     get_default_welcome_message,
 )
+from sophie_bot.modules.greetings.utils.delete_noise import delete_noise
 from sophie_bot.modules.greetings.utils.send_welcome import send_welcome
 from sophie_bot.modules.notes.utils.buttons.renderer import render_buttons
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.telegram_exceptions import REPLY_MESSAGE_INVALID
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_users_mute
+from sophie_bot.modules.welcomesecurity.utils_.pending_session import is_current_session
+from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.modules.welcomesecurity.utils_.welcomemute import on_welcomemute
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
@@ -62,8 +65,13 @@ class NewUserMiddleware(BaseMiddleware):
     ) -> GreetingsModel:
         to_delete: list[int] = []
 
+        # A singleton bot join is noise independently of blanket service cleanup.
+        # Shared joins must be preserved by this targeted cleanup.
+        if message.new_chat_members and len(message.new_chat_members) == 1 and message.new_chat_members[0].is_bot:
+            await delete_noise(services.bot, message.chat.id, message.message_id)
+
         # Clean service
-        if db_item.clean_service and db_item.clean_service.enabled:
+        elif db_item.clean_service and db_item.clean_service.enabled:
             to_delete.append(message.message_id)
 
         # Clean welcome
@@ -134,6 +142,9 @@ class NewUserMiddleware(BaseMiddleware):
             chat_db,
             bot=services.bot,
             redis=services.redis,
+            owned_join_message_id=(
+                message.message_id if message.new_chat_members and len(message.new_chat_members) == 1 else None
+            ),
         )
 
         # If no users were welcomesecurity muted, fall back to the normal welcome flow.
@@ -143,21 +154,38 @@ class NewUserMiddleware(BaseMiddleware):
         ws_saveable: Saveable = db_item.security_note or get_default_security_message()
         security_keyboard = NewUserMiddleware.build_welcomesecurity_keyboard(chat_db.tid)
 
-        async def send_to(user: ChatModel | None) -> Message | None:
-            return await send_welcome(
-                message,
-                ws_saveable,
-                cleanservice_enabled,
-                chat_rules,
-                user=new_member,
-                additional_keyboard=security_keyboard.as_markup(),
-                owner_chat_tid=chat_db.tid,
-                receiver_user_id=user.tid if user else None,
-                bot=services.bot,
-            )
+        async def send_to(user: ChatModel) -> Message | None:
+            async with pending_user_lock(chat_db.tid, user.tid, redis=services.redis):
+                pending = await WSUserModel.is_user(user.iid, chat_db.iid)
+                if (
+                    pending is None
+                    or pending.passed
+                    or pending.membership_join_message_id != message.message_id
+                    or not await is_current_session(pending)
+                ):
+                    return None
+                sent_messages: list[Message] = []
+                try:
+                    return await send_welcome(
+                        message,
+                        ws_saveable,
+                        cleanservice_enabled,
+                        chat_rules,
+                        user=new_member,
+                        additional_keyboard=security_keyboard.as_markup(),
+                        owner_chat_tid=chat_db.tid,
+                        receiver_user_id=user.tid,
+                        bot=services.bot,
+                        collect_sent=sent_messages,
+                    )
+                finally:
+                    await pending.remember_cleanup_messages(
+                        [sent.message_id for sent in sent_messages if sent.ephemeral_message_id is None],
+                        [sent.ephemeral_message_id for sent in sent_messages if sent.ephemeral_message_id is not None],
+                    )
 
-        # One prompt per new member, visible only to them. Nothing is left in the chat, so
-        # nothing is recorded for the cleanup that deletes the prompt once the captcha passes.
+        # Track public album messages and ephemeral IDs separately; their deletion
+        # methods use different Telegram ID namespaces.
         sent = [await send_to(user) for user, muted in zip(new_users, muted_users) if muted]
         return next((message for message in sent if message), None)
 
@@ -181,6 +209,8 @@ class NewUserMiddleware(BaseMiddleware):
             # Bot was added to the chat
             if any(user for user in event.new_chat_members if user.id == CONFIG.bot_id):
                 await self.self_welcome(event)
+                if len(event.new_chat_members) == 1:
+                    await delete_noise(data["services"].bot, chat_db.tid, event.message_id)
                 return await handler(event, data)
 
             db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
