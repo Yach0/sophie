@@ -128,7 +128,7 @@ and on require no admin rights. All, forget, and off require chat administrator 
 - `/ai_memory show`: inspect facts where you are the speaker or a subject, including IDs, versions, timestamps,
   and evidence references. Each page holds three items, with separate ID, text, speaker, source, version, and time fields.
   Previous/Next buttons use the shared paginator; `/ai_memory help` lists examples. Only the original requester can use the buttons. Every click reloads current data so deleted items cannot reappear from a page snapshot.
-- `/ai_memory all` (admins): inspect all members’ facts and group records in this chat, including retained versions. Uses the same three-item pages; every page click checks current administrator rights.
+- `/ai_memory all` (admins): use `/connect` in private, then run this command there to inspect the connected group’s facts and retained versions. Every page checks that you are still connected to that group and still have administrator rights.
 - `/ai_memory sources`: inspect your original text from the shared 48-hour Redis history, using Previous/Next buttons. Long messages span pages.
 - `/ai_memory correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
   Send corrections in the original chat and topic. You cannot rewrite someone else's observation or a group decision. You can state your own position in chat.

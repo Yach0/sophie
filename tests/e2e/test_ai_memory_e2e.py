@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+from aiogram.types import Chat
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import MessageFactory, UserFactory
 
@@ -17,9 +18,10 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback
+from sophie_bot.modules.ai.callbacks import AIMemoryAdminPageCallback, AIMemoryPageCallback
 from sophie_bot.modules.ai.utils.ai_mode import set_chat_mode
 from sophie_bot.modules.ai.utils.evidence_memory import apply_actions, capture_source, mutate_memory, read_memory
+from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import _feed, create_test_user_and_group, grant_admin, set_feature
 
@@ -239,7 +241,7 @@ async def test_memory_buttons_paginate_and_reject_other_users(
     assert all("Source 4" not in (request.text or "") for request in requests)
 
 
-async def test_all_memories_requires_current_admin_rights_and_stays_in_chat(
+async def test_all_memories_requires_private_connection_and_current_admin_rights(
     test_client: TestClient,
     test_services: ApplicationServices,
 ) -> None:
@@ -281,26 +283,44 @@ async def test_all_memories_requires_current_admin_rights_and_stays_in_chat(
 
     await mutate_memory(other_chat, seed_other_chat, redis=test_services.redis)
     await grant_admin(other_chat.tid, user.id)
-    requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=group)
+    private_chat = Chat(id=user.id, type="private")
+    await set_connected_chat(user.id, group.id, redis=test_services.redis)
+    requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=private_chat)
     assert any("Only chat administrators" in (request.text or "") for request in requests)
     assert all("Other member fact" not in (request.text or "") for request in requests)
     admin = await grant_admin(chat.tid, user.id)
     requests = await test_client.send_command(command="ai_memory show", from_user=user, chat=group)
     assert all("Other member fact" not in (request.text or "") for request in requests)
     requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=group)
+    assert any("in private" in (request.text or "") for request in requests)
+    assert all("Other member fact" not in (request.text or "") for request in requests)
+    requests = await test_client.send_command(command="ai_memory all", from_user=user, chat=private_chat)
     reply = next(request for request in requests if "Other member fact 1" in (request.text or ""))
+    assert reply.chat_id == private_chat.id
     assert "All AI memories in this chat:" in reply.text
     assert "Other member fact 3" in reply.text and "Other member fact 4" not in reply.text
     assert "Another chat secret" not in reply.text
     assert reply.reply_markup
     callback = reply.reply_markup["inline_keyboard"][0][0]["callback_data"]
-    assert AIMemoryPageCallback.unpack(callback).operation == "all"
+    assert AIMemoryAdminPageCallback.unpack(callback).group_tid == group.id
     message = MessageFactory.create(
-        text="Memory", from_user=UserFactory.create(user_id=42, first_name="Sophie", is_bot=True), chat=group
+        text="Memory", from_user=UserFactory.create(user_id=42, first_name="Sophie", is_bot=True), chat=private_chat
     )
     requests = await test_client.send_callback(callback, from_user=user, message=message)
     assert any("Other member fact 4" in (request.text or "") for request in requests)
     assert all("Another chat secret" not in (request.text or "") for request in requests)
+    public_message = message.model_copy(update={"chat": group})
+    requests = await test_client.send_callback(callback, from_user=user, message=public_message)
+    assert any("in private" in (request.text or "") for request in requests)
+    assert all("Other member fact" not in (request.text or "") for request in requests)
+
+    await set_feature(test_client, "ai_memory_controls", True, chat_tid=other_group.id)
+    await set_connected_chat(user.id, other_group.id, redis=test_services.redis)
+    requests = await test_client.send_callback(callback, from_user=user, message=message)
+    assert any("connected to its group" in (request.text or "") for request in requests)
+    assert all("Another chat secret" not in (request.text or "") for request in requests)
+    await set_connected_chat(user.id, group.id, redis=test_services.redis)
+
     other_admin = await grant_admin(chat.tid, other.user.id)
     requests = await test_client.send_callback(callback, from_user=other.user, message=message)
     assert any("another user" in (request.text or "") for request in requests)
@@ -308,7 +328,7 @@ async def test_all_memories_requires_current_admin_rights_and_stays_in_chat(
     requests = await test_client.send_callback(callback, from_user=user, message=message)
     assert any("Only chat administrators" in (request.text or "") for request in requests)
     assert all("Other member fact" not in (request.text or "") for request in requests)
-    forged = AIMemoryPageCallback(owner_tid=other.user.id, operation="all", page=1).pack()
     await other_admin.delete()
-    requests = await test_client.send_callback(forged, from_user=other.user, message=message)
-    assert any("Only chat administrators" in (request.text or "") for request in requests)
+    legacy = AIMemoryPageCallback(owner_tid=user.id, operation="all", page=1).pack()
+    requests = await test_client.send_callback(legacy, from_user=user, message=message)
+    assert any("Invalid memory page" in (request.text or "") for request in requests)

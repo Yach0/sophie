@@ -31,3 +31,9 @@ class AIMemoryPageCallback(CallbackData, prefix="ai_mem_page"):
     owner_tid: int
     operation: str
     page: int
+
+
+class AIMemoryAdminPageCallback(CallbackData, prefix="ai_mem_admin"):
+    owner_tid: int
+    group_tid: int
+    page: int

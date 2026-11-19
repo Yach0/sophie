@@ -4,6 +4,8 @@ from datetime import UTC, datetime
 from typing import Any, Literal
 
 from aiogram.dispatcher.event.handler import CallbackType
+from aiogram.enums import ChatType
+from aiogram.filters import or_f
 from aiogram.types import InlineKeyboardMarkup, Message
 from ass_tg.types import OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
@@ -16,7 +18,7 @@ from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback
+from sophie_bot.modules.ai.callbacks import AIMemoryAdminPageCallback, AIMemoryPageCallback
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.cache_messages import reset_modern_context
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
@@ -41,7 +43,10 @@ def _memory_examples() -> Section:
     return Section(
         VList(
             KeyValue(Code("/ai_memory show"), _("Inspect your facts and find their IDs.")),
-            KeyValue(Code("/ai_memory all"), _("Admins: inspect all members’ facts in this chat.")),
+            KeyValue(
+                Code("/ai_memory all"),
+                _("Admins: inspect all members’ facts in private after connecting to the group."),
+            ),
             KeyValue(Code("/ai_memory sources"), _("Inspect your source messages. Use the buttons to change pages.")),
             KeyValue(
                 Code(Template("/ai_memory correct FACT_ID {text}", text=_("I prefer short replies."))),
@@ -74,8 +79,13 @@ class AIMemoryControl(SophieMessageHandler):
         request = (self.data.get("request") or "show").strip()
         operation, _separator, argument = request.partition(" ")
         if operation in {"show", "sources", "all"}:
-            if operation == "all" and not await is_user_admin(chat.tid, user_tid):
-                return await self.event.reply(_("Only chat administrators can view all members’ AI memories."))
+            if operation == "all":
+                if self.event.chat.type != ChatType.PRIVATE or not self.connection.is_connected:
+                    return await self.event.reply(
+                        _("Connect to the group with /connect in private, then run /ai_memory all there.")
+                    )
+                if not await is_user_admin(chat.tid, user_tid):
+                    return await self.event.reply(_("Only chat administrators can view all members’ AI memories."))
             if argument:
                 return await self.event.reply(
                     _("Use /ai_memory show, all, or sources, then navigate with the buttons.")
@@ -252,10 +262,13 @@ async def _memory_page(
     )
     if not pagination.items:
         doc += _memory_examples()
-    buttons = build_pagination_row(
-        pagination,
-        lambda page: AIMemoryPageCallback(owner_tid=user_tid, operation=operation, page=page).pack(),
-    )
+
+    def pack_page(page: int) -> str:
+        if operation == "all":
+            return AIMemoryAdminPageCallback(owner_tid=user_tid, group_tid=chat.tid, page=page).pack()
+        return AIMemoryPageCallback(owner_tid=user_tid, operation=operation, page=page).pack()
+
+    buttons = build_pagination_row(pagination, pack_page)
     markup = InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None
     return doc.to_html(), markup
 
@@ -263,28 +276,44 @@ async def _memory_page(
 class AIMemoryPageHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
-        return AIMemoryPageCallback.filter(), FeatureFlagFilter("ai_memory_controls")
+        return or_f(AIMemoryPageCallback.filter(), AIMemoryAdminPageCallback.filter()), FeatureFlagFilter(
+            "ai_memory_controls"
+        )
 
     async def handle(self) -> None:
         callback = self.event
-        data: AIMemoryPageCallback = self.data["callback_data"]
+        data: AIMemoryPageCallback | AIMemoryAdminPageCallback = self.data["callback_data"]
         if callback.from_user.id != data.owner_tid:
             await callback.answer(
                 _("These memory controls belong to another user. Run /ai_memory yourself."), show_alert=True
             )
             return
-        if data.operation not in {"show", "sources", "all"} or not isinstance(callback.message, Message):
+        message = callback.message
+        if not isinstance(message, Message):
             await callback.answer(_("Invalid memory page."), show_alert=True)
             return
-        if data.operation == "all" and not await is_user_admin(self.connection.db_model.tid, data.owner_tid):
-            await callback.answer(_("Only chat administrators can view all members’ AI memories."), show_alert=True)
+        chat = self.connection.db_model
+        if isinstance(data, AIMemoryAdminPageCallback):
+            if message.chat.type != ChatType.PRIVATE or not self.connection.is_connected or chat.tid != data.group_tid:
+                await callback.answer(
+                    _("Open the memory list in private while connected to its group."), show_alert=True
+                )
+                return
+            if not await is_user_admin(chat.tid, data.owner_tid):
+                await callback.answer(_("Only chat administrators can view all members’ AI memories."), show_alert=True)
+                return
+            operation = "all"
+        elif data.operation in {"show", "sources"}:
+            operation = data.operation
+        else:
+            await callback.answer(_("Invalid memory page."), show_alert=True)
             return
         text, markup = await _memory_page(
-            self.connection.db_model,
+            chat,
             data.owner_tid,
-            data.operation,
+            operation,
             data.page,
             redis=self.services.redis,
         )
-        await callback.message.edit_text(text, reply_markup=markup)
+        await message.edit_text(text, reply_markup=markup)
         await callback.answer()
