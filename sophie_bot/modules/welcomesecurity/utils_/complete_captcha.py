@@ -3,7 +3,7 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 from redis.asyncio import Redis
 
-from sophie_bot.db.models import ChatModel, GreetingsModel
+from sophie_bot.db.models import ChatModel, GreetingsModel, WSUserModel
 from sophie_bot.db.models.greetings import WelcomeMute
 from sophie_bot.metrics.welcome import track_captcha_passed
 from sophie_bot.modules.utils_.common_try import common_try
@@ -63,21 +63,6 @@ async def _complete_captcha(
     bot: Bot,
     redis: Redis,
 ) -> None:
-    # Mark captcha as correct
-    track_captcha_passed()
-    captcha = EmojiCaptcha()
-    captcha.show_emoji("✅")
-
-    # Update the captcha message
-    await bot.edit_message_media(
-        media=InputMediaPhoto(
-            media=BufferedInputFile(captcha.image, "captcha.jpeg"),
-            caption=_("You're all set, and can now participate in the conversation"),
-        ),
-        chat_id=captcha_message.chat.id,
-        message_id=captcha_message.message_id,
-    )
-
     # Approve join request if applicable
     if is_join_request:
         await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
@@ -86,6 +71,12 @@ async def _complete_captcha(
         except TelegramBadRequest as error:
             if USER_ALREADY_PARTICIPANT not in error.message:
                 raise
+
+    pending = await WSUserModel.is_user(user.iid, group.iid)
+    if pending is not None:
+        pending.passed = True
+        await pending.save()
+    track_captcha_passed()
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
     restriction_succeeded = await ws_on_user_passed(
@@ -97,13 +88,28 @@ async def _complete_captcha(
         lock_already_acquired=True,
     )
 
-    if not restriction_succeeded:
-        return
+    captcha = EmojiCaptcha()
+    captcha.show_emoji("✅")
+    caption = (
+        _("You're all set, and can now participate in the conversation")
+        if restriction_succeeded
+        else _(
+            "CAPTCHA passed, but I couldn't restore your group permissions. "
+            "Ask a group administrator to retry with /unmute. "
+            "You don't need to solve the CAPTCHA again."
+        )
+    )
+    try:
+        await bot.edit_message_media(
+            media=InputMediaPhoto(media=BufferedInputFile(captcha.image, "captcha.jpeg"), caption=caption),
+            chat_id=captcha_message.chat.id,
+            message_id=captcha_message.message_id,
+        )
+    finally:
+        if restriction_succeeded:
+            if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
+                await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
+                await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
 
-    # Clean up the security note message from the group
-    if msg_to_clean := await redis.get(f"chat_ws_message:{group.iid}:{user.iid}"):
-        await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_to_clean)))
-        await redis.delete(f"chat_ws_message:{group.iid}:{user.iid}")
-
-    if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
-        await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))
+            if is_join_request and (msg_id := await redis.get(f"join_request_message:{group.iid}:{user.iid}")):
+                await common_try(bot.delete_message(chat_id=group.tid, message_id=int(msg_id)))

@@ -36,3 +36,9 @@ A new join starts a fresh pending captcha deadline. Duplicate delivery of the sa
 Pending-session initialization, the initial mute, expiry actions, and captcha completion share a per-user lock. A rejoin cannot reset a pending deadline while an expiry action is still using the old session. Expiry also checks the current membership boundary before unmuting, kicking, or declining a request, so a recorded rejoin invalidates an older pending session even before its new captcha setup completes. If another lifecycle operation still holds the lock when the expiry wait times out, that user is deferred to a later sweep; other expired users continue to be processed. A failed expiry action keeps the pending record for retry.
 
 Captcha completion also keeps the pending record and recovery messages until the captcha mute is successfully released or replaced with the configured welcome mute, including for administrators and group-whitelisted users. If a join request was already approved, completion still attempts that restriction transition.
+
+## Permission restoration failures
+
+Passing CAPTCHA and restoring Telegram permissions are separate outcomes. The success message is shown only after permission restoration succeeds. If restoration fails, the user is told that CAPTCHA passed and to ask a group administrator to retry with `/unmute <user>`. No new CAPTCHA or automatic retry loop is started.
+
+The retained record is marked as passed, so the expiry scheduler does not kick or decline a verified user while recovery is pending. A successful administrator `/unmute` clears that record; a failed attempt retains it. The existing restriction service continues to check permission ownership before restoration.
