@@ -25,6 +25,7 @@ from sophie_bot.modules.warns.handlers import (
     WarnsPMHandler,
 )
 from sophie_bot.modules.warns.handlers.warn import WarnHandler
+from sophie_bot.modules.warns.handlers.warn_expiration import DisableWarnExpirationHandler, WarnExpirationHandler
 from sophie_bot.modules.warns.magic_handlers.modern_action import (
     WarnModernAction,
     build_action_wizard_specs,
@@ -52,6 +53,8 @@ module_manifest = ModuleManifest(
         ResetWarnsCallbackHandler,
         ResetAllWarnsCallbackHandler,
         WarnLimitHandler,
+        WarnExpirationHandler,
+        DisableWarnExpirationHandler,
         WarnActionHandler,
         WarnEachActionWizard,
         WarnEachActionCallback,

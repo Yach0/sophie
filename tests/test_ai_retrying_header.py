@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from typing import cast
 from unittest.mock import AsyncMock
 
+import httpx2
 import pytest
 from aiogram.types import Message
 from fakeredis.aioredis import FakeRedis
@@ -15,6 +16,7 @@ from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_message_doc,
 )
+from sophie_bot.modules.ai.utils.ai_retry_status import ai_retry_status, report_provider_retry
 from sophie_bot.modules.ai.utils.ai_tool import AI_TOOLS_BY_NAME
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
 
@@ -220,3 +222,17 @@ async def test_final_tool_titles_survive_a_pending_draft_edit(monkeypatch: pytes
 
     assert _edited_text(response_message) == final_doc.to_rich()
     assert 'emoji-id="5535248817659576336"' not in _edited_text(response_message)
+
+
+async def test_sdk_retries_show_each_attempt_in_the_status_line() -> None:
+    response_message = _response_message()
+    streamer = _build_streamer(response_message)
+    streamer.throttle_seconds = 0
+
+    with ai_retry_status(streamer.update_retrying):
+        for attempt in range(2, 6):
+            await report_provider_retry(
+                httpx2.Request("POST", "https://offline", headers={"x-stainless-retry-count": str(attempt - 1)})
+            )
+            assert f"Retrying ({attempt}/5)..." in _edited_text(response_message)
+    assert response_message.bot.edit_message_text.await_count == 4

@@ -17,7 +17,11 @@ from sophie_bot.modules.utils_.admin import get_admins_rights
 from sophie_bot.modules.utils_.get_user import get_arg_or_reply_user, get_union_user
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
-from sophie_bot.modules.utils_.telegram_exceptions import BOTS_CANT_ADD_NEW_CHAT_MEMBERS
+from sophie_bot.modules.utils_.telegram_exceptions import (
+    BOTS_CANT_ADD_NEW_CHAT_MEMBERS,
+    CHAT_ADMIN_REQUIRED,
+    RIGHT_FORBIDDEN,
+)
 from sophie_bot.utils import flags
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -67,6 +71,11 @@ class DemoteUserHandler(SophieMessageHandler):
                 can_delete_stories=False,
             )
         except TelegramBadRequest as err:
+            if any(reason in err.message for reason in (CHAT_ADMIN_REQUIRED, RIGHT_FORBIDDEN)):
+                log.info("DemoteUser: Bot cannot demote member", error=str(err))
+                return await self.event.reply(
+                    _("I cannot demote this user because I do not have the required administrator rights.")
+                )
             if BOTS_CANT_ADD_NEW_CHAT_MEMBERS in err.message:
                 log.debug("DemoteUser: Bot can't manage chat members, ignoring", error=str(err))
                 return None

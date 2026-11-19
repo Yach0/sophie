@@ -14,7 +14,7 @@ from pydantic_ai.messages import (
     ImageUrl,
     ModelRequest,
     ModelResponse,
-    RetryPromptPart,
+    RetryFeedbackPart,
     SystemPromptPart,
     TextContent,
     TextPart,
@@ -103,9 +103,7 @@ class TokenCounter:
                     total += self.count_text(part.tool_call_id)
                     total += self.count_text(part.model_response_str())
                     total += self.count_content(part.files)
-                elif isinstance(part, RetryPromptPart):
-                    total += self.count_text(part.tool_name or "")
-                    total += self.count_text(part.tool_call_id)
+                elif isinstance(part, RetryFeedbackPart):
                     total += self.count_text(part.model_response())
                 else:
                     raise TypeError(f"Unsupported modern context message part: {type(part).__name__}")

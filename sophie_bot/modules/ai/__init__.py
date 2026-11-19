@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from aiogram import Router
+from aiogram.dispatcher.flags import get_flag
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stfu_tg import Doc
 
 from sophie_bot.constants import AI_EMOJI
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
@@ -23,6 +25,13 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesPinSetting,
     AIChatSummariesSetting,
     AINoteTitlesSetting,
+)
+from sophie_bot.modules.ai.handlers.memory import (
+    AIMemoryBrowse,
+    AIMemoryClearHandler,
+    AIMemoryDelete,
+    AIMemoryEditHandler,
+    AIMemoryPageHandler,
 )
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
@@ -47,7 +56,6 @@ from sophie_bot.modules.ai.magic_handlers.modern_action import (
 )
 from sophie_bot.modules.ai.middlewares.ai_moderator import AiModeratorMiddleware
 from sophie_bot.modules.ai.middlewares.ai_status import AiStatusMiddleware
-from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.middlewares.auto_translate import AiAutoTranslateMiddleware
 from sophie_bot.modules.ai.middlewares.cache_bot_messages import (
     CacheBotMessagesMiddleware,
@@ -56,8 +64,10 @@ from sophie_bot.modules.ai.middlewares.cache_user_messages import (
     CacheUserMessagesMiddleware,
 )
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
+from sophie_bot.modules.ai.schedules.write_memory import WriteMemory
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
+from sophie_bot.modules.ai.utils.evidence_memory import require_memory_policy_migration
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -70,21 +80,34 @@ router = Router(name="ai")
 
 
 async def initialize(services: ApplicationServices) -> None:
+    await require_memory_policy_migration()
     await load_catalog(redis=services.redis)
 
 
 async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
-    cache_user_messages = CacheUserMessagesMiddleware()
-    bot_router.message.outer_middleware(cache_user_messages)
-    bot_router.message.middleware(cache_user_messages.capture_command)
+    excluded_commands = tuple(
+        event_filter.callback
+        for handler in bot_router.message.handlers
+        if get_flag(handler, "ai_cache", default={}).get("exclude_user_command")
+        for event_filter in handler.filters or ()
+        if isinstance(event_filter.callback, CMDFilter)
+    )
+    bot_router.message.outer_middleware(CacheUserMessagesMiddleware(excluded_commands))
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())
-    bot_router.message.outer_middleware(AiTimeoutMiddleware())
     bot_router.message.outer_middleware(AiAutoTranslateMiddleware())
 
 
 def setup_scheduler(scheduler: AsyncIOScheduler, services: ApplicationServices) -> None:
+    scheduler.add_job(
+        track_scheduler_callback(WriteMemory(services).handle, services),
+        "interval",
+        minutes=10,
+        jobstore="ram",
+        max_instances=1,
+        coalesce=True,
+    )
     scheduler.add_job(
         track_scheduler_callback(GenerateChatSummaries(services).handle, services),
         "cron",
@@ -120,6 +143,11 @@ module_manifest = ModuleManifest(
         AIFilterAddHandler,
         AiPmInitialize,
         AIContextReset,
+        AIMemoryBrowse,
+        AIMemoryDelete,
+        AIMemoryEditHandler,
+        AIMemoryPageHandler,
+        AIMemoryClearHandler,
         ResearchCmd,
         AiTranslate,
         AiUsage,

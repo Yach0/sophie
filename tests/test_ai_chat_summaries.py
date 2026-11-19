@@ -153,7 +153,7 @@ def _patch_privacy_flag(monkeypatch: pytest.MonkeyPatch, *, enabled: bool) -> No
     """
     monkeypatch.setattr(
         "sophie_bot.modules.ai.schedules.generate_chat_summaries.is_enabled",
-        AsyncMock(return_value=enabled),
+        AsyncMock(side_effect=lambda feature, **kwargs: enabled if feature == "ai_summary_improved_privacy" else False),
     )
 
 

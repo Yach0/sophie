@@ -8,6 +8,7 @@ from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
+from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -18,17 +19,19 @@ from sophie_bot.utils.handlers import SophieMessageHandler
 @flags.ai_cache(cache_handler_result=True)
 class AiReplyHandler(SophieMessageHandler):
     @staticmethod
-    async def filter(message: Message):
-        if message.pinned_message:
+    async def filter(message: Message, ai_support_proactive: bool = False) -> bool:
+        parent = message.reply_to_message
+        if message.pinned_message or not parent or not parent.from_user:
             return False
-
-        if not message.reply_to_message:
+        if parent.from_user.id != CONFIG.bot_id or not is_ai_message(parent):
             return False
+        if not ai_support_proactive:
+            return True
 
-        if not message.reply_to_message.from_user or message.reply_to_message.from_user.id != CONFIG.bot_id:
-            return False
-
-        return is_ai_message(message.reply_to_message)
+        sender = message.from_user
+        return bool(
+            sender and not sender.is_bot and not message.sender_chat and await is_user_admin(message.chat.id, sender.id)
+        )
 
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:

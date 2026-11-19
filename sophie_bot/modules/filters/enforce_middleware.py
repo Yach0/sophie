@@ -180,6 +180,9 @@ class EnforceFiltersMiddleware(BaseMiddleware):
         user_in_group = data["context"].user_in_group
         ai_filters: list[FiltersModel] = []
         for filter_item in all_filters:
+            if not get_effective_filter_actions(filter_item):
+                log.debug("Skipping filter without actions", filter_id=str(filter_item.id), chat_iid=str(chat_db.iid))
+                continue
             if filter_item.handler.startswith("ai:"):
                 ai_filters.append(filter_item)
                 continue

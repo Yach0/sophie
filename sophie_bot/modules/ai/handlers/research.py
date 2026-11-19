@@ -4,7 +4,7 @@ from typing import Any, cast
 
 from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import InputRichMessage, Message
+from aiogram.types import Message
 from ass_tg.types import TextArg
 from stfu_tg import Doc
 
@@ -22,6 +22,7 @@ from sophie_bot.modules.ai.utils.research import (
     random_research_progress_text,
     run_research_workflow,
 )
+from sophie_bot.modules.ai.utils.rich_delivery import with_photo_url_fallback
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_RESEARCH
@@ -42,21 +43,27 @@ class ResearchProgressMessage:
 
     async def update(self, stage: ResearchProgressStage) -> None:
         doc = build_ai_progress_doc(random_research_progress_text(stage))
-        await self.bot.edit_message_text(
-            rich_message=InputRichMessage(html=doc.to_rich()),
-            chat_id=self.message.chat.id,
-            message_id=self.message.message_id,
-            disable_web_page_preview=True,
+        await with_photo_url_fallback(
+            doc.to_rich(),
+            lambda rich_message: self.bot.edit_message_text(
+                rich_message=rich_message,
+                chat_id=self.message.chat.id,
+                message_id=self.message.message_id,
+                disable_web_page_preview=True,
+            ),
         )
 
     async def send_final(self, doc: Doc) -> Message:
         return cast(
             Message,
-            await self.bot.edit_message_text(
-                rich_message=InputRichMessage(html=doc.to_rich()),
-                chat_id=self.message.chat.id,
-                message_id=self.message.message_id,
-                disable_web_page_preview=True,
+            await with_photo_url_fallback(
+                doc.to_rich(),
+                lambda rich_message: self.bot.edit_message_text(
+                    rich_message=rich_message,
+                    chat_id=self.message.chat.id,
+                    message_id=self.message.message_id,
+                    disable_web_page_preview=True,
+                ),
             ),
         )
 

@@ -9,6 +9,7 @@ from sophie_bot.modules.restrictions.utils.restrictions import (
     execute_restriction,
 )
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.welcomesecurity.utils_.pending_session import is_current_session
 from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.shared.actions import RestrictionAction
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
@@ -21,6 +22,7 @@ async def _initialize_pending_user(
     is_join_request: bool = False,
     *,
     redis: Redis,
+    owned_join_message_id: int | None = None,
 ) -> bool:
     """
     Function initializes welcomesecurity process internally.
@@ -39,6 +41,15 @@ async def _initialize_pending_user(
 
     # Add user to the welcomesecurity database
     ws_user_db = await WSUserModel.ensure_user(new_user, chat, is_join_request)
+    # Record exclusive join ownership before the initial mute can fail. A
+    # membership boundary alone does not prove that a join was a singleton.
+    if (
+        not ws_user_db.passed
+        and owned_join_message_id is not None
+        and ws_user_db.membership_join_message_id == owned_join_message_id
+        and await is_current_session(ws_user_db)
+    ):
+        await ws_user_db.remember_cleanup_messages([owned_join_message_id], [])
     # False when the user already passed verification in this chat
     return not ws_user_db.passed
 
@@ -54,9 +65,16 @@ async def ws_on_new_user(
         return await _initialize_pending_user(new_user, chat, is_join_request, redis=redis)
 
 
-async def ws_on_new_user_mute(new_user: ChatModel, chat: ChatModel, *, bot: Bot, redis: Redis) -> bool:
+async def ws_on_new_user_mute(
+    new_user: ChatModel,
+    chat: ChatModel,
+    *,
+    bot: Bot,
+    redis: Redis,
+    owned_join_message_id: int | None = None,
+) -> bool:
     async with pending_user_lock(chat.tid, new_user.tid, redis=redis):
-        if not await _initialize_pending_user(new_user, chat, redis=redis):
+        if not await _initialize_pending_user(new_user, chat, redis=redis, owned_join_message_id=owned_join_message_id):
             return False
         return (
             await execute_restriction(
@@ -74,5 +92,11 @@ async def ws_on_new_users_mute(
     *,
     bot: Bot,
     redis: Redis,
+    owned_join_message_id: int | None = None,
 ) -> list[bool]:
-    return await asyncio.gather(*(ws_on_new_user_mute(new_user, chat, bot=bot, redis=redis) for new_user in new_users))
+    return await asyncio.gather(
+        *(
+            ws_on_new_user_mute(new_user, chat, bot=bot, redis=redis, owned_join_message_id=owned_join_message_id)
+            for new_user in new_users
+        )
+    )

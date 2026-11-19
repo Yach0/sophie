@@ -2,34 +2,42 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from contextlib import AsyncExitStack
+from secrets import token_urlsafe
 from typing import Any
 
-from aiogram.types import Message
+from aiogram.exceptions import TelegramAPIError
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from pydantic_ai.models import Model
+from redis.exceptions import RedisError, WatchError
 from sentry_sdk.ai import set_conversation_id
-from stfu_tg import BlockQuote, Doc, Section
+from stfu_tg import Doc
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.callbacks import AIMemoryEditCallback
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
+from sophie_bot.modules.ai.utils.ai_retry_status import ai_retry_status
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_send import editable_reply_markup, send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool import AITool
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message
+from sophie_bot.modules.ai.utils.cache_messages import MessageType, enqueue_cached_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.chatbot_agent import (
     ChatbotRunCallbacks,
     ChatbotRunRequest,
     run_chatbot,
 )
 from sophie_bot.modules.ai.utils.chatbot_context import prepare_chatbot_history
+from sophie_bot.modules.ai.utils.chatbot_debug import build_chatbot_debug_file
 from sophie_bot.modules.ai.utils.chatbot_response import (
     TELEGRAM_MESSAGE_SAFE_LIMIT,
     build_chatbot_header,
@@ -50,11 +58,19 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import (
     collect_tool_call_ids,
     remember_chatbot_tool_history,
 )
+from sophie_bot.modules.ai.utils.evidence_memory import repair_pending_memory_context
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
     should_offer_help_mode,
 )
+from sophie_bot.modules.ai.utils.memory_edits import (
+    CONFIRM_MEMORY_EDIT_TTL,
+    MemoryEditPreview,
+    MemoryEditRequest,
+    memory_edit_key,
+)
+from sophie_bot.modules.ai.utils.memory_view import memory_edit_confirmation
 from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
@@ -62,8 +78,25 @@ from sophie_bot.modules.ai.utils.research import build_research_markdown_file, r
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.i18n import gettext as _
+from sophie_bot.utils.logger import log
 
 __all__ = ("ai_chatbot_reply",)
+
+
+async def _send_chatbot_debug_document(
+    message: Message,
+    history: OldContext | ModernContext,
+    result: AIAgentResult[str] | None,
+    model_plan: AIModelPlan,
+    context: SophieAIToolContext,
+    *,
+    service_tier: str | None,
+) -> None:
+    try:
+        document = await build_chatbot_debug_file(history, result, model_plan, context, service_tier=service_tier)
+        await message.reply_document(document, caption=_("LLM diagnostics"))
+    except (TelegramAPIError, RedisError, TypeError, ValueError) as error:
+        log.warning("Failed to deliver LLM diagnostics attachment", error_type=type(error).__name__)
 
 
 def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode: bool) -> bool:
@@ -73,13 +106,6 @@ def _is_explicit_debug_mode(message: Message, user_text: str | None, debug_mode:
         from_user = message.from_user
         return from_user is not None and from_user.id in CONFIG.operators
     return False
-
-
-async def _reply_debug_history(message: Message, history: OldContext | ModernContext) -> None:
-    await message.reply(
-        Section(BlockQuote(history.history_debug(), expandable=True), title="LLM History").to_html(),
-        disable_web_page_preview=True,
-    )
 
 
 async def _resolve_model_plan(
@@ -229,6 +255,7 @@ async def _cache_chatbot_reply(
     *,
     services: ApplicationServices,
     history: ModernContext | None = None,
+    expected_epoch: int | None = None,
 ) -> None:
     """Cache the fitted public body while preserving the complete native turn for follow-ups."""
     cached_message = MessageType(
@@ -248,16 +275,72 @@ async def _cache_chatbot_reply(
     if history is not None:
         await history.finish_run(result.new_messages, final_message, cached_message=cached_message)
     else:
-        async with services.redis.pipeline(transaction=True) as pipe:
-            enqueue_cached_message(pipe, message.chat.id, cached_message)
-            await pipe.execute()
+        try:
+            async with services.redis.pipeline(transaction=True) as pipe:
+                if expected_epoch is not None:
+                    epoch_key = get_context_epoch_key(message.chat.id)
+                    await pipe.watch(epoch_key)
+                    if int(await pipe.get(epoch_key) or 0) != expected_epoch:
+                        return
+                    pipe.multi()
+                enqueue_cached_message(pipe, message.chat.id, cached_message)
+                await pipe.execute()
+        except WatchError:
+            return
         await remember_chatbot_tool_history(
             message.chat.id,
             final_message.message_id,
             result.message_history,
             previous_history,
             redis=services.redis,
+            expected_epoch=expected_epoch,
         )
+
+
+async def _send_memory_edit_confirmation(
+    message: Message,
+    streamer: ChatbotMessageStreamer | None,
+    preview: MemoryEditPreview,
+    *,
+    chat: ChatModel,
+    services: ApplicationServices,
+    **kwargs: Any,
+) -> None:
+    proposal = preview.proposal
+    await repair_pending_memory_context(chat, redis=services.redis)
+    if int(await services.redis.get(get_context_epoch_key(chat.tid)) or 0) != proposal.epoch:
+        document = Doc(_("Memory changed while processing. Please ask again."))
+        if streamer:
+            await streamer.send_final(document, **kwargs)
+        else:
+            await send_ai_rich_message(message, document, reply_markup=kwargs.get("reply_markup"))
+        return
+
+    token = token_urlsafe(12)
+    await services.redis.set(
+        memory_edit_key(message.chat.id, proposal.source.speaker_tid, token),
+        proposal.model_dump_json(),
+        ex=CONFIRM_MEMORY_EDIT_TTL,
+    )
+    buttons = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=_("Confirm memory change"),
+                    callback_data=AIMemoryEditCallback(token=token, action="confirm").pack(),
+                ),
+                InlineKeyboardButton(
+                    text=_("Cancel"), callback_data=AIMemoryEditCallback(token=token, action="cancel").pack()
+                ),
+            ]
+        ]
+    )
+    document = memory_edit_confirmation(preview)
+    kwargs["reply_markup"] = buttons
+    if streamer:
+        await streamer.send_final(document, **kwargs)
+    else:
+        await send_ai_rich_message(message, document, reply_markup=buttons)
 
 
 async def ai_chatbot_reply(
@@ -280,6 +363,12 @@ async def ai_chatbot_reply(
     if not connection.db_model:
         return None
 
+    memory_capable = get_capabilities(mode).memory
+    await repair_pending_memory_context(connection.db_model, redis=services.redis)
+    evidence_enabled = await is_enabled(
+        "ai_memory_retrieval", chat_tid=message.chat.id, redis=services.redis
+    ) or await is_enabled("ai_memory_controls", chat_tid=message.chat.id, redis=services.redis)
+    context_epoch = int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0)
     async with track_ai_conversation(), AsyncExitStack() as cleanup:
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
@@ -297,13 +386,21 @@ async def ai_chatbot_reply(
             strip_alien_html_tags=strip_alien_html_tags,
         )
         await cleanup.enter_async_context(chatbot_streaming_session(message_streamer))
+        cleanup.enter_context(ai_retry_status(message_streamer.update_retrying if message_streamer else None))
         context = SophieAIToolContext(
             connection=connection,
             chat_tid=connection.tid,
             chat_iid=connection.db_model.iid,
             mode=mode,
             user_text=user_text,
+            topic_id=message.message_thread_id,
+            reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             user_tid=message.from_user.id if message.from_user else None,
+            memory_edit=(
+                MemoryEditRequest.from_message(message, context_epoch)
+                if evidence_enabled and memory_capable and message.chat.id == connection.tid
+                else None
+            ),
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
         )
@@ -330,9 +427,6 @@ async def ai_chatbot_reply(
         # Whatever tool calls history already contains were replayed from a previous
         # answer and must not be stored a second time.
         previous_history = list(history.message_history)
-        if explicit_debug_mode:
-            await _reply_debug_history(message, history)
-
         service_tier = await resolve_chat_service_tier(
             AIModelPurpose.chatbot,
             chat_tid=message.chat.id,
@@ -349,7 +443,7 @@ async def ai_chatbot_reply(
                     service_tier=service_tier,
                     thread_id=message.message_thread_id,
                     callbacks=ChatbotRunCallbacks(
-                        on_text_stream=(message_streamer.stream if message_streamer else None),
+                        on_text_stream=(message_streamer.stream if message_streamer and not evidence_enabled else None),
                         on_tool_call=on_tool_call,
                         on_reasoning_stream=on_reasoning_stream,
                         on_retry=(message_streamer.update_retrying if message_streamer else None),
@@ -357,11 +451,39 @@ async def ai_chatbot_reply(
                 )
             )
         except AIRequestFailed as err:
+            if context.memory_edit and context.memory_edit.preview:
+                await _send_memory_edit_confirmation(
+                    message,
+                    message_streamer,
+                    context.memory_edit.preview,
+                    chat=connection.db_model,
+                    services=services,
+                    **kwargs,
+                )
+                return None
+            if explicit_debug_mode:
+                await _send_chatbot_debug_document(
+                    message, history, None, model_plan, context, service_tier=service_tier
+                )
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
+
+        if context.memory_edit and context.memory_edit.preview:
+            await _send_memory_edit_confirmation(
+                message,
+                message_streamer,
+                context.memory_edit.preview,
+                chat=connection.db_model,
+                services=services,
+                **kwargs,
+            )
+            return None
 
         # Failover may have moved the reply off the model the streamer opened with, so the charge and
         # the header both follow the model that actually answered.
         model = result.served_model or model
+
+        if explicit_debug_mode:
+            await _send_chatbot_debug_document(message, history, result, model_plan, context, service_tier=service_tier)
 
         show_model_name = await is_enabled(
             "ai_chatbot_show_model_name",
@@ -396,7 +518,7 @@ async def ai_chatbot_reply(
             output_text,
             model,
             result,
-            explicit_debug_mode,
+            explicit_debug_mode=False,  # Provider diagnostics are delivered in the attachment.
             chat_tid=message.chat.id,
             services=services,
             tool_labels=tool_labels,
@@ -417,6 +539,12 @@ async def ai_chatbot_reply(
             if not kwargs.get("reply_markup"):
                 kwargs["reply_markup"] = build_help_mode_keyboard(message)
 
+        await repair_pending_memory_context(connection.db_model, redis=services.redis)
+        if int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) != context_epoch:
+            changed = Doc(_("Memory changed while processing. Please ask again."))
+            if message_streamer:
+                return await message_streamer.send_final(changed, **kwargs)
+            return await message.reply(changed.to_html())
         if message_streamer:
             final_message = await message_streamer.send_final(doc, **kwargs)
         else:
@@ -430,6 +558,7 @@ async def ai_chatbot_reply(
             previous_history,
             services=services,
             history=history if isinstance(history, ModernContext) else None,
+            expected_epoch=context_epoch,
         )
         if research_response is not None:
             await final_message.reply_document(build_research_markdown_file(research_response), caption=_("Research"))

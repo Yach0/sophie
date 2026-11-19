@@ -8,7 +8,6 @@ from sophie_bot.config import CONFIG
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.user_status import IsOP
 from sophie_bot.modules import get_module_manifest
-from sophie_bot.modules.help.utils.extract_info import get_all_cmds_raw
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.migrations import get_migration_status
 from sophie_bot.utils import flags
@@ -68,14 +67,6 @@ async def get_system_stats(services: ApplicationServices, /) -> Doc:
     technical_section += KeyValue(
         _("Modules"),
         Template(_("{modules} loaded"), modules=Code(len(services.modules.modules))),
-    )
-    technical_section += KeyValue(
-        _("Legacy modules"),
-        Template(
-            _("{cmds} total commands registered, in {modules} modules"),
-            cmds=Code(len(get_all_cmds_raw(services.modules.help_modules))),
-            modules=Code(len(services.modules.modules)),
-        ),
     )
 
     # Migrations

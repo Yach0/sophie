@@ -4,12 +4,14 @@ from aiogram import F, Router
 from aiogram.dispatcher.event.handler import CallbackType
 
 from sophie_bot.db.models import AIMemoryModel
+from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.filters.admin_rights import UserRestricting
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.callbacks import AIResetContext
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.fsm.pm import AI_PM_RESET
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
+from sophie_bot.modules.ai.utils.evidence_memory import clear_memory, mutate_memory
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
@@ -18,6 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.handler_help(description=l_("Reset the chat's AI context and AI memory."))
+@flags.ai_cache(exclude_user_command=True)
 class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
@@ -42,6 +45,8 @@ class AIContextReset(SophieMessageHandler):
 
         if self.connection.db_model:
             await AIMemoryModel.clear(self.connection.db_model.iid)
+            if await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == self.connection.db_model.iid):
+                await mutate_memory(self.connection.db_model, clear_memory, redis=self.services.redis)
 
         return await self.event.reply(
             _("🔄 AI context and AI memory were successfully reset. AI will now operate in a clean state.")

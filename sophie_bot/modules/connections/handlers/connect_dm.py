@@ -79,7 +79,7 @@ class ConnectDMCmd(SophieMessageHandler):
         if conn and conn.history:
             # Resolve all references in one query so deleted chats can be removed durably.
             chats_by_iid = {
-                chat.iid: chat
+                chat.id: chat
                 for chat in await ChatModel.find(
                     {"_id": {"$in": [h_chat.to_ref().id for h_chat in conn.history]}}
                 ).to_list()

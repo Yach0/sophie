@@ -6,7 +6,7 @@ class WarnResponse(BaseModel):
     user_id: int
     admin_id: int | None = None
     reason: str | None
-    date: str
+    date: str | None
 
 
 class WarnSettingsResponse(BaseModel):

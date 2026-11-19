@@ -32,6 +32,7 @@ MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
             AIModelPurpose.translation,
             AIModelPurpose.filters,
             AIModelPurpose.summary,
+            AIModelPurpose.memory_writer,
             AIModelPurpose.moderation_reason,
             AIModelPurpose.research,
         }

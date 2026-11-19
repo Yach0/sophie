@@ -15,13 +15,25 @@ def _chat(tid: int, iid: str) -> SimpleNamespace:
 
 async def _run_on_captcha(muted: list[bool], new_users: list[SimpleNamespace]):
     chat_db = _chat(-100123, "chat-iid")
-    message = SimpleNamespace(chat=SimpleNamespace(id=-100123), message_id=1, message_thread_id=None, from_user=None)
+    message = SimpleNamespace(
+        chat=SimpleNamespace(id=-100123), message_id=1, message_thread_id=None, from_user=None, new_chat_members=[]
+    )
     services = SimpleNamespace(
         bot=object(),
         redis=object(),
     )
 
     with (
+        patch("sophie_bot.modules.greetings.middlewares.new_user.pending_user_lock", return_value=AsyncMock()),
+        patch("sophie_bot.modules.greetings.middlewares.new_user.is_current_session", AsyncMock(return_value=True)),
+        patch(
+            "sophie_bot.modules.greetings.middlewares.new_user.WSUserModel.is_user",
+            AsyncMock(
+                return_value=SimpleNamespace(
+                    passed=False, membership_join_message_id=1, remember_cleanup_messages=AsyncMock()
+                )
+            ),
+        ),
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.ws_on_new_users_mute",
             AsyncMock(return_value=muted),
@@ -107,7 +119,8 @@ async def _run_welcome(members: list[SimpleNamespace]):
         patch(
             "sophie_bot.modules.greetings.middlewares.new_user.send_welcome",
             AsyncMock(return_value=SimpleNamespace(message_id=42)),
-        ) as send_welcome,pytest.raises(SkipHandler)
+        ) as send_welcome,
+        pytest.raises(SkipHandler),
     ):
         await NewUserMiddleware()(
             AsyncMock(),
@@ -135,5 +148,3 @@ async def test_ephemeral_welcome_greets_every_human_member_separately() -> None:
     assert [call.kwargs["user"].id for call in calls] == [1, 2]
     # Nothing is in the chat, so the clean-welcome cleanup is given no message to track.
     assert cleanup.await_args.args[2] is None
-
-

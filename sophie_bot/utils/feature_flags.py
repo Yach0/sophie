@@ -15,6 +15,9 @@ from sophie_bot.db.models.feature_flag import FeatureFlagOverride, FeatureFlagOv
 
 # Public types
 FeatureType: TypeAlias = Literal[  # noqa: UP040
+    "ai_memory_writer",
+    "ai_memory_retrieval",
+    "ai_memory_controls",
     "ai_summary_model",
     "ai_filter_handler_model",
     "ai_filter_daily_chat_limit",
@@ -87,11 +90,14 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "filters_silent_mode",
     "filter_stats",
     "antiflood",
+    "warn_expiration",
     "locks",
     "group_user_whitelist",
+    "welcome_security_settings_panel",
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "ai_translations_service_tier",
+    "ai_proactive_support",
     "ai_proactive_replies_model",
     "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
@@ -217,6 +223,9 @@ def _feature(default: FeatureValue, value_kind: FeatureValueKind = _PLAIN_FEATUR
 
 
 _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
+    "ai_memory_writer": _feature(False),
+    "ai_memory_retrieval": _feature(False),
+    "ai_memory_controls": _feature(False),
     "ai_summary_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_handler_model": _feature("", _AI_MODEL_FEATURE),
     "ai_filter_daily_chat_limit": _feature(1000),
@@ -334,11 +343,14 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "filters_silent_mode": _feature(True),
     "filter_stats": _feature(False),
     "antiflood": _feature(True),
+    "warn_expiration": _feature(False),
     "locks": _feature(True),
     "group_user_whitelist": _feature(False),
+    "welcome_security_settings_panel": _feature(False),
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
     "ai_translations_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
+    "ai_proactive_support": _feature(False),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
         "Use balanced judgment about whether Sophie should join the conversation. "
@@ -532,7 +544,7 @@ def get_rollout_percentage(rollout: FeatureRollout, now: datetime | None = None)
     return int(percentage)
 
 
-def _chat_rollout_bucket(feature: FeatureType, chat_tid: int) -> int:
+def _chat_rollout_bucket(feature: str, chat_tid: int) -> int:
     digest = hashlib.sha256(f"{feature}:{chat_tid}".encode()).digest()
     return int.from_bytes(digest[:8], byteorder="big") % 100
 

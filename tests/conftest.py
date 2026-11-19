@@ -134,7 +134,7 @@ async def test_redis() -> AsyncGenerator[FakeAsyncRedis]:
     await redis.aclose()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 async def test_services(
     db_init: Any,
     i18n_context: I18nNew,

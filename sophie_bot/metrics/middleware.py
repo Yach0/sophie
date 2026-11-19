@@ -141,11 +141,7 @@ class MetricsMiddleware(BaseMiddleware):
                 handler_name = handler_str
 
         # Clean up handler name to avoid high cardinality
-        if "." in handler_name:
-            handler_name = handler_name.split(".")[-1]
-        if "<" in handler_name:
-            handler_name = handler_name.replace("<", "").replace(">", "")
-        if "'" in handler_name:
-            handler_name = handler_name.replace("'", "")
+        handler_name = handler_name.split(".")[-1]
+        handler_name = handler_name.replace("<", "").replace(">", "").replace("'", "")
 
         return handler_name[:50]  # Limit length to avoid cardinality issues

@@ -15,6 +15,7 @@ from typing import TYPE_CHECKING, Any
 
 import mongomock.collection
 import mongomock.filtering
+import mongomock.helpers
 from bson import DBRef
 from mongomock import MongoClient as SyncMongoClient
 
@@ -41,9 +42,24 @@ def _patch_dbref_traversal() -> None:
 
     mongomock.filtering.iter_key_candidates = iter_key_candidates
 
+    # Eager Beanie links also use `chat.$id` as the local field of $lookup.
+    # Mongomock's aggregation path uses a different traversal helper.
+    original_get_value = mongomock.helpers.get_value_by_dot
+
+    @wraps(original_get_value)
+    def get_value_by_dot(doc: Any, key: str, can_generate_array: bool = False) -> Any:
+        if key.endswith(".$id"):
+            reference = original_get_value(doc, key.removesuffix(".$id"), can_generate_array)
+            if isinstance(reference, DBRef):
+                return reference.id
+        return original_get_value(doc, key, can_generate_array)
+
+    mongomock.helpers.get_value_by_dot = get_value_by_dot
+
 
 def _patch_max_bson_comparison() -> None:
     """Make mongomock's $max use MongoDB's cross-type BSON ordering."""
+
     def max_updater(doc: Any, field_name: str, value: Any) -> None:
         if isinstance(doc, dict) and (
             field_name not in doc or mongomock.filtering.bson_compare(gt, value, doc[field_name])
@@ -227,6 +243,7 @@ class AsyncCollectionMock:
         func = partial(self._sync_collection.count_documents, filter_spec, **kwargs)
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(None, func)
+
     async def create_index(self, keys: Any, **kwargs: Any) -> str:
         """Create index."""
         func = partial(self._sync_collection.create_index, keys, **kwargs)

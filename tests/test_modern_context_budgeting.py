@@ -14,7 +14,7 @@ from tokenizers import Tokenizer
 
 from sophie_bot.modules.ai.utils import ai_run
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
-from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, _candidate_run_kwargs
+from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_tokens import (
     TOOL_SCHEMA_TOKEN_RESERVE,
     UNKNOWN_TOKENIZER_CONTEXT_CAP,
@@ -92,15 +92,9 @@ async def test_candidate_projection_enforces_reserves_without_changing_primary(n
     before = history._state.model_dump_json()
     model = TestModel(model_name="unknown")
     candidate = AIModelCandidate(model=model, model_name="unknown", context_window_tokens=32768)
-    kwargs = _candidate_run_kwargs(
-        {"user_prompt": history.prompt, "message_history": []},
-        None,
-        AIRequestOptions(context_projection=history.project_for_candidate),
-        candidate,
-        model,
-    )
-    assert kwargs["message_history"] == []
-    assert history._runtime_update in kwargs["user_prompt"]
+    prompt, messages = history.project_for_candidate(candidate)
+    assert messages == []
+    assert history._runtime_update in prompt
     assert history._state.model_dump_json() == before
     assert len(history._state.events) == 1
     history.prompt.append(BinaryContent(data=b"image", media_type="image/jpeg"))

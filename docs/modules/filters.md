@@ -330,3 +330,7 @@ specific needs.
 
 Once the AI Response is generated, users can interact with it by simply replying to the message, which can be invaluable
 for addressing follow-up questions.
+
+## Filters without actions
+
+A filter must have at least one action before it can be saved. Existing filters without actions are skipped before matching and logged with their filter and chat IDs. They do not block other filters or normal commands, and they do not activate silent deletion. Use `/edit_filter` to configure their actions or `/del_filter` to remove them.

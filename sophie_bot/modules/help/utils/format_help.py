@@ -57,6 +57,8 @@ def format_handler_item(handler: HandlerHelp) -> Element:
     cmd_and_args = HList(
         HList(*(format_cmd(cmd) for cmd in handler.cmds)),
         format_cmd_args(handler.args) if handler.args else None,
+        Italic(_("(PM-only)")) if handler.group is not None and handler.only_pm else None,
+        Italic(_("(Only admins)")) if handler.group is not None and handler.only_admin else None,
     )
     if not handler.description:
         return cmd_and_args
@@ -64,27 +66,31 @@ def format_handler_item(handler: HandlerHelp) -> Element:
     return Template("{cmd_and_args}: {description}", cmd_and_args=cmd_and_args, description=handler.description)
 
 
-def group_handlers(handlers: Sequence[HandlerHelp]) -> list[tuple[LazyProxy, list[HandlerHelp]]]:
+def group_handlers(handlers: Sequence[HandlerHelp]) -> list[tuple[str | LazyProxy, list[HandlerHelp]]]:
     cmds = []
     pm_cmds = []
     admin_only_cmds = []
+    named_groups: dict[str, list[HandlerHelp]] = {}
 
     for handler in handlers:
         # Skip OP-only handlers
         if handler.only_op:
             continue
 
-        if handler.only_pm:
+        if handler.group is not None:
+            named_groups.setdefault(str(handler.group), []).append(handler)
+        elif handler.only_pm:
             pm_cmds.append(handler)
         elif handler.only_admin:
             admin_only_cmds.append(handler)
         else:
             cmds.append(handler)
 
-    groups = []
+    groups: list[tuple[str | LazyProxy, list[HandlerHelp]]] = []
 
     if cmds:
         groups.append((l_("Commands"), cmds))
+    groups.extend(named_groups.items())
     if pm_cmds:
         groups.append((l_("PM-only"), pm_cmds))
     if admin_only_cmds:

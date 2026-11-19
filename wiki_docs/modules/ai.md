@@ -25,6 +25,14 @@ icon: ✨
 | `/ai` | `<Prompt>` | Ask Sophie a question. | *Disable-able* |
 {.card-view-on-mobile}
 
+### Memory
+
+| Commands | Arguments | Description | Remarks |
+| --- | --- | --- | --- |
+| `/ai_memory` | `<?@username or search text>` | Browse your memories, search by text, or view a member's memories by mention or reply. |  |
+| `/ai_memory_delete` | `<Memory IDs separated by spaces>` | Delete saved memories by fact ID. |  |
+{.card-view-on-mobile}
+
 ### PM-only
 
 | Commands | Arguments | Description | Remarks |

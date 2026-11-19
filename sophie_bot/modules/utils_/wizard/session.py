@@ -123,7 +123,7 @@ class WizardScopeFilter(BaseFilter):
     def __init__(self, scope: str) -> None:
         self.scope = scope
 
-    async def __call__(self, event_or_state: Any, state: FSMContext | None = None) -> bool:
+    async def __call__(self, event_or_state: Any, state: FSMContext | None = None) -> bool:  # ty: ignore[incompatible-mutable-override]
         actual_state = event_or_state if state is None else state
         if not hasattr(actual_state, "get_data"):
             return False

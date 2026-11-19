@@ -22,3 +22,9 @@ class WelcomeSecurityRulesAgreeCB(CallbackData, prefix="ws_rules_agree"):
 class WelcomeSecurityExpireCB(CallbackData, prefix="ws_expire"):
     seconds: int
     chat_iid: str
+
+
+class WelcomeSecuritySettingsCB(CallbackData, prefix="ws_settings"):
+    chat_iid: str
+    action: str
+    value: int = 0

@@ -32,7 +32,7 @@ async def _run_process_filters(
     message.chat = SimpleNamespace(id=-100125)
     message.reply = AsyncMock(return_value=reply)
 
-    filters = [SimpleNamespace(handler="exact:spam", effective_version=1, silent=silent)]
+    filters = [SimpleNamespace(handler="exact:spam", effective_version=1, silent=silent, actions={"reply": None})]
 
     monkeypatch.setattr(
         "sophie_bot.modules.filters.enforce_middleware.FiltersModel.get_filters",

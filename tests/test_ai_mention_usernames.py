@@ -410,7 +410,7 @@ def _reply_history(
     history = ModernContext(redis=services.redis, chat_tid=CHAT_TID)
     history._mode = AIMode.entertainment
     for user_tid, first_name in speaker_names:
-        history._speaker(user_tid)
+        history.speaker_reference(user_tid)
         history._state.first_names[str(user_tid)] = first_name
     history.abort = AsyncMock()
     history.finish_run = AsyncMock()
@@ -466,6 +466,7 @@ async def test_chatbot_visible_mentions_follow_selected_history_through_model_fa
         message_thread_id=None,
         from_user=None,
         text="Say hello",
+        reply_to_message=None,
     )
     sent = SimpleNamespace(message_id=8, date=datetime.now(UTC), message_thread_id=None, chat=source.chat)
     edit = AsyncMock(return_value=sent)
@@ -562,7 +563,7 @@ async def test_proactive_visible_mentions_follow_selected_history_through_model_
         monkeypatch, _reply_candidates(ambiguous, username_collision=modern)
     )
     history = _reply_history(modern, test_services, speaker_names)
-    target = SimpleNamespace(message_id=7, message_thread_id=None, text="Say hello", username="user", user_id=1)
+    target = SimpleNamespace(reply_to_message_id=None, message_id=7, message_thread_id=None, text="Say hello", username="user", user_id=1)
     chat = SimpleNamespace(iid="chat", tid=CHAT_TID, type="group", first_name_or_title="Group")
     sent = SimpleNamespace(message_id=8, date=datetime.now(UTC), message_thread_id=None)
     monkeypatch.setattr(proactive_replies, "get_chat_mode", AsyncMock(return_value=mode))

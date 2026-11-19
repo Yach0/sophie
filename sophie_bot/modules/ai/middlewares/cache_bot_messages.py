@@ -63,6 +63,7 @@ class CacheBotMessagesMiddleware(BaseMiddleware):
                 message_thread_id=(result.message_thread_id if isinstance(result, Message) else None),
                 handled_by_ai=True,
                 eligible_for_proactive_ai=False,
+                expected_epoch=data.get("ai_message_cache_epoch"),
                 redis=data["services"].redis,
             )
 

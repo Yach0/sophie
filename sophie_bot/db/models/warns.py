@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from beanie import Document, PydanticObjectId
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from sophie_bot.constants import WARN_MAX_ACTIONS
 from sophie_bot.db.models._link_type import Link
@@ -16,6 +16,7 @@ from .chat import ChatModel
 class WarnSettingsModel(Document):
     chat: Link[ChatModel]
     max_warns: int = Field(default=3, ge=2, le=10000)
+    expiration_seconds: int | None = Field(default=None, ge=60, le=315360000)
     on_each_warn_actions: list[StoredAction] = Field(default_factory=list)
     on_max_warn_actions: list[StoredAction] = Field(default_factory=list)
 
@@ -103,7 +104,15 @@ class WarnModel(Document):
     user: Link[ChatModel]
     admin: Link[ChatModel] | None = None
     reason: str | None = None
-    date: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    date: datetime | None = Field(default_factory=lambda: datetime.now(UTC))
+
+    @model_validator(mode="before")
+    @classmethod
+    def _preserve_unknown_legacy_date(cls, value: object) -> object:
+        # Loading an old record must never invent a new creation time.
+        if isinstance(value, dict) and "_id" in value and not isinstance(value.get("date"), datetime):
+            return {**value, "date": None}
+        return value
 
     @field_validator("admin", mode="before")
     @classmethod

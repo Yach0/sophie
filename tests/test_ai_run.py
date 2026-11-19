@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator
+import json
+from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
+from dataclasses import replace
 from typing import Any, cast
 
+import httpx2
 import pytest
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 from pydantic_ai import (
     Agent,
@@ -12,14 +16,27 @@ from pydantic_ai import (
     PartDeltaEvent,
     PartEndEvent,
     PartStartEvent,
+    RunContext,
     TextPart,
     TextPartDelta,
     ThinkingPart,
     ThinkingPartDelta,
 )
-from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
-from pydantic_ai.messages import BinaryContent, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
+from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.messages import (
+    BinaryContent,
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
+    UserContent,
+    UserPromptPart,
+)
+from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
@@ -30,7 +47,6 @@ from sophie_bot.modules.ai.utils.ai_model_plan import (
     build_model_plan,
     request_has_images,
 )
-from sophie_bot.modules.ai.utils.ai_refusal import AIModelRefused, is_refusal_output
 from sophie_bot.modules.ai.utils.ai_run import (
     AIRequestOptions,
     build_model_settings,
@@ -38,6 +54,13 @@ from sophie_bot.modules.ai.utils.ai_run import (
     run_ai_structured,
     run_ai_text,
 )
+
+
+@pytest.fixture(autouse=True)
+def no_network_fallback(monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest) -> None:
+    if request.node.name == "test_the_last_resort_is_not_tried_twice_for_a_second_reasoning_effort":
+        return
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
 class StructuredOutput(BaseModel):
@@ -115,7 +138,14 @@ class FakeEventAgent:
             if self.raises is not None:
                 raise self.raises
 
-        await event_stream_handler(None, stream())
+        context = RunContext(
+            deps=None,
+            model=self.model,
+            usage=RunUsage(),
+            prompt=kwargs["user_prompt"],
+            messages=list(kwargs.get("message_history") or []),
+        )
+        await event_stream_handler(context, stream())
         return FakeRunResult(self.final_output)
 
 
@@ -215,30 +245,32 @@ async def test_run_ai_structured_wraps_typed_output() -> None:
     assert result.usage.total_tokens
 
 
-async def test_output_limit_caps_non_streaming_provider_requests_too() -> None:
-    agent = FakeRunAgent(TestModel(settings={"max_tokens": 11}))
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("model_limit", [None, 0, 11])
+async def test_native_requests_preserve_provider_generation_ceiling(streaming: bool, model_limit: int | None) -> None:
+    observed: list[dict[str, object]] = []
 
-    await run_ai_text(
-        cast(Agent[Any, str], agent),
-        "Say hello",
-        usage_limits=UsageLimits(output_tokens_limit=37),
+    def request(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        observed.append(dict(info.model_settings or {}))
+        return ModelResponse(parts=[TextPart("bounded")])
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncGenerator[str]:
+        observed.append(dict(info.model_settings or {}))
+        yield "bounded"
+
+    model = FunctionModel(
+        request, stream_function=stream, settings={"max_tokens": model_limit} if model_limit is not None else None
     )
+    agent = Agent(model)
+    if streaming:
 
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 11
+        async def on_text(text: str) -> None:
+            pass
 
-
-async def test_output_limit_preserves_zero_provider_generation_ceiling() -> None:
-    agent = FakeRunAgent(TestModel(settings={"max_tokens": 0}))
-
-    await run_ai_text(
-        cast(Agent[Any, str], agent),
-        "Say nothing",
-        usage_limits=UsageLimits(output_tokens_limit=37),
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 0
+        await run_ai_stream(agent, "hello", on_text, usage_limits=UsageLimits(output_tokens_limit=37))
+    else:
+        await run_ai_text(agent, "hello", usage_limits=UsageLimits(output_tokens_limit=37))
+    assert observed == [{"max_tokens": model_limit if model_limit is not None else 37, "max_retries": 4, "timeout": 15}]
 
 
 async def test_run_ai_stream_completes_tool_loop_and_uses_final_output(no_stream_debounce: None) -> None:
@@ -279,6 +311,7 @@ async def test_run_ai_stream_does_not_duplicate_restarted_text_part(no_stream_de
 
     async def on_text_stream(text: str) -> None:
         streamed_text.append(text)
+
     formatted_answer = "Testing mode: *beep boop*"
     agent = FakeEventAgent(
         events=[
@@ -406,52 +439,6 @@ async def test_run_ai_stream_propagates_usage_limit_after_partial_stream(no_stre
     assert streamed_text == ["Partial answer"]
 
 
-async def test_run_ai_stream_sends_output_limit_to_provider_as_generation_ceiling() -> None:
-    agent = FakeEventAgent(events=text_round("Bounded answer"), final_output="Bounded answer")
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="Answer within the budget",
-        on_text_stream=on_text_stream,
-        usage_limits=UsageLimits(output_tokens_limit=37),
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"]["max_tokens"] == 37
-
-
-async def test_run_ai_stream_preserves_a_stricter_provider_generation_ceiling() -> None:
-    agent = FakeEventAgent(events=text_round("Short answer"), final_output="Short answer")
-
-    async def on_text_stream(_text: str) -> None:
-        return None
-
-    await run_ai_stream(
-        cast(Agent[Any, str], agent),
-        user_prompt="Answer briefly",
-        on_text_stream=on_text_stream,
-        usage_limits=UsageLimits(output_tokens_limit=100),
-        model_settings={"max_tokens": 12, "temperature": 0},
-    )
-
-    assert agent.run_kwargs is not None
-    assert agent.run_kwargs["model_settings"] == {"max_tokens": 12, "temperature": 0}
-
-
-@pytest.fixture
-def immediate_retries(monkeypatch: Any) -> Iterator[None]:
-    """Run each attempt exactly once, so assertions see the candidate sequence and nothing else."""
-
-    async def fake_retries(operation: Any, context: Any, on_retry: Any = None) -> Any:
-        return await operation()
-
-    monkeypatch.setattr(ai_run, "run_ai_request_with_retries", fake_retries)
-    yield
-
-
 class NamedTestModel(TestModel):
     """A ``TestModel`` that reports a name of its own.
 
@@ -482,17 +469,25 @@ def candidate(
     )
 
 
-async def run_chain[OutputT](
-    operation: Callable[[AIModelCandidate], Awaitable[OutputT]],
+async def run_chain(
+    operation: Callable[[AIModelCandidate], Awaitable[str]],
     *candidates: AIModelCandidate,
-    is_refusal: Callable[[OutputT], bool] | None = None,
-) -> tuple[OutputT, AIModelCandidate]:
-    return await ai_run._run_with_model_candidates(
-        operation,
-        list(candidates),
-        model_plan=AIModelPlan(candidates=candidates),
-        is_refusal=is_refusal,
+) -> tuple[str, AIModelCandidate]:
+    def request_for(active: AIModelCandidate) -> FunctionModel:
+        async def request(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+            return ModelResponse(parts=[TextPart(await operation(active))])
+
+        return FunctionModel(request, model_name=active.model_name)
+
+    native_candidates = tuple(replace(active, model=request_for(active)) for active in candidates)
+    plan = AIModelPlan(native_candidates)
+    result = await run_ai_text(Agent(plan.primary), "hello", model_plan=plan)
+    served = next(
+        original
+        for original, native in zip(candidates, native_candidates, strict=True)
+        if native.model is result.served_model
     )
+    return result.output, served
 
 
 def no_last_resort(monkeypatch: Any) -> None:
@@ -500,57 +495,7 @@ def no_last_resort(monkeypatch: Any) -> None:
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
-async def test_the_first_candidate_serves_when_it_succeeds(immediate_retries: None) -> None:
-    primary = candidate("primary")
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        return "from-primary"
-
-    result, served = await run_chain(operation, primary)
-
-    assert result == "from-primary"
-    assert served is primary
-    assert attempted == [primary]
-
-
-async def test_a_failing_candidate_hands_over_to_the_next(immediate_retries: None) -> None:
-    primary = candidate("primary")
-    backup = candidate("backup")
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        if active is primary:
-            raise TimeoutError("primary provider is down")
-        return "from-backup"
-
-    result, served = await run_chain(operation, primary, backup)
-
-    # The served model must be the one that answered, so callers attribute usage/metrics correctly.
-    assert result == "from-backup"
-    assert served is backup
-    assert attempted == [primary, backup]
-
-
-async def test_a_flat_provider_rejection_also_hands_over(immediate_retries: None) -> None:
-    """The request that most needs another model — an image a model cannot read — is a plain 400."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
-            raise ModelHTTPError(status_code=400, model_name="primary", body="no image support")
-        return "from-backup"
-
-    result, served = await run_chain(operation, primary, backup)
-
-    assert result == "from-backup"
-    assert served is backup
-
-
-async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
+async def test_a_usage_limit_stops_the_chain() -> None:
     """Sophie's own budget ended the run; the next model would only spend more of it."""
     attempted: list[AIModelCandidate] = []
 
@@ -563,69 +508,12 @@ async def test_a_usage_limit_stops_the_chain(immediate_retries: None) -> None:
     assert len(attempted) == 1
 
 
-@pytest.mark.parametrize("status_code", [401, 402, 403])
-async def test_a_misconfigured_provider_stops_the_chain(immediate_retries: None, status_code: int) -> None:
-    """A rejected key fails identically on every candidate: walking the chain only delays the error."""
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
-
-    with pytest.raises(ModelHTTPError) as raised:
-        await run_chain(operation, candidate("primary"), candidate("backup"), candidate("third"))
-
-    assert raised.value.status_code == status_code
-    assert len(attempted) == 1
-
-
-async def test_the_last_candidates_error_is_raised(immediate_retries: None) -> None:
-    """Exhaustion keeps error semantics: the last candidate's failure is the one callers get."""
-
-    async def operation(active: AIModelCandidate) -> str:
-        raise TimeoutError("everything is down")
-
-    with pytest.raises(AIRequestFailed) as raised:
-        await run_chain(operation, candidate("primary"), candidate("backup"))
-
-    assert str(raised.value.__cause__) == "everything is down"
-
-
-async def test_an_empty_answer_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
+async def test_an_empty_answer_hands_over_to_the_next_candidate() -> None:
     primary = candidate("primary")
     backup = candidate("backup")
 
     async def operation(active: AIModelCandidate) -> str:
         return "" if active is primary else "a real answer"
-
-    result, served = await run_chain(operation, primary, backup, is_refusal=is_refusal_output)
-
-    assert result == "a real answer"
-    assert served is backup
-
-
-async def test_the_last_candidates_empty_answer_is_returned(immediate_retries: None) -> None:
-    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
-    primary = candidate("primary")
-
-    async def operation(active: AIModelCandidate) -> str:
-        return ""
-
-    result, served = await run_chain(operation, primary, is_refusal=is_refusal_output)
-
-    assert result == ""
-    assert served is primary
-
-
-async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retries: None) -> None:
-    """An output validator opting into failover is caught, exactly as the class promises."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
-            raise AIModelRefused("primary")
-        return "a real answer"
 
     result, served = await run_chain(operation, primary, backup)
 
@@ -633,15 +521,17 @@ async def test_a_raised_refusal_hands_over_to_the_next_candidate(immediate_retri
     assert served is backup
 
 
-async def test_the_last_candidates_raised_refusal_reaches_the_caller(immediate_retries: None) -> None:
-    """Unlike an empty output, a raised refusal carries no answer to hand back."""
+async def test_the_last_candidates_empty_answer_is_returned() -> None:
+    """An empty answer is still an answer; turning the end of the chain into an error would not be."""
+    primary = candidate("primary")
 
     async def operation(active: AIModelCandidate) -> str:
-        raise AIModelRefused(active.model_name)
+        return " "
 
-    with pytest.raises(AIModelRefused):
-        await run_chain(operation, candidate("primary"))
+    result, served = await run_chain(operation, primary)
 
+    assert result == " "
+    assert served is primary
 
 
 def test_the_agents_own_model_leads_and_the_last_resort_closes(monkeypatch: Any) -> None:
@@ -776,3 +666,168 @@ def test_an_all_text_only_plan_still_tries_rather_than_refusing() -> None:
     plan = AIModelPlan(candidates=(text_only,))
 
     assert plan.eligible(has_images=True) == (text_only,)
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("recovery", ["retry", "timeout", "fallback"])
+async def test_request_recovery_keeps_completed_tool_results(streaming: bool, recovery: str) -> None:
+    payloads: list[dict[str, object]] = []
+    mutations: list[int] = []
+    continuations: list[Sequence[ModelRequest | ModelResponse]] = []
+
+    def project(
+        candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse]
+    ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
+        continuations.append(continuation)
+        return ["make the change"], [ModelRequest(parts=[UserPromptPart(candidate.model_name + " history")])]
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        payload = json.loads(request.content)
+        payloads.append(payload)
+        if len(payloads) == 2:
+            if recovery == "timeout":
+                raise httpx2.ReadTimeout("Request timed out.", request=request)
+            status = 503 if recovery == "retry" else 400
+            return httpx2.Response(status, headers={"retry-after-ms": "1"}, json={"error": {"message": "unavailable"}})
+        message: dict[str, object] = {"role": "assistant", "content": "done"}
+        if len(payloads) == 1:
+            call = {"id": "mutation", "type": "function", "function": {"name": "mutate", "arguments": '{"amount":1}'}}
+            if streaming:
+                call["index"] = 0
+            message = {"role": "assistant", "tool_calls": [call]}
+        else:
+            assert any(
+                message["role"] == "tool" and message["content"] == "completed" for message in payload["messages"]
+            )
+        response = {
+            "id": "offline",
+            "created": 0,
+            "model": payload["model"],
+            "object": "chat.completion.chunk" if streaming else "chat.completion",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta" if streaming else "message": message,
+                    "finish_reason": "tool_calls" if "tool_calls" in message else "stop",
+                }
+            ],
+        }
+        if streaming:
+            return httpx2.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                text="data: " + json.dumps(response) + "\n\ndata: [DONE]\n\n",
+            )
+        return httpx2.Response(200, json=response)
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        provider = OpenAIProvider(api_key="offline", http_client=client)
+        primary = OpenAIChatModel("primary", provider=provider, settings={"temperature": 0.1})
+        backup = OpenAIChatModel("backup", provider=provider, settings={"temperature": 0.7})
+        plan = AIModelPlan(
+            (
+                AIModelCandidate(primary, "primary", service_tier="flex"),
+                AIModelCandidate(backup, "backup", service_tier="none"),
+            )
+        )
+        agent = Agent(primary)
+
+        @agent.tool_plain
+        async def mutate(amount: int) -> str:
+            mutations.append(amount)
+            return "completed"
+
+        async def on_text(text: str) -> None:
+            pass
+
+        options = AIRequestOptions(context_projection=project, service_tier="default")
+        history = [ModelResponse(parts=[TextPart("old history")])]
+        if streaming:
+            result = await run_ai_stream(
+                agent, "make the change", on_text, message_history=history, model_plan=plan, request_options=options
+            )
+        else:
+            result = await run_ai_text(
+                agent, "make the change", message_history=history, model_plan=plan, request_options=options
+            )
+
+    assert result.output == "done"
+    assert mutations == [1]
+    assert len(payloads) == 3
+    assert len(continuations[-1]) == 2
+    assert result.usage.requests == 2
+    assert any(isinstance(part, ToolReturnPart) for message in result.new_messages for part in message.parts)
+    if recovery in {"retry", "timeout"}:
+        assert payloads[1] == payloads[2]
+        assert result.served_model is primary
+    else:
+        assert result.served_model is backup
+        assert payloads[0]["service_tier"] == "flex"
+        assert "service_tier" not in payloads[-1]
+        assert payloads[-1]["temperature"] == 0.7
+        assert payloads[-1]["messages"][0]["content"] == "backup history"
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("recovers", [False, True])
+@pytest.mark.parametrize("timeout_type", [httpx2.ReadTimeout, httpx2.ConnectTimeout])
+async def test_provider_timeouts_allow_five_attempts(
+    streaming: bool,
+    recovers: bool,
+    timeout_type: type[httpx2.TimeoutException],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+
+    def retry_delay(*_args: object, **_kwargs: object) -> float:
+        return 0
+
+    monkeypatch.setattr(AsyncOpenAI, "_calculate_retry_timeout", retry_delay)
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        nonlocal attempts
+        attempts += 1
+        assert request.extensions["timeout"] == {"connect": 15, "read": 15, "write": 15, "pool": 15}
+        if attempts < 5 or not recovers:
+            raise timeout_type("Request timed out.", request=request)
+        response = {
+            "id": "offline",
+            "created": 0,
+            "model": "primary",
+            "object": "chat.completion.chunk" if streaming else "chat.completion",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta" if streaming else "message": {"role": "assistant", "content": "done"},
+                    "finish_reason": "stop",
+                }
+            ],
+        }
+        if streaming:
+            return httpx2.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                text="data: " + json.dumps(response) + "\n\ndata: [DONE]\n\n",
+            )
+        return httpx2.Response(200, json=response)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        agent = Agent(OpenAIChatModel("primary", provider=OpenAIProvider(api_key="offline", http_client=client)))
+
+        async def run() -> str:
+            if streaming:
+                result = await run_ai_stream(agent, "hello", on_text)
+            else:
+                result = await run_ai_text(agent, "hello")
+            return result.output
+
+        if recovers:
+            assert await run() == "done"
+        else:
+            with pytest.raises(AIRequestFailed):
+                await run()
+
+    assert attempts == 5

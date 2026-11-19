@@ -5,7 +5,13 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Literal
 
-from pydantic_ai.messages import ModelRequest, ModelResponse, RetryPromptPart, ToolCallPart
+from pydantic_ai.messages import (
+    ModelRequest,
+    ModelResponse,
+    RetryFeedbackPart,
+    ToolCallPart,
+    ToolReturnPart,
+)
 from pydantic_ai.models import Model
 from pydantic_ai.usage import RunUsage
 
@@ -63,44 +69,19 @@ def get_model_name(model: Model) -> str:
     return model.model_name
 
 
-@asynccontextmanager
-async def track_ai_request(model: Model, operation: str = "chat") -> AsyncGenerator[None]:
-    """Context manager for tracking AI API requests"""
+def track_ai_request(
+    model: Model,
+    operation: str,
+    duration: float,
+    error_type: str | None = None,
+) -> None:
     if not CONFIG.metrics_enable:
-        yield
         return
-
-    provider = get_provider_from_model(model)
-    model_name = get_model_name(model)
-    start_time = time.perf_counter()
-
-    count_metric(
-        "sophie.ai.requests",
-        attributes={"provider": provider, "model": model_name, "operation": operation},
-    )
-
-    try:
-        yield
-    except Exception as e:
-        error_type = type(e).__name__
-
-        count_metric(
-            "sophie.ai.errors",
-            attributes={"provider": provider, "model": model_name, "error_type": error_type, "operation": operation},
-        )
-
-        log.debug(
-            "AI request error tracked", provider=provider, model=model_name, operation=operation, error=error_type
-        )
-        raise
-    finally:
-        duration = time.perf_counter() - start_time
-        distribution_metric(
-            "sophie.ai.request.duration",
-            duration,
-            attributes={"provider": provider, "model": model_name, "operation": operation},
-            unit="second",
-        )
+    attributes = _ai_metric_attributes(model, operation)
+    count_metric("sophie.ai.requests", attributes=attributes)
+    distribution_metric("sophie.ai.request.duration", duration, attributes=attributes, unit="second")
+    if error_type is not None:
+        count_metric("sophie.ai.errors", attributes={**attributes, "error_type": error_type})
 
 
 def _ai_metric_attributes(model: Model, operation: str) -> dict[str, str]:
@@ -108,7 +89,12 @@ def _ai_metric_attributes(model: Model, operation: str) -> dict[str, str]:
 
 
 def count_retries_from_messages(message_history: list[ModelRequest | ModelResponse]) -> int:
-    return sum(1 for message in message_history for part in message.parts if isinstance(part, RetryPromptPart))
+    return sum(
+        1
+        for message in message_history
+        for part in message.parts
+        if isinstance(part, RetryFeedbackPart) or isinstance(part, ToolReturnPart) and part.outcome == "retried"
+    )
 
 
 def count_tool_calls_from_messages(message_history: list[ModelRequest | ModelResponse]) -> int:

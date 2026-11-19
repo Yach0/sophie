@@ -24,6 +24,12 @@
         redis_exec: "{{ (redis_quadlet.content | b64decode | regex_findall('(?m)^Exec=(.*)$') | first) | default('redis-server') }}"
       no_log: true
 
+    - name: Read the base Redis volume settings
+      ansible.builtin.set_fact:
+        redis_volumes: >-
+          {{ redis_quadlet.content | b64decode | regex_findall('(?m)^[ \t]*Volume[ \t]*=(.*)$') }}
+      no_log: true
+
     - name: Check for the durable Redis snapshot
       ansible.builtin.stat:
         path: "{{ redis_data_dir }}/dump.rdb"

@@ -50,6 +50,8 @@ async def _save_filter(
     callback_query: CallbackQuery,
     connection: Any,
 ) -> None:
+    if not draft.actions:
+        raise ValueError(_("No actions configured."))
     filter_id: ObjectId | None = None
     if draft.filter_id is not None:
         try:

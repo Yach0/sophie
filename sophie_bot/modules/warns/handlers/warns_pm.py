@@ -6,6 +6,7 @@ from stfu_tg import Doc, KeyValue, Title
 from sophie_bot.db.models import ChatModel, WarnModel
 from sophie_bot.filters.chat_status import ChatTypeFilter
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.warns.utils import expire_warns
 from sophie_bot.utils import flags
 from sophie_bot.utils.handlers import SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
@@ -25,6 +26,13 @@ class WarnsPMHandler(SophieMessageHandler):
         # PM: List all warns across all chats
         warns = await WarnModel.find(WarnModel.user.id == user_iid).sort(WarnModel.date).to_list()
 
+        for chat_iid in {warn.chat.ref.id for warn in warns}:
+            chat = await ChatModel.get_by_iid(chat_iid)
+            if chat:
+                await expire_warns(chat, redis=self.services.redis)
+
+        warns = await WarnModel.find(WarnModel.user.id == user_iid).sort(WarnModel.date).to_list()
+
         if not warns:
             return await message.reply(_("You don't have warnings in any chat at the moment."))
 
@@ -36,4 +44,4 @@ class WarnsPMHandler(SophieMessageHandler):
 
             doc += KeyValue(chat_title, warn.reason or _("No reason provided"))
 
-        return await message.reply(str(doc))
+        return await message.reply(doc.to_html())

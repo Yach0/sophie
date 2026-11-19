@@ -7,6 +7,8 @@ from aiogram.types import Message, TelegramObject
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import GreetingsModel
+from sophie_bot.modules.greetings.utils.delete_noise import delete_noise
+from sophie_bot.modules.utils_.common_try import common_try
 
 
 class LeaveUserMiddleware(BaseMiddleware):
@@ -29,9 +31,10 @@ class LeaveUserMiddleware(BaseMiddleware):
             chat_db = data["context"].event_chat
             db_item: GreetingsModel = await GreetingsModel.get_by_chat_iid(chat_db.iid)
 
-            # Cleanservice
-            if db_item.clean_service and db_item.clean_service.enabled:
-                await event.delete()
+            if event.left_chat_member.is_bot:
+                await delete_noise(data["services"].bot, event.chat.id, event.message_id)
+            elif db_item.clean_service and db_item.clean_service.enabled:
+                await common_try(event.delete())
 
             # Skip handler
             raise SkipHandler

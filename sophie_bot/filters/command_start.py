@@ -26,7 +26,7 @@ class CmdStartFilter(Filter):
 
         self.cmd_start = cmd_start
 
-    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, Any]:
+    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, Any]:  # ty: ignore[incompatible-mutable-override]
         command_data: dict[str, CommandObject] | bool = await self.start_filter.__call__(
             message=message, bot=bot, event_chat=event_chat
         )

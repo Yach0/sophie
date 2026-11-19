@@ -49,6 +49,12 @@ class ModuleWikiPage:
         if handler.only_chats:
             remarks.append(Italic("Only in groups"))
 
+        if handler.group is not None:
+            if handler.only_pm:
+                remarks.append(Italic("PM-only"))
+            if handler.only_admin:
+                remarks.append(Italic("Only admins"))
+
         if handler.disableable:
             remarks.append(Italic("Disable-able"))
 
