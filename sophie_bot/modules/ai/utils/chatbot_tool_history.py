@@ -29,7 +29,7 @@ TOOL_HISTORY_RUN_LIMIT: Final = 5
 
 # Memory writes are side effects whose outcome is re-injected into the system prompt on every run,
 # so replaying the calls themselves only adds stale noise.
-NON_REPLAYABLE_TOOLS: Final = frozenset({"write_memory", "forget_memory"})
+NON_REPLAYABLE_TOOLS: Final = frozenset({"write_memory", "forget_memory", "manage_memory"})
 
 _TRUNCATION_MARKER: Final = "... [truncated]"
 

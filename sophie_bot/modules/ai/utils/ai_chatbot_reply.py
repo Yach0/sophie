@@ -59,6 +59,7 @@ from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_tip,
     should_offer_help_mode,
 )
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEdit, MemoryEditRequest
 from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
@@ -285,6 +286,20 @@ async def _cache_chatbot_reply(
         )
 
 
+async def _send_memory_edit_receipt(
+    message: Message, streamer: ChatbotMessageStreamer | None, outcome: MemoryEdit, **kwargs: Any
+) -> Message:
+    text = {
+        "add": _("I saved that memory."),
+        "update": _("I updated that memory. The previous version is still in history."),
+        "delete": _("I deleted the selected memories and their previous versions."),
+    }[outcome]
+    document = Doc(text)
+    if streamer:
+        return await streamer.send_final(document, **kwargs)
+    return await send_ai_rich_message(message, document, reply_markup=kwargs.get("reply_markup"))
+
+
 async def ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,
@@ -338,6 +353,11 @@ async def ai_chatbot_reply(
             topic_id=message.message_thread_id,
             reply_to_message_id=message.reply_to_message.message_id if message.reply_to_message else None,
             user_tid=message.from_user.id if message.from_user else None,
+            memory_edit=(
+                MemoryEditRequest.from_message(message, context_epoch)
+                if context_epoch is not None and message.chat.id == connection.tid
+                else None
+            ),
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
             services=services,
         )
@@ -388,11 +408,16 @@ async def ai_chatbot_reply(
                 )
             )
         except AIRequestFailed as err:
+            if context.memory_edit and context.memory_edit.outcome:
+                return await _send_memory_edit_receipt(message, message_streamer, context.memory_edit.outcome, **kwargs)
             if explicit_debug_mode:
                 await _send_chatbot_debug_document(
                     message, history, None, model_plan, context, service_tier=service_tier
                 )
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
+
+        if context.memory_edit and context.memory_edit.outcome:
+            return await _send_memory_edit_receipt(message, message_streamer, context.memory_edit.outcome, **kwargs)
 
         # Failover may have moved the reply off the model the streamer opened with, so the charge and
         # the header both follow the model that actually answered.

@@ -49,6 +49,7 @@ class MemoryFact(BaseModel):
     recorded_at: datetime
     occurred_at: datetime
     previous_id: str | None = None
+    editor_tid: int | None = None
 
     @field_validator("recorded_at", "occurred_at")
     @classmethod

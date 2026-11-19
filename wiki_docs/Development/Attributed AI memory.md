@@ -25,7 +25,8 @@ unchanged when the flags are off. Each flag supports the existing global/chat ov
 | `ai_memory_history` | Allow historical timestamps and full version chains in `search_memory`. |
 | `ai_memory_participation` | Add norms, preferences, questions, and evidence to the participation decision. |
 | `ai_memory_recheck_answers` | Suppress a proactive answer when a newer explicit reply already exists. |
-| `ai_memory_controls` | Enable personal inspect/correct/forget/off/on commands and privacy fences. |
+| `ai_memory_controls` | Enable the memory browser, privacy controls, and exact-ID deletion command. |
+| `ai_memory_chatbot_edits` | With retrieval enabled, let users ask Sophie to add, update, or delete attributed memories. Defaults off. |
 | `ai_memory_replace_legacy` | With retrieval enabled, remove legacy memory tools and legacy prompt memory. |
 
 With retrieval enabled in a mode that permits memory, `ai_memory_request_limit` defaults to `8` model requests
@@ -62,8 +63,7 @@ The `20261117_190031_unify_memory_sources_in_redis` migration copies unexpired `
 
 The new `ai_evidence_memory` collection is registered with Beanie. Startup creates its unique chat index.
 No legacy text memories need a schema migration. Legacy text memories have no evidence and are not copied into the new store.
-Legacy prompt memory and `write_memory`/`forget_memory` remain available during additive retrieval.
-Only `ai_memory_replace_legacy`, together with retrieval, removes them.
+Legacy prompt memory and its tools remain available during additive retrieval. With retrieval enabled, `ai_memory_replace_legacy` removes both. `ai_memory_chatbot_edits` replaces the legacy write tools with `manage_memory` for direct requests from identifiable users.
 
 ## Storage and writer
 
@@ -82,7 +82,7 @@ retrieval explicitly tells the answerer that silence does not prove consensus.
 Capture runs in the message middleware after moderation, whether or not Sophie replies. The ordinary history write includes memory eligibility, speaker-name, and optional branch metadata; there is no second message body or per-message MongoDB write. Bots, anonymous senders, excluded users, and messages captured before the flag was enabled are filtered out of memory reads.
 Anonymous chat senders and bots are excluded to avoid assigning their statements to a user.
 The AI message cache excludes memory commands and `/ai_reset`, even when a feature or permission check blocks them.
-A correction stores its command as evidence.
+Explicit chatbot additions and updates use the requesting message as evidence.
 The bot receives new message events; Telegram does not supply ordinary deleted-message events to bots.
 Use the memory controls to delete retained copies. Original text may contain authored names; modern context aliases
 identity fields but does not rewrite the authored text.
@@ -150,28 +150,28 @@ semantic answers without a reply link still depend on the decision model and rec
 
 ## Personal controls
 
-The **Memory** section under **Sophie AI** in `/help` lists these commands when `ai_memory_controls` is enabled in
-the help catalog. The commands work in the current connected chat. Chat admins can clear shared memory with
-`/ai_memory_forget` or `/ai_memory_off`. Former subcommands such as `/ai_memory off` show the replacement command
-without changing any memory settings.
+The **Memory** section under **Sophie AI** in `/help` lists two commands when `ai_memory_controls` is enabled.
 
-- `/ai_memory` lists current memories where you are the speaker or a subject, newest first. Use
-  `/ai_memory <text>` to search them, or `/ai_memory @username` to view another user's current memories in this chat.
-  Reply to a user's message with `/ai_memory` to view their memories without a username. Rich lists display up to
-  16 memories per page. The numbered buttons open full memory text. Source references, history, and corrections
-  are available from your own view.
-- `/ai_memory_history` or **History** lists superseded versions. **Sources** or `/ai_memory_sources` lists your
-  original messages from the shared 48-hour Redis history. Tap a number to open the full source message.
-- `/ai_memory_help` or **Help** shows command examples. Only the requester can use the list buttons. Each click
-  reloads current data, and navigation expires 15 minutes after the command.
-- `/ai_memory_correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
-  **Copy correction command** in the memory details copies the command with its ID ready for your replacement text.
-  Send corrections in the original chat and topic. You cannot rewrite someone else's observation or a group decision. You can state your own position in chat.
-- `/ai_memory_forget` (admins): clear retained information without disabling future capture.
-- `/ai_memory_off` (admins): forget and disable capture of your messages and derived facts about you in this chat.
-- `/ai_memory_on`: allow future capture. Deleted history is not restored.
+- `/ai_memory` lists your current memories. Add search text, mention a member, or reply to one of their messages to view
+  their memories. The numbered buttons open full memory text and let you copy a fact ID. Use **History**, **Sources**,
+  **Privacy**, or **Help** in the browser. Navigation is restricted to the requester and expires after 15 minutes.
+- `/ai_memory_delete ID [ID ...]` deletes one or more exact fact IDs and their complete version chains. It accepts up to
+  20 IDs separated by spaces. Members can delete their own personal facts. Chat administrators can delete other
+  members’ or shared facts. The command preserves original conversation messages in the normal chat cache.
 
-Forget and off require the requesting administrator to confirm within five minutes. They clear **all chat evidence,
+Enable `ai_memory_chatbot_edits` with `ai_memory_retrieval` in entertainment mode to use natural-language memory edits.
+Ask Sophie directly to remember, update, or forget a fact. Sophie uses `search_memory` to find a fact for an update or
+deletion when needed. It can make one successful change per request, including one deletion of multiple facts.
+The tool gets the requester’s identity from the current Telegram message and verifies permissions in the current chat.
+Members can manage only their own personal facts. Administrators can edit other members’ personal memories and delete
+shared facts. A fact added for another person is attributed to the administrator who reported it. An administrator's
+correction keeps the original owner and records the editor separately. Updates append a new version in the original topic.
+Proactive replies and messages from bots, anonymous senders, or forwards cannot use the editing tool.
+
+The **Privacy** panel lets administrators clear shared memory or stop saving their messages. Anyone who has opted out
+can resume capture for themselves there. Resuming capture does not restore deleted history.
+
+Clearing shared memory or stopping capture requires the requesting administrator to confirm within five minutes. They clear **all chat evidence,
 facts, legacy text memory, summaries, cached messages, tool exchanges, and native
 context sessions**. This deliberate coarse deletion removes indirect copies in other members' text. It can remove other
 members' useful memories too. It does not delete Telegram messages, notes, provider logs, or backups. Off prevents new

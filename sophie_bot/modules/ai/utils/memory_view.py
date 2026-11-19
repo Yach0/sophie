@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 
 from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
@@ -15,12 +15,10 @@ from stfu_tg import (
     Paragraph,
     RichBlockQuote,
     Template,
-    Url,
 )
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryFact, MemorySource, MemoryState
-from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback, MemoryListView
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.pagination import build_pagination_footer, build_pagination_row, paginate
@@ -41,15 +39,6 @@ class MemoryBrowser(BaseModel):
     owner_tid: int
     search: str = ""
     member: MemoryMember | None = None
-
-
-def can_correct_memory(fact: MemoryFact, user_tid: int, excluded_users: Collection[int]) -> bool:
-    return (
-        fact.speaker_tid == user_tid
-        and fact.subject_tids == [user_tid]
-        and fact.scope == "person"
-        and user_tid not in excluded_users
-    )
 
 
 def _preview(text: str, limit: int) -> str:
@@ -148,6 +137,15 @@ def _memory_list(
             )
         ]
     )
+    if browser.member is None:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=_("Privacy"),
+                    callback_data=data.model_copy(update={"page": pagination.page, "target": "privacy"}).pack(),
+                )
+            ]
+        )
     return document, InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -155,9 +153,7 @@ def _timestamp(time: datetime) -> str:
     return time.strftime("%Y-%m-%d %H:%M UTC")
 
 
-def _fact_details(
-    chat: ChatModel, fact: MemoryFact, available_ids: set[int] | None, correction_command: str | None
-) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
+def _fact_details(fact: MemoryFact, available_ids: set[int] | None) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
     document = Doc(
         Heading(_("Memory details")),
         RichBlockQuote(*fact.text.splitlines()),
@@ -165,6 +161,8 @@ def _fact_details(
         Paragraph(KeyValue(_("Speaker"), Code(str(fact.speaker_tid)))),
         Paragraph(KeyValue(_("Time"), _timestamp(fact.occurred_at))),
     )
+    if fact.editor_tid is not None:
+        document += Paragraph(KeyValue(_("Edited by"), Code(str(fact.editor_tid))))
     if available_ids is not None:
         if fact.previous_id:
             document += Paragraph(KeyValue(_("Previous version"), Code(fact.previous_id)))
@@ -174,29 +172,7 @@ def _fact_details(
             document += Paragraph(KeyValue(_("Source messages"), Code(available)))
         if unavailable:
             document += Paragraph(KeyValue(_("Source messages expired or unavailable"), Code(unavailable)))
-    buttons: list[list[InlineKeyboardButton]] = []
-    if correction_command is not None:
-        if fact.topic_id is not None and chat.type == ChatType.supergroup:
-            chat_path = str(chat.tid).removeprefix("-100")
-            document += Template(
-                _("Send the correction in the original topic. {link}"),
-                link=Url(_("Open original topic"), f"https://t.me/c/{chat_path}/{fact.topic_id}"),
-            )
-        elif fact.topic_id is not None:
-            document += Template(
-                _("Send the correction in topic {topic} in the original chat."), topic=Code(str(fact.topic_id))
-            )
-        else:
-            document += _("Send the correction in the original chat.")
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=_("Copy correction command"),
-                    copy_text=CopyTextButton(text=f"/{correction_command} {fact.fact_id} "),
-                )
-            ]
-        )
-    return document, buttons
+    return document, [[InlineKeyboardButton(text=_("Copy fact ID"), copy_text=CopyTextButton(text=fact.fact_id))]]
 
 
 def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
@@ -216,12 +192,9 @@ def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[D
 
 
 def memory_view(
-    chat: ChatModel,
     state: MemoryState,
     browser: MemoryBrowser,
     data: AIMemoryPageCallback,
-    *,
-    correction_command: str | None,
 ) -> tuple[Doc, InlineKeyboardMarkup]:
     buttons: list[list[InlineKeyboardButton]] = []
     user_tid = browser.owner_tid
@@ -254,10 +227,8 @@ def memory_view(
             document = Doc(_("This memory is no longer in this list."))
         else:
             document, buttons = _fact_details(
-                chat,
                 fact,
                 {source.message_id for source in state.sources} if browser.member is None else None,
-                correction_command if can_correct_memory(fact, user_tid, state.excluded_users) else None,
             )
     return document, memory_back_markup(data, buttons)
 

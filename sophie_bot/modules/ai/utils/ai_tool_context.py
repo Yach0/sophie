@@ -8,6 +8,7 @@ from beanie import PydanticObjectId
 
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditRequest
 from sophie_bot.services.application import ApplicationServices
 
 ResearchProgressStage = Literal["planning", "searching", "reviewing", "summarizing"]
@@ -28,3 +29,4 @@ class SophieAIToolContext:
     user_tid: int | None = None  # Telegram user ID of the person who triggered this AI call
     speaker_reference_encoder: Callable[[int], str] | None = None
     speaker_reference_decoder: Callable[[str], str] | None = None
+    memory_edit: MemoryEditRequest | None = None

@@ -30,13 +30,7 @@ icon: ✨
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
 | `/ai_memory` | `<?@username or search text>` | Browse your memories, search by text, or view a member's memories by mention or reply. |  |
-| `/ai_memory_history` | - | Browse previous versions of your memories. |  |
-| `/ai_memory_sources` | - | Browse your original messages saved as sources. |  |
-| `/ai_memory_correct` | `<Memory ID>` `<Replacement text>` | Correct one of your current personal memories. |  |
-| `/ai_memory_forget` | - | Clear shared AI memory and context. | *Only admins* |
-| `/ai_memory_off` | - | Clear shared memory and stop saving your messages. | *Only admins* |
-| `/ai_memory_on` | - | Allow future capture of your messages. |  |
-| `/ai_memory_help` | - | Show examples for the AI memory commands. |  |
+| `/ai_memory_delete` | `<Memory IDs separated by spaces>` | Delete saved memories by fact ID. |  |
 {.card-view-on-mobile}
 
 ### PM-only

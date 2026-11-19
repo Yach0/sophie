@@ -29,14 +29,8 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
 from sophie_bot.modules.ai.handlers.memory import (
     AIMemoryBrowse,
     AIMemoryClearHandler,
-    AIMemoryCorrect,
-    AIMemoryForget,
-    AIMemoryHelp,
-    AIMemoryHistory,
-    AIMemoryOff,
-    AIMemoryOn,
+    AIMemoryDelete,
     AIMemoryPageHandler,
-    AIMemorySources,
 )
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
@@ -147,13 +141,7 @@ module_manifest = ModuleManifest(
         AiPmInitialize,
         AIContextReset,
         AIMemoryBrowse,
-        AIMemoryHistory,
-        AIMemorySources,
-        AIMemoryCorrect,
-        AIMemoryForget,
-        AIMemoryOff,
-        AIMemoryOn,
-        AIMemoryHelp,
+        AIMemoryDelete,
         AIMemoryPageHandler,
         AIMemoryClearHandler,
         ResearchCmd,

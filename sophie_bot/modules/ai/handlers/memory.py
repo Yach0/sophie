@@ -1,40 +1,37 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from datetime import UTC, datetime
 from re import fullmatch
 from secrets import token_urlsafe
-from typing import ClassVar, Literal
+from typing import ClassVar
 
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, User
-from ass_tg.types import OptionalArg, OrArg, TextArg, UserMentionArg, WordArg
+from ass_tg.types import OptionalArg, OrArg, TextArg, UserMentionArg
 from redis.asyncio import Redis
-from stfu_tg import Code, Doc, KeyValue, Section, Template, VList
+from stfu_tg import Code, Doc, KeyValue, Section, VList
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
-from sophie_bot.db.models.ai.ai_evidence_memory import MemoryAction, MemoryActions, MemorySource, MemoryState
+from sophie_bot.db.models.ai.ai_evidence_memory import MemoryState
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.ai.callbacks import AIMemoryClearCallback, AIMemoryPageCallback, MemoryListView
-from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
+from sophie_bot.modules.ai.callbacks import AIMemoryClearCallback, AIMemoryPageCallback
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.ai.utils.cache_messages import reset_modern_context
+from sophie_bot.modules.ai.utils.cache_messages import get_context_epoch_key
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
 from sophie_bot.modules.ai.utils.evidence_memory import (
-    apply_actions,
-    capture_source,
+    MemoryContextChanged,
     clear_memory,
     memory_cutoff,
     mutate_memory,
     read_memory,
 )
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditRejected, delete_memory_facts
 from sophie_bot.modules.ai.utils.memory_view import (
     MemoryBrowser,
     MemoryMember,
-    can_correct_memory,
     memory_back_markup,
     memory_view,
 )
@@ -82,31 +79,13 @@ class _AIMemoryCommand(SophieMessageHandler):
         pass
 
 
-class _AIMemoryBrowse(_AIMemoryCommand):
-    view: ClassVar[MemoryListView]
-
-    async def run(self, sender: User) -> Message:
-        return await self.open_browser(MemoryBrowser(owner_tid=sender.id))
-
-    async def open_browser(self, browser: MemoryBrowser) -> Message:
-        chat = self.connection.db_model
-        redis = self.services.redis
-        data = AIMemoryPageCallback(view=self.view, token=token_urlsafe(8))
-        await redis.set(
-            _browser_key(chat.tid, self.event.chat.id, data.token), browser.model_dump_json(), ex=_BROWSE_TTL_SECONDS
-        )
-        document, markup = await _memory_page(chat, browser, data, redis=redis)
-        return await send_ai_rich_message(self.event, document, reply_markup=markup)
-
-
 @flags.handler_help(
     group=_MEMORY_HELP_GROUP,
     description=l_("Browse your memories, search by text, or view a member's memories by mention or reply."),
 )
 @flags.args(query=OptionalArg(OrArg(UserMentionArg(), TextArg(), description=l_("?@username or search text"))))
-class AIMemoryBrowse(_AIMemoryBrowse):
+class AIMemoryBrowse(_AIMemoryCommand):
     command = "ai_memory"
-    view = "show"
 
     async def run(self, sender: User) -> Message:
         query: str | User | None = self.data.get("query")
@@ -116,17 +95,10 @@ class AIMemoryBrowse(_AIMemoryBrowse):
             member = MemoryMember(tid=query.id, name=query.full_name)
         elif query:
             search = " ".join(query.split())
-            if replacement := _LEGACY_MEMORY_COMMANDS.get(search):
-                return await self.event.reply(
-                    Template(_("This command moved. Use {command}."), command=f"/{replacement}").to_html()
-                )
+            if search in {"show", "sources", "forget", "off", "on"}:
+                return await self.event.reply(_("Open /ai_memory to browse memories and manage privacy."))
             if fullmatch(r"correct(?: [0-9a-f]{32}(?: .*)?)?", search):
-                return await self.event.reply(
-                    Template(
-                        _("Use {command} with a memory ID and replacement text."),
-                        command=f"/{AIMemoryCorrect.command}",
-                    ).to_html()
-                )
+                return await self.event.reply(_("Ask Sophie in chat to correct a saved memory."))
             if fullmatch(r"@[A-Za-z0-9_]{1,32}", search):
                 user = await ChatModel.find_one(
                     ChatModel.type == ChatType.private, {"username": {"$regex": f"^{search[1:]}$", "$options": "i"}}
@@ -143,164 +115,43 @@ class AIMemoryBrowse(_AIMemoryBrowse):
 
         if member is not None and member.tid == sender.id:
             member = None
-        return await self.open_browser(MemoryBrowser(owner_tid=sender.id, search=search, member=member))
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Browse previous versions of your memories."))
-class AIMemoryHistory(_AIMemoryBrowse):
-    command = "ai_memory_history"
-    view = "history"
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Browse your original messages saved as sources."))
-class AIMemorySources(_AIMemoryBrowse):
-    command = "ai_memory_sources"
-    view = "sources"
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Show examples for the AI memory commands."))
-class AIMemoryHelp(_AIMemoryCommand):
-    command = "ai_memory_help"
-
-    async def run(self, sender: User) -> Message:
-        return await send_ai_rich_message(self.event, _memory_help())
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Correct one of your current personal memories."))
-@flags.args(fact_id=WordArg(l_("Memory ID")), text=TextArg(l_("Replacement text")))
-class AIMemoryCorrect(_AIMemoryCommand):
-    command = "ai_memory_correct"
-
-    async def run(self, sender: User) -> Message:
+        browser = MemoryBrowser(owner_tid=sender.id, search=search, member=member)
         chat = self.connection.db_model
-        user_tid = sender.id
-        if not (await resolve_chat_capabilities(chat)).memory:
-            return await self.event.reply(_("Memory capture requires entertainment mode in this chat."))
-        if self.event.chat.id != chat.tid:
-            return await self.event.reply(_("Send the correction in the original chat and topic."))
-        fact_id: str = self.data["fact_id"]
-        text: str = self.data["text"].strip()
-        if not text or len(text) > 600:
-            return await self.event.reply(_("Enter replacement text of up to 600 characters."))
+        redis = self.services.redis
+        data = AIMemoryPageCallback(view="show", token=token_urlsafe(8))
+        await redis.set(
+            _browser_key(chat.tid, self.event.chat.id, data.token), browser.model_dump_json(), ex=_BROWSE_TTL_SECONDS
+        )
+        document, markup = await _memory_page(chat, browser, data, redis=redis)
+        return await send_ai_rich_message(self.event, document, reply_markup=markup)
 
-        now = datetime.now(UTC)
 
-        def correct(state: MemoryState) -> None:
-            previous = next((fact for fact in state.facts if fact.fact_id == fact_id), None)
-            if (
-                previous is None
-                or not can_correct_memory(previous, user_tid, state.excluded_users)
-                or previous.topic_id != self.event.message_thread_id
-            ):
-                raise ValueError("Only your own personal statements can be corrected")
-            capture_source(
-                state,
-                MemorySource(
-                    message_id=self.event.message_id,
-                    speaker_tid=user_tid,
-                    speaker_name=sender.full_name,
-                    username=sender.username,
-                    text=self.event.text or text,
-                    sent_at=now,
-                    topic_id=self.event.message_thread_id,
-                    reply_to_message_id=self.event.reply_to_message.message_id if self.event.reply_to_message else None,
-                    branch_id=self.event.message_id,
-                ),
-            )
-            apply_actions(
-                state,
-                MemoryActions(
-                    actions=[
-                        MemoryAction(
-                            action="UPDATE",
-                            target_id=fact_id,
-                            speaker_tid=user_tid,
-                            subject_tids=[user_tid],
-                            scope=previous.scope,
-                            layer=previous.layer,
-                            kind=previous.kind,
-                            event=previous.event,
-                            text=text,
-                            evidence_ids=[self.event.message_id],
-                        )
-                    ]
-                ),
-                {self.event.message_id},
-                state.generation,
-                now,
-            )
+@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Delete saved memories by fact ID."))
+@flags.args(fact_ids=TextArg(l_("Memory IDs separated by spaces")))
+class AIMemoryDelete(_AIMemoryCommand):
+    command = "ai_memory_delete"
 
+    async def run(self, sender: User) -> Message:
+        if sender.is_bot or self.event.forward_origin:
+            return await self.event.reply(_("Send a new message yourself to delete saved memories."))
+        chat = self.connection.db_model
+        redis = self.services.redis
+        fact_ids: str = self.data["fact_ids"]
+        epoch = int(await redis.get(get_context_epoch_key(chat.tid)) or 0)
         try:
-            await mutate_memory(chat, correct, redis=self.services.redis)
-        except ValueError:
-            return await self.event.reply(
-                _("Use a current fact ID for your own personal statement in its original topic. Enable capture first.")
+            await delete_memory_facts(
+                chat,
+                fact_ids.split(),
+                sender.id,
+                admin=await is_user_admin(chat.tid, sender.id),
+                redis=redis,
+                expected_epoch=epoch,
             )
-        await reset_modern_context(chat.tid, redis=self.services.redis, clear_messages=False)
-        await reset_tool_exchanges(chat.tid, redis=self.services.redis)
-        return await self.event.reply(
-            _("Your correction was saved with its source. The previous version remains in history.")
-        )
-
-
-class _AIMemoryClear(_AIMemoryCommand):
-    operation: ClassVar[Literal["forget", "off"]]
-
-    async def run(self, sender: User) -> Message:
-        chat = self.connection.db_model
-        if not await is_user_admin(chat.tid, sender.id):
-            return await self.event.reply(_("Only chat administrators can clear shared AI memory and context."))
-        data = AIMemoryClearCallback(
-            owner_tid=sender.id, operation=self.operation, token=token_urlsafe(8), action="confirm"
-        )
-        await self.services.redis.set(_clear_key(chat.tid, self.event.chat.id, data), "1", ex=_CLEAR_TTL_SECONDS)
-        prompt = _("Clear shared AI memory and context for everyone in this chat?")
-        if self.operation == "off":
-            prompt += "\n" + _("This also stops AI memory capture for you.")
-        buttons = [
-            InlineKeyboardButton(text=_("Clear shared memory"), callback_data=data.pack(), style="danger"),
-            InlineKeyboardButton(text=_("Cancel"), callback_data=data.model_copy(update={"action": "cancel"}).pack()),
-        ]
-        return await self.event.reply(prompt, reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons]))
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, only_admin=True, description=l_("Clear shared AI memory and context."))
-class AIMemoryForget(_AIMemoryClear):
-    command = "ai_memory_forget"
-    operation = "forget"
-
-
-@flags.handler_help(
-    group=_MEMORY_HELP_GROUP,
-    only_admin=True,
-    description=l_("Clear shared memory and stop saving your messages."),
-)
-class AIMemoryOff(_AIMemoryClear):
-    command = "ai_memory_off"
-    operation = "off"
-
-
-@flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Allow future capture of your messages."))
-class AIMemoryOn(_AIMemoryCommand):
-    command = "ai_memory_on"
-
-    async def run(self, sender: User) -> Message:
-        def opt_in(state: MemoryState) -> None:
-            state.excluded_users = [identity for identity in state.excluded_users if identity != sender.id]
-
-        await mutate_memory(self.connection.db_model, opt_in, redis=self.services.redis)
-        return await self.event.reply(
-            _("Your messages can be saved again when AI memory capture is enabled in this chat.")
-        )
-
-
-_LEGACY_MEMORY_COMMANDS = {
-    "show": AIMemoryBrowse.command,
-    "sources": AIMemorySources.command,
-    "forget": AIMemoryForget.command,
-    "off": AIMemoryOff.command,
-    "on": AIMemoryOn.command,
-}
+        except MemoryContextChanged:
+            return await self.event.reply(_("Memory changed while processing. Please try again."))
+        except MemoryEditRejected as error:
+            return await self.event.reply(str(error))
+        return await self.event.reply(_("I deleted the selected memories and their previous versions."))
 
 
 def _memory_help() -> Doc:
@@ -311,23 +162,12 @@ def _memory_help() -> Doc:
                     Code(f"/{AIMemoryBrowse.command}"),
                     _("Browse your memories, add search text, or mention or reply to a user to browse theirs."),
                 ),
-                KeyValue(Code(f"/{AIMemoryHistory.command}"), _("Browse previous versions of your memories.")),
-                KeyValue(Code(f"/{AIMemorySources.command}"), _("Browse your original messages saved as sources.")),
                 KeyValue(
-                    Code(
-                        Template(
-                            "/{command} FACT_ID {text}",
-                            command=AIMemoryCorrect.command,
-                            text=_("I prefer short replies."),
-                        )
-                    ),
-                    _("Use the ID from the memory details. Send the correction in the original chat and topic."),
+                    Code(f"/{AIMemoryDelete.command} FACT_ID"),
+                    _("Delete a saved fact and its history. The numbered buttons show fact IDs."),
                 ),
-                KeyValue(Code(f"/{AIMemoryForget.command}"), _("Admins: clear shared AI memory and context.")),
-                KeyValue(
-                    Code(f"/{AIMemoryOff.command}"), _("Admins: clear shared memory and stop capture for yourself.")
-                ),
-                KeyValue(Code(f"/{AIMemoryOn.command}"), _("Allow future capture of your messages.")),
+                _("Ask Sophie in chat to remember, correct, or forget a fact when chatbot memory edits are enabled."),
+                _("Use History, Sources, and Privacy in the memory browser."),
             ),
             title=_("AI memory help"),
         ),
@@ -344,21 +184,92 @@ async def _memory_page(
     if data.target == "help":
         return _memory_help(), memory_back_markup(data)
     state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
-    corrections_enabled = bool(
-        browser.member is None
-        and data.view == "show"
-        and data.target
-        and (await resolve_chat_capabilities(chat)).memory
-    )
-    return memory_view(
-        chat, state, browser, data, correction_command=AIMemoryCorrect.command if corrections_enabled else None
-    )
+    return memory_view(state, browser, data)
 
 
 class AIMemoryPageHandler(SophieCallbackQueryHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return AIMemoryPageCallback.filter(), FeatureFlagFilter("ai_memory_controls")
+
+    async def _privacy(self, chat: ChatModel, data: AIMemoryPageCallback, message: Message) -> None:
+        callback = self.event
+        redis = self.services.redis
+        user_tid = callback.from_user.id
+        resume = data.target == "resume"
+        if resume:
+
+            def opt_in(state: MemoryState) -> None:
+                state.excluded_users = [identity for identity in state.excluded_users if identity != user_tid]
+
+            await mutate_memory(chat, opt_in, redis=redis)
+            data = data.model_copy(update={"target": "privacy"})
+
+        admin = await is_user_admin(chat.tid, user_tid)
+        if data.target in {"forget", "off"}:
+            if not admin:
+                await callback.answer(_("Only chat administrators can clear shared AI memory."), show_alert=True)
+                return
+            confirmation = AIMemoryClearCallback(
+                owner_tid=user_tid,
+                operation="off" if data.target == "off" else "forget",
+                token=token_urlsafe(8),
+                action="confirm",
+            )
+            await redis.set(_clear_key(chat.tid, message.chat.id, confirmation), "1", ex=_CLEAR_TTL_SECONDS)
+            prompt = Doc(_("Clear shared AI memory and context for everyone in this chat?"))
+            if confirmation.operation == "off":
+                prompt += _("This also stops AI memory capture for you.")
+            buttons = [
+                InlineKeyboardButton(text=_("Clear shared memory"), callback_data=confirmation.pack(), style="danger"),
+                InlineKeyboardButton(
+                    text=_("Cancel"), callback_data=confirmation.model_copy(update={"action": "cancel"}).pack()
+                ),
+            ]
+            await common_try(self.answer_rich(prompt, reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons])))
+            await callback.answer()
+            return
+
+        state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
+        excluded = user_tid in state.excluded_users
+        document = Doc(
+            _("Memory capture is off for you.") if excluded else _("You allow AI memory capture in this chat.")
+        )
+        controls: list[list[InlineKeyboardButton]] = []
+        if excluded:
+            controls.append(
+                [
+                    InlineKeyboardButton(
+                        text=_("Resume saving my messages"),
+                        callback_data=data.model_copy(update={"target": "resume"}).pack(),
+                    )
+                ]
+            )
+        if admin:
+            controls.append(
+                [
+                    InlineKeyboardButton(
+                        text=_("Clear shared memory"),
+                        callback_data=data.model_copy(update={"target": "forget"}).pack(),
+                    )
+                ]
+            )
+            if not excluded:
+                controls.append(
+                    [
+                        InlineKeyboardButton(
+                            text=_("Stop saving my messages"),
+                            callback_data=data.model_copy(update={"target": "off"}).pack(),
+                        )
+                    ]
+                )
+        await common_try(self.answer_rich(document, reply_markup=memory_back_markup(data, controls)))
+        if resume:
+            await callback.answer(
+                _("Your messages can be saved again when AI memory capture is enabled."), show_alert=True
+            )
+        else:
+            await callback.answer()
 
     async def handle(self) -> None:
         callback = self.event
@@ -378,8 +289,12 @@ class AIMemoryPageHandler(SophieCallbackQueryHandler):
                 _("These memory controls belong to another user. Run /ai_memory yourself."), show_alert=True
             )
             return
-        if browser.member is not None and data.view != "show":
+        privacy = data.target in {"privacy", "resume", "forget", "off"}
+        if browser.member is not None and (data.view != "show" or privacy):
             await callback.answer(_("This view only shows the member's current memories."), show_alert=True)
+            return
+        if privacy:
+            await self._privacy(chat, data, callback.message)
             return
         document, markup = await _memory_page(chat, browser, data, redis=redis)
         await common_try(self.answer_rich(document, reply_markup=markup))

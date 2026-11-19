@@ -38,6 +38,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         expected_epoch = None
         if isinstance(event, Message) and chat_db and capabilities.message_cache:
             expected_epoch = int(await data["services"].redis.get(get_context_epoch_key(chat_db.tid)) or 0)
+        data["ai_message_cache_epoch"] = expected_epoch
         memory_enabled = bool(
             chat_db
             and capabilities.memory
@@ -130,6 +131,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 eligible_for_memory=bool(
                     memory_enabled
                     and bool(text)
+                    and not (event.text and event.text[0] in CONFIG.commands_prefix)
                     and sender is not None
                     and not sender.is_bot
                     and not event.sender_chat
