@@ -19,11 +19,24 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/ai_memory` | `<Memory operation and arguments>` | Inspect, correct, or forget your information in this chat's AI memory. |  |
 | `/research` | `<Research topic>` | Research a topic using multistage web search and return a summary with sources. | *Disable-able* |
 | `/ai_translate` `/translate` `/tr` | `<Text to translate>` | Translates the given (or replied) text to the chat's selected language. Also transcribes the replied voice message to text. | *Disable-able* |
 | `/ai_usage` | - | Check AI quota and usage details. |  |
 | `/ai` | `<Prompt>` | Ask Sophie a question. | *Disable-able* |
+{.card-view-on-mobile}
+
+### Memory
+
+| Commands | Arguments | Description | Remarks |
+| --- | --- | --- | --- |
+| `/ai_memory` | `<?@username or search text>` | Browse your memories, search by text, or view a member's memories by mention or reply. |  |
+| `/ai_memory_history` | - | Browse previous versions of your memories. |  |
+| `/ai_memory_sources` | - | Browse your original messages saved as sources. |  |
+| `/ai_memory_correct` | `<Memory ID>` `<Replacement text>` | Correct one of your current personal memories. |  |
+| `/ai_memory_forget` | - | Clear shared AI memory and context. | *Only admins* |
+| `/ai_memory_off` | - | Clear shared memory and stop saving your messages. | *Only admins* |
+| `/ai_memory_on` | - | Allow future capture of your messages. |  |
+| `/ai_memory_help` | - | Show examples for the AI memory commands. |  |
 {.card-view-on-mobile}
 
 ### PM-only

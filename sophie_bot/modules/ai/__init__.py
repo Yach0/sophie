@@ -24,7 +24,18 @@ from sophie_bot.modules.ai.handlers.feature_setting import (
     AIChatSummariesSetting,
     AINoteTitlesSetting,
 )
-from sophie_bot.modules.ai.handlers.memory import AIMemoryControl, AIMemoryPageHandler
+from sophie_bot.modules.ai.handlers.memory import (
+    AIMemoryBrowse,
+    AIMemoryClearHandler,
+    AIMemoryCorrect,
+    AIMemoryForget,
+    AIMemoryHelp,
+    AIMemoryHistory,
+    AIMemoryOff,
+    AIMemoryOn,
+    AIMemoryPageHandler,
+    AIMemorySources,
+)
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -128,8 +139,16 @@ module_manifest = ModuleManifest(
         AIFilterAddHandler,
         AiPmInitialize,
         AIContextReset,
-        AIMemoryControl,
+        AIMemoryBrowse,
+        AIMemoryHistory,
+        AIMemorySources,
+        AIMemoryCorrect,
+        AIMemoryForget,
+        AIMemoryOff,
+        AIMemoryOn,
+        AIMemoryHelp,
         AIMemoryPageHandler,
+        AIMemoryClearHandler,
         ResearchCmd,
         AiTranslate,
         AiUsage,

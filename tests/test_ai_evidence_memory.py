@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, Mock
 
 import pytest
 from beanie import PydanticObjectId
@@ -37,6 +37,7 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     read_memory,
     retrieve_memory,
 )
+from sophie_bot.modules.ai.utils.memory_writer import WriterAction, WriterOutput
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 
@@ -250,9 +251,10 @@ async def test_independent_writer_and_stale_result(
             capture_source(state, source(identity).model_copy(update={"sent_at": now}))
 
     await mutate_memory(chat, seed_first_batch, redis=test_services.redis)
-    monkeypatch.setattr(write_memory, "get_chat_model_plan", AsyncMock())
+    monkeypatch.setattr(write_memory, "single_model_plan", Mock())
     monkeypatch.setattr(write_memory, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
-    runner = AsyncMock(return_value=SimpleNamespace(output=MemoryActions(actions=[action(1)])))
+    output = WriterOutput(actions=[WriterAction.model_validate(action(1).model_dump())])
+    runner = AsyncMock(return_value=SimpleNamespace(output=output))
     monkeypatch.setattr(write_memory, "run_structured_task", runner)
     worker = write_memory.WriteMemory(test_services)
     await worker.handle()
@@ -269,10 +271,11 @@ async def test_independent_writer_and_stale_result(
 
     async def forget_during_write(*args: object, **kwargs: object) -> SimpleNamespace:
         await mutate_memory(chat, clear_memory, redis=test_services.redis)
-        return SimpleNamespace(output=MemoryActions(actions=[action(11)]))
+        return SimpleNamespace(output=output)
 
     runner.side_effect = forget_during_write
     await worker.handle()
+    assert runner.await_count == 2
     assert not (await read_memory(chat, START, redis=test_services.redis)).facts
 
 

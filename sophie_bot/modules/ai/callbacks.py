@@ -1,3 +1,5 @@
+from typing import Literal
+
 from aiogram.filters.callback_data import CallbackData
 
 from sophie_bot.filters.command_start import CmdStart
@@ -27,7 +29,19 @@ class AIHelpStartUrlCallback(CmdStart, prefix="aihelp"):
     """Deep link from a group into the Sophie-help assistant in the bot's private chat."""
 
 
-class AIMemoryPageCallback(CallbackData, prefix="ai_mem_page"):
+MemoryListView = Literal["show", "history", "sources"]
+
+
+class AIMemoryPageCallback(CallbackData, prefix="aim"):
+    token: str
+    view: MemoryListView
+    page: int = 0
+    target: str = ""
+    part: int = 0
+
+
+class AIMemoryClearCallback(CallbackData, prefix="aim_clear"):
     owner_tid: int
-    operation: str
-    page: int
+    operation: Literal["forget", "off"]
+    token: str
+    action: Literal["confirm", "cancel"]

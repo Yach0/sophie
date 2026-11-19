@@ -5,13 +5,15 @@ It implements source-backed storage and retrieval. It does not train a writer or
 
 ## Enable and roll out
 
-All new boolean flags default to **false**. The writer-model setting is a string, not an enable switch. Existing memory tools, prompt injection, reply decisions, and streaming stay
+All new boolean flags default to **false**. Writer model settings take model names. Existing memory tools, prompt injection, reply decisions, and streaming stay
 unchanged when the flags are off. Each flag supports the existing global/chat override and cohort rollout system.
 
 | Flag | Effect when enabled |
 | --- | --- |
 | `ai_memory_capture` | Mark original human messages in the existing Redis history as memory-eligible in entertainment mode, including silent conversations. |
-| `ai_memory_writer_model` | Select the independent writer model; default `gpt-6.1-terra` through OpenRouter. |
+| `ai_memory_writer_model` | Select the review model for tiered writing. Defaults to `gpt-6.1-terra` through OpenRouter. |
+| `ai_memory_writer_tiered` | Enable a separate review stage. Defaults off. |
+| `ai_memory_writer_routine_model` | Select the single-pass writer or the first stage of tiered writing. Defaults to `openai/gpt-6-luna` through OpenRouter. |
 | `ai_memory_writer` | Run batch extraction independently of replies. Requires at least one extraction scope below. |
 | `ai_memory_personal` | Allow the writer to create personal facts and observations about other people. |
 | `ai_memory_group` | Allow the writer to create shared events and group records. |
@@ -46,12 +48,11 @@ and the answer recheck separately. Keep legacy replacement off until the new pat
 Enable controls before giving people access to retained evidence, and leave controls enabled when disabling capture
 or retrieval so that people can still inspect and delete existing records.
 
-The writer uses the `memory_writer` purpose and its own `ai_memory_writer_model` setting, with standard provider fallback.
-Its default is `gpt-6.1-terra` through OpenRouter; it does not inherit the summary model override.
-The catalog migration adds that model and its entertainment-mode writer role. It preserves existing model/provider
-settings. If OpenRouter is absent, it adds an empty provider entry; configure its key before enabling the writer.
-The migration has a tested rollback and does not enable any memory flag. It charges the chat's chatbot quota
-and checks quota before each batch. Disabling a writer category stops new extraction in that category; it does not hide
+The writer defaults to Luna through OpenRouter and extracts all enabled memory categories in one pass. The catalog
+migration adds Terra and its entertainment-mode writer role for use in tiered review. It preserves existing model/provider
+settings. If OpenRouter is absent, it adds an empty provider entry. Configure its key before enabling the writer.
+The migration has a tested rollback and does not enable any memory flag. The writer uses the chat's existing shared AI
+quota and reports usage separately as **AI Memory**. Disabling a writer category stops new extraction in that category; it does not hide
 already stored facts. Messages accepted as NOOP are not automatically replayed when another category is enabled later.
 Capture, extraction, retrieval, and participation can each be disabled independently. Retention cleanup still runs.
 Leaving entertainment mode clears evidence and facts. Chat reset also clears existing new-store data. Both operations
@@ -80,7 +81,7 @@ retrieval explicitly tells the answerer that silence does not prove consensus.
 
 Capture runs in the message middleware after moderation, whether or not Sophie replies. The ordinary history write includes memory eligibility, speaker-name, and optional branch metadata; there is no second message body or per-message MongoDB write. Bots, anonymous senders, excluded users, and messages captured before the flag was enabled are filtered out of memory reads.
 Anonymous chat senders and bots are excluded to avoid assigning their statements to a user.
-`/ai_memory` and `/ai_reset` are not captured as ordinary conversation. A correction stores its command as evidence.
+AI memory commands and `/ai_reset` are not captured as ordinary conversation. A correction stores its command as evidence.
 The bot receives new message events; Telegram does not supply ordinary deleted-message events to bots.
 Use the memory controls to delete retained copies. Original text may contain authored names; modern context aliases
 identity fields but does not rewrite the authored text.
@@ -99,6 +100,32 @@ accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy
 a writer result from an earlier generation cannot restore deleted records.
 
 Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their configured fact retention expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
+
+### Writer routing and cost evaluation
+
+Enable `ai_memory_writer_tiered` to use Luna for clear first-person facts and preferences and Terra for reviewing
+selected messages about updates, reports about other people, or group events.
+The app also sends proposed changes and same-event conflicts to review. A valid empty routine result completes the batch
+without a review call. Chats with only group extraction enabled go directly to review.
+
+Each chat has one expiring writer claim across scheduler instances. The writer skips exact repeats within the
+same speaker, topic, reply branch and parent. Independent speakers and changes in the conversation keep their own evidence.
+In tiered mode, partial batches can run after 30 minutes. Prompts use request-local IDs and an estimated 8,000-token data budget, including
+selected current facts and supporting messages. If one message alone exceeds the batch budget, the model sees its
+opening and closing excerpts; the full source remains in Redis. The model can cite only IDs in its own prompt.
+Storage still uses the original IDs and validates attribution, version chains, and retention.
+
+Each stage uses one configured model with at most two model responses and a 3,000-output-token budget. The writer checks
+quota again before a review request. Responses are charged to **AI Memory** even when their output is later rejected.
+Sentry includes stage, model, token totals, retry responses, and provider-reported cost when present, plus accepted,
+rejected, and stale batches, reviewed messages, skipped duplicates, and saved memories. A valid result also requires the
+original generation and evidence at commit.
+
+Run `uv run python -m tools.ai_memory_replay` to validate the bundled synthetic cases. With an OpenRouter API key in
+`OPENROUTER_API_KEY`, add `--run` to compare Terra alone, Luna alone, and tiered writing. Use
+`--against z-ai/glm-5.3-flash` for a fourth comparison or `--cases` for approved labeled examples. The replay reports
+correct, missed, and extra memories by case, validation failures, model usage, and provider-reported cost per correct memory when all
+responses report cost. Review the results on representative chats before expanding the rollout.
 
 ## Retrieval and participation
 
@@ -122,20 +149,28 @@ semantic answers without a reply link still depend on the decision model and rec
 
 ## Personal controls
 
-These commands require `ai_memory_controls` and work in the current connected chat. Inspection, personal corrections,
-and on require no admin rights. Forget and off require chat administrator rights because they clear shared state:
+The **Memory** section under **Sophie AI** in `/help` lists these commands when `ai_memory_controls` is enabled in
+the help catalog. The commands work in the current connected chat. Chat admins can clear shared memory with
+`/ai_memory_forget` or `/ai_memory_off`.
 
-- `/ai_memory show`: inspect facts where you are the speaker or a subject, including IDs, versions, timestamps,
-  and evidence references. Each page holds three items, with separate ID, text, speaker, source, version, and time fields.
-  Previous/Next buttons use the shared paginator; `/ai_memory help` lists examples. Only the original requester can use the buttons. Every click reloads current data so deleted items cannot reappear from a page snapshot.
-- `/ai_memory sources`: inspect your original text from the shared 48-hour Redis history, using Previous/Next buttons. Long messages span pages.
-- `/ai_memory correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
+- `/ai_memory` lists current memories where you are the speaker or a subject, newest first. Use
+  `/ai_memory <text>` to search them, or `/ai_memory @username` to view another user's current memories in this chat.
+  Reply to a user's message with `/ai_memory` to view their memories without a username. Rich lists display up to
+  16 memories per page. The numbered buttons open full memory text. Source references, history, and corrections
+  are available from your own view.
+- `/ai_memory_history` or **History** lists superseded versions. **Sources** or `/ai_memory_sources` lists your
+  original messages from the shared 48-hour Redis history. Tap a number to open the full source message.
+- `/ai_memory_help` or **Help** shows command examples. Only the requester can use the list buttons. Each click
+  reloads current data, and navigation expires 15 minutes after the command.
+- `/ai_memory_correct FACT_ID TEXT`: append a correction to your current personal statement. Maximum 600 characters.
+  **Copy correction command** in the memory details copies the command with its ID ready for your replacement text.
   Send corrections in the original chat and topic. You cannot rewrite someone else's observation or a group decision. You can state your own position in chat.
-- `/ai_memory forget` (admins): clear retained information without disabling future capture.
-- `/ai_memory off` (admins): forget and disable capture of your messages and derived facts about you in this chat.
-- `/ai_memory on`: allow future capture. Deleted history is not restored.
+- `/ai_memory_forget` (admins): clear retained information without disabling future capture.
+- `/ai_memory_off` (admins): forget and disable capture of your messages and derived facts about you in this chat.
+- `/ai_memory_on`: allow future capture. Deleted history is not restored.
 
-Forget and off clear **all chat evidence, facts, legacy text memory, summaries, cached messages, tool exchanges, and native
+Forget and off require the requesting administrator to confirm within five minutes. They clear **all chat evidence,
+facts, legacy text memory, summaries, cached messages, tool exchanges, and native
 context sessions**. This deliberate coarse deletion removes indirect copies in other members' text. It can remove other
 members' useful memories too. It does not delete Telegram messages, notes, provider logs, or backups. Off prevents new
 structured records targeting an excluded user; other people's future authored text may still mention them.

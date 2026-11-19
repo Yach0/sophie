@@ -10,13 +10,17 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_context_epoch_key
+from sophie_bot.modules.ai.utils.memory_commands import MemoryCommand
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
 from sophie_bot.modules.ai.utils.self_reply import is_ai_message
 from sophie_bot.modules.ai.utils.support_replies import maybe_run_support_reply
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
+
+_MEMORY_COMMAND_FILTER = CMDFilter(tuple(command.value for command in MemoryCommand))
 
 
 @dataclass(slots=True)
@@ -88,8 +92,17 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             if not text and media is None:
                 return result
 
-            if cache_state.command and cache_state.command.command in {"ai_reset", "ai_memory"}:
-                log.debug("CacheUserMessagesMiddleware: skipping reset command")
+            if cache_state.command:
+                command = cache_state.command.command
+                skip_cache = command == "ai_reset" or command in MemoryCommand
+            else:
+                skip_cache = bool(
+                    event.text
+                    and event.text[0] in CONFIG.commands_prefix
+                    and await _MEMORY_COMMAND_FILTER(event, data["services"].bot, event.chat)
+                )
+            if skip_cache:
+                log.debug("CacheUserMessagesMiddleware: skipping AI memory control command")
                 return result
 
             sender = event.from_user

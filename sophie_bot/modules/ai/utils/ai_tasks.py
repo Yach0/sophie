@@ -1,12 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from typing import cast
 
 from beanie import PydanticObjectId
 from pydantic import BaseModel
-from pydantic_ai import Agent
+from pydantic_ai import Agent, RunContext
+from pydantic_ai.capabilities import Hooks
+from pydantic_ai.messages import ModelResponse
+from pydantic_ai.models import Model, ModelRequestContext
+from pydantic_ai.usage import RunUsage, UsageLimits
 from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
@@ -36,6 +40,9 @@ async def run_structured_task[OutputT: BaseModel](
     service_tier: str | None = None,
     *,
     redis: Redis,
+    single_model: bool = False,
+    usage_limits: UsageLimits | None = None,
+    on_response: Callable[[Model, ModelResponse], Awaitable[None]] | None = None,
 ) -> AIAgentResult[OutputT]:
     """Run a structured task over its purpose's model plan.
 
@@ -55,11 +62,24 @@ async def run_structured_task[OutputT: BaseModel](
         user_tracking_id=chat_iid,
         session_id=session_id,
         service_tier=resolved_service_tier,
+        single_model=single_model,
     )
     agent = cast(
         Agent[None, OutputT],
         Agent(model_plan.primary, name=task.name, output_type=task.output_type),
     )
+
+    async def observe(
+        _ctx: RunContext[None], *, request_context: ModelRequestContext, response: ModelResponse
+    ) -> ModelResponse:
+        if on_response is not None:
+            await on_response(request_context.model, response)
+            if chat_iid is not None and task.feature is not None and response.usage is not None:
+                usage = RunUsage()
+                usage.incr(response.usage)
+                await charge_ai_usage(chat_iid, task.feature, request_context.model, usage, redis=redis)
+        return response
+
     result = await run_ai_structured(
         agent,
         user_prompt=history.prompt,
@@ -67,8 +87,16 @@ async def run_structured_task[OutputT: BaseModel](
         request_options=request_options,
         model_settings=task.model_settings,
         model_plan=model_plan,
+        usage_limits=usage_limits,
+        capabilities=[Hooks(after_model_request=observe)] if on_response is not None else [],
     )
-    if chat_iid is not None and task.feature is not None and result.usage and result.usage.total_tokens:
+    if (
+        on_response is None
+        and chat_iid is not None
+        and task.feature is not None
+        and result.usage
+        and result.usage.total_tokens
+    ):
         await charge_ai_usage(
             chat_iid,
             task.feature,

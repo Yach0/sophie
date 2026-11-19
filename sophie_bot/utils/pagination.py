@@ -2,11 +2,28 @@ from __future__ import annotations
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from html.parser import HTMLParser
 from typing import Any
 
 from aiogram.types import InlineKeyboardButton
 
 from sophie_bot.utils.i18n import gettext as _
+
+
+class _VisibleTextLength(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.length = 0
+
+    def handle_data(self, data: str) -> None:
+        self.length += len(data.encode("utf-16-le")) // 2
+
+
+def telegram_html_length(html: str) -> int:
+    counter = _VisibleTextLength()
+    counter.feed(html)
+    counter.close()
+    return counter.length
 
 
 @dataclass(frozen=True, slots=True)
