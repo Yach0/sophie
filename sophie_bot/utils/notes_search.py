@@ -5,11 +5,18 @@ from collections.abc import Iterable
 from typing import Final
 
 from beanie import PydanticObjectId
-from openai import AsyncOpenAI
+from openai import APIConnectionError, APIStatusError, AsyncOpenAI
 from redis.asyncio import Redis
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models import NoteModel
 from sophie_bot.modules.ai.utils.ai_catalog import get_openrouter_api_key
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AI_REQUEST_RETRY_ATTEMPTS,
+    AIErrorContext,
+    capture_ai_error,
+    is_retryable_ai_provider_error,
+)
 from sophie_bot.utils.logger import log
 
 EMBEDDING_MODEL: Final[str] = "openai/text-embedding-3-small"
@@ -32,8 +39,26 @@ async def create_embedding(text: str, *, redis: Redis) -> list[float] | None:
     if api_key is None:
         log.debug("notes_rag: no OpenRouter catalog key configured, skipping embeddings")
         return None
-    async with AsyncOpenAI(api_key=api_key, base_url="https://openrouter.ai/api/v1") as client:
-        response = await client.embeddings.create(model=EMBEDDING_MODEL, input=text)
+    try:
+        async with AsyncOpenAI(
+            api_key=api_key,
+            base_url="https://openrouter.ai/api/v1",
+            timeout=CONFIG.ai_request_timeout_seconds,
+            max_retries=AI_REQUEST_RETRY_ATTEMPTS - 1,
+        ) as client:
+            response = await client.embeddings.create(model=EMBEDDING_MODEL, input=text)
+    except (APIConnectionError, APIStatusError) as error:
+        if isinstance(error, APIStatusError) and not is_retryable_ai_provider_error(error):
+            raise
+        event_id = capture_ai_error(
+            error, AIErrorContext(operation="embedding", model_name=EMBEDDING_MODEL), level="warning"
+        )
+        log.warning(
+            "notes_rag: embeddings unavailable after provider retries",
+            error_type=type(error).__name__,
+            sentry_event_id=event_id,
+        )
+        return None
     return list(response.data[0].embedding)
 
 
