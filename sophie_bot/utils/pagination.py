@@ -6,6 +6,7 @@ from html.parser import HTMLParser
 from typing import Any
 
 from aiogram.types import InlineKeyboardButton
+from stfu_tg import Footer, Template
 
 from sophie_bot.utils.i18n import gettext as _
 
@@ -52,6 +53,12 @@ def paginate[ItemT](items: Sequence[ItemT], page_size: int, requested_page: int 
         has_previous=page > 0,
         has_next=page < total_pages - 1,
     )
+
+
+def build_pagination_footer(page_index: int, total_pages: int) -> Footer | None:
+    if total_pages <= 1:
+        return None
+    return Footer(Template(_("Page {page} of {pages}"), page=page_index + 1, pages=total_pages))
 
 
 def build_pagination_row(

@@ -8,7 +8,6 @@ from pydantic import BaseModel
 from stfu_tg import (
     Code,
     Doc,
-    Footer,
     Heading,
     KeyValue,
     ListItem,
@@ -24,7 +23,7 @@ from sophie_bot.db.models.ai.ai_evidence_memory import MemoryFact, MemorySource,
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback, MemoryListView
 from sophie_bot.utils.i18n import gettext as _
-from sophie_bot.utils.pagination import build_pagination_row, paginate
+from sophie_bot.utils.pagination import build_pagination_footer, build_pagination_row, paginate
 
 _BUTTONS_PER_ROW = 8
 _PAGE_SIZE = 2 * _BUTTONS_PER_ROW
@@ -58,10 +57,6 @@ def _preview(text: str, limit: int) -> str:
     return line if len(line) <= limit else line[: limit - 1].rstrip() + "…"
 
 
-def _page_label(page: int, total: int) -> Template:
-    return Template(_("Page {page} of {pages}"), page=page, pages=total)
-
-
 def _preview_list(entries: Sequence[MemoryFact | MemorySource]) -> OrderedList:
     return OrderedList(*(ListItem(_preview(entry.text, _PREVIEW_LENGTH)) for entry in entries))
 
@@ -81,13 +76,13 @@ def _list_pages(
 ) -> list[list[MemoryFact | MemorySource]]:
     pages: list[list[MemoryFact | MemorySource]] = []
     items: list[MemoryFact | MemorySource] = []
-    page_label = Footer(_page_label(len(entries), len(entries)))
+    footer = build_pagination_footer(len(entries) - 1, len(entries))
     status_block = Paragraph(status) if status else ""
     for entry in entries:
         candidate = [*items, entry]
         if items and (
             len(items) == _PAGE_SIZE
-            or len(Doc(header, _preview_list(candidate), status_block, page_label).to_rich().encode("utf-8"))
+            or len(Doc(header, _preview_list(candidate), status_block, footer).to_rich().encode("utf-8"))
             > _MAX_RICH_PAGE_BYTES
         ):
             pages.append(items)
@@ -137,8 +132,8 @@ def _memory_list(
         document += Paragraph(_("No saved memories in this chat."))
     if status:
         document += Paragraph(status)
-    if pagination.total_pages > 1:
-        document += Footer(_page_label(pagination.page + 1, pagination.total_pages))
+    if footer := build_pagination_footer(pagination.page, pagination.total_pages):
+        document += footer
     tabs: dict[MemoryListView, str] = {"show": _("Memories"), "history": _("History"), "sources": _("Sources")}
     buttons.append(
         [
@@ -215,8 +210,8 @@ def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[D
         *(RichBlockQuote(*part.splitlines()) for part in page.items),
     )
     buttons = build_pagination_row(page, lambda part: data.model_copy(update={"part": part}).pack())
-    if buttons:
-        document += Footer(_page_label(page.page + 1, page.total_pages))
+    if footer := build_pagination_footer(page.page, page.total_pages):
+        document += footer
     return document, [buttons] if buttons else []
 
 
