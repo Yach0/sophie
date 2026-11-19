@@ -255,14 +255,15 @@ async def test_the_failure_that_ends_the_chain_is_attributed_to_the_last_candida
     assert terminal_event["contexts"]["ai_request"]["primary_model"] == "primary/model"
 
 
+@pytest.mark.parametrize("status_code", [401, 402, 403])
 async def test_a_configuration_error_reaches_the_global_handler_without_walking_the_chain(
-    sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
+    status_code: int, sentry_events: list[dict[str, Any]], instant_retries: None, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     attempted: list[str] = []
 
     async def operation(active: str) -> str:
         attempted.append(active)
-        raise ModelHTTPError(status_code=401, model_name="whatever", body={"error": {"message": "Invalid key"}})
+        raise ModelHTTPError(status_code=status_code, model_name="whatever", body={"error": {"message": "Invalid key"}})
 
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 

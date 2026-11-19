@@ -73,8 +73,10 @@ stream output starts, a failure reaches the caller. The agent is not restarted.
 Response-based fallback is disabled for streamed requests, including text calls
 with an event stream handler.
 
-The `on_retry` callback reports model fallback. Provider SDK retries occur below
-the agent and do not call this callback. Request metrics name the model attempted;
+The AI progress line reports SDK retries as attempts 2/5 through 5/5, including
+note embeddings during prompt construction. Model fallback starts at attempt 1/5.
+Callbacks are scoped to the current request, including when provider clients are cached.
+Request metrics name the model attempted;
 token metrics use the usage recorded on each response and rejected attempt.
 Terminal fallback errors retain the native exception group and are reported
 against the last candidate.

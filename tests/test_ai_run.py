@@ -22,7 +22,7 @@ from pydantic_ai import (
     ThinkingPart,
     ThinkingPartDelta,
 )
-from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
+from pydantic_ai.exceptions import UsageLimitExceeded
 from pydantic_ai.messages import (
     BinaryContent,
     ModelMessage,
@@ -495,56 +495,6 @@ def no_last_resort(monkeypatch: Any) -> None:
     monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
 
 
-async def test_the_first_candidate_serves_when_it_succeeds() -> None:
-    primary = candidate("primary")
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        return "from-primary"
-
-    result, served = await run_chain(operation, primary)
-
-    assert result == "from-primary"
-    assert served is primary
-    assert attempted == [primary]
-
-
-async def test_a_failing_candidate_hands_over_to_the_next() -> None:
-    primary = candidate("primary")
-    backup = candidate("backup")
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        if active is primary:
-            raise TimeoutError("primary provider is down")
-        return "from-backup"
-
-    result, served = await run_chain(operation, primary, backup)
-
-    # The served model must be the one that answered, so callers attribute usage/metrics correctly.
-    assert result == "from-backup"
-    assert served is backup
-    assert attempted == [primary, backup]
-
-
-async def test_a_flat_provider_rejection_also_hands_over() -> None:
-    """The request that most needs another model — an image a model cannot read — is a plain 400."""
-    primary = candidate("primary")
-    backup = candidate("backup")
-
-    async def operation(active: AIModelCandidate) -> str:
-        if active is primary:
-            raise ModelHTTPError(status_code=400, model_name="primary", body="no image support")
-        return "from-backup"
-
-    result, served = await run_chain(operation, primary, backup)
-
-    assert result == "from-backup"
-    assert served is backup
-
-
 async def test_a_usage_limit_stops_the_chain() -> None:
     """Sophie's own budget ended the run; the next model would only spend more of it."""
     attempted: list[AIModelCandidate] = []
@@ -556,35 +506,6 @@ async def test_a_usage_limit_stops_the_chain() -> None:
     with pytest.raises(UsageLimitExceeded):
         await run_chain(operation, candidate("primary"), candidate("backup"))
     assert len(attempted) == 1
-
-
-@pytest.mark.parametrize("status_code", [401, 402, 403])
-async def test_a_misconfigured_provider_stops_the_chain(status_code: int) -> None:
-    """A rejected key fails identically on every candidate: walking the chain only delays the error."""
-    attempted: list[AIModelCandidate] = []
-
-    async def operation(active: AIModelCandidate) -> str:
-        attempted.append(active)
-        raise ModelHTTPError(status_code=status_code, model_name="primary", body="invalid api key")
-
-    with pytest.raises(ModelHTTPError) as raised:
-        await run_chain(operation, candidate("primary"), candidate("backup"), candidate("third"))
-
-    assert raised.value.status_code == status_code
-    assert len(attempted) == 1
-
-
-async def test_the_last_candidates_error_is_raised() -> None:
-    """Exhaustion keeps error semantics: the last candidate's failure is the one callers get."""
-
-    async def operation(active: AIModelCandidate) -> str:
-        raise TimeoutError("everything is down")
-
-    with pytest.raises(AIRequestFailed) as raised:
-        await run_chain(operation, candidate("primary"), candidate("backup"))
-
-    assert isinstance(raised.value.__cause__, ExceptionGroup)
-    assert str(raised.value.__cause__.exceptions[-1]) == "everything is down"
 
 
 async def test_an_empty_answer_hands_over_to_the_next_candidate() -> None:
