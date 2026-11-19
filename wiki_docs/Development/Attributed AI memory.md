@@ -81,7 +81,8 @@ retrieval explicitly tells the answerer that silence does not prove consensus.
 
 Capture runs in the message middleware after moderation, whether or not Sophie replies. The ordinary history write includes memory eligibility, speaker-name, and optional branch metadata; there is no second message body or per-message MongoDB write. Bots, anonymous senders, excluded users, and messages captured before the flag was enabled are filtered out of memory reads.
 Anonymous chat senders and bots are excluded to avoid assigning their statements to a user.
-AI memory commands and `/ai_reset` are not captured as ordinary conversation. A correction stores its command as evidence.
+The AI message cache excludes memory commands and `/ai_reset`, even when a feature or permission check blocks them.
+A correction stores its command as evidence.
 The bot receives new message events; Telegram does not supply ordinary deleted-message events to bots.
 Use the memory controls to delete retained copies. Original text may contain authored names; modern context aliases
 identity fields but does not rewrite the authored text.

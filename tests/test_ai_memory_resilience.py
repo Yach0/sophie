@@ -53,7 +53,7 @@ async def test_shared_capture_does_not_write_mongo(
         from_user=User(id=1122, is_bot=False, first_name="Member"),
         text="Hello",
     )
-    result = await cache_user_messages.CacheUserMessagesMiddleware()(
+    result = await cache_user_messages.CacheUserMessagesMiddleware(excluded_commands=())(
         handler,
         message,
         {"context": SimpleNamespace(event_chat=chat), "services": test_services},

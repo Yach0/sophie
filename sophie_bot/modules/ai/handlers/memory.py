@@ -72,6 +72,7 @@ _LEGACY_MEMORY_COMMANDS = {
 }
 
 
+@flags.ai_cache(exclude_user_command=True)
 class _AIMemoryCommand(SophieMessageHandler):
     command: ClassVar[MemoryCommand]
 

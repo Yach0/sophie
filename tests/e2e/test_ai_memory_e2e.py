@@ -287,15 +287,18 @@ async def test_personal_correction_ownership_and_invalid_arguments(
     assert "No memories match your search" in _message_text(requests)
 
 
-async def test_disabled_controls_leave_memory_commands_out_of_cache(
+@pytest.mark.parametrize("controls_enabled", [False, True])
+async def test_memory_commands_stay_out_of_cache(
     test_client: TestClient,
     test_services: ApplicationServices,
+    controls_enabled: bool,
 ) -> None:
     user, group, _user_model = await create_test_user_and_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
     await set_feature(test_client, "ai_memory_capture", True, chat_tid=chat.tid)
+    await set_feature(test_client, "ai_memory_controls", controls_enabled, chat_tid=chat.tid)
     await _feed(
         test_client,
         MessageFactory.create(
@@ -304,9 +307,9 @@ async def test_disabled_controls_leave_memory_commands_out_of_cache(
     )
     await test_client.send_command(command="ai_memory_off", from_user=user, chat=group)
     await test_client.send_command(command="AI-MEMORY private search text", from_user=user, chat=group)
+    await test_client.send_command(command="ai_reset", from_user=user, chat=group)
     cached = await get_cached_messages(chat.tid, redis=test_services.redis)
-    assert any(message.text == "Existing behavior" for message in cached)
-    assert all("private search text" not in message.text and "ai_memory_off" not in message.text for message in cached)
+    assert [message.text for message in cached] == ["Existing behavior"]
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
     assert document is None
 

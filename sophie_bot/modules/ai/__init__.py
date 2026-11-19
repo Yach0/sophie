@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from aiogram import Router
+from aiogram.dispatcher.flags import get_flag
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from stfu_tg import Doc
 
 from sophie_bot.constants import AI_EMOJI
+from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.modules import ModuleManifest, track_scheduler_callback
 from sophie_bot.modules.ai.handlers.ai_addfilter import AIFilterAddHandler
 from sophie_bot.modules.ai.handlers.ai_cmd import AiCmd
@@ -86,9 +88,14 @@ async def initialize(services: ApplicationServices) -> None:
 
 
 async def setup_bot(bot_router: Router, _services: ApplicationServices) -> None:
-    cache_user_messages = CacheUserMessagesMiddleware()
-    bot_router.message.outer_middleware(cache_user_messages)
-    bot_router.message.middleware(cache_user_messages.capture_command)
+    excluded_commands = tuple(
+        event_filter.callback
+        for handler in bot_router.message.handlers
+        if get_flag(handler, "ai_cache", default={}).get("exclude_user_command")
+        for event_filter in handler.filters or ()
+        if isinstance(event_filter.callback, CMDFilter)
+    )
+    bot_router.message.outer_middleware(CacheUserMessagesMiddleware(excluded_commands))
     bot_router.message.middleware(CacheBotMessagesMiddleware())
     bot_router.message.outer_middleware(AiModeratorMiddleware())
     bot_router.message.outer_middleware(AiStatusMiddleware())

@@ -20,6 +20,7 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 
 @flags.handler_help(description=l_("Reset the chat's AI context and AI memory."))
+@flags.ai_cache(exclude_user_command=True)
 class AIContextReset(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
