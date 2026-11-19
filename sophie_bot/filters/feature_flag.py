@@ -17,7 +17,7 @@ class FeatureFlagFilter(BaseFilter):
         self.enabled = enabled
         self.notify_callback = notify_callback
 
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self,
         event: Message | CallbackQuery,
         services: ApplicationServices,

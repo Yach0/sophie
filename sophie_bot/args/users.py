@@ -81,4 +81,4 @@ class SophieUserArg(OrArg):
             UserLink(user_id=1111224224, name="OrangeFox BOT"): l_(
                 "A link to a user, usually created by mentioning a user without a username."
             ),
-        }  # ty:ignore[invalid-return-type]
+        }  # ty: ignore[invalid-explicit-return]

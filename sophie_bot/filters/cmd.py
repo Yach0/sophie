@@ -100,7 +100,7 @@ class CMDFilter(BaseFilter):
     def check_mono(entities: list[MessageEntity]) -> bool:
         return any(ent.offset == 0 and ent.type in {"code", "pre"} for ent in entities)
 
-    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, CommandObject]:
+    async def __call__(self, message: Message, bot: Bot, event_chat: Chat) -> bool | dict[str, CommandObject]:  # ty: ignore[incompatible-mutable-override]
         text = (message.text or message.caption) if self.allow_caption else message.text
         if not text:
             return False

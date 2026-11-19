@@ -24,7 +24,7 @@ class AIQuotaFilter(Filter):
         self.feature = feature
         self._is_chatbot = feature == AI_FEATURE_CHATBOT
 
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self,
         message: Message,
         context: RequestContext,

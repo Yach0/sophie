@@ -7,5 +7,5 @@ class ChatTypeFilter(Filter):
     def __init__(self, *chat_types: str | ChatType):
         self.chat_types = chat_types
 
-    async def __call__(self, event: TelegramObject, event_chat: Chat, **kwargs) -> bool:
+    async def __call__(self, event: TelegramObject, event_chat: Chat, **kwargs) -> bool:  # ty: ignore[incompatible-mutable-override]
         return event_chat.type in self.chat_types

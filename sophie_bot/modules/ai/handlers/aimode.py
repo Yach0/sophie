@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from aiogram import Bot
 from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, InputRichMessage, Message
 from stfu_tg import Doc, RichTable, RichTableCell, Title
@@ -66,10 +67,10 @@ def _build_doc() -> Doc:
     return Doc(Title(f"{AI_EMOJI} {_('AI Mode')}"), _build_table())
 
 
-async def _send_picker(message: Message, selected: AIMode) -> None:
+async def _send_picker(message: Message, selected: AIMode, *, bot: Bot) -> None:
     doc = _build_doc()
     keyboard = _build_keyboard(selected)
-    await message.bot.send_rich_message(  # ty: ignore[unresolved-attribute]
+    await bot.send_rich_message(
         chat_id=message.chat.id,
         message_thread_id=message.message_thread_id,
         rich_message=InputRichMessage(html=doc.to_rich()),
@@ -84,7 +85,9 @@ class AIModeSetting(SophieMessageHandler):
         return CMDFilter("ai_mode"), UserRestricting(admin=True)
 
     async def handle(self) -> Any:
-        await _send_picker(self.event, await get_chat_mode(self.connection.db_model.iid, AIMode.disabled))
+        await _send_picker(
+            self.event, await get_chat_mode(self.connection.db_model.iid, AIMode.disabled), bot=self.services.bot
+        )
 
 
 class AIModeSelectCallback(SophieCallbackQueryHandler):

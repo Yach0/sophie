@@ -13,7 +13,7 @@ from sophie_bot.utils.i18n import gettext as _
 
 
 class BanlistCooldownFilter(Filter):
-    async def __call__(self, message: Message, services: ApplicationServices) -> bool | dict[str, Any]:
+    async def __call__(self, message: Message, services: ApplicationServices) -> bool | dict[str, Any]:  # ty: ignore[incompatible-mutable-override]
         if not message.from_user:
             raise SkipHandler
 

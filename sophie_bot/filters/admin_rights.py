@@ -69,7 +69,7 @@ class UserRestricting(Filter):
                 config[argument] = full_config.pop(alias)
         return config
 
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self,
         event: TelegramObject,
         context: RequestContext,

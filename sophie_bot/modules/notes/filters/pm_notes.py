@@ -8,7 +8,7 @@ from sophie_bot.middlewares.request_context import RequestContext
 
 
 class PMNotesFilter(Filter):
-    async def __call__(
+    async def __call__(  # ty: ignore[incompatible-mutable-override]
         self,
         event: TelegramObject,
         context: RequestContext,

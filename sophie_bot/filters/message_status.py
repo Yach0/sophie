@@ -8,7 +8,7 @@ class NoArgs(Filter):
     def __init__(self, no_args):
         self.no_args = no_args
 
-    async def __call__(self, message: types.Message):
+    async def __call__(self, message: types.Message):  # ty: ignore[incompatible-mutable-override]
         text = message.text or ""
         return len(text.split(" ")) <= 1
 
@@ -19,6 +19,6 @@ class HasArgs(Filter):
     def __init__(self, has_args):
         self.has_args = has_args
 
-    async def __call__(self, message: types.Message):
+    async def __call__(self, message: types.Message):  # ty: ignore[incompatible-mutable-override]
         text = message.text or ""
         return len(text.split(" ")) > 1
