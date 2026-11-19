@@ -112,6 +112,7 @@ FeatureType: TypeAlias = Literal[  # noqa: UP040
     "welcomecaptcha",
     "welcomecaptcha_autokick",
     "ai_translations_service_tier",
+    "ai_proactive_support",
     "ai_proactive_replies_model",
     "ai_proactive_replies_prompt",
     "ai_proactive_replies_service_tier",
@@ -379,6 +380,7 @@ _FEATURE_DEFINITIONS: Final[dict[FeatureType, FeatureDefinition]] = {
     "welcomecaptcha": _feature(True),
     "welcomecaptcha_autokick": _feature(True),
     "ai_translations_service_tier": _feature("flex", _SERVICE_TIER_FEATURE),
+    "ai_proactive_support": _feature(False),
     "ai_proactive_replies_model": _feature("openai/gpt-5-nano", _AI_MODEL_FEATURE),
     "ai_proactive_replies_prompt": _feature(
         "Use balanced judgment about whether Sophie should join the conversation. "

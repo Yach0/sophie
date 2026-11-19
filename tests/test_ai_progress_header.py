@@ -176,7 +176,14 @@ async def test_media_preparation_stacks_video_voice_and_image_activities(
         redis=cast(Any, test_redis),
     )
     streamer.response_message = cast(Message, response_message)
-    download = AsyncMock(side_effect=lambda file_id: BytesIO(b"image-bytes"))
+
+    async def download_to_buffer(_file_id: str, *, destination: BytesIO | None = None) -> BytesIO:
+        if destination is None:
+            return BytesIO(b"image-bytes")
+        destination.write(b"image-bytes")
+        return destination
+
+    download = AsyncMock(side_effect=download_to_buffer)
     history = OldContext(
         services=cast(Any, SimpleNamespace(bot=SimpleNamespace(download=download), redis=test_redis))
     )

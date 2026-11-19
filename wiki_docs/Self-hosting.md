@@ -101,6 +101,24 @@ A prompt whose security note is an album is still posted to the chat: `sendMedia
 address one member, and splitting the album into separate ephemeral messages is no way around it —
 Telegram accepts at most five ephemeral messages per user.
 
+## USSR spam classifier
+
+The runtime image bundles a checksum-verified text model from a pinned USSR revision.
+Classification runs locally without network access and loads the model once per process.
+For source checkouts, run `make spam_model` before starting the bot. This downloads the
+artifact to `sophie_bot/spam_model_data/`; it is independent of the working directory.
+Rebuild the runtime image to deploy changes to the pinned model.
+
+
+USSR currently ships a binary spam classifier. Sophie records its spam probability;
+NSFW probability is zero because this artifact has no NSFW output. This integration
+collects matches for group message text and captions; it does not delete messages or
+run image classification. Administrators and group-whitelisted users are exempt.
+
+The artifact was trained with scikit-learn 1.8; the current dependency uses 1.9 and
+emits a version warning when loading it. The build and CI smoke checks exercise
+prediction with the installed version so an incompatible artifact fails before deployment.
+
 ## AI models and providers
 
 Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in
@@ -319,7 +337,10 @@ alias maps do not grow the roster forever.
 Group and channel titles are included as escaped XML in runtime snapshots, never in
 stable instructions. Private-chat names are omitted from the conversation-title field.
 
-Speakers and message references use session-local `uN` and `mN` labels. Typed builders
+Speakers use session-local alphabetic labels starting at `AA`, then `AB` through
+`AZ`, `BA` through `ZZ`, and continuing with `AAA`, `AAB`, and longer labels as needed.
+Repeated speakers keep the same label; message references use `mN`. Existing saved
+sessions retain their legacy `uN`/`UN` speaker labels until reset. Typed builders
 select these labels instead of real handles or Telegram IDs for attribution fields.
 Entertainment alone includes literal first-name attribution. Its outgoing first-name
 mentions resolve to usernames only when the session identity lookup is unambiguous;
@@ -327,8 +348,12 @@ known ambiguous names remain plain. Other modern modes keep alias-only attributi
 Authored messages, notes, summaries, configuration prompts and arbitrary native tool
 data are not scanned or redacted. Only XML syntax is escaped. Native provider message
 parts and signatures replay unchanged; there is no generic sanitization processor.
-Memory facts use identity anchors, stored as internal links and re-aliased for a new
-session, so first-name jokes do not attach to a different person after reset.
+Memory-tool input and displayed memory facts use explicit alphabetic identity anchors
+such as `[AA]` and `[AB]`, stored as internal links and re-aliased for a new session,
+so first-name jokes do not attach to a different person after reset. Bare uppercase
+words (including known aliases such as `AI`) remain literal memory text. XML
+`speaker_id` values stay bare (`AA`, `AB`, ...). Legacy bare `uN`/`UN` anchors and
+saved internal identity links remain supported; saved plain text is left unchanged.
 
 Supported providers receive caching options: Anthropic-compatible OpenRouter models
 use explicit cache markers, native Anthropic uses its cache controls, and native

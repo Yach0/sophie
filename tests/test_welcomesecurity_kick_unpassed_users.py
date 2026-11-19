@@ -16,7 +16,10 @@ _MODULE = "sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users"
 
 @pytest.fixture(autouse=True)
 def _untracked_membership(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(f"{_MODULE}.UserInGroupModel.get_user_in_group", AsyncMock(return_value=None))
+    monkeypatch.setattr(
+        "sophie_bot.modules.welcomesecurity.utils_.pending_session.UserInGroupModel.get_user_in_group",
+        AsyncMock(return_value=None),
+    )
 
 
 def _make_ws_user(*, is_join_request: bool, age_hours: float) -> SimpleNamespace:
@@ -29,6 +32,8 @@ def _make_ws_user(*, is_join_request: bool, age_hours: float) -> SimpleNamespace
         is_join_request=is_join_request,
         membership_id=None,
         membership_join_message_id=None,
+        cleanup_message_ids=[],
+        cleanup_ephemeral_message_ids=[],
         added_at=datetime.now(UTC) - timedelta(hours=age_hours),
         user=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),
         group=SimpleNamespace(ref=SimpleNamespace(id=PydanticObjectId())),

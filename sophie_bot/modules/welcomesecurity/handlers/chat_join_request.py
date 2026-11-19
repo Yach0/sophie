@@ -10,7 +10,7 @@ from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardM
 
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
-from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel
+from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -25,6 +25,8 @@ from sophie_bot.modules.utils_.telegram_exceptions import (
 )
 from sophie_bot.modules.welcomesecurity.utils_.initiate_captcha import CaptchaDMBlockedError, initiate_captcha
 from sophie_bot.modules.welcomesecurity.utils_.on_new_user import ws_on_new_user
+from sophie_bot.modules.welcomesecurity.utils_.pending_session import is_current_session
+from sophie_bot.modules.welcomesecurity.utils_.pending_user_lock import pending_user_lock
 from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
@@ -136,6 +138,23 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
             return
         if muted is None:
             return
+        async with pending_user_lock(chat.tid, user.tid, redis=self.services.redis):
+            pending = await WSUserModel.is_user(user.iid, chat.iid)
+            if (
+                pending is None
+                or pending.passed
+                or not pending.is_join_request
+                or pending.transition is not None
+                or not await is_current_session(pending)
+            ):
+                return
+            await self.send_request_prompt(chat, user, greetings, pending)
+
+    async def send_request_prompt(
+        self, chat: ChatModel, user: ChatModel, greetings: GreetingsModel, pending: WSUserModel
+    ) -> None:
+        chat_tid = chat.tid
+        sent_messages: list[Message] = []
         join_request_saveable = greetings.join_request_message or get_default_join_request_message()
         rules = await RulesModel.get_rules(chat.iid)
 
@@ -165,9 +184,13 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
                 user=self.event.from_user,
                 owner_chat_tid=chat_tid,
                 bot=self.services.bot,
+                collect_sent=sent_messages,
             )
         except CaptchaDMBlockedError:
             sent_message = await send_dm_unblock_message(chat_tid, bot=self.services.bot)
+            sent_messages.append(sent_message)
+        finally:
+            await pending.remember_cleanup_messages([message.message_id for message in sent_messages], [])
 
         if greetings.clean_welcome and greetings.clean_welcome.enabled and greetings.clean_welcome.last_msg:
             await common_try(

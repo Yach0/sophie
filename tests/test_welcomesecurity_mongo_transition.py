@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest
 from beanie import PydanticObjectId
+from beanie.odm.operators.update.general import Set
 
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.db.models.greetings import WelcomeMute
@@ -146,10 +147,8 @@ async def test_completion_claim_precedes_visible_action_and_blocks_expiry(
     module = "sophie_bot.modules.welcomesecurity.utils_.on_user_passed"
     monkeypatch.setattr(f"{module}.is_user_admin", AsyncMock(return_value=False))
     monkeypatch.setattr(f"{module}.is_user_group_whitelisted", AsyncMock(return_value=False))
-    monkeypatch.setattr(
-        f"{module}.execute_restriction",
-        AsyncMock(return_value=RestrictionResult(action=RestrictionAction.UNMUTE, applied=True)),
-    )
+    unmute = AsyncMock(return_value=RestrictionResult(action=RestrictionAction.UNMUTE, applied=True))
+    monkeypatch.setattr(f"{module}.execute_restriction", unmute)
     kick = AsyncMock()
     monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.execute_restriction", kick)
     completion = asyncio.create_task(
@@ -166,6 +165,7 @@ async def test_completion_claim_precedes_visible_action_and_blocks_expiry(
         await asyncio.wait_for(visible_action.wait(), timeout=2)
         await KickUnpassedUsers(test_services).process_user(pending)
         kick.assert_not_awaited()
+        unmute.assert_not_awaited()
     finally:
         finish_completion.set()
         await completion
@@ -609,3 +609,72 @@ async def test_old_request_fence_cannot_follow_new_completion_with_same_timestam
     await rejoined.save()
     assert await rejoined.claim_transition("completing") is not None
     assert not await claimed.transition_is_current()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("join_request", [False, True])
+async def test_scheduler_recovers_completion_without_a_second_captcha(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices, join_request: bool
+) -> None:
+    user, group = await _create_user_and_group(883011, -883012)
+    pending = await WSUserModel.ensure_user(user, group, join_request)
+    error = TelegramBadRequest(method=SimpleNamespace(), message="temporary failure")
+    edit = AsyncMock(side_effect=error if not join_request else None)
+    approve = AsyncMock(side_effect=[error, True] if join_request else None)
+    monkeypatch.setattr(test_services.bot, "edit_message_media", edit)
+    monkeypatch.setattr(test_services.bot, "approve_chat_join_request", approve)
+    decline = AsyncMock()
+    monkeypatch.setattr(test_services.bot, "decline_chat_join_request", decline)
+    module = "sophie_bot.modules.welcomesecurity.utils_.on_user_passed"
+    monkeypatch.setattr(f"{module}.is_user_admin", AsyncMock(return_value=False))
+    monkeypatch.setattr(f"{module}.is_user_group_whitelisted", AsyncMock(return_value=False))
+    unmute = AsyncMock(return_value=RestrictionResult(action=RestrictionAction.UNMUTE, applied=True))
+    monkeypatch.setattr(f"{module}.execute_restriction", unmute)
+    kick = AsyncMock()
+    monkeypatch.setattr("sophie_bot.modules.welcomesecurity.schedules.kick_unpassed_users.execute_restriction", kick)
+
+    with pytest.raises(TelegramBadRequest):
+        await complete_captcha(
+            user,
+            group,
+            SimpleNamespace(welcome_mute=None),
+            SimpleNamespace(chat=SimpleNamespace(id=user.tid), message_id=42),
+            bot=test_services.bot,
+            redis=test_services.redis,
+        )
+    stored = await WSUserModel.get(pending.id)
+    assert stored is not None and stored.transition == "completing"
+    assert stored.completion_attempt_until is None
+    unmute.assert_not_awaited()
+
+    await KickUnpassedUsers(test_services).process_user(stored)
+
+    edit.assert_awaited_once()
+    assert approve.await_count == (2 if join_request else 0)
+    unmute.assert_awaited_once()
+    kick.assert_not_awaited()
+    decline.assert_not_awaited()
+    assert await WSUserModel.get(pending.id) is None
+
+
+@pytest.mark.asyncio
+async def test_expired_completion_attempt_can_be_reclaimed() -> None:
+    user, group = await _create_user_and_group(883013, -883014)
+    pending = await WSUserModel.ensure_user(user, group, False)
+    completion = await pending.claim_transition("completing")
+    assert completion is not None
+    interrupted = await completion.claim_completion_attempt()
+    assert interrupted is not None
+    assert await completion.claim_completion_attempt() is None
+    await WSUserModel.find_one(WSUserModel.id == pending.id).update(
+        Set({WSUserModel.completion_attempt_until: datetime.now(UTC) - timedelta(seconds=1)})
+    )
+
+    reclaimed = await completion.claim_completion_attempt()
+
+    assert reclaimed is not None
+    assert not await interrupted.transition_is_current()
+    assert not await interrupted.finish_transition()
+    await interrupted.release_completion_attempt()
+    assert await reclaimed.transition_is_current()
+    assert await reclaimed.finish_transition()

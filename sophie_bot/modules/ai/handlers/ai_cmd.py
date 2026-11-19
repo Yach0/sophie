@@ -8,6 +8,7 @@ from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import ai_chatbot_reply
+from sophie_bot.modules.ai.utils.support_replies import suppress_support_reply
 from sophie_bot.modules.connections.utils.connection import set_connected_chat
 from sophie_bot.utils import flags
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
@@ -36,6 +37,10 @@ class AiCmd(SophieMessageHandler):
     async def handle(self) -> Any:
         self.data["ai_message_handled"] = True
         user_text: str | None = self.data["text"]
+        if self.data.get("ai_support_proactive") and self.event.reply_to_message:
+            await suppress_support_reply(
+                self.event.reply_to_message, bot_id=self.services.bot.id, redis=self.services.redis
+            )
 
         if self.event.chat.type == "private" and self.connection.is_connected and self.event.from_user:
             await set_connected_chat(self.event.from_user.id, None, redis=self.services.redis)

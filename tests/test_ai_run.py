@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator
+import json
+from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from typing import Any, cast
 
+import httpx2
 import pytest
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 from pydantic_ai import (
     Agent,
@@ -20,9 +23,20 @@ from pydantic_ai import (
     ThinkingPartDelta,
 )
 from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
-from pydantic_ai.messages import BinaryContent, ModelMessage, ModelRequest, ModelResponse, ToolCallPart, UserPromptPart
+from pydantic_ai.messages import (
+    BinaryContent,
+    ModelMessage,
+    ModelRequest,
+    ModelResponse,
+    ToolCallPart,
+    ToolReturnPart,
+    UserContent,
+    UserPromptPart,
+)
 from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.models.test import TestModel
+from pydantic_ai.providers.openai import OpenAIProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
@@ -256,7 +270,7 @@ async def test_native_requests_preserve_provider_generation_ceiling(streaming: b
         await run_ai_stream(agent, "hello", on_text, usage_limits=UsageLimits(output_tokens_limit=37))
     else:
         await run_ai_text(agent, "hello", usage_limits=UsageLimits(output_tokens_limit=37))
-    assert observed == [{"max_tokens": model_limit if model_limit is not None else 37, "max_retries": 4}]
+    assert observed == [{"max_tokens": model_limit if model_limit is not None else 37, "max_retries": 4, "timeout": 15}]
 
 
 async def test_run_ai_stream_completes_tool_loop_and_uses_final_output(no_stream_debounce: None) -> None:
@@ -731,3 +745,168 @@ def test_an_all_text_only_plan_still_tries_rather_than_refusing() -> None:
     plan = AIModelPlan(candidates=(text_only,))
 
     assert plan.eligible(has_images=True) == (text_only,)
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("recovery", ["retry", "timeout", "fallback"])
+async def test_request_recovery_keeps_completed_tool_results(streaming: bool, recovery: str) -> None:
+    payloads: list[dict[str, object]] = []
+    mutations: list[int] = []
+    continuations: list[Sequence[ModelRequest | ModelResponse]] = []
+
+    def project(
+        candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse]
+    ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
+        continuations.append(continuation)
+        return ["make the change"], [ModelRequest(parts=[UserPromptPart(candidate.model_name + " history")])]
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        payload = json.loads(request.content)
+        payloads.append(payload)
+        if len(payloads) == 2:
+            if recovery == "timeout":
+                raise httpx2.ReadTimeout("Request timed out.", request=request)
+            status = 503 if recovery == "retry" else 400
+            return httpx2.Response(status, headers={"retry-after-ms": "1"}, json={"error": {"message": "unavailable"}})
+        message: dict[str, object] = {"role": "assistant", "content": "done"}
+        if len(payloads) == 1:
+            call = {"id": "mutation", "type": "function", "function": {"name": "mutate", "arguments": '{"amount":1}'}}
+            if streaming:
+                call["index"] = 0
+            message = {"role": "assistant", "tool_calls": [call]}
+        else:
+            assert any(
+                message["role"] == "tool" and message["content"] == "completed" for message in payload["messages"]
+            )
+        response = {
+            "id": "offline",
+            "created": 0,
+            "model": payload["model"],
+            "object": "chat.completion.chunk" if streaming else "chat.completion",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta" if streaming else "message": message,
+                    "finish_reason": "tool_calls" if "tool_calls" in message else "stop",
+                }
+            ],
+        }
+        if streaming:
+            return httpx2.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                text="data: " + json.dumps(response) + "\n\ndata: [DONE]\n\n",
+            )
+        return httpx2.Response(200, json=response)
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        provider = OpenAIProvider(api_key="offline", http_client=client)
+        primary = OpenAIChatModel("primary", provider=provider, settings={"temperature": 0.1})
+        backup = OpenAIChatModel("backup", provider=provider, settings={"temperature": 0.7})
+        plan = AIModelPlan(
+            (
+                AIModelCandidate(primary, "primary", service_tier="flex"),
+                AIModelCandidate(backup, "backup", service_tier="none"),
+            )
+        )
+        agent = Agent(primary)
+
+        @agent.tool_plain
+        async def mutate(amount: int) -> str:
+            mutations.append(amount)
+            return "completed"
+
+        async def on_text(text: str) -> None:
+            pass
+
+        options = AIRequestOptions(context_projection=project, service_tier="default")
+        history = [ModelResponse(parts=[TextPart("old history")])]
+        if streaming:
+            result = await run_ai_stream(
+                agent, "make the change", on_text, message_history=history, model_plan=plan, request_options=options
+            )
+        else:
+            result = await run_ai_text(
+                agent, "make the change", message_history=history, model_plan=plan, request_options=options
+            )
+
+    assert result.output == "done"
+    assert mutations == [1]
+    assert len(payloads) == 3
+    assert len(continuations[-1]) == 2
+    assert result.usage.requests == 2
+    assert any(isinstance(part, ToolReturnPart) for message in result.new_messages for part in message.parts)
+    if recovery in {"retry", "timeout"}:
+        assert payloads[1] == payloads[2]
+        assert result.served_model is primary
+    else:
+        assert result.served_model is backup
+        assert payloads[0]["service_tier"] == "flex"
+        assert "service_tier" not in payloads[-1]
+        assert payloads[-1]["temperature"] == 0.7
+        assert payloads[-1]["messages"][0]["content"] == "backup history"
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("recovers", [False, True])
+@pytest.mark.parametrize("timeout_type", [httpx2.ReadTimeout, httpx2.ConnectTimeout])
+async def test_provider_timeouts_allow_five_attempts(
+    streaming: bool,
+    recovers: bool,
+    timeout_type: type[httpx2.TimeoutException],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attempts = 0
+
+    def retry_delay(*_args: object, **_kwargs: object) -> float:
+        return 0
+
+    monkeypatch.setattr(AsyncOpenAI, "_calculate_retry_timeout", retry_delay)
+
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        nonlocal attempts
+        attempts += 1
+        assert request.extensions["timeout"] == {"connect": 15, "read": 15, "write": 15, "pool": 15}
+        if attempts < 5 or not recovers:
+            raise timeout_type("Request timed out.", request=request)
+        response = {
+            "id": "offline",
+            "created": 0,
+            "model": "primary",
+            "object": "chat.completion.chunk" if streaming else "chat.completion",
+            "choices": [
+                {
+                    "index": 0,
+                    "delta" if streaming else "message": {"role": "assistant", "content": "done"},
+                    "finish_reason": "stop",
+                }
+            ],
+        }
+        if streaming:
+            return httpx2.Response(
+                200,
+                headers={"content-type": "text/event-stream"},
+                text="data: " + json.dumps(response) + "\n\ndata: [DONE]\n\n",
+            )
+        return httpx2.Response(200, json=response)
+
+    async def on_text(text: str) -> None:
+        pass
+
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        agent = Agent(OpenAIChatModel("primary", provider=OpenAIProvider(api_key="offline", http_client=client)))
+
+        async def run() -> str:
+            if streaming:
+                result = await run_ai_stream(agent, "hello", on_text)
+            else:
+                result = await run_ai_text(agent, "hello")
+            return result.output
+
+        if recovers:
+            assert await run() == "done"
+        else:
+            with pytest.raises(AIRequestFailed):
+                await run()
+
+    assert attempts == 5

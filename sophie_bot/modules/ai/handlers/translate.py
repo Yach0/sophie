@@ -80,9 +80,10 @@ async def _resolve_translation_input(
     is_autotranslate: bool = data.get("autotranslate", False)
 
     is_voice = False
-    if event.reply_to_message and event.reply_to_message.voice and not is_autotranslate:
+    reply_audio = (event.reply_to_message.voice or event.reply_to_message.audio) if event.reply_to_message else None
+    if reply_audio and not is_autotranslate:
         to_translate = await transform_voice_to_text(
-            event.reply_to_message.voice,
+            reply_audio,
             bot=services.bot,
             redis=services.redis,
         )
@@ -183,7 +184,7 @@ class AiTranslate(SophieMessageHandler):
 
         reply_to_message = self.event.reply_to_message
         progress_streamer: ChatbotMessageStreamer | None = None
-        if reply_to_message and reply_to_message.voice and not is_autotranslate:
+        if reply_to_message and (reply_to_message.voice or reply_to_message.audio) and not is_autotranslate:
             progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
             await progress_streamer.update_processing_activity(_("Transcribing voice message..."))
 
@@ -197,11 +198,7 @@ class AiTranslate(SophieMessageHandler):
                 or reply_to_message.animation
                 or reply_to_message.video
                 or reply_to_message.video_note
-                or (
-                    reply_to_message.document
-                    and reply_to_message.document.mime_type == "image/gif"
-                    and reply_to_message.document.thumbnail
-                )
+                or (reply_to_message.document and reply_to_message.document.mime_type == "image/gif")
             )
         )
 
@@ -230,11 +227,7 @@ class AiTranslate(SophieMessageHandler):
             or reply_to_message.animation
             or reply_to_message.video
             or reply_to_message.video_note
-            or (
-                reply_to_message.document
-                and reply_to_message.document.mime_type == "image/gif"
-                and reply_to_message.document.thumbnail
-            )
+            or (reply_to_message.document and reply_to_message.document.mime_type == "image/gif")
         ):
             ai_context.add_system(
                 Template(

@@ -161,9 +161,9 @@ class TelegramMediaService:
                 ids_to_fetch.append(emoji_id)
 
         if ids_to_fetch:
-            batches = [ids_to_fetch[i : i + BATCH_SIZE] for i in range(0, len(ids_to_fetch), BATCH_SIZE)]
-
-            for batch in batches:
+            for batch in (
+                ids_to_fetch[index : index + BATCH_SIZE] for index in range(0, len(ids_to_fetch), BATCH_SIZE)
+            ):
                 try:
                     stickers = await self.bot.get_custom_emoji_stickers(custom_emoji_ids=batch)
 

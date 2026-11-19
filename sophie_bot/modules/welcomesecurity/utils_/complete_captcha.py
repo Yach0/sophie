@@ -1,3 +1,5 @@
+from asyncio import timeout
+
 from aiogram import Bot
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
@@ -45,12 +47,38 @@ async def complete_captcha(
         return
     if pending.transition is None:
         pending = await pending.claim_transition("completing")
-    if pending is None or pending.transition != "completing" or not await pending.transition_is_current():
-        return
-    is_join_request = pending.is_join_request
+        if pending is not None:
+            track_captcha_passed()
+    if pending is not None and pending.transition == "completing":
+        await resume_captcha_completion(user, group, greetings, pending, bot=bot, redis=redis, message=captcha_message)
 
-    # Mark captcha as correct
-    track_captcha_passed()
+
+async def resume_captcha_completion(
+    user: ChatModel,
+    group: ChatModel,
+    greetings: GreetingsModel,
+    pending: WSUserModel,
+    *,
+    bot: Bot,
+    redis: Redis,
+    message: Message | None = None,
+) -> None:
+    attempt = await pending.claim_completion_attempt()
+    if attempt is None:
+        return
+    try:
+        # End local work before the durable lease can be reclaimed after a worker crash.
+        async with timeout(90):
+            if not await attempt.transition_is_current():
+                return
+            if message is not None:
+                await _edit_passed_captcha(bot, message)
+            await _restore_captcha_access(user, group, greetings, attempt, bot=bot, redis=redis)
+    finally:
+        await attempt.release_completion_attempt()
+
+
+async def _edit_passed_captcha(bot: Bot, captcha_message: Message) -> None:
     captcha = EmojiCaptcha()
     captcha.show_emoji("✅")
 
@@ -68,18 +96,29 @@ async def complete_captcha(
         if MSG_NOT_MODIFIED not in error.message:
             raise
 
-    # Approve join request if applicable
-    if is_join_request:
-        if not await pending.transition_is_current():
-            return
+
+async def _restore_captcha_access(
+    user: ChatModel,
+    group: ChatModel,
+    greetings: GreetingsModel,
+    pending: WSUserModel,
+    *,
+    bot: Bot,
+    redis: Redis,
+) -> None:
+    if not await pending.transition_is_current():
+        return
+    is_join_request = pending.is_join_request or pending.admission_request_generation is not None
+    if pending.is_join_request:
         await redis.set(f"chat_ws_join_request:{group.iid}:{user.iid}", 1, ex=172800)
         if not await pending.transition_is_current():
             return
-        try:
-            await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
-        except TelegramBadRequest as error:
-            if USER_ALREADY_PARTICIPANT not in error.message:
-                raise
+        if pending.is_join_request:
+            try:
+                await bot.approve_chat_join_request(chat_id=group.tid, user_id=user.tid)
+            except TelegramBadRequest as error:
+                if USER_ALREADY_PARTICIPANT not in error.message:
+                    raise
 
     # Unmute user from welcomesecurity (and apply welcome_mute if enabled)
     restriction_succeeded = await ws_on_user_passed(

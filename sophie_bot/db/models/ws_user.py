@@ -1,7 +1,8 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any, ClassVar, Literal, Optional
 
 from beanie import Document, PydanticObjectId, UpdateResponse
+from beanie.odm.operators.update.array import AddToSet
 from beanie.odm.operators.update.general import Set
 from pydantic import Field
 from pymongo import ASCENDING, IndexModel
@@ -22,6 +23,11 @@ class WSUserModel(Document):
     membership_id: PydanticObjectId | None = None
     membership_join_message_id: int | None = None
     admission_request_generation: str | None = None
+    completion_attempt_until: datetime | None = None
+    # Only messages observed in this pending session; membership IDs alone do not
+    # prove that a service message belongs to just this member.
+    cleanup_message_ids: list[int] = Field(default_factory=list)
+    cleanup_ephemeral_message_ids: list[int] = Field(default_factory=list)
 
     class Settings:
         name = "ws_users"
@@ -85,12 +91,32 @@ class WSUserModel(Document):
                         WSUserModel.added_at: datetime.now(UTC),
                         WSUserModel.transition: None,
                         WSUserModel.admission_request_generation: None,
+                        WSUserModel.completion_attempt_until: None,
                         WSUserModel.is_join_request: is_join_request,
+                        WSUserModel.cleanup_message_ids: [],
+                        WSUserModel.cleanup_ephemeral_message_ids: [],
                     }
                 )
             )
 
         return await WSUserModel.find_one(user_filter)
+
+    async def remember_cleanup_messages(self, message_ids: list[int], ephemeral_message_ids: list[int]) -> None:
+        """Record owned group messages without resurrecting a completed session."""
+        await WSUserModel.find_one(
+            WSUserModel.id == self.id,
+            {"passed": False},
+            WSUserModel.membership_id == self.membership_id,
+            WSUserModel.membership_join_message_id == self.membership_join_message_id,
+            WSUserModel.added_at == self.added_at,
+        ).update(
+            AddToSet(
+                {
+                    WSUserModel.cleanup_message_ids: {"$each": message_ids},
+                    WSUserModel.cleanup_ephemeral_message_ids: {"$each": ephemeral_message_ids},
+                }
+            )
+        )
 
     @staticmethod
     async def remove_user(user_iid: PydanticObjectId, group_iid: PydanticObjectId) -> Optional["WSUserModel"]:
@@ -141,6 +167,34 @@ class WSUserModel(Document):
             Set({WSUserModel.transition: transition}), response_type=UpdateResponse.NEW_DOCUMENT
         )
 
+    async def claim_completion_attempt(self) -> "WSUserModel | None":
+        now = datetime.now(UTC)
+        return await WSUserModel.find_one(
+            self.session_filter(),
+            {"transition": "completing"},
+            {
+                "$or": [
+                    {"completion_attempt_until": None},
+                    {"completion_attempt_until": {"$lte": now}},
+                ]
+            },
+        ).update(
+            Set({WSUserModel.completion_attempt_until: now + timedelta(minutes=2)}),
+            response_type=UpdateResponse.NEW_DOCUMENT,
+        )
+
+    async def release_completion_attempt(self) -> None:
+        if self.completion_attempt_until is not None:
+            await WSUserModel.find_one(
+                {"_id": self.id, "completion_attempt_until": self.completion_attempt_until}
+            ).update(Set({WSUserModel.completion_attempt_until: None}))
+
+    def transition_filter(self) -> dict[str, object]:
+        filters = {**self.session_filter(), "transition": self.transition}
+        if self.completion_attempt_until is not None:
+            filters["completion_attempt_until"] = self.completion_attempt_until
+        return filters
+
     async def bind_join_request_admission(self, membership: UserInGroupModel, joined_message_id: int) -> None:
         """Bind the first admission without resetting the durable completion decision."""
         await WSUserModel.find_one(self.session_filter(), {"transition": "completing", "is_join_request": True}).update(
@@ -182,10 +236,10 @@ class WSUserModel(Document):
             or membership.joined_message_id != self.membership_join_message_id
         ):
             return False
-        return await WSUserModel.find_one(self.session_filter(), {"transition": self.transition}) is not None
+        return await WSUserModel.find_one(self.transition_filter()) is not None
 
     async def finish_transition(self) -> bool:
         if self.transition is None:
             return False
-        result = await WSUserModel.find_one(self.session_filter(), {"transition": self.transition}).delete()
+        result = await WSUserModel.find_one(self.transition_filter()).delete()
         return result is not None and result.deleted_count > 0

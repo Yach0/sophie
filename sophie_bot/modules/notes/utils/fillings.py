@@ -59,6 +59,4 @@ def process_fillings(
 
     text = chat_fillings(text, message)
     text = user_fillings(text, message, user)
-    text = custom_fillings(text, additional_fillings)
-
-    return text
+    return custom_fillings(text, additional_fillings)

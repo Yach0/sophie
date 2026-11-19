@@ -299,8 +299,11 @@ def pending_completion(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
         passed=False,
         transition="completing",
         is_join_request=True,
+        admission_request_generation=None,
+        release_completion_attempt=AsyncMock(),
         transition_is_current=AsyncMock(return_value=True),
         finish_transition=AsyncMock(),
     )
+    pending.claim_completion_attempt = AsyncMock(return_value=pending)
     monkeypatch.setattr(WSUserModel, "is_user", AsyncMock(return_value=pending))
     return pending

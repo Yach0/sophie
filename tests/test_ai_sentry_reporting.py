@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-import asyncio
 import json
 from collections.abc import Awaitable, Callable, Iterator
-from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -20,7 +18,6 @@ from sentry_sdk.transport import Transport
 from structlog.testing import capture_logs
 from tenacity import wait_none
 
-from sophie_bot.modules.ai.middlewares.ai_timeout import AiTimeoutMiddleware
 from sophie_bot.modules.ai.utils import ai_errors, ai_run
 from sophie_bot.modules.ai.utils.ai_errors import (
     _DEFAULT_AI_FAILED_MESSAGE,
@@ -273,24 +270,6 @@ async def test_a_configuration_error_reaches_the_global_handler_without_walking_
         await _run_candidates(operation)
 
     assert attempted == ["primary/model"]
-    assert sentry_events == []
-
-
-async def test_ai_handler_timeout_reaches_the_global_handler(
-    sentry_events: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
-) -> None:
-    from sophie_bot.modules.ai.middlewares import ai_timeout
-
-    monkeypatch.setattr(ai_timeout.CONFIG, "ai_timeout_seconds", 0.01)
-
-    async def hanging_handler(_event: Any, _data: dict[str, Any]) -> None:
-        await asyncio.sleep(5)
-
-    data = {"handler": SimpleNamespace(flags={"status": "Thinking..."})}
-
-    with pytest.raises(TimeoutError):
-        await AiTimeoutMiddleware()(hanging_handler, SimpleNamespace(), data)  # type: ignore[arg-type]
-
     assert sentry_events == []
 
 

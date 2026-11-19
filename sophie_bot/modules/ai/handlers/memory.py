@@ -1,20 +1,24 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 
 from aiogram.dispatcher.event.handler import CallbackType
-from aiogram.types import Message
+from aiogram.types import InlineKeyboardMarkup, Message
 from ass_tg.types import OptionalArg, TextArg
 from ass_tg.types.base_abc import ArgFabric
+from redis.asyncio import Redis
 from stfu_tg import Code, Doc, KeyValue, Section, Template, VList
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryAction, MemoryActions, MemorySource, MemoryState
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
+from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
+from sophie_bot.modules.ai.utils.cache_messages import reset_modern_context
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
 from sophie_bot.modules.ai.utils.evidence_memory import (
     apply_actions,
@@ -27,17 +31,17 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.utils_.admin import is_user_admin
 from sophie_bot.utils import flags
-from sophie_bot.utils.handlers import SophieMessageHandler
+from sophie_bot.utils.handlers import SophieCallbackQueryHandler, SophieMessageHandler
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
+from sophie_bot.utils.pagination import build_pagination_row, paginate
 
 
 def _memory_examples() -> Section:
     return Section(
         VList(
             KeyValue(Code("/ai_memory show"), _("Inspect your facts and find their IDs.")),
-            KeyValue(Code("/ai_memory show 2"), _("Show the second page of facts.")),
-            KeyValue(Code("/ai_memory sources 2"), _("Show the second page of source messages.")),
+            KeyValue(Code("/ai_memory sources"), _("Inspect your source messages. Use the buttons to change pages.")),
             KeyValue(
                 Code(Template("/ai_memory correct FACT_ID {text}", text=_("I prefer short replies."))),
                 _("Replace FACT_ID with a current ID from show. Send the command in the original chat and topic."),
@@ -69,58 +73,12 @@ class AIMemoryControl(SophieMessageHandler):
         request = (self.data.get("request") or "show").strip()
         operation, _separator, argument = request.partition(" ")
         if operation in {"show", "sources"}:
-            try:
-                page = max(1, int(argument or "1"))
-            except ValueError:
+            if argument:
                 return await self.event.reply(
-                    Doc(
-                        _("Use a page number, starting at 1."), Code("/ai_memory show 2"), Code("/ai_memory sources 2")
-                    ).to_html()
+                    _("Use /ai_memory show or /ai_memory sources, then navigate with the buttons.")
                 )
-            state = await read_memory(chat.iid, await memory_cutoff(chat.tid, redis=self.services.redis))
-            doc = Doc(_("Your AI memory in this chat:"))
-            start = (page - 1) * 3
-            if operation == "show":
-                own = [fact for fact in state.facts if user_tid == fact.speaker_tid or user_tid in fact.subject_tids]
-                for fact in own[start : start + 3]:
-                    doc += Section(
-                        VList(
-                            KeyValue(_("ID"), Code(fact.fact_id)),
-                            KeyValue(_("Text"), fact.text),
-                            KeyValue(_("Speaker"), Code(str(fact.speaker_tid))),
-                            KeyValue(
-                                _("Source messages"), Code(", ".join(str(identity) for identity in fact.evidence_ids))
-                            ),
-                            KeyValue(_("Previous version"), Code(fact.previous_id or "-")),
-                            KeyValue(_("Time"), fact.occurred_at.isoformat()),
-                        ),
-                        title=_("Memory"),
-                    )
-                count = len(own)
-            else:
-                own_sources = [source for source in state.sources if source.speaker_tid == user_tid]
-                source_parts = [
-                    (source, source.text[offset : offset + 600])
-                    for source in own_sources
-                    for offset in range(0, len(source.text), 600)
-                ]
-                for source, excerpt in source_parts[start : start + 3]:
-                    doc += Section(
-                        VList(
-                            KeyValue(_("ID"), Code(str(source.message_id))),
-                            KeyValue(_("Time"), source.sent_at.isoformat()),
-                            KeyValue(_("Text"), excerpt),
-                        ),
-                        title=_("Source message"),
-                    )
-                count = len(source_parts)
-            doc += VList(
-                KeyValue(_("Page"), Template(_("{page} of {pages}"), page=page, pages=max(1, (count + 2) // 3))),
-                KeyValue(_("Memory capture disabled"), _("Yes") if user_tid in state.excluded_users else _("No")),
-            )
-            if not self.data.get("request") or count == 0:
-                doc += _memory_examples()
-            return await self.event.reply(doc.to_html())
+            text, markup = await _memory_page(chat, user_tid, operation, 0, redis=self.services.redis)
+            return await self.event.reply(text, reply_markup=markup)
         if operation in {"forget", "off", "on"}:
             if operation in {"forget", "off"} and not await is_user_admin(chat.tid, user_tid):
                 return await self.event.reply(
@@ -139,7 +97,7 @@ class AIMemoryControl(SophieMessageHandler):
                 elif operation == "on":
                     state.excluded_users = [identity for identity in state.excluded_users if identity != user_tid]
 
-            await mutate_memory(chat, change)
+            await mutate_memory(chat, change, redis=self.services.redis)
             if operation != "on":
                 await self._clear_context()
             return await self.event.reply(
@@ -210,21 +168,21 @@ class AIMemoryControl(SophieMessageHandler):
                 )
 
             try:
-                await mutate_memory(chat, correct)
+                await mutate_memory(chat, correct, redis=self.services.redis)
             except ValueError:
                 return await self.event.reply(
                     _(
                         "Use a current fact ID for your own personal statement in its original topic. Enable capture first."
                     )
                 )
-            await ModernContext.reset(chat.tid, redis=self.services.redis)
+            await reset_modern_context(chat.tid, redis=self.services.redis, clear_messages=False)
             await reset_tool_exchanges(chat.tid, redis=self.services.redis)
             return await self.event.reply(
                 _("Your correction was saved with its source. The previous version remains in history.")
             )
         return await self.event.reply(
             Doc(
-                _("Use /ai_memory show [PAGE], sources [PAGE], forget, off, on, or correct FACT_ID TEXT."),
+                _("Use /ai_memory show, sources, forget, off, on, or correct FACT_ID TEXT."),
                 _memory_examples(),
             ).to_html()
         )
@@ -235,3 +193,88 @@ class AIMemoryControl(SophieMessageHandler):
         await reset_tool_exchanges(chat.tid, redis=self.services.redis)
         await AIMemoryModel.clear(chat.iid)
         await AIChatSummaryModel.find(AIChatSummaryModel.chat.id == chat.iid).delete()
+
+
+async def _memory_page(
+    chat: ChatModel,
+    user_tid: int,
+    operation: Literal["show", "sources"],
+    requested_page: int,
+    *,
+    redis: Redis,
+) -> tuple[str, InlineKeyboardMarkup | None]:
+    state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
+    doc = Doc(_("Your AI memory in this chat:"))
+    if operation == "show":
+        own = [fact for fact in state.facts if user_tid == fact.speaker_tid or user_tid in fact.subject_tids]
+        pagination = paginate(own, 3, requested_page)
+        for fact in pagination.items:
+            doc += Section(
+                VList(
+                    KeyValue(_("ID"), Code(fact.fact_id)),
+                    KeyValue(_("Text"), fact.text),
+                    KeyValue(_("Speaker"), Code(str(fact.speaker_tid))),
+                    KeyValue(_("Source messages"), Code(", ".join(str(identity) for identity in fact.evidence_ids))),
+                    KeyValue(_("Previous version"), Code(fact.previous_id or "-")),
+                    KeyValue(_("Time"), fact.occurred_at.isoformat()),
+                ),
+                title=_("Memory"),
+            )
+    else:
+        own_sources = [source for source in state.sources if source.speaker_tid == user_tid]
+        source_parts = [
+            (source, source.text[offset : offset + 600])
+            for source in own_sources
+            for offset in range(0, len(source.text), 600)
+        ]
+        pagination = paginate(source_parts, 3, requested_page)
+        for source, excerpt in pagination.items:
+            doc += Section(
+                VList(
+                    KeyValue(_("ID"), Code(str(source.message_id))),
+                    KeyValue(_("Time"), source.sent_at.isoformat()),
+                    KeyValue(_("Text"), excerpt),
+                ),
+                title=_("Source message"),
+            )
+    doc += VList(
+        KeyValue(
+            _("Page"), Template(_("{page} of {pages}"), page=pagination.page + 1, pages=max(1, pagination.total_pages))
+        ),
+        KeyValue(_("Memory capture disabled"), _("Yes") if user_tid in state.excluded_users else _("No")),
+    )
+    if not pagination.items:
+        doc += _memory_examples()
+    buttons = build_pagination_row(
+        pagination,
+        lambda page: AIMemoryPageCallback(owner_tid=user_tid, operation=operation, page=page).pack(),
+    )
+    markup = InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None
+    return doc.to_html(), markup
+
+
+class AIMemoryPageHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return AIMemoryPageCallback.filter(), FeatureFlagFilter("ai_memory_controls")
+
+    async def handle(self) -> None:
+        callback = self.event
+        data: AIMemoryPageCallback = self.data["callback_data"]
+        if callback.from_user.id != data.owner_tid:
+            await callback.answer(
+                _("These memory controls belong to another user. Run /ai_memory yourself."), show_alert=True
+            )
+            return
+        if data.operation not in {"show", "sources"} or not isinstance(callback.message, Message):
+            await callback.answer(_("Invalid memory page."), show_alert=True)
+            return
+        text, markup = await _memory_page(
+            self.connection.db_model,
+            data.owner_tid,
+            data.operation,
+            data.page,
+            redis=self.services.redis,
+        )
+        await callback.message.edit_text(text, reply_markup=markup)
+        await callback.answer()

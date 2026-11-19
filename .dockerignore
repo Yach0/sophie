@@ -14,6 +14,7 @@ build
 output
 .cache
 sophie_bot/tokenizer_data
+sophie_bot/spam_model_data
 .pytest_cache
 .coverage
 .htmlcov
