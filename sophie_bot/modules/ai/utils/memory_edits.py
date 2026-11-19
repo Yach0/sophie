@@ -67,7 +67,7 @@ class MemoryEditRequest:
 
 
 async def chatbot_memory_edits_enabled(chat_tid: int, *, redis: Redis) -> bool:
-    return await is_enabled("ai_memory_chatbot_edits", chat_tid=chat_tid, redis=redis) and await is_enabled(
+    return await is_enabled("ai_memory_controls", chat_tid=chat_tid, redis=redis) and await is_enabled(
         "ai_memory_retrieval", chat_tid=chat_tid, redis=redis
     )
 
@@ -103,7 +103,7 @@ async def delete_memory_facts(
     expected_epoch: int,
 ) -> None:
     _validate_fact_ids(fact_ids)
-    cutoff = await memory_cutoff(chat.tid, redis=redis)
+    cutoff = memory_cutoff()
 
     def delete(state: MemoryState) -> None:
         prune_memory(state, cutoff)
@@ -149,7 +149,7 @@ async def save_memory_fact(
         raise MemoryEditRejected(_("Use between 1 and 600 characters for the memory text."))
     if fact_id is None and (not event or len(event) > 120):
         raise MemoryEditRejected(_("Give the memory a short topic name."))
-    cutoff = await memory_cutoff(chat.tid, redis=redis)
+    cutoff = memory_cutoff()
 
     def save(state: MemoryState) -> None:
         prune_memory(state, cutoff)

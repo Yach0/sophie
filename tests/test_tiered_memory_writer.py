@@ -125,18 +125,11 @@ async def writer_chat(test_services: ApplicationServices) -> ChatModel:
     chat = await ChatModel.get_by_tid(chat.tid)
     assert chat is not None
     await set_chat_mode(chat, AIMode.entertainment, redis=redis)
-    for key in (
-        "ai_memory_writer",
-        "ai_memory_writer_tiered",
-        "ai_memory_personal",
-        "ai_memory_group",
-        "ai_memory_shared_decisions",
-    ):
-        await set_chat_override(key, chat.tid, True, redis=redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=redis)
     return chat
 
 
-async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
+async def test_single_writer_extracts_distinct_evidence_and_claims_once(
     writer_chat: ChatModel, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     redis = test_services.redis
@@ -147,6 +140,7 @@ async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
         _source(9013, 712, "Let's hold demos on Friday.", branch=4013, at=at),
         _source(9014, 713, "Friday works. Let's do that.", branch=4013, at=at),
     ]
+    pending.extend(pending[3].model_copy(update={"message_id": identity}) for identity in range(9015, 9021))
 
     def seed(state: MemoryState) -> None:
         for source in pending:
@@ -167,8 +161,8 @@ async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
         return plan
 
     monkeypatch.setattr(write_memory, "single_model_plan", select_model)
-    routine_started = asyncio.Event()
-    release_routine = asyncio.Event()
+    writer_started = asyncio.Event()
+    release_writer = asyncio.Event()
 
     async def fake_run(
         task: ai_tasks.AIStructuredTask, _plan: AIModelPlan, history: OldContext, **kwargs: object
@@ -181,34 +175,25 @@ async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
             "openrouter_provider": {"data_collection": "deny", "allow_fallbacks": False, "require_parameters": True}
         }
         payload = json.loads(raw)
-        if task.output_type is RoutineMemoryOutput:
-            assert len(payload["batch"]) == 3
-            routine_started.set()
-            await release_routine.wait()
-            first, *hard = payload["batch"]
-            return SimpleNamespace(
-                output=RoutineMemoryOutput(
-                    actions=[
-                        WriterAction(
-                            action="ADD",
-                            scope="person",
-                            layer="personal",
-                            speaker_tid=first[1],
-                            subject_tids=[first[1]],
-                            evidence_ids=[first[0]],
-                            event="reply style",
-                            text="Prefers concise answers",
-                            kind="preference",
-                        )
-                    ],
-                    review=[entry[0] for entry in hard],
-                )
-            )
-        first, second = payload["batch"]
-        assert [entry[-1] for entry in payload["batch"]] == [pending[2].text, pending[3].text]
+        assert task.output_type is WriterOutput
+        assert [entry[-1] for entry in payload["batch"]] == [pending[0].text, pending[2].text, pending[3].text]
+        writer_started.set()
+        await release_writer.wait()
+        personal, first, second = payload["batch"]
         return SimpleNamespace(
             output=WriterOutput(
                 actions=[
+                    WriterAction(
+                        action="ADD",
+                        scope="person",
+                        layer="personal",
+                        speaker_tid=personal[1],
+                        subject_tids=[personal[1]],
+                        evidence_ids=[personal[0]],
+                        event="reply style",
+                        text="Prefers concise answers",
+                        kind="preference",
+                    ),
                     WriterAction(
                         action="ADD",
                         scope="group",
@@ -219,7 +204,7 @@ async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
                         evidence_ids=[first[0], second[0]],
                         event="demo schedule",
                         text="Demos on Friday",
-                    )
+                    ),
                 ]
             )
         )
@@ -228,28 +213,31 @@ async def test_tiered_writer_escalates_only_group_evidence_and_claims_once(
     worker = write_memory.WriteMemory(test_services)
     first_run = asyncio.create_task(worker.process_chat(writer_chat))
     try:
-        await asyncio.wait_for(routine_started.wait(), timeout=3)
+        await asyncio.wait_for(writer_started.wait(), timeout=3)
         await worker.process_chat(writer_chat)
         assert chosen_models == ["openai/gpt-6-luna"]
     finally:
-        release_routine.set()
+        release_writer.set()
         await first_run
     state = await read_memory(writer_chat, at - timedelta(days=1), redis=redis)
-    assert chosen_models == ["openai/gpt-6-luna", "gpt-6.1-terra"]
+    assert chosen_models == ["openai/gpt-6-luna"]
     assert [(fact.speaker_tid, fact.evidence_ids) for fact in state.facts] == [(711, [9011]), (712, [9013, 9014])]
-    assert set(state.processed_ids) == {9011, 9012, 9013, 9014}
+    assert set(state.processed_ids) == {item.message_id for item in pending}
     assert not await redis.exists(f"ai:memory:writer:{writer_chat.tid}")
 
 
 @pytest.mark.parametrize("reset", [False, True])
-async def test_tiered_writer_avoids_review_after_noop_or_reset(
+async def test_single_writer_completes_noops_and_discards_reset_results(
     writer_chat: ChatModel, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch, reset: bool
 ) -> None:
     redis = test_services.redis
     at = datetime.now(UTC) - timedelta(hours=1)
-    await mutate_memory(
-        writer_chat, lambda state: capture_source(state, _source(31, 721, "Hello!", branch=31, at=at)), redis=redis
-    )
+
+    def seed(state: MemoryState) -> None:
+        for identity in range(31, 41):
+            capture_source(state, _source(identity, 721, "Hello!", branch=31, at=at))
+
+    await mutate_memory(writer_chat, seed, redis=redis)
     monkeypatch.setattr(write_memory, "check_quota", AsyncMock(return_value=SimpleNamespace(allowed=True)))
     monkeypatch.setattr(
         write_memory,
@@ -260,7 +248,7 @@ async def test_tiered_writer_avoids_review_after_noop_or_reset(
     async def run(*_args: object, **_kwargs: object) -> SimpleNamespace:
         if reset:
             await mutate_memory(writer_chat, clear_memory, redis=redis)
-        return SimpleNamespace(output=RoutineMemoryOutput(actions=[], review=[1] if reset else []))
+        return SimpleNamespace(output=WriterOutput(actions=[]))
 
     runner = AsyncMock(side_effect=run)
     monkeypatch.setattr(write_memory, "run_structured_task", runner)
@@ -268,7 +256,7 @@ async def test_tiered_writer_avoids_review_after_noop_or_reset(
     runner.assert_awaited_once()
     state = await read_memory(writer_chat, at - timedelta(days=1), redis=redis)
     assert not state.facts
-    assert state.processed_ids == ([] if reset else [31])
+    assert state.processed_ids == ([] if reset else list(range(31, 41)))
 
 
 async def test_prompt_budget_and_duplicates_preserve_independent_evidence() -> None:

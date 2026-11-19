@@ -5,65 +5,32 @@ It implements source-backed storage and retrieval. It does not train a writer or
 
 ## Enable and roll out
 
-All new boolean flags default to **false**. Writer model settings take model names. Existing memory tools, prompt injection, reply decisions, and streaming stay
-unchanged when the flags are off. Each flag supports the existing global/chat override and cohort rollout system.
+All three flags default to **false**. Each supports global overrides, chat overrides, and cohort rollouts.
 
 | Flag | Effect when enabled |
 | --- | --- |
-| `ai_memory_capture` | Mark original human messages in the existing Redis history as memory-eligible in entertainment mode, including silent conversations. |
-| `ai_memory_writer_model` | Select the review model for tiered writing. Defaults to `gpt-6.1-terra` through OpenRouter. |
-| `ai_memory_writer_tiered` | Enable a separate review stage. Defaults off. |
-| `ai_memory_writer_routine_model` | Select the single-pass writer or the first stage of tiered writing. Defaults to `openai/gpt-6-luna` through OpenRouter. |
-| `ai_memory_writer` | Run batch extraction independently of replies. Requires at least one extraction scope below. |
-| `ai_memory_personal` | Allow the writer to create personal facts and observations about other people. |
-| `ai_memory_group` | Allow the writer to create shared events and group records. |
-| `ai_memory_updates` | Allow the writer to append corrected or changed fact versions. |
-| `ai_memory_shared_decisions` | Allow writer decisions and norms; requires evidence from at least two speakers. |
-| `ai_memory_retrieval` | Add query-specific evidence to answers and expose `search_memory`. |
-| `ai_memory_branches` | Apply reply-root constraints during retrieval; topic and event coordinates remain explicit. |
-| `ai_memory_member_coverage` | Reserve evidence slots for requested or lexically relevant people. |
-| `ai_memory_history` | Allow historical timestamps and full version chains in `search_memory`. |
-| `ai_memory_participation` | Add norms, preferences, questions, and evidence to the participation decision. |
-| `ai_memory_recheck_answers` | Suppress a proactive answer when a newer explicit reply already exists. |
-| `ai_memory_controls` | Enable the memory browser, privacy controls, and exact-ID deletion command. |
-| `ai_memory_chatbot_edits` | With retrieval enabled, let users ask Sophie to add, update, or delete attributed memories. Defaults off. |
-| `ai_memory_replace_legacy` | With retrieval enabled, remove legacy memory tools and legacy prompt memory. |
+| `ai_memory_writer` | Capture eligible human messages in entertainment mode and extract attributed memories with Luna. |
+| `ai_memory_retrieval` | Use attributed evidence in answers and proactive decisions, expose `search_memory`, and replace legacy prompt memory and its tools. |
+| `ai_memory_controls` | Enable the browser, privacy controls, and exact-ID deletion. With retrieval enabled, also allow chat requests to add, update, or delete facts. |
 
-With retrieval enabled in a mode that permits memory, `ai_memory_request_limit` defaults to `8` model requests
-and `ai_memory_tool_calls_limit` defaults to `12` tool calls per answer. Each model request is one agent turn,
-including the final answer request. These limits give the agent room to search several people or events before
-answering. Both numeric flags support per-chat overrides. Zero or negative values fall back to their defaults.
-The existing response-token limit still applies. Background capture, extraction, or participation context alone
-does not select these larger limits. Legacy requests keep `ai_chatbot_request_limit` (default `4`) and
-`ai_chatbot_tool_calls_limit` (default `6`), including their existing overrides.
+Enable the writer first to assess extraction without changing answers. Enable retrieval to use the collected evidence.
+Leave controls enabled when pausing the writer or retrieval so members can still inspect and delete existing records.
+These three flag names and their overrides are retained. Older settings for individual memory stages and limits are retired.
+A chat that previously enabled capture alone must enable the writer to continue capturing.
 
-`ai_memory_retention_days` controls extracted facts only; it defaults to `30` and is clamped to 1–365 days. Original messages always use the shared Redis history’s 48-hour retention. Attribution, source checks, scope validation,
-chat boundaries, retention, and deletion propagation are mandatory integrity rules whenever the new store is used.
-They cannot be disabled to admit invalid records.
+The writer uses one Luna pass through OpenRouter, charges the shared AI quota, and reports usage as **AI Memory**.
+Retrieval uses up to eight model requests and twelve tool calls per answer. The existing response-token limit still
+applies. With retrieval disabled, the normal chatbot request and tool-call settings apply.
 
-Use chat overrides for a small initial cohort. Enable capture alone first: it does not change the answer path.
-Then enable the writer with personal extraction, leaving retrieval disabled, to assess extraction in the background.
-Enable group extraction, updates, and shared decisions separately after checking their outputs. Next enable additive
-retrieval and compare the same replay questions. Enable branch constraints, member coverage, history, participation,
-and the answer recheck separately. Keep legacy replacement off until the new path is validated.
-Enable controls before giving people access to retained evidence, and leave controls enabled when disabling capture
-or retrieval so that people can still inspect and delete existing records.
-
-The writer defaults to Luna through OpenRouter and extracts all enabled memory categories in one pass. The catalog
-migration adds Terra and its entertainment-mode writer role for use in tiered review. It preserves existing model/provider
-settings. If OpenRouter is absent, it adds an empty provider entry. Configure its key before enabling the writer.
-The migration has a tested rollback and does not enable any memory flag. The writer uses the chat's existing shared AI
-quota and reports usage separately as **AI Memory**. Disabling a writer category stops new extraction in that category; it does not hide
-already stored facts. Messages accepted as NOOP are not automatically replayed when another category is enabled later.
-Capture, extraction, retrieval, and participation can each be disabled independently. Retention cleanup still runs.
-Leaving entertainment mode clears evidence and facts. Chat reset also clears existing new-store data. Both operations
-preserve opt-outs. No new memory document is created by normal mode changes or reset when the new features are unused.
+Facts expire after 30 days. Original messages stay in shared Redis history for up to 48 hours. Retention cleanup
+continues with the writer disabled. Leaving entertainment mode or resetting the chat clears evidence and facts and
+preserves opt-outs.
 
 The `20261117_190031_unify_memory_sources_in_redis` migration copies unexpired `state.sources` into the existing Redis history before removing that field from MongoDB. Existing cache metadata, extracted facts, opt-outs, writer progress, and generation fences are preserved. Older originals are discarded under the 48-hour policy. The migration is idempotent and stops before deleting originals if Redis writes fail. Stop the bot and scheduler, run `make migrate_up`, then restart both on the new build; old processes must not write MongoDB sources after migration. Rollback reconstructs only still-retained Redis sources; expired originals are deliberately not backed up.
 
 The new `ai_evidence_memory` collection is registered with Beanie. Startup creates its unique chat index.
 No legacy text memories need a schema migration. Legacy text memories have no evidence and are not copied into the new store.
-Legacy prompt memory and its tools remain available during additive retrieval. With retrieval enabled, `ai_memory_replace_legacy` removes both. `ai_memory_chatbot_edits` replaces the legacy write tools with `manage_memory` for direct requests from identifiable users.
+Legacy prompt memory and its tools remain available when attributed retrieval is disabled.
 
 ## Storage and writer
 
@@ -100,27 +67,19 @@ Beanie revisions and a unique chat index prevent lost concurrent writes. Sources
 accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy changes rotate a generation token;
 a writer result from an earlier generation cannot restore deleted records.
 
-Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their configured fact retention expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
+Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until the 30-day retention period expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
 
 ### Writer routing and cost evaluation
 
-Enable `ai_memory_writer_tiered` to use Luna for clear first-person facts and preferences and Terra for reviewing
-selected messages about updates, reports about other people, or group events.
-The app also sends proposed changes and same-event conflicts to review. A valid empty routine result completes the batch
-without a review call. Chats with only group extraction enabled go directly to review.
-
 Each chat has one expiring writer claim across scheduler instances. The writer skips exact repeats within the
 same speaker, topic, reply branch and parent. Independent speakers and changes in the conversation keep their own evidence.
-In tiered mode, partial batches can run after 30 minutes. Prompts use request-local IDs and an estimated 8,000-token data budget, including
-selected current facts and supporting messages. If one message alone exceeds the batch budget, the model sees its
-opening and closing excerpts; the full source remains in Redis. The model can cite only IDs in its own prompt.
-Storage still uses the original IDs and validates attribution, version chains, and retention.
+Prompts use request-local IDs and an estimated 8,000-token data budget, including selected current facts and supporting
+messages. If one message alone exceeds the batch budget, the model sees its opening and closing excerpts. The full
+source remains in Redis. The model can cite only IDs in its own prompt.
 
-Each stage uses one configured model with at most two model responses and a 3,000-output-token budget. The writer checks
-quota again before a review request. Responses are charged to **AI Memory** even when their output is later rejected.
-Sentry includes stage, model, token totals, retry responses, and provider-reported cost when present, plus accepted,
-rejected, and stale batches, reviewed messages, skipped duplicates, and saved memories. A valid result also requires the
-original generation and evidence at commit.
+The writer allows at most two model responses per batch and a 3,000-output-token budget. Sentry tracks model usage,
+retry responses, provider-reported cost when present, and batch results. A valid result requires the original
+generation and evidence at commit.
 
 Run `uv run python -m tools.ai_memory_replay` to validate the bundled synthetic cases. With an OpenRouter API key in
 `OPENROUTER_API_KEY`, add `--run` to compare Terra alone, Luna alone, and tiered writing. Use
@@ -132,13 +91,13 @@ responses report cost. Review the results on representative chats before expandi
 
 Every answer request retrieves records for its text and Telegram topic. Search is a bounded lexical baseline,
 not an embedding index. `search_memory` can search by up to 16 speaker references, reporter, event, historical timestamp, and full history.
-The history flag controls historical queries. Use several calls for more than 16 requested people.
+Use several calls for more than 16 requested people.
 Current queries select version heads. As-of queries use both record time and source time so that later knowledge cannot
 change an earlier answer. Full-history queries return the retained versions. Event and branch filters keep exchanges
 separate. Requested people get reserved evidence slots, including people with few messages. Missing direct positions
 remain explicitly unknown even when another person has made a claim about them.
 
-When member coverage is enabled, up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
+Up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
 The two budgets are independent: up to 16 facts and 16 raw matches. Fact selection also has a 48-source provenance budget;
 every selected fact keeps all still-retained evidence. Facts whose original text expired remain available with explicit missing-source IDs. One reply-parent expansion supplies local context. Structured identities use
 the current session's speaker aliases in modern context. Cross-chat retrieval is not supported.
@@ -159,7 +118,7 @@ The **Memory** section under **Sophie AI** in `/help` lists two commands when `a
   20 IDs separated by spaces. Members can delete their own personal facts. Chat administrators can delete other
   members’ or shared facts. The command preserves original conversation messages in the normal chat cache.
 
-Enable `ai_memory_chatbot_edits` with `ai_memory_retrieval` in entertainment mode to use natural-language memory edits.
+Enable `ai_memory_controls` with `ai_memory_retrieval` in entertainment mode to use natural-language memory edits.
 Ask Sophie directly to remember, update, or forget a fact. Sophie uses `search_memory` to find a fact for an update or
 deletion when needed. It can make one successful change per request, including one deletion of multiple facts.
 The tool gets the requester’s identity from the current Telegram message and verifies permissions in the current chat.

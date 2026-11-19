@@ -242,8 +242,7 @@ async def test_independent_writer_and_stale_result(
     chat = await ChatModel.get_by_tid(-1001124)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
-    for flag in ("ai_memory_writer", "ai_memory_personal"):
-        await set_chat_override(flag, chat.tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=test_services.redis)
     now = datetime.now(UTC)
 
     def seed_first_batch(state: MemoryState) -> None:
@@ -279,7 +278,7 @@ async def test_independent_writer_and_stale_result(
     assert not (await read_memory(chat, START, redis=test_services.redis)).facts
 
 
-async def test_rollout_preserves_legacy_tools_until_replacement_is_enabled(
+async def test_retrieval_replaces_legacy_memory_tools(
     db_init: object,
     test_services: ApplicationServices,
 ) -> None:
@@ -301,17 +300,14 @@ async def test_rollout_preserves_legacy_tools_until_replacement_is_enabled(
         mode=AIMode.entertainment,
     )
     capabilities = get_capabilities(AIMode.entertainment)
-    await set_chat_override("ai_memory_capture", chat.tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=test_services.redis)
     names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
     assert {"write_memory", "forget_memory"} <= names
     assert "search_memory" not in names
     await set_chat_override("ai_memory_retrieval", chat.tid, True, redis=test_services.redis)
     names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
-    assert {"write_memory", "forget_memory", "search_memory"} <= names
-    await set_chat_override("ai_memory_replace_legacy", chat.tid, True, redis=test_services.redis)
-    names = {tool.name for tool in await get_chatbot_tools(context, capabilities)}
     assert "search_memory" in names
-    assert not {"write_memory", "forget_memory"} & names
+    assert not {"write_memory", "forget_memory", "manage_memory"} & names
 
 
 def test_reply_anchor_and_attribution_filters() -> None:
@@ -379,7 +375,7 @@ async def test_agentic_memory_turn_budget_is_limited_to_active_retrieval(
 ) -> None:
     chat_tid = -1001140
     await set_chat_override("ai_memory_retrieval", chat_tid, retrieval, redis=test_services.redis)
-    await set_chat_override("ai_memory_capture", chat_tid, True, redis=test_services.redis)
+    await set_chat_override("ai_memory_writer", chat_tid, True, redis=test_services.redis)
     context = SophieAIToolContext(
         connection=SimpleNamespace(),
         chat_tid=chat_tid,
@@ -392,18 +388,12 @@ async def test_agentic_memory_turn_budget_is_limited_to_active_retrieval(
     assert limits.tool_calls_limit == tool_calls_limit
 
 
-@pytest.mark.parametrize(("request_limit", "tool_calls_limit", "expected"), [(10, 18, (10, 18)), (0, -1, (8, 12))])
-async def test_agentic_memory_budget_overrides_and_safe_defaults(
+async def test_agentic_memory_budget_uses_fixed_limits_and_preserves_output_limit(
     test_services: ApplicationServices,
-    request_limit: int,
-    tool_calls_limit: int,
-    expected: tuple[int, int],
 ) -> None:
     chat_tid = -1001141
     redis = test_services.redis
     await set_chat_override("ai_memory_retrieval", chat_tid, True, redis=redis)
-    await set_chat_override("ai_memory_request_limit", chat_tid, request_limit, redis=redis)
-    await set_chat_override("ai_memory_tool_calls_limit", chat_tid, tool_calls_limit, redis=redis)
     await set_chat_override("ai_chatbot_request_limit", chat_tid, 3, redis=redis)
     await set_chat_override("ai_chatbot_tool_calls_limit", chat_tid, 5, redis=redis)
     await set_chat_override("ai_chatbot_response_tokens_limit", chat_tid, 2048, redis=redis)
@@ -415,7 +405,7 @@ async def test_agentic_memory_budget_overrides_and_safe_defaults(
         mode=AIMode.entertainment,
     )
     limits = await build_chatbot_usage_limits(context)
-    assert (limits.request_limit, limits.tool_calls_limit) == expected
+    assert (limits.request_limit, limits.tool_calls_limit) == (8, 12)
     assert limits.output_tokens_limit == 2048
     await set_chat_override("ai_memory_retrieval", chat_tid, False, redis=redis)
     legacy_limits = await build_chatbot_usage_limits(context)

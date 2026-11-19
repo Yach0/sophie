@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Mapping
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from beanie.exceptions import RevisionIdWasChanged
-from pydantic import BaseModel
 from pydantic_ai.exceptions import UnexpectedModelBehavior, UsageLimitExceeded
 from pydantic_ai.messages import ModelResponse
 from pydantic_ai.models import Model
@@ -15,7 +14,6 @@ from pydantic_ai.usage import UsageLimits
 from pymongo.errors import PyMongoError
 from redis.exceptions import RedisError, WatchError
 
-from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_evidence_memory import (
     AIEvidenceMemoryModel,
     MemoryActions,
@@ -23,11 +21,9 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
     MemoryState,
 )
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_model_plan
 from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS, AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import single_model_plan
-from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -43,18 +39,16 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     read_memory,
 )
 from sophie_bot.modules.ai.utils.memory_writer import (
-    RoutineMemoryOutput,
     WriterOutput,
     WriterPrompt,
-    WriterScopes,
+    build_writer_prompt,
     deduplicate_batch,
-    extract_memories,
 )
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.sentry_metrics import count_metric
 from sophie_bot.utils.ai_features import AI_FEATURE_MEMORY_WRITER
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.logger import log
 
 WRITER_INSTRUCTIONS = """Extract durable attributed memories from the message batch. Return ADD, UPDATE or NOOP actions.
@@ -91,30 +85,9 @@ Record the final decision or dispute for a single exchange without also saving i
 Return an empty actions list when nothing should be saved.
 """
 
-ROUTINE_INSTRUCTIONS = """Only propose ADD for clear new personal facts or preferences directly
-stated by the subject. Return new batch message IDs in review when a relevant message concerns an
-existing memory changing, an unclear speaker or subject, another person's statement, or a potentially
-durable shared event, conflict, decision or norm. Respect disabled output categories. Use an empty
-review list for ordinary chatter and when all relevant messages are covered by routine actions.
-"""
-
-
-def _scope_instructions(scopes: WriterScopes) -> str:
-    return (
-        f"Enabled output: personal={scopes.personal}, group={scopes.group}, UPDATE={scopes.updates}, "
-        f"decisions/norms={scopes.shared}. Use NOOP for disabled categories. "
-        "Do not turn updates into ADD to bypass disabled UPDATE."
-    )
-
 
 def _pending_sources(state: MemoryState) -> list[MemorySource]:
     return [source for source in state.sources if not source.processed and source.writer_attempts < 3][:MAX_BATCH]
-
-
-def _batch_ready(pending: list[MemorySource], tiered: bool) -> bool:
-    return len(pending) >= MIN_BATCH or bool(
-        tiered and pending and pending[0].sent_at <= datetime.now(UTC) - timedelta(minutes=30)
-    )
 
 
 class WriteMemory:
@@ -195,18 +168,9 @@ class WriteMemory:
                 except WatchError:
                     pass
 
-    async def _scopes(self, chat_tid: int) -> WriterScopes:
-        redis = self.services.redis
-        return WriterScopes(
-            personal=await is_enabled("ai_memory_personal", chat_tid=chat_tid, redis=redis),
-            group=await is_enabled("ai_memory_group", chat_tid=chat_tid, redis=redis),
-            updates=await is_enabled("ai_memory_updates", chat_tid=chat_tid, redis=redis),
-            shared=await is_enabled("ai_memory_shared_decisions", chat_tid=chat_tid, redis=redis),
-        )
-
     async def _process_claimed_chat(self, chat: ChatModel) -> None:
         redis = self.services.redis
-        cutoff = await memory_cutoff(chat.tid, redis=redis)
+        cutoff = memory_cutoff()
         state = await read_memory(chat, cutoff, redis=redis)
         if await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid):
             state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=redis)
@@ -214,18 +178,14 @@ class WriteMemory:
             return
         if not await is_enabled("ai_memory_writer", chat_tid=chat.tid, redis=redis):
             return
-        scopes = await self._scopes(chat.tid)
-        if not scopes.personal and not scopes.group:
-            return
-        tiered = await is_enabled("ai_memory_writer_tiered", chat_tid=chat.tid, redis=redis)
         pending = _pending_sources(state)
-        if not _batch_ready(pending, tiered):
+        if len(pending) < MIN_BATCH:
             return
 
         # Establish a persistent generation before the first external writer call.
         state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=redis)
         pending = _pending_sources(state)
-        if not _batch_ready(pending, tiered):
+        if len(pending) < MIN_BATCH:
             return
         unique, duplicates = deduplicate_batch(state.sources, pending)
         already_processed = {source.message_id for source in state.sources if source.processed}
@@ -237,7 +197,7 @@ class WriteMemory:
                 compact_state = state.model_copy(
                     update={"sources": [source for source in state.sources if source.message_id not in duplicates]}
                 )
-                output, completed = await self._extract_output(chat, compact_state, unique, scopes, attempted, tiered)
+                output, completed = await self._extract_output(chat, compact_state, unique, attempted)
             skipped = {
                 duplicate
                 for duplicate, representative in duplicates.items()
@@ -245,9 +205,9 @@ class WriteMemory:
             }
             if not completed and not skipped:
                 return
-            if not await self._can_continue(chat, state.generation, scopes, tiered):
+            if not await self._can_continue(chat, state.generation):
                 return
-            cutoff = await memory_cutoff(chat.tid, redis=redis)
+            cutoff = memory_cutoff()
             originals = {source.message_id: source.text for source in state.sources}
             evidence_ids = {identity for action in output.actions for identity in action.evidence_ids}
             required = completed | skipped | evidence_ids | {duplicates[duplicate] for duplicate in skipped}
@@ -261,8 +221,6 @@ class WriteMemory:
                 actual = {source.message_id: source.text for source in current.sources}
                 if any(actual.get(identity) != originals.get(identity) for identity in required):
                     return
-                if any(not scopes.allows(action) for action in output.actions):
-                    raise ValueError("Memory writer used a disabled category")
                 prune_memory(current, cutoff)
                 before = len(current.facts)
                 if apply_actions(current, output, completed | skipped, state.generation, datetime.now(UTC)):
@@ -290,108 +248,53 @@ class WriteMemory:
             count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "rejected"})
             log.warning("Memory writer rejected invalid actions", chat_tid=chat.tid)
 
-    async def _can_continue(self, chat: ChatModel, generation: str, scopes: WriterScopes, tiered: bool) -> bool:
+    async def _can_continue(self, chat: ChatModel, generation: str) -> bool:
         redis = self.services.redis
         if not (await resolve_chat_capabilities(chat)).memory or not await is_enabled(
             "ai_memory_writer", chat_tid=chat.tid, redis=redis
         ):
             return False
-        if await is_enabled("ai_memory_writer_tiered", chat_tid=chat.tid, redis=redis) != tiered:
-            return False
         document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
-        return bool(document and document.state.generation == generation and await self._scopes(chat.tid) == scopes)
+        return bool(document and document.state.generation == generation)
 
     async def _extract_output(
         self,
         chat: ChatModel,
         state: MemoryState,
         pending: list[MemorySource],
-        scopes: WriterScopes,
         attempted: set[int],
-        tiered: bool,
     ) -> tuple[MemoryActions, set[int]]:
         redis = self.services.redis
         counter = await load_token_counter("gpt-4")
+        prompt = build_writer_prompt(state, pending, counter)
+        if not prompt.batch_ids or not await self._can_continue(chat, state.generation):
+            return MemoryActions(), set()
+
+        latest = await read_memory(chat, memory_cutoff(), redis=redis)
+        if latest.generation != state.generation:
+            return MemoryActions(), set()
         originals = {source.message_id: source.text for source in state.sources}
+        live_sources = {source.message_id: source for source in latest.sources}
+        live_heads = {fact.fact_id for fact in latest.facts} - {fact.previous_id for fact in latest.facts}
+        if any(
+            (live := live_sources.get(source.message_id)) is None
+            or live.text != originals[source.message_id]
+            or (source.message_id in prompt.batch_ids and live.processed)
+            for source in prompt.messages.values()
+        ) or any(head.fact_id not in live_heads for head in prompt.heads.values()):
+            return MemoryActions(), set()
 
-        async def current(prompt: WriterPrompt) -> bool:
-            if not await self._can_continue(chat, state.generation, scopes, tiered):
-                return False
-            latest = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
-            if latest.generation != state.generation:
-                return False
-            live_sources = {source.message_id: source for source in latest.sources}
-            live_heads = {fact.fact_id for fact in latest.facts} - {fact.previous_id for fact in latest.facts}
-            return all(
-                (live := live_sources.get(source.message_id)) is not None
-                and live.text == originals[source.message_id]
-                and (source.message_id not in prompt.batch_ids or not live.processed)
-                for source in prompt.messages.values()
-            ) and all(head.fact_id in live_heads for head in prompt.heads.values())
+        attempted.update(prompt.batch_ids)
+        result = await self._run_writer(chat, prompt)
+        if result.output is None:
+            return MemoryActions(), set()
+        return MemoryActions(actions=prompt.decode_actions(result.output.actions)), set(prompt.batch_ids)
 
-        model_name = str(await get_value("ai_memory_writer_routine_model", chat_tid=chat.tid, redis=redis))
-
-        async def routine(prompt: WriterPrompt) -> RoutineMemoryOutput | None:
-            if not await current(prompt):
-                return None
-            plan = single_model_plan(model_name)
-            attempted.update(prompt.batch_ids)
-            result = await self._run_tier(
-                chat, prompt, scopes, plan, RoutineMemoryOutput, "routine", ROUTINE_INSTRUCTIONS
-            )
-            return result.output
-
-        async def write_once(prompt: WriterPrompt) -> WriterOutput | None:
-            if not await current(prompt):
-                return None
-            attempted.update(prompt.batch_ids)
-            result = await self._run_tier(
-                chat, prompt, scopes, single_model_plan(model_name), WriterOutput, "single", ""
-            )
-            return result.output
-
-        async def review(prompt: WriterPrompt) -> WriterOutput | None:
-            if not (await check_quota(chat.iid, redis=redis)).allowed or not await current(prompt):
-                return None
-            name = str(await get_value("ai_memory_writer_model", chat_tid=chat.tid, redis=redis))
-            plan = (
-                single_model_plan(name)
-                if name
-                else await get_chat_model_plan(AIModelPurpose.memory_writer, chat.iid, chat_tid=chat.tid, redis=redis)
-            )
-            attempted.update(prompt.batch_ids)
-            count_metric("sophie.ai.memory_writer.reviewed_messages", len(prompt.batch_ids))
-            try:
-                result = await self._run_tier(chat, prompt, scopes, plan, WriterOutput, "review", "")
-            except (AIRequestFailed, *AI_PROVIDER_EXCEPTIONS) as error:
-                log.warning("Memory writer deferred review", chat_tid=chat.tid, error_type=type(error).__name__)
-                return None
-            return result.output
-
-        return await extract_memories(
-            state,
-            pending,
-            counter,
-            routine=routine if tiered and scopes.personal else None,
-            review=review if tiered else write_once,
-        )
-
-    async def _run_tier[OutputT: BaseModel](
-        self,
-        chat: ChatModel,
-        prompt: WriterPrompt,
-        scopes: WriterScopes,
-        plan: AIModelPlan,
-        output_type: type[OutputT],
-        tier: str,
-        extra_instructions: str,
-    ) -> AIAgentResult[OutputT]:
+    async def _run_writer(self, chat: ChatModel, prompt: WriterPrompt) -> AIAgentResult[WriterOutput]:
+        plan = single_model_plan("openai/gpt-6-luna")
         history = OldContext(services=self.services)
         history.add_system(WRITER_INSTRUCTIONS)
-        history.add_system(_scope_instructions(scopes))
         history.add_system(COMPACT_INSTRUCTIONS)
-        if extra_instructions:
-            history.add_system(extra_instructions)
         history.prompt = [prompt.text]
         responses = 0
         model_settings = None
@@ -407,7 +310,7 @@ class WriteMemory:
 
         async def observe(model: Model, response: ModelResponse) -> None:
             nonlocal responses
-            attributes = {"tier": tier, "model": model.model_name, "retry": responses > 0}
+            attributes = {"tier": "single", "model": model.model_name, "retry": responses > 0}
             responses += 1
             count_metric("sophie.ai.memory_writer.responses", attributes=attributes)
             if response.usage is not None:
@@ -422,8 +325,8 @@ class WriteMemory:
         try:
             return await run_structured_task(
                 AIStructuredTask(
-                    output_type=output_type,
-                    name=f"memory:writer:{tier}",
+                    output_type=WriterOutput,
+                    name="memory:writer:single",
                     feature=AI_FEATURE_MEMORY_WRITER,
                     model_settings=model_settings,
                 ),
@@ -442,8 +345,8 @@ class WriteMemory:
             invalid_output = isinstance(error.__cause__, (UnexpectedModelBehavior, UsageLimitExceeded))
             if invalid_output:
                 raise ValueError("Memory writer did not return valid structured output") from error
-            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": tier})
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": "single"})
             raise
         except AI_PROVIDER_EXCEPTIONS:
-            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": tier})
+            count_metric("sophie.ai.memory_writer.batch", attributes={"outcome": "provider_error", "tier": "single"})
             raise

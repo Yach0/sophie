@@ -261,10 +261,10 @@ async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
     # The two private-chat modes carry their own roles now, so they are offered too.
     assert "sophie_pm" in meta.modes
     assert "support" in meta.modes
-    # Every purpose maps to the flag whose per-chat override pins its model.
     assert meta.model_override_flags["chatbot"] == "ai_chatbot_model"
     assert meta.model_override_flags["moderation_reason"] == "ai_moderation_reason_model"
-    assert set(meta.model_override_flags) == set(meta.purposes)
+    assert "memory_writer" in meta.purposes
+    assert set(meta.model_override_flags) == set(meta.purposes) - {"memory_writer"}
 
 
 async def test_openrouter_proxy_trims_the_upstream_shape(test_services: object) -> None:

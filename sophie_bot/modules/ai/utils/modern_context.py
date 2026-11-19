@@ -777,10 +777,9 @@ class ModernContext:
             else []
         )
 
-        replace_legacy = evidence_enabled and await is_enabled(
-            "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=self._redis
+        memories = (
+            await AIMemoryModel.get_lines(context.chat_iid) if capabilities.memory and not evidence_enabled else []
         )
-        memories = await AIMemoryModel.get_lines(context.chat_iid) if capabilities.memory and not replace_legacy else []
         if evidence_enabled and chat:
             evidence_text = await memory_context(
                 chat,
@@ -885,7 +884,6 @@ class ModernContext:
             MemoryQuery(text=" ".join(row.text for row in messages), social=True),
             redis=services.redis,
             speaker=history.speaker_reference,
-            feature="ai_memory_participation",
         )
 
     def _speaker(self, user_tid: int) -> str:
@@ -1485,9 +1483,10 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
         if related_notes:
             context_doc += render_chat_notes_for_prompt(related_notes)
     if capabilities.memory:
-        if chat_model and await is_enabled(
+        evidence_enabled = await is_enabled(
             "ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis
-        ):
+        )
+        if chat_model and evidence_enabled:
             context_doc += _(
                 "Evidence memory is written independently from source messages. Use search_memory to retrieve evidence "
                 "by person, event, and time."
@@ -1499,9 +1498,7 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
                 ),
                 redis=context.services.redis,
             )
-        if not await is_enabled(
-            "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=context.services.redis
-        ) or not await is_enabled("ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis):
+        if not evidence_enabled:
             context_doc += render_memory_for_prompt(await AIMemoryModel.get_lines(context.chat_iid))
     return context_doc
 

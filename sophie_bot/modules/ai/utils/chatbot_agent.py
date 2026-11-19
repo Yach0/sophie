@@ -35,12 +35,11 @@ from sophie_bot.modules.ai.utils.ai_run import (
 )
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
-from sophie_bot.modules.ai.utils.memory_edits import chatbot_memory_edits_enabled
 from sophie_bot.modules.ai.utils.modern_context import ModernContext, build_chatbot_instructions
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.sophie_inspect import is_sophie_inspect_chat
 from sophie_bot.utils.ai_features import AI_FEATURE_CHATBOT
-from sophie_bot.utils.feature_flags import FeatureType, get_default_value, get_value, is_enabled
+from sophie_bot.utils.feature_flags import get_default_value, get_value, is_enabled
 
 CHATBOT_TOOLS: list[Any] = [
     write_memory_tool,
@@ -139,13 +138,11 @@ async def get_chatbot_tools(
     if capabilities.memory and await is_enabled(
         "ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis
     ):
-        edits_enabled = await chatbot_memory_edits_enabled(context.chat_tid, redis=context.services.redis)
-        if edits_enabled or await is_enabled(
-            "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=context.services.redis
-        ):
-            tools = [tool for tool in tools if tool.name not in _MEMORY_TOOL_NAMES]
+        tools = [tool for tool in tools if tool.name not in _MEMORY_TOOL_NAMES]
         tools.append(search_memory_tool)
-        if edits_enabled and context.memory_edit is not None:
+        if context.memory_edit is not None and await is_enabled(
+            "ai_memory_controls", chat_tid=context.chat_tid, redis=context.services.redis
+        ):
             tools.append(manage_memory_tool)
     if search_tool := await _get_search_tool(context):
         tools.append(search_tool)
@@ -169,16 +166,17 @@ async def build_chatbot_usage_limits(context: SophieAIToolContext) -> UsageLimit
     agentic_memory = get_capabilities(context.mode).memory and await is_enabled(
         "ai_memory_retrieval", chat_tid=context.chat_tid, redis=redis
     )
-    request_feature: FeatureType = "ai_memory_request_limit" if agentic_memory else "ai_chatbot_request_limit"
-    tool_calls_feature: FeatureType = "ai_memory_tool_calls_limit" if agentic_memory else "ai_chatbot_tool_calls_limit"
-    request_limit = coerce_usage_limit(
-        await get_value(request_feature, chat_tid=context.chat_tid, redis=redis),
-        int(get_default_value(request_feature)),
-    )
-    tool_calls_limit = coerce_usage_limit(
-        await get_value(tool_calls_feature, chat_tid=context.chat_tid, redis=redis),
-        int(get_default_value(tool_calls_feature)),
-    )
+    if agentic_memory:
+        request_limit, tool_calls_limit = 8, 12
+    else:
+        request_limit = coerce_usage_limit(
+            await get_value("ai_chatbot_request_limit", chat_tid=context.chat_tid, redis=redis),
+            int(get_default_value("ai_chatbot_request_limit")),
+        )
+        tool_calls_limit = coerce_usage_limit(
+            await get_value("ai_chatbot_tool_calls_limit", chat_tid=context.chat_tid, redis=redis),
+            int(get_default_value("ai_chatbot_tool_calls_limit")),
+        )
     output_tokens_limit = coerce_usage_limit(
         await get_value("ai_chatbot_response_tokens_limit", chat_tid=context.chat_tid, redis=redis)
     )
@@ -213,10 +211,7 @@ async def _build_chatbot_run_config(
         if capabilities.memory and await is_enabled(
             "ai_memory_retrieval", chat_tid=context.chat_tid, redis=context.services.redis
         ):
-            if await chatbot_memory_edits_enabled(context.chat_tid, redis=context.services.redis) or await is_enabled(
-                "ai_memory_replace_legacy", chat_tid=context.chat_tid, redis=context.services.redis
-            ):
-                tools = [tool for tool in tools if tool.name not in _MEMORY_TOOL_NAMES]
+            tools = [tool for tool in tools if tool.name not in _MEMORY_TOOL_NAMES]
             tools.append(search_memory_tool)
     else:
         tools = await get_chatbot_tools(context, capabilities)

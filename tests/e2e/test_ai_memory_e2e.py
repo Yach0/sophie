@@ -74,7 +74,7 @@ async def test_silent_capture_controls_and_chat_boundaries(
     user, group, _user_model = await create_test_user_and_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
     assert chat
-    await set_feature(test_client, "ai_memory_capture", True, chat_tid=chat.tid)
+    await set_feature(test_client, "ai_memory_writer", True, chat_tid=chat.tid)
     await set_feature(test_client, "ai_memory_controls", True, chat_tid=chat.tid)
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
     await _feed(
@@ -279,7 +279,7 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
     chat = await ChatModel.get_by_tid(group.id)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
-    for feature in ("ai_memory_chatbot_edits", "ai_memory_retrieval"):
+    for feature in ("ai_memory_controls", "ai_memory_retrieval"):
         await set_feature(test_client, feature, True, chat_tid=chat.tid)
     await set_feature(test_client, "ai_moderation", False, chat_tid=chat.tid)
     await set_feature(test_client, "ai_chatbot_modern_context", modern, chat_tid=chat.tid)
@@ -399,7 +399,7 @@ async def test_memory_commands_stay_out_of_cache(
     chat = await ChatModel.get_by_tid(group.id)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
-    await set_feature(test_client, "ai_memory_capture", True, chat_tid=chat.tid)
+    await set_feature(test_client, "ai_memory_writer", True, chat_tid=chat.tid)
     await set_feature(test_client, "ai_memory_controls", controls_enabled, chat_tid=chat.tid)
     await _feed(
         test_client,

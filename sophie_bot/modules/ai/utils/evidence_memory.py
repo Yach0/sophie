@@ -28,7 +28,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     reset_modern_context,
     store_cached_message,
 )
-from sophie_bot.utils.feature_flags import get_value, is_enabled
+from sophie_bot.utils.feature_flags import is_enabled
 
 MAX_FACTS = 1000
 MIN_BATCH = 10
@@ -376,9 +376,8 @@ async def mutate_memory(
     raise RuntimeError("Memory update failed")
 
 
-async def memory_cutoff(chat_tid: int, *, redis: Redis) -> datetime:
-    days = int(await get_value("ai_memory_retention_days", chat_tid=chat_tid, redis=redis))
-    return datetime.now(UTC) - timedelta(days=max(1, min(days, 365)))
+def memory_cutoff() -> datetime:
+    return datetime.now(UTC) - timedelta(days=30)
 
 
 async def read_memory(chat: ChatModel, cutoff: datetime, *, redis: Redis) -> MemoryState:
@@ -395,21 +394,11 @@ async def memory_context(
     *,
     redis: Redis,
     speaker: Callable[[int], str] | None = None,
-    feature: Literal["ai_memory_retrieval", "ai_memory_participation"] = "ai_memory_retrieval",
 ) -> str:
-    if not await is_enabled(feature, chat_tid=chat.tid, redis=redis):
+    if not await is_enabled("ai_memory_retrieval", chat_tid=chat.tid, redis=redis):
         return ""
-    state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
-    branches = await is_enabled("ai_memory_branches", chat_tid=chat.tid, redis=redis)
-    coverage = await is_enabled("ai_memory_member_coverage", chat_tid=chat.tid, redis=redis)
-    query = query.model_copy(
-        update={
-            "anchor_id": query.anchor_id if branches else None,
-            "branch_id": query.branch_id if branches else None,
-            "reserve_members": coverage,
-        }
-    )
-    if coverage and not query.person_tids:
+    state = await read_memory(chat, memory_cutoff(), redis=redis)
+    if query.reserve_members and not query.person_tids:
         terms = _terms(query.text)
         relevant = {
             source.speaker_tid

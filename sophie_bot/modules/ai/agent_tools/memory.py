@@ -125,10 +125,6 @@ async def search_memory(
     """
     if not await is_enabled("ai_memory_retrieval", chat_tid=ctx.deps.chat_tid, redis=ctx.deps.services.redis):
         raise ModelRetry("Evidence memory is disabled in this chat.")
-    if (as_of or history) and not await is_enabled(
-        "ai_memory_history", chat_tid=ctx.deps.chat_tid, redis=ctx.deps.services.redis
-    ):
-        raise ModelRetry("Historical memory search is disabled in this chat.")
     requested_people = people or []
     if len(requested_people) > 16:
         raise ModelRetry("Search at most 16 people per call; use several calls for a larger group.")

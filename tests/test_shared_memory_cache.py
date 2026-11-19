@@ -81,8 +81,7 @@ async def test_writer_waits_for_ten_messages_and_limits_batch_to_sixty(
     chat = await ChatModel.get_by_tid(chat.tid)
     assert chat
     await set_chat_mode(chat, AIMode.entertainment, redis=redis)
-    for flag in ("ai_memory_writer", "ai_memory_personal"):
-        await set_chat_override(flag, chat.tid, True, redis=redis)
+    await set_chat_override("ai_memory_writer", chat.tid, True, redis=redis)
     runner = AsyncMock(return_value=SimpleNamespace(output=WriterOutput(actions=[])))
     monkeypatch.setattr(write_memory, "run_structured_task", runner)
     select_model = Mock()

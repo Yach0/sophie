@@ -42,7 +42,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
         memory_enabled = bool(
             chat_db
             and capabilities.memory
-            and await is_enabled("ai_memory_capture", chat_tid=chat_db.tid, redis=data["services"].redis)
+            and await is_enabled("ai_memory_writer", chat_tid=chat_db.tid, redis=data["services"].redis)
         )
         excluded_users: list[int] = []
         if memory_enabled and chat_db:

@@ -183,7 +183,7 @@ async def _memory_page(
 ) -> tuple[Doc, InlineKeyboardMarkup]:
     if data.target == "help":
         return _memory_help(), memory_back_markup(data)
-    state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
+    state = await read_memory(chat, memory_cutoff(), redis=redis)
     return memory_view(state, browser, data)
 
 
@@ -230,7 +230,7 @@ class AIMemoryPageHandler(SophieCallbackQueryHandler):
             await callback.answer()
             return
 
-        state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
+        state = await read_memory(chat, memory_cutoff(), redis=redis)
         excluded = user_tid in state.excluded_users
         document = Doc(
             _("Memory capture is off for you.") if excluded else _("You allow AI memory capture in this chat.")

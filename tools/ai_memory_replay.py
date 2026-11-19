@@ -22,9 +22,7 @@ from pydantic_ai.usage import UsageLimits
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryFact, MemoryKind, MemoryLayer, MemoryState
 from sophie_bot.modules.ai.schedules.write_memory import (
     COMPACT_INSTRUCTIONS,
-    ROUTINE_INSTRUCTIONS,
     WRITER_INSTRUCTIONS,
-    _scope_instructions,
 )
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_structured
@@ -34,9 +32,15 @@ from sophie_bot.modules.ai.utils.memory_writer import (
     RoutineMemoryOutput,
     WriterOutput,
     WriterPrompt,
-    WriterScopes,
     extract_memories,
 )
+
+ROUTINE_INSTRUCTIONS = """Only propose ADD for clear new personal facts or preferences directly
+stated by the subject. Return new batch message IDs in review when a relevant message concerns an
+existing memory changing, an unclear speaker or subject, another person's statement, or a potentially
+durable shared event, conflict, decision or norm. Use an empty review list for ordinary chatter and when
+all relevant messages are covered by routine actions.
+"""
 
 
 class ExpectedMemory(BaseModel):
@@ -150,8 +154,6 @@ async def score_case(
     counter: TokenCounter,
     score: ReplayScore,
 ) -> None:
-    scopes = WriterScopes(personal=True, group=True, updates=True, shared=True)
-
     async def observe(
         _ctx: RunContext[None], *, request_context: ModelRequestContext, response: ModelResponse
     ) -> ModelResponse:
@@ -167,7 +169,7 @@ async def score_case(
     async def run[OutputT: BaseModel](
         model: OpenRouterModel, prompt: WriterPrompt, output_type: type[OutputT], *, is_routine: bool
     ) -> OutputT:
-        system = [WRITER_INSTRUCTIONS, _scope_instructions(scopes), COMPACT_INSTRUCTIONS]
+        system = [WRITER_INSTRUCTIONS, COMPACT_INSTRUCTIONS]
         if is_routine:
             system.append(ROUTINE_INSTRUCTIONS)
         agent = Agent(model, output_type=output_type)

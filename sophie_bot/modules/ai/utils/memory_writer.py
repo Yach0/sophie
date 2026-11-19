@@ -53,21 +53,6 @@ class RoutineMemoryOutput(WriterOutput):
 
 
 @dataclass(frozen=True, slots=True)
-class WriterScopes:
-    personal: bool
-    group: bool
-    updates: bool
-    shared: bool
-
-    def allows(self, action: MemoryAction) -> bool:
-        return action.action == "NOOP" or (
-            (self.personal if action.scope == "person" else self.group)
-            and (self.updates or action.action != "UPDATE")
-            and (self.shared or action.kind != "decision" and action.layer != "norm")
-        )
-
-
-@dataclass(frozen=True, slots=True)
 class WriterPrompt:
     text: str
     batch_ids: frozenset[int]
