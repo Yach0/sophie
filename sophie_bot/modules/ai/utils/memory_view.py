@@ -15,17 +15,14 @@ from stfu_tg import (
     OrderedList,
     Paragraph,
     RichBlockQuote,
-    Section,
     Template,
     Url,
-    VList,
 )
 
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryFact, MemorySource, MemoryState
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback, MemoryListView
-from sophie_bot.modules.ai.utils.memory_commands import MemoryCommand
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.pagination import build_pagination_row, paginate
 
@@ -45,37 +42,6 @@ class MemoryBrowser(BaseModel):
     owner_tid: int
     search: str = ""
     member: MemoryMember | None = None
-
-
-def memory_help() -> Doc:
-    return Doc(
-        Section(
-            VList(
-                KeyValue(
-                    Code(f"/{MemoryCommand.browse}"),
-                    _("Browse your memories, add search text, or mention or reply to a user to browse theirs."),
-                ),
-                KeyValue(Code(f"/{MemoryCommand.history}"), _("Browse previous versions of your memories.")),
-                KeyValue(Code(f"/{MemoryCommand.sources}"), _("Browse your original messages saved as sources.")),
-                KeyValue(
-                    Code(
-                        Template(
-                            "/{command} FACT_ID {text}",
-                            command=MemoryCommand.correct,
-                            text=_("I prefer short replies."),
-                        )
-                    ),
-                    _("Use the ID from the memory details. Send the correction in the original chat and topic."),
-                ),
-                KeyValue(Code(f"/{MemoryCommand.forget}"), _("Admins: clear shared AI memory and context.")),
-                KeyValue(
-                    Code(f"/{MemoryCommand.off}"), _("Admins: clear shared memory and stop capture for yourself.")
-                ),
-                KeyValue(Code(f"/{MemoryCommand.on}"), _("Allow future capture of your messages.")),
-            ),
-            title=_("AI memory help"),
-        ),
-    )
 
 
 def can_correct_memory(fact: MemoryFact, user_tid: int, excluded_users: Collection[int]) -> bool:
@@ -195,7 +161,7 @@ def _timestamp(time: datetime) -> str:
 
 
 def _fact_details(
-    chat: ChatModel, fact: MemoryFact, available_ids: set[int] | None, can_correct: bool
+    chat: ChatModel, fact: MemoryFact, available_ids: set[int] | None, correction_command: str | None
 ) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
     document = Doc(
         Heading(_("Memory details")),
@@ -214,7 +180,7 @@ def _fact_details(
         if unavailable:
             document += Paragraph(KeyValue(_("Source messages expired or unavailable"), Code(unavailable)))
     buttons: list[list[InlineKeyboardButton]] = []
-    if can_correct:
+    if correction_command is not None:
         if fact.topic_id is not None and chat.type == ChatType.supergroup:
             chat_path = str(chat.tid).removeprefix("-100")
             document += Template(
@@ -231,7 +197,7 @@ def _fact_details(
             [
                 InlineKeyboardButton(
                     text=_("Copy correction command"),
-                    copy_text=CopyTextButton(text=f"/{MemoryCommand.correct} {fact.fact_id} "),
+                    copy_text=CopyTextButton(text=f"/{correction_command} {fact.fact_id} "),
                 )
             ]
         )
@@ -260,7 +226,7 @@ def memory_view(
     browser: MemoryBrowser,
     data: AIMemoryPageCallback,
     *,
-    corrections_enabled: bool,
+    correction_command: str | None,
 ) -> tuple[Doc, InlineKeyboardMarkup]:
     buttons: list[list[InlineKeyboardButton]] = []
     user_tid = browser.owner_tid
@@ -296,9 +262,7 @@ def memory_view(
                 chat,
                 fact,
                 {source.message_id for source in state.sources} if browser.member is None else None,
-                corrections_enabled
-                and data.view == "show"
-                and can_correct_memory(fact, user_tid, state.excluded_users),
+                correction_command if can_correct_memory(fact, user_tid, state.excluded_users) else None,
             )
     return document, memory_back_markup(data, buttons)
 

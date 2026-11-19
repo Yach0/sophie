@@ -10,7 +10,7 @@ from aiogram.dispatcher.event.handler import CallbackType
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message, User
 from ass_tg.types import OptionalArg, OrArg, TextArg, UserMentionArg, WordArg
 from redis.asyncio import Redis
-from stfu_tg import Doc, Template
+from stfu_tg import Code, Doc, KeyValue, Section, Template, VList
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryAction, MemoryActions, MemorySource, MemoryState
@@ -31,13 +31,11 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     mutate_memory,
     read_memory,
 )
-from sophie_bot.modules.ai.utils.memory_commands import MemoryCommand
 from sophie_bot.modules.ai.utils.memory_view import (
     MemoryBrowser,
     MemoryMember,
     can_correct_memory,
     memory_back_markup,
-    memory_help,
     memory_view,
 )
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
@@ -63,22 +61,15 @@ def _clear_key(chat_tid: int, message_chat_tid: int, data: AIMemoryClearCallback
 
 
 _MEMORY_HELP_GROUP = l_("Memory")
-_LEGACY_MEMORY_COMMANDS = {
-    "show": MemoryCommand.browse,
-    "sources": MemoryCommand.sources,
-    "forget": MemoryCommand.forget,
-    "off": MemoryCommand.off,
-    "on": MemoryCommand.on,
-}
 
 
 @flags.ai_cache(exclude_user_command=True)
 class _AIMemoryCommand(SophieMessageHandler):
-    command: ClassVar[MemoryCommand]
+    command: ClassVar[str]
 
     @classmethod
     def filters(cls) -> tuple[CallbackType, ...]:
-        return CMDFilter(cls.command.value), FeatureFlagFilter("ai_memory_controls")
+        return CMDFilter(cls.command), FeatureFlagFilter("ai_memory_controls")
 
     async def handle(self) -> Message:
         sender = self.event.from_user
@@ -114,7 +105,7 @@ class _AIMemoryBrowse(_AIMemoryCommand):
 )
 @flags.args(query=OptionalArg(OrArg(UserMentionArg(), TextArg(), description=l_("?@username or search text"))))
 class AIMemoryBrowse(_AIMemoryBrowse):
-    command = MemoryCommand.browse
+    command = "ai_memory"
     view = "show"
 
     async def run(self, sender: User) -> Message:
@@ -133,7 +124,7 @@ class AIMemoryBrowse(_AIMemoryBrowse):
                 return await self.event.reply(
                     Template(
                         _("Use {command} with a memory ID and replacement text."),
-                        command=f"/{MemoryCommand.correct}",
+                        command=f"/{AIMemoryCorrect.command}",
                     ).to_html()
                 )
             if fullmatch(r"@[A-Za-z0-9_]{1,32}", search):
@@ -157,28 +148,28 @@ class AIMemoryBrowse(_AIMemoryBrowse):
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Browse previous versions of your memories."))
 class AIMemoryHistory(_AIMemoryBrowse):
-    command = MemoryCommand.history
+    command = "ai_memory_history"
     view = "history"
 
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Browse your original messages saved as sources."))
 class AIMemorySources(_AIMemoryBrowse):
-    command = MemoryCommand.sources
+    command = "ai_memory_sources"
     view = "sources"
 
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Show examples for the AI memory commands."))
 class AIMemoryHelp(_AIMemoryCommand):
-    command = MemoryCommand.help
+    command = "ai_memory_help"
 
     async def run(self, sender: User) -> Message:
-        return await send_ai_rich_message(self.event, memory_help())
+        return await send_ai_rich_message(self.event, _memory_help())
 
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Correct one of your current personal memories."))
 @flags.args(fact_id=WordArg(l_("Memory ID")), text=TextArg(l_("Replacement text")))
 class AIMemoryCorrect(_AIMemoryCommand):
-    command = MemoryCommand.correct
+    command = "ai_memory_correct"
 
     async def run(self, sender: User) -> Message:
         chat = self.connection.db_model
@@ -275,7 +266,7 @@ class _AIMemoryClear(_AIMemoryCommand):
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, only_admin=True, description=l_("Clear shared AI memory and context."))
 class AIMemoryForget(_AIMemoryClear):
-    command = MemoryCommand.forget
+    command = "ai_memory_forget"
     operation = "forget"
 
 
@@ -285,13 +276,13 @@ class AIMemoryForget(_AIMemoryClear):
     description=l_("Clear shared memory and stop saving your messages."),
 )
 class AIMemoryOff(_AIMemoryClear):
-    command = MemoryCommand.off
+    command = "ai_memory_off"
     operation = "off"
 
 
 @flags.handler_help(group=_MEMORY_HELP_GROUP, description=l_("Allow future capture of your messages."))
 class AIMemoryOn(_AIMemoryCommand):
-    command = MemoryCommand.on
+    command = "ai_memory_on"
 
     async def run(self, sender: User) -> Message:
         def opt_in(state: MemoryState) -> None:
@@ -303,6 +294,46 @@ class AIMemoryOn(_AIMemoryCommand):
         )
 
 
+_LEGACY_MEMORY_COMMANDS = {
+    "show": AIMemoryBrowse.command,
+    "sources": AIMemorySources.command,
+    "forget": AIMemoryForget.command,
+    "off": AIMemoryOff.command,
+    "on": AIMemoryOn.command,
+}
+
+
+def _memory_help() -> Doc:
+    return Doc(
+        Section(
+            VList(
+                KeyValue(
+                    Code(f"/{AIMemoryBrowse.command}"),
+                    _("Browse your memories, add search text, or mention or reply to a user to browse theirs."),
+                ),
+                KeyValue(Code(f"/{AIMemoryHistory.command}"), _("Browse previous versions of your memories.")),
+                KeyValue(Code(f"/{AIMemorySources.command}"), _("Browse your original messages saved as sources.")),
+                KeyValue(
+                    Code(
+                        Template(
+                            "/{command} FACT_ID {text}",
+                            command=AIMemoryCorrect.command,
+                            text=_("I prefer short replies."),
+                        )
+                    ),
+                    _("Use the ID from the memory details. Send the correction in the original chat and topic."),
+                ),
+                KeyValue(Code(f"/{AIMemoryForget.command}"), _("Admins: clear shared AI memory and context.")),
+                KeyValue(
+                    Code(f"/{AIMemoryOff.command}"), _("Admins: clear shared memory and stop capture for yourself.")
+                ),
+                KeyValue(Code(f"/{AIMemoryOn.command}"), _("Allow future capture of your messages.")),
+            ),
+            title=_("AI memory help"),
+        ),
+    )
+
+
 async def _memory_page(
     chat: ChatModel,
     browser: MemoryBrowser,
@@ -311,7 +342,7 @@ async def _memory_page(
     redis: Redis,
 ) -> tuple[Doc, InlineKeyboardMarkup]:
     if data.target == "help":
-        return memory_help(), memory_back_markup(data)
+        return _memory_help(), memory_back_markup(data)
     state = await read_memory(chat, await memory_cutoff(chat.tid, redis=redis), redis=redis)
     corrections_enabled = bool(
         browser.member is None
@@ -319,7 +350,9 @@ async def _memory_page(
         and data.target
         and (await resolve_chat_capabilities(chat)).memory
     )
-    return memory_view(chat, state, browser, data, corrections_enabled=corrections_enabled)
+    return memory_view(
+        chat, state, browser, data, correction_command=AIMemoryCorrect.command if corrections_enabled else None
+    )
 
 
 class AIMemoryPageHandler(SophieCallbackQueryHandler):
