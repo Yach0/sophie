@@ -37,6 +37,7 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     mutate_memory,
     prune_memory,
     read_memory,
+    repair_pending_memory_context,
 )
 from sophie_bot.modules.ai.utils.memory_writer import (
     WriterOutput,
@@ -170,7 +171,8 @@ class WriteMemory:
 
     async def _process_claimed_chat(self, chat: ChatModel) -> None:
         redis = self.services.redis
-        cutoff = memory_cutoff()
+        await repair_pending_memory_context(chat, redis=redis)
+        cutoff = await memory_cutoff(chat.tid)
         state = await read_memory(chat, cutoff, redis=redis)
         if await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid):
             state = await mutate_memory(chat, lambda current: prune_memory(current, cutoff), redis=redis)
@@ -207,7 +209,7 @@ class WriteMemory:
                 return
             if not await self._can_continue(chat, state.generation):
                 return
-            cutoff = memory_cutoff()
+            cutoff = await memory_cutoff(chat.tid)
             originals = {source.message_id: source.text for source in state.sources}
             evidence_ids = {identity for action in output.actions for identity in action.evidence_ids}
             required = completed | skipped | evidence_ids | {duplicates[duplicate] for duplicate in skipped}
@@ -270,7 +272,7 @@ class WriteMemory:
         if not prompt.batch_ids or not await self._can_continue(chat, state.generation):
             return MemoryActions(), set()
 
-        latest = await read_memory(chat, memory_cutoff(), redis=redis)
+        latest = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
         if latest.generation != state.generation:
             return MemoryActions(), set()
         originals = {source.message_id: source.text for source in state.sources}

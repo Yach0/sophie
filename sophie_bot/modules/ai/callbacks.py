@@ -45,3 +45,8 @@ class AIMemoryClearCallback(CallbackData, prefix="aim_clear"):
     operation: Literal["forget", "off"]
     token: str
     action: Literal["confirm", "cancel"]
+
+
+class AIMemoryEditCallback(CallbackData, prefix="aim_edit"):
+    token: str
+    action: Literal["confirm", "cancel"]

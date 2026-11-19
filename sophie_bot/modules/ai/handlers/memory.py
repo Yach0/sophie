@@ -17,9 +17,9 @@ from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.filters.feature_flag import FeatureFlagFilter
-from sophie_bot.modules.ai.callbacks import AIMemoryClearCallback, AIMemoryPageCallback
+from sophie_bot.modules.ai.callbacks import AIMemoryClearCallback, AIMemoryEditCallback, AIMemoryPageCallback
+from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
-from sophie_bot.modules.ai.utils.cache_messages import get_context_epoch_key
 from sophie_bot.modules.ai.utils.chatbot_tool_history import reset_tool_exchanges
 from sophie_bot.modules.ai.utils.evidence_memory import (
     MemoryContextChanged,
@@ -28,7 +28,14 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     mutate_memory,
     read_memory,
 )
-from sophie_bot.modules.ai.utils.memory_edits import MemoryEditRejected, delete_memory_facts
+from sophie_bot.modules.ai.utils.memory_edits import (
+    MemoryEditProposal,
+    MemoryEditRejected,
+    apply_memory_edit,
+    chatbot_memory_edits_enabled,
+    delete_memory_facts,
+    memory_edit_key,
+)
 from sophie_bot.modules.ai.utils.memory_view import (
     MemoryBrowser,
     MemoryMember,
@@ -137,7 +144,6 @@ class AIMemoryDelete(_AIMemoryCommand):
         chat = self.connection.db_model
         redis = self.services.redis
         fact_ids: str = self.data["fact_ids"]
-        epoch = int(await redis.get(get_context_epoch_key(chat.tid)) or 0)
         try:
             await delete_memory_facts(
                 chat,
@@ -145,13 +151,61 @@ class AIMemoryDelete(_AIMemoryCommand):
                 sender.id,
                 admin=await is_user_admin(chat.tid, sender.id),
                 redis=redis,
-                expected_epoch=epoch,
             )
         except MemoryContextChanged:
             return await self.event.reply(_("Memory changed while processing. Please try again."))
         except MemoryEditRejected as error:
             return await self.event.reply(str(error))
         return await self.event.reply(_("I deleted the selected memories and their previous versions."))
+
+
+class AIMemoryEditHandler(SophieCallbackQueryHandler):
+    @staticmethod
+    def filters() -> tuple[CallbackType, ...]:
+        return AIMemoryEditCallback.filter(), FeatureFlagFilter("ai_memory_controls")
+
+    async def handle(self) -> None:
+        callback = self.event
+        data: AIMemoryEditCallback = self.data["callback_data"]
+        chat = self.connection.db_model
+        if not isinstance(callback.message, Message) or callback.message.chat.id != chat.tid:
+            await callback.answer(_("Confirm this memory change in the original chat."), show_alert=True)
+            return
+        redis = self.services.redis
+        actor_tid = callback.from_user.id
+        raw = await redis.getdel(memory_edit_key(chat.tid, actor_tid, data.token))
+        if raw is None:
+            await callback.answer(_("This proposal expired or belongs to another user."), show_alert=True)
+            return
+        if data.action == "cancel":
+            await common_try(self.answer_rich(Doc(_("Memory change canceled.")), reply_markup=None))
+            await callback.answer()
+            return
+        proposal = MemoryEditProposal.model_validate_json(raw)
+        if proposal.source.speaker_tid != actor_tid or proposal.source.topic_id != callback.message.message_thread_id:
+            await callback.answer(_("Confirm this memory change in the original topic."), show_alert=True)
+            return
+        if (
+            not await chatbot_memory_edits_enabled(chat.tid, redis=redis)
+            or not (await resolve_chat_capabilities(chat)).memory
+        ):
+            await callback.answer(_("Chatbot memory edits are disabled in this chat."), show_alert=True)
+            return
+        try:
+            await apply_memory_edit(chat, proposal, admin=await is_user_admin(chat.tid, actor_tid), redis=redis)
+        except MemoryContextChanged:
+            await callback.answer(_("Memory changed after this proposal. Ask again."), show_alert=True)
+            return
+        except MemoryEditRejected as error:
+            await callback.answer(str(error), show_alert=True)
+            return
+        text = {
+            "add": _("I saved that memory."),
+            "update": _("I updated that memory. The previous version is still in history."),
+            "delete": _("I deleted the selected memories and their previous versions."),
+        }[proposal.action]
+        await common_try(self.answer_rich(Doc(text), reply_markup=None))
+        await callback.answer()
 
 
 def _memory_help() -> Doc:
@@ -183,7 +237,7 @@ async def _memory_page(
 ) -> tuple[Doc, InlineKeyboardMarkup]:
     if data.target == "help":
         return _memory_help(), memory_back_markup(data)
-    state = await read_memory(chat, memory_cutoff(), redis=redis)
+    state = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
     return memory_view(state, browser, data)
 
 
@@ -230,7 +284,7 @@ class AIMemoryPageHandler(SophieCallbackQueryHandler):
             await callback.answer()
             return
 
-        state = await read_memory(chat, memory_cutoff(), redis=redis)
+        state = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
         excluded = user_tid in state.excluded_users
         document = Doc(
             _("Memory capture is off for you.") if excluded else _("You allow AI memory capture in this chat.")

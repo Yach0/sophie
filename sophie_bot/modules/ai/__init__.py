@@ -30,6 +30,7 @@ from sophie_bot.modules.ai.handlers.memory import (
     AIMemoryBrowse,
     AIMemoryClearHandler,
     AIMemoryDelete,
+    AIMemoryEditHandler,
     AIMemoryPageHandler,
 )
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
@@ -66,6 +67,7 @@ from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChat
 from sophie_bot.modules.ai.schedules.write_memory import WriteMemory
 from sophie_bot.modules.ai.texts import AI_POLICY
 from sophie_bot.modules.ai.utils.ai_catalog import load_catalog
+from sophie_bot.modules.ai.utils.evidence_memory import require_memory_policy_migration
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import lazy_gettext as l_
@@ -78,6 +80,7 @@ router = Router(name="ai")
 
 
 async def initialize(services: ApplicationServices) -> None:
+    await require_memory_policy_migration()
     await load_catalog(redis=services.redis)
 
 
@@ -142,6 +145,7 @@ module_manifest = ModuleManifest(
         AIContextReset,
         AIMemoryBrowse,
         AIMemoryDelete,
+        AIMemoryEditHandler,
         AIMemoryPageHandler,
         AIMemoryClearHandler,
         ResearchCmd,

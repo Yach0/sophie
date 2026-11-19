@@ -15,14 +15,18 @@ All three flags default to **false**. Each supports global overrides, chat overr
 
 Enable the writer first to assess extraction without changing answers. Enable retrieval to use the collected evidence.
 Leave controls enabled when pausing the writer or retrieval so members can still inspect and delete existing records.
-These three flag names and their overrides are retained. Older settings for individual memory stages and limits are retired.
-A chat that previously enabled capture alone must enable the writer to continue capturing.
+The policy migration preserves legacy retention overrides outside the feature-flag registry. It enables the combined
+writer only where both the old writer and capture settings allowed it. It snapshots any prior rollout for existing
+chats. Enable the combined writer explicitly for a former capture-only chat or to start a new rollout.
+Stop old bot and scheduler processes, run `make migrate_up`, and then start the new build. Sophie refuses to start
+with legacy memory settings when this migration is pending.
 
 The writer uses one Luna pass through OpenRouter, charges the shared AI quota, and reports usage as **AI Memory**.
 Retrieval uses up to eight model requests and twelve tool calls per answer. The existing response-token limit still
 applies. With retrieval disabled, the normal chatbot request and tool-call settings apply.
 
-Facts expire after 30 days. Original messages stay in shared Redis history for up to 48 hours. Retention cleanup
+Facts expire after 30 days by default. Migrated chats retain their former effective retention policy.
+Original messages stay in shared Redis history for up to 48 hours. Retention cleanup
 continues with the writer disabled. Leaving entertainment mode or resetting the chat clears evidence and facts and
 preserves opt-outs.
 
@@ -67,7 +71,7 @@ Beanie revisions and a unique chat index prevent lost concurrent writes. Sources
 accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy changes rotate a generation token;
 a writer result from an earlier generation cannot restore deleted records.
 
-Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until the 30-day retention period expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
+Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their retention period expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
 
 ### Writer routing and cost evaluation
 
@@ -120,8 +124,9 @@ The **Memory** section under **Sophie AI** in `/help` lists two commands when `a
 
 Enable `ai_memory_controls` with `ai_memory_retrieval` in entertainment mode to use natural-language memory edits.
 Ask Sophie directly to remember, update, or forget a fact. Sophie uses `search_memory` to find a fact for an update or
-deletion when needed. It can make one successful change per request, including one deletion of multiple facts.
-The tool gets the requester’s identity from the current Telegram message and verifies permissions in the current chat.
+deletion when needed and shows the proposed change with a confirmation button. The requester must confirm it in the
+original chat and topic within five minutes. Sophie checks permissions again on confirmation. One proposal can
+delete multiple facts. The chatbot tool only proposes changes until the requester confirms.
 Members can manage only their own personal facts. Administrators can edit other members’ personal memories and delete
 shared facts. A fact added for another person is attributed to the administrator who reported it. An administrator's
 correction keeps the original owner and records the editor separately. Updates append a new version in the original topic.
@@ -136,6 +141,8 @@ context sessions**. This deliberate coarse deletion removes indirect copies in o
 members' useful memories too. It does not delete Telegram messages, notes, provider logs, or backups. Off prevents new
 structured records targeting an excluded user; other people's future authored text may still mention them.
 Generation and context-epoch checks prevent stale writer or cache operations from restoring earlier data.
+Fact edits track pending cache cleanup in MongoDB. The bot retries the cleanup before loading chatbot history and when
+retrying an exact-ID deletion, even if the selected facts are already gone.
 With retrieval or controls enabled, replies finish before delivery instead of streaming answer text, so a privacy reset
 can discard an obsolete result. Summary generation also checks the privacy epoch before using its output.
 Deletion cannot recall data already sent to Telegram or an AI provider.

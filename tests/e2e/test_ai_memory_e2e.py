@@ -7,7 +7,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from aiogram.types import Chat, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntity
+from aiogram.types import Chat, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageEntity, User
 from aiogram_test_framework import TestClient
 from aiogram_test_framework.factories import ChatFactory, MessageFactory, UserFactory
 from aiogram_test_framework.types import CapturedRequest
@@ -29,7 +29,7 @@ from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback
 from sophie_bot.modules.ai.utils.ai_mode import set_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, build_model_plan
-from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages, get_message_cache_key
+from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages, get_context_epoch_key, get_message_cache_key
 from sophie_bot.modules.ai.utils.evidence_memory import apply_actions, capture_source, mutate_memory, read_memory
 from sophie_bot.modules.help.callbacks import PMHelpModule
 from sophie_bot.modules.help.utils.extract_info import gather_module_help
@@ -284,6 +284,7 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
     await set_feature(test_client, "ai_moderation", False, chat_tid=chat.tid)
     await set_feature(test_client, "ai_chatbot_modern_context", modern, chat_tid=chat.tid)
     arguments: dict[str, str | list[str]] = {"action": "add", "text": "I prefer tea", "event": "drinks"}
+    invalidate_preview = False
 
     def model_reply(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         tools = {tool.name for tool in info.function_tools}
@@ -297,6 +298,8 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
         return ModelResponse(parts=[ToolCallPart("manage_memory", arguments.copy())])
 
     async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
+        if invalidate_preview and any(isinstance(part, ToolReturnPart) for part in messages[-1].parts):
+            await test_services.redis.incr(get_context_epoch_key(chat.tid))
         for position, part in enumerate(model_reply(messages, info).parts):
             if isinstance(part, TextPart):
                 yield part.content
@@ -306,6 +309,10 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
                         name=part.tool_name, json_args=json.dumps(part.args), tool_call_id=part.tool_call_id
                     )
                 }
+
+    async def confirm(requests: list[CapturedRequest], user: User) -> list[CapturedRequest]:
+        token = _callback(requests, "Confirm memory change")
+        return await test_client.send_callback(token, from_user=user, message=_bot_message(group))
 
     model = FunctionModel(model_reply, stream_function=stream, model_name="gpt-4o")
     plan = build_model_plan([AIModelCandidate(model=model, model_name=model.model_name, context_window_tokens=32000)])
@@ -326,7 +333,15 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
         requests = await test_client.send_command(
             command="ai", args="Remember that I prefer tea", from_user=owner, chat=group
         )
-        assert "I saved that memory" in _message_text(requests)
+        assert "Save this memory?" in _message_text(requests)
+        assert not (await read_memory(chat, cutoff, redis=test_services.redis)).facts
+        denied_confirmation = await confirm(requests, editor)
+        assert "belongs to another user" in _message_text(denied_confirmation)
+        assert not (await read_memory(chat, cutoff, redis=test_services.redis)).facts
+        applied = await confirm(requests, owner)
+        assert "I saved that memory" in _message_text(applied)
+        reused = await confirm(requests, owner)
+        assert "expired" in _message_text(reused)
         state = await read_memory(chat, cutoff, redis=test_services.redis)
         (first,) = state.facts
         assert first.speaker_tid == owner.id and first.subject_tids == [owner.id]
@@ -357,17 +372,39 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
 
         arguments = {"action": "update", "text": "I prefer coffee", "fact_ids": [first.fact_id]}
         updated = await test_client.send_command(command="ai", args="I prefer coffee now", from_user=owner, chat=group)
-        assert "previous version is still in history" in _message_text(updated)
+        assert "previous version is still in history" in _message_text(await confirm(updated, owner))
         state = await read_memory(chat, cutoff, redis=test_services.redis)
         own_edit = state.facts[-1]
         assert own_edit.previous_id == first.fact_id and own_edit.editor_tid is None
 
-        await grant_admin(chat.tid, editor.id)
+        admin = await grant_admin(chat.tid, editor.id)
+        arguments = {"action": "delete", "fact_ids": [own_edit.fact_id]}
+        invalidate_preview = True
+        stale = await test_client.send_command(command="ai", args="Forget the tea fact", from_user=editor, chat=group)
+        invalidate_preview = False
+        assert "Memory changed while processing" in _message_text(stale)
+        assert own_edit.fact_id not in _message_text(stale)
+        assert not any(request.reply_markup for request in stale)
+        unrelated = await test_client.send_command(
+            command="ai", args="What can you help with?", from_user=editor, chat=group
+        )
+        assert "Delete these memories" in _message_text(unrelated)
+        assert len((await read_memory(chat, cutoff, redis=test_services.redis)).facts) == 2
+        await test_client.send_callback(_callback(unrelated, "Cancel"), from_user=editor, message=_bot_message(group))
+        assert "expired" in _message_text(await confirm(unrelated, editor))
+        assert len((await read_memory(chat, cutoff, redis=test_services.redis)).facts) == 2
+
         arguments = {"action": "update", "text": "Prefers mint tea", "fact_ids": [own_edit.fact_id]}
+        revoked = await test_client.send_command(
+            command="ai", args="Correct the tea fact", from_user=editor, chat=group
+        )
+        await admin.delete()
+        assert "Only a chat administrator" in _message_text(await confirm(revoked, editor))
+        await grant_admin(chat.tid, editor.id)
         updated = await test_client.send_command(
             command="ai", args="Correct the tea fact", from_user=editor, chat=group
         )
-        assert "previous version is still in history" in _message_text(updated)
+        assert "previous version is still in history" in _message_text(await confirm(updated, editor))
         state = await read_memory(chat, cutoff, redis=test_services.redis)
         corrected = state.facts[-1]
         assert corrected.speaker_tid == owner.id and corrected.editor_tid == editor.id
@@ -377,7 +414,7 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
         added = await test_client.send_command(
             command="ai", args="Remember that the other member likes walks", from_user=editor, chat=group
         )
-        assert "I saved that memory" in _message_text(added)
+        assert "I saved that memory" in _message_text(await confirm(added, editor))
         state = await read_memory(chat, cutoff, redis=test_services.redis)
         observation = state.facts[-1]
         assert observation.speaker_tid == editor.id and observation.subject_tids == [owner.id]
@@ -385,7 +422,7 @@ async def test_chatbot_memory_edits_use_the_authenticated_requester(
 
         arguments = {"action": "delete", "fact_ids": [corrected.fact_id, observation.fact_id]}
         deleted = await test_client.send_command(command="ai", args="Forget the tea fact", from_user=editor, chat=group)
-        assert "I deleted the selected memories" in _message_text(deleted)
+        assert "I deleted the selected memories" in _message_text(await confirm(deleted, editor))
         assert not (await read_memory(chat, cutoff, redis=test_services.redis)).facts
 
 

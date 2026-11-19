@@ -8,6 +8,7 @@ import pytest
 from beanie import PydanticObjectId
 from fakeredis import FakeAsyncRedis
 from pydantic_ai.messages import ModelRequest, ToolReturnPart
+from redis.exceptions import RedisError
 
 from sophie_bot.db.models.ai.ai_chat_summary import AIChatSummaryModel
 from sophie_bot.db.models.ai.ai_evidence_memory import (
@@ -21,6 +22,7 @@ from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel, ChatType
 from sophie_bot.modules.ai.schedules import write_memory
 from sophie_bot.modules.ai.schedules.generate_chat_summaries import GenerateChatSummaries
+from sophie_bot.modules.ai.utils import evidence_memory
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, set_chat_mode
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
 from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_context_epoch_key
@@ -37,6 +39,7 @@ from sophie_bot.modules.ai.utils.evidence_memory import (
     read_memory,
     retrieve_memory,
 )
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditRejected, delete_memory_facts
 from sophie_bot.modules.ai.utils.memory_writer import WriterAction, WriterOutput
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
@@ -356,6 +359,45 @@ async def test_summary_discards_output_after_memory_reset(
     monkeypatch.setattr(worker, "generate_verified_summary_groups", AsyncMock(side_effect=generate))
     await worker.process_chat(chat, now.date(), now=now)
     assert await AIChatSummaryModel.get_latest(chat.iid) is None
+
+
+async def test_retrying_a_delete_repairs_context_after_redis_failure(
+    test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    chat = await ChatModel(
+        tid=-1001132,
+        type=ChatType.supergroup,
+        first_name_or_title="Delete recovery",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    ).insert()
+    chat = await ChatModel.get_by_tid(-1001132)
+    assert chat
+    redis = test_services.redis
+
+    def seed(state: MemoryState) -> None:
+        capture_source(state, source(1))
+        assert apply_actions(state, MemoryActions(actions=[action(1)]), {1}, state.generation, START)
+
+    state = await mutate_memory(chat, seed, redis=redis)
+    fact_id = state.facts[0].fact_id
+    await store_tool_exchanges(
+        chat.tid, 2, [ModelRequest(parts=[ToolReturnPart("search_memory", "stale")])], redis=redis
+    )
+    with monkeypatch.context() as patch_context:
+        patch_context.setattr(evidence_memory, "reset_modern_context", AsyncMock(side_effect=RedisError("unavailable")))
+        with pytest.raises(RedisError):
+            await delete_memory_facts(chat, [fact_id], 1, admin=False, redis=redis)
+
+    document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+    assert document and not document.state.facts and document.state.pending_context_reset
+    assert await get_tool_exchanges(chat.tid, redis=redis)
+    with pytest.raises(MemoryEditRejected, match="not found"):
+        await delete_memory_facts(chat, [fact_id], 1, admin=False, redis=redis)
+    document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
+    assert document and not document.state.pending_context_reset
+    assert not await get_tool_exchanges(chat.tid, redis=redis)
 
 
 @pytest.mark.parametrize(

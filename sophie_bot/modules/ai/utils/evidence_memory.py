@@ -14,6 +14,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.db.models.ai.ai_evidence_memory import (
     AIEvidenceMemoryModel,
+    AIMemoryRetentionPolicy,
     MemoryActions,
     MemoryFact,
     MemorySource,
@@ -21,6 +22,8 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
     StoredMemoryState,
 )
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.db.models.feature_flag import FeatureFlagOverride
+from sophie_bot.db.models.migrations import MigrationState
 from sophie_bot.modules.ai.utils.cache_messages import (
     MessageType,
     get_cached_messages,
@@ -28,15 +31,34 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     reset_modern_context,
     store_cached_message,
 )
+from sophie_bot.modules.ai.utils.chatbot_tool_history import tool_history_key
 from sophie_bot.utils.feature_flags import is_enabled
 
 MAX_FACTS = 1000
 MIN_BATCH = 10
 MAX_BATCH = 60
+MEMORY_POLICY_MIGRATION = "20261119_184908_preserve_ai_memory_policy"
 
 
 class MemoryContextChanged(ValueError):
     pass
+
+
+async def require_memory_policy_migration() -> None:
+    if await MigrationState.find_one(MigrationState.name == MEMORY_POLICY_MIGRATION):
+        return
+    legacy_flags = ("ai_memory_capture", "ai_memory_writer", "ai_memory_retention_days")
+    if await FeatureFlagOverride.find_one(
+        {
+            "feature": {
+                "$in": [
+                    *legacy_flags,
+                    *("__rollout__:" + flag for flag in legacy_flags),
+                ]
+            }
+        }
+    ):
+        raise RuntimeError("Run the AI memory policy migration before starting Sophie with existing memory settings.")
 
 
 class MemoryQuery(BaseModel):
@@ -285,6 +307,7 @@ async def cached_sources(chat_tid: int, state: StoredMemoryState, *, redis: Redi
     for message in await get_cached_messages(chat_tid, redis=redis):
         if (
             not message.eligible_for_memory
+            or (message.memory_source_requires_commit and message.message_id not in processed)
             or not message.text
             or message.is_bot
             or message.from_sender_chat
@@ -342,7 +365,7 @@ async def mutate_memory(
         if document is None:
             document = AIEvidenceMemoryModel(chat=chat)
         epoch = int(await redis.get(get_context_epoch_key(chat.tid)) or 0)
-        if expected_epoch is not None and epoch != expected_epoch:
+        if expected_epoch is not None and (epoch != expected_epoch or document.state.pending_context_reset):
             raise MemoryContextChanged("Memory changed while processing. Ask the user to try again.")
         state = MemoryState(
             **document.state.model_dump(), sources=await cached_sources(chat.tid, document.state, redis=redis)
@@ -355,6 +378,17 @@ async def mutate_memory(
             str(source.message_id): source.writer_attempts for source in state.sources if source.writer_attempts
         }
         document.state = StoredMemoryState.model_validate(state.model_dump(exclude={"sources"}))
+        changed_sources = [
+            source
+            for source in state.sources
+            if (previous := originals.get(source.message_id)) is None or previous.text != source.text
+        ]
+        if state.pending_context_reset:
+            # Stage evidence before publishing a fact. It becomes visible only with its committed source ID.
+            for source in changed_sources:
+                staged = source_message(source).model_copy(update={"memory_source_requires_commit": True})
+                if not await store_cached_message(staged, chat.tid, redis=redis, expected_epoch=epoch):
+                    raise MemoryContextChanged("Memory changed while processing. Ask the user to try again.")
         if expected_epoch is not None and int(await redis.get(get_context_epoch_key(chat.tid)) or 0) != expected_epoch:
             raise MemoryContextChanged("Memory changed while processing. Ask the user to try again.")
         try:
@@ -364,11 +398,9 @@ async def mutate_memory(
                 await document.replace()
             if generation != state.generation and not state.sources and not preserve_history:
                 await reset_modern_context(chat.tid, redis=redis)
-            else:
-                for source in state.sources:
-                    previous = originals.get(source.message_id)
-                    if previous is None or previous.text != source.text:
-                        await store_cached_message(source_message(source), chat.tid, redis=redis, expected_epoch=epoch)
+            elif not state.pending_context_reset:
+                for source in changed_sources:
+                    await store_cached_message(source_message(source), chat.tid, redis=redis, expected_epoch=epoch)
             return state
         except (RevisionIdWasChanged, DuplicateKeyError):
             if attempt == 4:
@@ -376,8 +408,29 @@ async def mutate_memory(
     raise RuntimeError("Memory update failed")
 
 
-def memory_cutoff() -> datetime:
-    return datetime.now(UTC) - timedelta(days=30)
+async def memory_cutoff(chat_tid: int) -> datetime:
+    policies = await AIMemoryRetentionPolicy.find({"chat_tid": {"$in": [0, chat_tid]}}).to_list()
+    by_chat = {policy.chat_tid: policy.days for policy in policies}
+    return datetime.now(UTC) - timedelta(days=by_chat.get(chat_tid, by_chat.get(0, 30)))
+
+
+async def repair_pending_memory_context(chat: ChatModel, *, redis: Redis) -> None:
+    for attempt in range(5):
+        document = await AIEvidenceMemoryModel.find_one(
+            AIEvidenceMemoryModel.chat.id == chat.iid, {"state.pending_context_reset": True}
+        )
+        if document is None:
+            return
+        await reset_modern_context(
+            chat.tid, redis=redis, clear_messages=False, additional_keys=(tool_history_key(chat.tid),)
+        )
+        document.state.pending_context_reset = False
+        try:
+            await document.replace()
+            return
+        except RevisionIdWasChanged:
+            if attempt == 4:
+                raise
 
 
 async def read_memory(chat: ChatModel, cutoff: datetime, *, redis: Redis) -> MemoryState:
@@ -397,7 +450,7 @@ async def memory_context(
 ) -> str:
     if not await is_enabled("ai_memory_retrieval", chat_tid=chat.tid, redis=redis):
         return ""
-    state = await read_memory(chat, memory_cutoff(), redis=redis)
+    state = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
     if query.reserve_members and not query.person_tids:
         terms = _terms(query.text)
         relevant = {

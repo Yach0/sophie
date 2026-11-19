@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from contextlib import AsyncExitStack
+from secrets import token_urlsafe
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import Message
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from pydantic_ai.models import Model
 from redis.exceptions import RedisError, WatchError
 from sentry_sdk.ai import set_conversation_id
@@ -15,8 +16,10 @@ from stfu_tg.doc import Element
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.db.models.ai.ai_mode import AIMode
+from sophie_bot.db.models.chat import ChatModel
 from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
+from sophie_bot.modules.ai.callbacks import AIMemoryEditCallback
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
@@ -54,12 +57,19 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import (
     collect_tool_call_ids,
     remember_chatbot_tool_history,
 )
+from sophie_bot.modules.ai.utils.evidence_memory import repair_pending_memory_context
 from sophie_bot.modules.ai.utils.help_tip import (
     build_help_mode_keyboard,
     build_help_mode_tip,
     should_offer_help_mode,
 )
-from sophie_bot.modules.ai.utils.memory_edits import MemoryEdit, MemoryEditRequest
+from sophie_bot.modules.ai.utils.memory_edits import (
+    CONFIRM_MEMORY_EDIT_TTL,
+    MemoryEditPreview,
+    MemoryEditRequest,
+    memory_edit_key,
+)
+from sophie_bot.modules.ai.utils.memory_view import memory_edit_confirmation
 from sophie_bot.modules.ai.utils.mention_usernames import MentionPolicy
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
@@ -286,18 +296,50 @@ async def _cache_chatbot_reply(
         )
 
 
-async def _send_memory_edit_receipt(
-    message: Message, streamer: ChatbotMessageStreamer | None, outcome: MemoryEdit, **kwargs: Any
-) -> Message:
-    text = {
-        "add": _("I saved that memory."),
-        "update": _("I updated that memory. The previous version is still in history."),
-        "delete": _("I deleted the selected memories and their previous versions."),
-    }[outcome]
-    document = Doc(text)
+async def _send_memory_edit_confirmation(
+    message: Message,
+    streamer: ChatbotMessageStreamer | None,
+    preview: MemoryEditPreview,
+    *,
+    chat: ChatModel,
+    services: ApplicationServices,
+    **kwargs: Any,
+) -> None:
+    proposal = preview.proposal
+    await repair_pending_memory_context(chat, redis=services.redis)
+    if int(await services.redis.get(get_context_epoch_key(chat.tid)) or 0) != proposal.epoch:
+        document = Doc(_("Memory changed while processing. Please ask again."))
+        if streamer:
+            await streamer.send_final(document, **kwargs)
+        else:
+            await send_ai_rich_message(message, document, reply_markup=kwargs.get("reply_markup"))
+        return
+
+    token = token_urlsafe(12)
+    await services.redis.set(
+        memory_edit_key(message.chat.id, proposal.source.speaker_tid, token),
+        proposal.model_dump_json(),
+        ex=CONFIRM_MEMORY_EDIT_TTL,
+    )
+    buttons = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text=_("Confirm memory change"),
+                    callback_data=AIMemoryEditCallback(token=token, action="confirm").pack(),
+                ),
+                InlineKeyboardButton(
+                    text=_("Cancel"), callback_data=AIMemoryEditCallback(token=token, action="cancel").pack()
+                ),
+            ]
+        ]
+    )
+    document = memory_edit_confirmation(preview)
+    kwargs["reply_markup"] = buttons
     if streamer:
-        return await streamer.send_final(document, **kwargs)
-    return await send_ai_rich_message(message, document, reply_markup=kwargs.get("reply_markup"))
+        await streamer.send_final(document, **kwargs)
+    else:
+        await send_ai_rich_message(message, document, reply_markup=buttons)
 
 
 async def ai_chatbot_reply(
@@ -320,13 +362,12 @@ async def ai_chatbot_reply(
     if not connection.db_model:
         return None
 
-    evidence_enabled = get_capabilities(mode).memory and (
-        await is_enabled("ai_memory_retrieval", chat_tid=message.chat.id, redis=services.redis)
-        or await is_enabled("ai_memory_controls", chat_tid=message.chat.id, redis=services.redis)
-    )
-    context_epoch = (
-        int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) if evidence_enabled else None
-    )
+    memory_capable = get_capabilities(mode).memory
+    await repair_pending_memory_context(connection.db_model, redis=services.redis)
+    evidence_enabled = await is_enabled(
+        "ai_memory_retrieval", chat_tid=message.chat.id, redis=services.redis
+    ) or await is_enabled("ai_memory_controls", chat_tid=message.chat.id, redis=services.redis)
+    context_epoch = int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0)
     async with track_ai_conversation(), AsyncExitStack() as cleanup:
         set_conversation_id(str(connection.db_model.iid))
         explicit_debug_mode = _is_explicit_debug_mode(message, user_text, debug_mode)
@@ -355,7 +396,7 @@ async def ai_chatbot_reply(
             user_tid=message.from_user.id if message.from_user else None,
             memory_edit=(
                 MemoryEditRequest.from_message(message, context_epoch)
-                if context_epoch is not None and message.chat.id == connection.tid
+                if evidence_enabled and memory_capable and message.chat.id == connection.tid
                 else None
             ),
             research_progress_callback=(message_streamer.update_research_progress if message_streamer else None),
@@ -408,16 +449,32 @@ async def ai_chatbot_reply(
                 )
             )
         except AIRequestFailed as err:
-            if context.memory_edit and context.memory_edit.outcome:
-                return await _send_memory_edit_receipt(message, message_streamer, context.memory_edit.outcome, **kwargs)
+            if context.memory_edit and context.memory_edit.preview:
+                await _send_memory_edit_confirmation(
+                    message,
+                    message_streamer,
+                    context.memory_edit.preview,
+                    chat=connection.db_model,
+                    services=services,
+                    **kwargs,
+                )
+                return None
             if explicit_debug_mode:
                 await _send_chatbot_debug_document(
                     message, history, None, model_plan, context, service_tier=service_tier
                 )
             return await _send_chatbot_ai_failure_reply(message, message_streamer, err, **kwargs)
 
-        if context.memory_edit and context.memory_edit.outcome:
-            return await _send_memory_edit_receipt(message, message_streamer, context.memory_edit.outcome, **kwargs)
+        if context.memory_edit and context.memory_edit.preview:
+            await _send_memory_edit_confirmation(
+                message,
+                message_streamer,
+                context.memory_edit.preview,
+                chat=connection.db_model,
+                services=services,
+                **kwargs,
+            )
+            return None
 
         # Failover may have moved the reply off the model the streamer opened with, so the charge and
         # the header both follow the model that actually answered.
@@ -480,10 +537,8 @@ async def ai_chatbot_reply(
             if not kwargs.get("reply_markup"):
                 kwargs["reply_markup"] = build_help_mode_keyboard(message)
 
-        if (
-            context_epoch is not None
-            and int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) != context_epoch
-        ):
+        await repair_pending_memory_context(connection.db_model, redis=services.redis)
+        if int(await services.redis.get(get_context_epoch_key(message.chat.id)) or 0) != context_epoch:
             changed = Doc(_("Memory changed while processing. Please ask again."))
             if message_streamer:
                 return await message_streamer.send_final(changed, **kwargs)

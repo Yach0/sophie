@@ -544,7 +544,7 @@ def get_rollout_percentage(rollout: FeatureRollout, now: datetime | None = None)
     return int(percentage)
 
 
-def _chat_rollout_bucket(feature: FeatureType, chat_tid: int) -> int:
+def _chat_rollout_bucket(feature: str, chat_tid: int) -> int:
     digest = hashlib.sha256(f"{feature}:{chat_tid}".encode()).digest()
     return int.from_bytes(digest[:8], byteorder="big") % 100
 

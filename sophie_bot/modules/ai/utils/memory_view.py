@@ -20,6 +20,7 @@ from stfu_tg import (
 from sophie_bot.constants import TELEGRAM_MESSAGE_LENGTH_LIMIT
 from sophie_bot.db.models.ai.ai_evidence_memory import MemoryFact, MemorySource, MemoryState
 from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback, MemoryListView
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditPreview
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.pagination import build_pagination_footer, build_pagination_row, paginate
 
@@ -44,6 +45,26 @@ class MemoryBrowser(BaseModel):
 def _preview(text: str, limit: int) -> str:
     line = " ".join(text.split())
     return line if len(line) <= limit else line[: limit - 1].rstrip() + "…"
+
+
+def memory_edit_confirmation(preview: MemoryEditPreview) -> Doc:
+    proposal = preview.proposal
+    title = {
+        "add": _("Save this memory?"),
+        "update": _("Update this memory?"),
+        "delete": _("Delete these memories and their history?"),
+    }[proposal.action]
+    doc = Doc(Heading(title))
+    if proposal.action == "add":
+        subject = proposal.subject_tid or proposal.source.speaker_tid
+        doc += Paragraph(KeyValue(_("Subject's Telegram user ID"), Code(str(subject))))
+        doc += Paragraph(KeyValue(_("Topic"), proposal.event))
+    for fact in preview.targets:
+        doc += Paragraph(Code(fact.fact_id), " ", _preview(fact.text, 180))
+        doc += Paragraph(KeyValue(_("Speaker's Telegram user ID"), Code(str(fact.speaker_tid))))
+    if proposal.text:
+        doc += RichBlockQuote(*proposal.text.splitlines())
+    return doc
 
 
 def _preview_list(entries: Sequence[MemoryFact | MemorySource]) -> OrderedList:
