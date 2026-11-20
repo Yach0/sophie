@@ -33,6 +33,7 @@ from sophie_bot.modules.ai.handlers.memory import (
     AIMemoryEditHandler,
     AIMemoryPageHandler,
 )
+from sophie_bot.modules.ai.handlers.mention import AiMentionHandler
 from sophie_bot.modules.ai.handlers.op_catalog import OpAIModel, OpAIModels, OpAIProvider, OpAIProviders
 from sophie_bot.modules.ai.handlers.op_prices import OpAIPricesHandler
 from sophie_bot.modules.ai.handlers.op_quota import ResetQuota, SetQuota
@@ -159,6 +160,7 @@ module_manifest = ModuleManifest(
         AiPmStop,
         AiPmHandle,
         AiCmd,
+        AiMentionHandler,
     ),
     initialize=initialize,
     setup_bot=setup_bot,

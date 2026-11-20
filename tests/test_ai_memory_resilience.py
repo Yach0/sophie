@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterator
 from datetime import UTC, datetime
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -15,6 +14,7 @@ from redis.exceptions import RedisError
 from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.ai.middlewares import cache_user_messages
 from sophie_bot.modules.ai.schedules.write_memory import WriteMemory
 from sophie_bot.modules.ai.utils.ai_mode import set_chat_mode
@@ -56,7 +56,7 @@ async def test_shared_capture_does_not_write_mongo(
     result = await cache_user_messages.CacheUserMessagesMiddleware(excluded_commands=())(
         handler,
         message,
-        {"context": SimpleNamespace(event_chat=chat), "services": test_services},
+        {"context": RequestContext(event_chat=chat), "services": test_services},
     )
     assert result == "handled"
     handler.assert_awaited_once()
