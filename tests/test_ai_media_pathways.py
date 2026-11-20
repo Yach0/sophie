@@ -249,7 +249,11 @@ async def test_captionless_background_cache_is_metadata_only_and_epoch_fenced(
         lambda mode: SimpleNamespace(message_cache=True, memory=False, proactive_replies=False),
     )
     monkeypatch.setattr("sophie_bot.modules.ai.middlewares.cache_user_messages.maybe_run_proactive_reply", AsyncMock())
-    await middleware(AsyncMock(), message, {"context": SimpleNamespace(event_chat=chat), "services": test_services})
+    await middleware(
+        AsyncMock(),
+        message,
+        {"context": SimpleNamespace(event_chat=chat, ai_message_handled=False), "services": test_services},
+    )
     rows = await get_cached_messages(CHAT_TID, redis=test_services.redis)
     assert len(rows) == 1 and rows[0].text == ""
     assert rows[0].media.audio.file_id == "attachment"
