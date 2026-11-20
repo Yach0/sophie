@@ -9,6 +9,7 @@ from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.ai.filters.bot_mention import AIBotMentionFilter
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities, resolve_chat_mode
 from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_context_epoch_key
 from sophie_bot.modules.ai.utils.proactive_replies import maybe_run_proactive_reply
@@ -103,11 +104,13 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
             has_ai_command = text.startswith("/ai") or " /ai" in text
             handled_by_ai = bool(data.get("ai_message_handled", False))
             is_command = text.startswith("/")
+            addressed_to_bot = bool(await AIBotMentionFilter()(event, data["services"].bot, mode))
             eligible_for_proactive_ai = bool(
                 not handled_by_ai
                 and not has_ai_command
                 and not is_command
                 and not reply_to_is_sophie_ai
+                and not addressed_to_bot
                 and event.chat.type in {"group", "supergroup"}
             )
             await cache_message(
