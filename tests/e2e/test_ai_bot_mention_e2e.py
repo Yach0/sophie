@@ -115,6 +115,8 @@ async def test_group_bot_mention_routing(
         current_rows = [row for row in cached if row.message_id == message.message_id]
         assert len(current_rows) == 1
         current = current_rows[0]
+        if route in {"mention", "caption"}:
+            assert current.handled_by_ai
         assert not current.eligible_for_proactive_ai
 
 
@@ -247,7 +249,11 @@ async def test_exhausted_bot_mention_notifies_without_repeating_moderation(
     with patch("sophie_bot.modules.ai.handlers.mention.ai_chatbot_reply", new_callable=AsyncMock) as ai_reply:
         for _attempt in range(2):
             message = MessageFactory.create(
-                text=text, from_user=member, chat=group, message_id=next_message_id()
+                text=text,
+                from_user=member,
+                chat=group,
+                message_id=next_message_id(),
+                date=datetime.now(UTC).replace(microsecond=0),
             ).model_copy(
                 update={
                     "text": None if caption else text,
@@ -266,6 +272,11 @@ async def test_exhausted_bot_mention_notifies_without_repeating_moderation(
             assert notices[0].params["reply_parameters"]["message_id"] == message.message_id
             assert not test_client.capture.get_by_type(RequestType.DELETE_MESSAGE)
             assert not test_client.capture.get_by_type(RequestType.RESTRICT_CHAT_MEMBER)
+            cached = await get_cached_messages(group.id, redis=test_services.redis)
+            current_rows = [row for row in cached if row.message_id == message.message_id]
+            assert len(current_rows) == 1
+            assert not current_rows[0].handled_by_ai
+            assert not current_rows[0].eligible_for_proactive_ai
         ai_reply.assert_not_awaited()
 
     # Two mentions must count as two messages; duplicate enforcement would flood

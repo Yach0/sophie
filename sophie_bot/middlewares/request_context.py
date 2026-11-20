@@ -17,3 +17,4 @@ class RequestContext:
     actor: ChatModel | None = None
     connection: ChatConnection | None = None
     user_in_group: UserInGroupModel | None = None
+    ai_message_handled: bool = False

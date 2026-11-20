@@ -102,7 +102,7 @@ class CacheUserMessagesMiddleware(BaseMiddleware):
                 and is_ai_message(reply_to_message)
             )
             has_ai_command = text.startswith("/ai") or " /ai" in text
-            handled_by_ai = bool(data.get("ai_message_handled", False))
+            handled_by_ai = bool(data.get("ai_message_handled", False) or data["context"].ai_message_handled)
             is_command = text.startswith("/")
             addressed_to_bot = bool(await AIBotMentionFilter()(event, data["services"].bot, mode))
             eligible_for_proactive_ai = bool(

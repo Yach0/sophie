@@ -52,7 +52,7 @@ class AiMentionHandler(SophieMessageHandler):
             return None
         if isinstance(quota_result, dict):
             self.data.update(quota_result)
-        self.data["ai_message_handled"] = True
+        self.context.ai_message_handled = True
         return await ai_chatbot_reply(
             self.event,
             self.connection,
