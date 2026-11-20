@@ -14,8 +14,6 @@ icon: ✨
 
 ## Available commands
 
-In group chats using Entertainment mode, mentioning the running bot's username in a message or caption also asks the AI a question. For example, `@YourBot help` sends `help` as the prompt. Username matching is case-insensitive. Messages and captions starting with a configured command prefix remain reserved for commands, including disabled commands. Existing reply routes take priority, so overlapping triggers produce one answer. Mention requests pass through the existing filters, antiflood, and locks enforcement before the AI quota check or reply, including when quota is exhausted. Allowed mentions with exhausted quota receive the usual quota notice.
-
 
 ### Commands
 
