@@ -478,6 +478,7 @@ class _ModelRequests:
     active: AIModelCandidate
     attempt_started: float | None = None
     last_model_request: ModelRequestContext | None = None
+    final_request: bool = False
 
     @classmethod
     def create(
@@ -521,6 +522,7 @@ class _ModelRequests:
 
     def run_kwargs(self, run_kwargs: Mapping[str, Any]) -> dict[str, Any]:
         hooks = Hooks(
+            before_model_request=self.reserve_final_request,
             prepare_model_request=self.prepare,
             after_model_request=self.accept_response,
             model_request=self.track_request,
@@ -544,6 +546,29 @@ class _ModelRequests:
         if self.candidates[0].model is not self.agent_model:
             kwargs["model"] = self.candidates[0].model
         return kwargs
+
+    def reserve_final_request(
+        self, ctx: RunContext[object], request_context: ModelRequestContext
+    ) -> ModelRequestContext:
+        """Finish in the same run, after completed tools and within the original budget."""
+        limits = ctx.usage_limits
+        parameters = request_context.model_request_parameters
+        if (
+            self.operation_label in {"text", "stream"}
+            and limits is not None
+            and limits.request_limit is not None
+            and ctx.usage.requests == limits.request_limit - 1
+            and (parameters.function_tools or parameters.native_tools)
+        ):
+            self.final_request = True
+            # The before hook records this instruction in history, including when a candidate
+            # projects its context. Never restart the run: earlier tools may have side effects.
+            ctx.enqueue(
+                "The request budget is ending. Finish your answer now using the available information "
+                "and completed tool results. Do not call any more tools. If information is missing, "
+                "explain the limitation."
+            )
+        return request_context
 
     def prepare(self, _ctx: RunContext[object], request_context: ModelRequestContext) -> ModelRequestContext:
         self.active = next(candidate for candidate in self.candidates if candidate.model is request_context.model)
@@ -591,6 +616,14 @@ class _ModelRequests:
         )
         self.attempt_started = time.perf_counter()
         prepared = replace(request_context, messages=messages, model_settings=settings)
+        if self.final_request:
+            # SDK 2.68's native setting disables function-tool choice, but some adapters
+            # still advertise definitions. Remove those and native tools from this request too.
+            prepared = replace(
+                prepared,
+                model_settings={**settings, "tool_choice": "none"},
+                model_request_parameters=replace(prepared.model_request_parameters, function_tools=[], native_tools=[]),
+            )
         self.last_model_request = prepared
         return prepared
 
@@ -624,6 +657,10 @@ class _ModelRequests:
         self, _ctx: RunContext[object], *, request_context: ModelRequestContext, response: ModelResponse
     ) -> ModelResponse:
         self.finish_attempt()
+        if self.final_request and response.tool_calls:
+            # A provider can ignore tool_choice. Stop before the graph dispatches any calls;
+            # the reserved request cannot safely be retried with another tool round.
+            raise UsageLimitExceeded("The final request returned tool calls with tools disabled")
         return response
 
     async def track_request(
