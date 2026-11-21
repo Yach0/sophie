@@ -59,7 +59,7 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     get_context_epoch_key,
     reset_modern_context,
 )
-from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context
+from sophie_bot.modules.ai.utils.evidence_memory import MemoryQuery, memory_context, memory_context_xml
 from sophie_bot.modules.ai.utils.feature_settings import ProactiveReplySettings
 from sophie_bot.modules.ai.utils.media_download import MediaLimitError, download_media
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar, is_ai_message
@@ -781,7 +781,7 @@ class ModernContext:
             await AIMemoryModel.get_lines(context.chat_iid) if capabilities.memory and not evidence_enabled else []
         )
         if evidence_enabled and chat:
-            evidence_text = await memory_context(
+            evidence = await memory_context_xml(
                 chat,
                 MemoryQuery(
                     text=context.user_text or "", topic_id=context.topic_id, anchor_id=context.reply_to_message_id
@@ -789,7 +789,8 @@ class ModernContext:
                 redis=self._redis,
                 speaker=self.speaker_reference,
             )
-            ElementTree.SubElement(runtime, "memory_evidence").text = evidence_text
+            if evidence is not None:
+                runtime.append(evidence)
         runtime_speakers = self._current_speaker_ids.copy()
         for memory in memories:
             for reference in self._USER_LINK.finditer(memory):
@@ -804,10 +805,11 @@ class ModernContext:
                         speakers, "speaker", id=self._state.speakers[identity], first_name=first_name
                     )
         runtime.append(_chat_notes_xml(notes))
-        memory_lines = [
-            self._USER_LINK.sub(lambda match: self.speaker_reference(int(match[1])), memory) for memory in memories
-        ]
-        runtime.append(_memory_xml(memory_lines))
+        if not evidence_enabled:
+            memory_lines = [
+                self._USER_LINK.sub(lambda match: self.speaker_reference(int(match[1])), memory) for memory in memories
+            ]
+            runtime.append(_memory_xml(memory_lines))
         return stable.to_md(), ElementTree.tostring(runtime, encoding="unicode")
 
     async def _acquire(self, topic: int, mode: str) -> None:
