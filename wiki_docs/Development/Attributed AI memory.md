@@ -71,7 +71,7 @@ Beanie revisions and a unique chat index prevent lost concurrent writes. Sources
 accepted batch, so concurrent scheduler instances cannot apply it twice. Privacy changes rotate a generation token;
 a writer result from an earlier generation cannot restore deleted records.
 
-Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their retention period expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts; retrieval reports unavailable originals in `expired_source_ids` and must not invent quotations. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
+Original messages expire after 48 hours in Redis. Reads enforce that window, writes prune expired entries and refresh the active cache TTL, and the writer also cleans expired rows every 10 minutes. Validated facts remain in MongoDB independently of the original text, until their retention period expires or they are explicitly deleted. The fact store keeps at most 1,000 versions per chat. Evidence message IDs remain on facts. Retrieval lists unavailable originals in `<unavailable_sources>`, so Sophie can tell which sources it can quote. Writer progress stores only message IDs and attempt counters and is bounded by the retained cache.
 
 ### Writer routing and cost evaluation
 
@@ -100,6 +100,11 @@ Current queries select version heads. As-of queries use both record time and sou
 change an earlier answer. Full-history queries return the retained versions. Event and branch filters keep exchanges
 separate. Requested people get reserved evidence slots, including people with few messages. Missing direct positions
 remain explicitly unknown even when another person has made a claim about them.
+
+Chatbot context, proactive decisions, and the `search_memory` tool use the same `<memory_evidence>` XML format.
+Facts and sources carry their text, IDs, attribution, and timestamps. Fact attributes link to supporting sources and
+previous versions when present. Historical queries also include the time a fact was recorded. The XML omits topic
+and reply IDs, empty fields, and storage-only metadata.
 
 Up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
 The two budgets are independent: up to 16 facts and 16 raw matches. Fact selection also has a 48-source provenance budget;
