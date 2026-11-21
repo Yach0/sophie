@@ -139,8 +139,12 @@ async def test_single_writer_extracts_distinct_evidence_and_claims_once(
         _source(9012, 711, "I prefer concise answers.", branch=4011, at=at),
         _source(9013, 712, "Let's hold demos on Friday.", branch=4013, at=at),
         _source(9014, 713, "Friday works. Let's do that.", branch=4013, at=at),
+        _source(9015, 713, "I'm the CEO of Fridays now. Kidding!", branch=4015, at=at),
+        _source(9016, 713, "I think Alice wore the same cap today.", branch=4016, at=at),
+        _source(9017, 712, "Alice told me she wants captions in all the demos.", branch=4017, at=at),
+        _source(9018, 713, "She independently told me the same thing.", branch=4017, at=at),
     ]
-    pending.extend(pending[3].model_copy(update={"message_id": identity}) for identity in range(9015, 9021))
+    pending.extend(pending[3].model_copy(update={"message_id": identity}) for identity in range(9019, 9021))
 
     def seed(state: MemoryState) -> None:
         for source in pending:
@@ -176,10 +180,10 @@ async def test_single_writer_extracts_distinct_evidence_and_claims_once(
         }
         payload = json.loads(raw)
         assert task.output_type is WriterOutput
-        assert [entry[-1] for entry in payload["batch"]] == [pending[0].text, pending[2].text, pending[3].text]
+        assert [entry[-1] for entry in payload["batch"]] == [pending[0].text, *(source.text for source in pending[2:8])]
         writer_started.set()
         await release_writer.wait()
-        personal, first, second = payload["batch"]
+        personal, first, second, joke, observation, report, corroboration = payload["batch"]
         return SimpleNamespace(
             output=WriterOutput(
                 actions=[
@@ -205,6 +209,39 @@ async def test_single_writer_extracts_distinct_evidence_and_claims_once(
                         event="demo schedule",
                         text="Demos on Friday",
                     ),
+                    WriterAction(
+                        action="ADD",
+                        scope="group",
+                        layer="event",
+                        kind="joke",
+                        speaker_tid=joke[1],
+                        subject_tids=[],
+                        evidence_ids=[joke[0]],
+                        event="Friday CEO",
+                        text="Joked about being the CEO of Fridays",
+                    ),
+                    WriterAction(
+                        action="ADD",
+                        scope="person",
+                        layer="observation",
+                        kind="fact",
+                        speaker_tid=observation[1],
+                        subject_tids=[personal[1]],
+                        evidence_ids=[observation[0]],
+                        event="Alice's cap",
+                        text="Observed Alice wearing the same cap today",
+                    ),
+                    WriterAction(
+                        action="ADD",
+                        scope="person",
+                        layer="observation",
+                        kind="preference",
+                        speaker_tid=report[1],
+                        subject_tids=[personal[1]],
+                        evidence_ids=[report[0], corroboration[0]],
+                        event="demo captions",
+                        text="Reported that Alice prefers captions in demos",
+                    ),
                 ]
             )
         )
@@ -221,7 +258,11 @@ async def test_single_writer_extracts_distinct_evidence_and_claims_once(
         await first_run
     state = await read_memory(writer_chat, at - timedelta(days=1), redis=redis)
     assert chosen_models == ["openai/gpt-6-luna"]
-    assert [(fact.speaker_tid, fact.evidence_ids) for fact in state.facts] == [(711, [9011]), (712, [9013, 9014])]
+    assert [(fact.speaker_tid, fact.evidence_ids) for fact in state.facts] == [
+        (711, [9011]),
+        (712, [9013, 9014]),
+        (712, [9017, 9018]),
+    ]
     assert set(state.processed_ids) == {item.message_id for item in pending}
     assert not await redis.exists(f"ai:memory:writer:{writer_chat.tid}")
 

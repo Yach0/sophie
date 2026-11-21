@@ -302,11 +302,12 @@ async def _generate_decision(
             if modern
             else await memory_context(
                 chat,
-                MemoryQuery(text=" ".join(row.text for row in messages), social=True),
+                MemoryQuery(text=" ".join(row.text for row in messages), purpose="automatic"),
                 redis=services.redis,
             )
         )
-        history.add_custom(evidence, name="Social memory evidence")
+        if evidence:
+            history.add_custom(evidence, name="Social memory evidence")
         history.add_system(
             "Use relevant group norms, personal preferences, open questions and recent bot interventions "
             "when choosing reply, react or silence. Stay silent if someone already answered. "

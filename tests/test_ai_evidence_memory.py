@@ -160,6 +160,52 @@ def test_quiet_member_has_reserved_evidence_slot() -> None:
     assert result.unknown_person_tids == [3]
 
 
+def test_automatic_memory_uses_relevant_facts_and_cited_messages_only() -> None:
+    state = MemoryState()
+    for item in (
+        source(1, speaker=2, text="What should we do?"),
+        source(2, text="Saturday works.", reply=1),
+        source(3, text="The parcel arrived."),
+        source(4, text="I'll bring a rocket to the picnic."),
+        source(5, text="Unrelated picnic chatter."),
+    ):
+        capture_source(state, item)
+    assert write(
+        state,
+        [
+            action(2, event="picnic_schedule", text="Meet Saturday"),
+            action(3, event="parcel", text="The parcel arrived."),
+            action(4, kind="joke", text="Picnic rocket joke."),
+        ],
+        {2, 3, 4},
+    )
+
+    automatic = retrieve_memory(state, MemoryQuery(text="What is the picnic schedule?", purpose="automatic"))
+    assert automatic.facts == [state.facts[0]]
+    assert [item.message_id for item in automatic.sources] == [2]
+    assert not retrieve_memory(state, MemoryQuery(text="What is it?", purpose="automatic")).facts
+
+    explicit = retrieve_memory(state, MemoryQuery(text="picnic"))
+    assert state.facts[-1] in explicit.facts
+    assert {item.message_id for item in explicit.sources} == {1, 2, 4, 5}
+
+
+def test_automatic_memory_prioritizes_matches_within_a_smaller_budget() -> None:
+    state = MemoryState(sources=[source(identity) for identity in range(1, 10)])
+    assert write(
+        state,
+        [action(1, text="Picnic Friday at Riverside")] + [action(identity) for identity in range(2, 10)],
+        set(range(1, 10)),
+    )
+    state.sources.pop(0)
+    automatic = retrieve_memory(state, MemoryQuery(text="Riverside picnic", purpose="automatic"))
+    assert [fact.evidence_ids[0] for fact in automatic.facts] == [1]
+    assert automatic.unavailable_source_ids == [1]
+    broad_automatic = retrieve_memory(state, MemoryQuery(text="picnic", purpose="automatic"))
+    assert [fact.evidence_ids[0] for fact in broad_automatic.facts] == [9, 8, 7, 6, 5, 4]
+    assert len(retrieve_memory(state, MemoryQuery(text="Riverside picnic")).facts) == 9
+
+
 def test_retention_deletes_dependent_versions_and_sources() -> None:
     state = MemoryState(sources=[source(1)])
     write(state, [action(1)], {1})

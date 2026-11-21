@@ -40,14 +40,14 @@
     ]
   },
   {
-    "name": "hearsay keeps reporter and subject distinct",
+    "name": "corroborated reports keep reporter and subject distinct",
     "state": {
       "sources": [
         {
           "message_id": 1,
           "speaker_tid": 102,
           "speaker_name": "Bob",
-          "text": "Hi everyone",
+          "text": "Can you two coordinate the recurring demo schedule?",
           "sent_at": "2026-10-01T09:00:00Z",
           "topic_id": 9,
           "branch_id": 1,
@@ -57,17 +57,28 @@
           "message_id": 2,
           "speaker_tid": 101,
           "speaker_name": "Alice",
-          "text": "Bob told me he prefers morning demos.",
+          "text": "For the recurring schedule, Bob told me he prefers morning demos.",
           "sent_at": "2026-10-01T09:00:00Z",
           "topic_id": 9,
           "branch_id": 1,
           "reply_to_message_id": 1
+        },
+        {
+          "message_id": 3,
+          "speaker_tid": 103,
+          "speaker_name": "Cara",
+          "text": "Bob independently told me he prefers the morning slot for demos too.",
+          "sent_at": "2026-10-01T09:01:00Z",
+          "topic_id": 9,
+          "branch_id": 1,
+          "reply_to_message_id": 2
         }
       ],
       "facts": []
     },
     "pending": [
-      2
+      2,
+      3
     ],
     "expected": [
       {
@@ -75,13 +86,15 @@
           102
         ],
         "evidence_ids": [
-          2
+          2,
+          3
         ],
         "kind": "preference",
         "layer": "observation",
         "previous_id": null,
         "speaker_tids": [
-          101
+          101,
+          103
         ],
         "text_contains": [
           "morning"
@@ -145,14 +158,14 @@
     ]
   },
   {
-    "name": "temporary chatter",
+    "name": "temporary chatter, joking, and one-off observations",
     "state": {
       "sources": [
         {
           "message_id": 1,
           "speaker_tid": 101,
           "speaker_name": "Alice",
-          "text": "lol",
+          "text": "I'm obviously the CEO of Fridays now. Kidding!",
           "sent_at": "2026-10-01T09:00:00Z",
           "topic_id": 9,
           "branch_id": 1,
@@ -162,7 +175,7 @@
           "message_id": 2,
           "speaker_tid": 102,
           "speaker_name": "Bob",
-          "text": "brb",
+          "text": "I think Alice wore her yellow cap again today. Anyway, brb.",
           "sent_at": "2026-10-01T09:00:00Z",
           "topic_id": 9,
           "branch_id": 1,
