@@ -59,8 +59,11 @@ Use the memory controls to delete retained copies. Original text may contain aut
 identity fields but does not rewrite the authored text.
 
 The scheduler checks every 10 minutes and calls the writer only when at least 10 eligible unprocessed messages are available. It processes at most 60 pending messages per chat per run, relevant current fact heads, their source
-exchanges, and a speaker roster. It requests typed ADD/UPDATE/NOOP actions. Validation rejects missing sources,
+exchanges, and a speaker roster. It requests typed ADD and UPDATE actions. Validation rejects missing sources,
 unknown actors, cross-topic evidence, invalid scope/layer pairs, and changes to another speaker's fact chain.
+The writer prefers an empty batch of actions when messages have no lasting value. Its prompt focuses on stable
+preferences, meaningful commitments, decisions, and demonstrated norms. The writer discards actions tagged as jokes
+and new observations about other people that cite fewer than two speakers.
 UPDATE appends a new version with the same speaker, subjects, layer, scope, topic, and event identity.
 Several reply roots can support one explicitly named event. Event matching remains a writer judgment.
 All actions in a batch pass validation before any fact is changed. After three invalid outputs, that batch's messages
@@ -93,8 +96,12 @@ responses report cost. Review the results on representative chats before expandi
 
 ## Retrieval and participation
 
-Every answer request retrieves records for its text and Telegram topic. Search is a bounded lexical baseline,
-not an embedding index. `search_memory` can search by up to 16 speaker references, reporter, event, historical timestamp, and full history.
+Chatbot answers and proactive decisions load at most six saved facts ranked by meaningful word overlap. When a fact
+matches two or more terms, single-term matches are omitted. Automatic retrieval skips saved jokes and includes only
+the original messages cited by the selected facts. The answer query uses the current Telegram topic and available
+reply branch. If no saved fact matches, the memory section is omitted.
+`search_memory` also searches raw messages by keyword and accepts up to 16 speaker references, a reporter, an event,
+a historical timestamp, and a full-history option.
 Use several calls for more than 16 requested people.
 Current queries select version heads. As-of queries use both record time and source time so that later knowledge cannot
 change an earlier answer. Full-history queries return the retained versions. Event and branch filters keep exchanges
@@ -106,9 +113,10 @@ Facts and sources carry their text, IDs, attribution, and timestamps. Fact attri
 previous versions when present. Historical queries also include the time a fact was recorded. The XML omits topic
 and reply IDs, empty fields, and storage-only metadata.
 
-Up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
-The two budgets are independent: up to 16 facts and 16 raw matches. Fact selection also has a 48-source provenance budget;
-every selected fact keeps all still-retained evidence. Facts whose original text expired remain available with explicit missing-source IDs. One reply-parent expansion supplies local context. Structured identities use
+Explicitly requested people get reserved slots. Larger rosters need separate queries.
+Explicit search has independent budgets of up to 16 facts and 16 raw matches. Fact selection has a 48-source
+provenance budget. Every selected fact keeps all still-retained evidence. Facts whose original text expired remain
+available with explicit missing-source IDs. Explicit search adds one reply-parent expansion. Structured identities use
 the current session's speaker aliases in modern context. Cross-chat retrieval is not supported.
 
 Participation decisions get relevant norms, preferences, open questions, and source exchanges. The decision prompt asks

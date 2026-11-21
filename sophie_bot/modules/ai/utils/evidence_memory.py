@@ -39,6 +39,8 @@ MIN_BATCH = 10
 MAX_BATCH = 60
 MEMORY_POLICY_MIGRATION = "20261119_184908_preserve_ai_memory_policy"
 _INVALID_XML_CHARS = re.compile("[^\x09\x0a\x0d\x20-\ud7ff\ue000-\ufffd\U00010000-\U0010ffff]")
+_WORD_PATTERN = re.compile(r"[^\W_]+")
+_AUTOMATIC_FACT_LIMIT = 6
 
 
 class MemoryContextChanged(ValueError):
@@ -75,7 +77,7 @@ class MemoryQuery(BaseModel):
     since: datetime | None = None
     history: bool = False
     reserve_members: bool = True
-    social: bool = False
+    purpose: Literal["search", "automatic"] = "search"
 
 
 class MemoryEvidence(BaseModel):
@@ -209,54 +211,22 @@ def apply_actions(
 
 
 def _terms(text: str) -> set[str]:
-    return set(re.findall(r"\w+", text.casefold()))
+    return set(_WORD_PATTERN.findall(text.casefold()))
 
 
-def retrieve_memory(state: MemoryState, query: MemoryQuery) -> MemoryEvidence:
-    at = query.as_of or datetime.now(UTC)
-    anchor = next((source for source in state.sources if source.message_id == query.anchor_id), None)
-    if anchor and query.branch_id is None:
-        query = query.model_copy(update={"branch_id": anchor.branch_id})
-    terms = _terms(query.text)
-    sources = [source for source in state.sources if source.sent_at <= at]
-    facts = [fact for fact in state.facts if fact.recorded_at <= at and fact.occurred_at <= at]
-    if not query.history:
-        superseded = {fact.previous_id for fact in facts}
-        facts = [fact for fact in facts if fact.fact_id not in superseded]
-    facts = [
-        fact
-        for fact in facts
-        if (query.speaker_tid is None or fact.speaker_tid == query.speaker_tid)
-        and (query.scope is None or fact.scope == query.scope)
-        and (query.topic_id is None or fact.topic_id == query.topic_id)
-        and (query.branch_id is None or query.branch_id in fact.branch_ids)
-        and (query.event is None or fact.event == query.event)
-        and (query.since is None or fact.occurred_at >= query.since)
-        and (not query.person_tids or set(query.person_tids).intersection([fact.speaker_tid, *fact.subject_tids]))
-        and (
-            not terms
-            or terms.intersection(_terms(fact.text + " " + fact.event))
-            or fact.layer == "norm"
-            or (query.social and fact.kind in {"preference", "question"})
-        )
-    ]
-    facts.sort(key=lambda fact: (len(terms & _terms(fact.text + " " + fact.event)), fact.occurred_at), reverse=True)
-    selected: list[MemoryFact] = []
-    for person_tid in query.person_tids if query.reserve_members else []:
-        candidate = next((fact for fact in facts if fact.speaker_tid == person_tid), None)
-        if candidate is None:
-            candidate = next((fact for fact in facts if person_tid in fact.subject_tids), None)
-        if candidate and candidate not in selected:
-            selected.append(candidate)
-    selected.extend(fact for fact in facts if fact not in selected)
-    budgeted: list[MemoryFact] = []
-    used_ids: set[int] = set()
-    for fact in selected:
-        if len(used_ids | set(fact.evidence_ids)) <= 48 and len(budgeted) < 16:
-            budgeted.append(fact)
-            used_ids.update(fact.evidence_ids)
-    selected = budgeted
-    source_ids = {identity for fact in selected for identity in fact.evidence_ids}
+_QUERY_STOP_WORDS = frozenset(
+    _terms(
+        "a about am an and are as at be been but by can could did do does for from had has have how i in is it its "
+        "here me my of on or our please said say she should so tell than that the their them then there these they "
+        "think this those to us was we were what when where which who will with would you your know remember "
+        "remembered memories memory"
+    )
+)
+
+
+def _search_source_ids(
+    sources: list[MemorySource], query: MemoryQuery, terms: set[str], cited_ids: set[int]
+) -> set[int]:
     candidates = [
         source
         for source in sources
@@ -264,7 +234,7 @@ def retrieve_memory(state: MemoryState, query: MemoryQuery) -> MemoryEvidence:
         and (query.topic_id is None or source.topic_id == query.topic_id)
         and (query.branch_id is None or source.branch_id == query.branch_id)
         and (query.since is None or source.sent_at >= query.since)
-        and (query.event is None or source.message_id in source_ids)
+        and (query.event is None or source.message_id in cited_ids)
         and (not query.person_tids or source.speaker_tid in query.person_tids)
         and (not terms or terms.intersection(_terms(source.text)))
     ]
@@ -275,15 +245,68 @@ def retrieve_memory(state: MemoryState, query: MemoryQuery) -> MemoryEvidence:
         if candidate:
             raw.append(candidate)
     raw.extend(source for source in candidates if source not in raw)
-    raw = raw[:16]
-    # Provenance is mandatory and does not compete with the independent verbatim budget.
-    source_ids.update(source.message_id for source in raw)
-    parent_ids = {
+    selected_ids = cited_ids | {source.message_id for source in raw[:16]}
+    return selected_ids | {
         source.reply_to_message_id
         for source in sources
-        if source.message_id in source_ids and source.reply_to_message_id is not None
+        if source.message_id in selected_ids and source.reply_to_message_id is not None
     }
-    source_ids.update(parent_ids)
+
+
+def retrieve_memory(state: MemoryState, query: MemoryQuery) -> MemoryEvidence:
+    automatic = query.purpose == "automatic"
+    terms = _terms(query.text)
+    if automatic:
+        terms -= _QUERY_STOP_WORDS
+        if not terms:
+            return MemoryEvidence()
+    at = query.as_of or datetime.now(UTC)
+    anchor = next((source for source in state.sources if source.message_id == query.anchor_id), None)
+    if anchor and query.branch_id is None:
+        query = query.model_copy(update={"branch_id": anchor.branch_id})
+    sources = [source for source in state.sources if source.sent_at <= at]
+    facts = [fact for fact in state.facts if fact.recorded_at <= at and fact.occurred_at <= at]
+    if not query.history:
+        superseded = {fact.previous_id for fact in facts}
+        facts = [fact for fact in facts if fact.fact_id not in superseded]
+    people = set(query.person_tids)
+    ranked = [
+        (len(terms & _terms(f"{fact.text} {fact.event}")), fact)
+        for fact in facts
+        if (query.speaker_tid is None or fact.speaker_tid == query.speaker_tid)
+        and (query.scope is None or fact.scope == query.scope)
+        and (query.topic_id is None or fact.topic_id == query.topic_id)
+        and (query.branch_id is None or query.branch_id in fact.branch_ids)
+        and (query.event is None or fact.event == query.event)
+        and (query.since is None or fact.occurred_at >= query.since)
+        and (not people or people.intersection([fact.speaker_tid, *fact.subject_tids]))
+    ]
+    if automatic:
+        ranked = [(score, fact) for score, fact in ranked if score and fact.kind != "joke"]
+    elif terms:
+        ranked = [(score, fact) for score, fact in ranked if score or fact.layer == "norm"]
+    ranked.sort(key=lambda entry: (entry[0], entry[1].occurred_at), reverse=True)
+    minimum_score = min(2, ranked[0][0]) if automatic and ranked else 0
+    facts = [fact for score, fact in ranked if score >= minimum_score]
+    selected: list[MemoryFact] = []
+    for person_tid in query.person_tids if query.reserve_members else []:
+        candidate = next((fact for fact in facts if fact.speaker_tid == person_tid), None)
+        if candidate is None:
+            candidate = next((fact for fact in facts if person_tid in fact.subject_tids), None)
+        if candidate and candidate not in selected:
+            selected.append(candidate)
+    selected.extend(fact for fact in facts if fact not in selected)
+    budgeted: list[MemoryFact] = []
+    used_ids: set[int] = set()
+    fact_limit = _AUTOMATIC_FACT_LIMIT if automatic else 16
+    for fact in selected:
+        if len(budgeted) == fact_limit:
+            break
+        if len(used_ids | set(fact.evidence_ids)) <= 48:
+            budgeted.append(fact)
+            used_ids.update(fact.evidence_ids)
+    selected = budgeted
+    source_ids = used_ids if automatic else _search_source_ids(sources, query, terms, used_ids)
     evidence = [source for source in sources if source.message_id in source_ids]
     return MemoryEvidence(
         facts=selected,
@@ -502,23 +525,9 @@ async def memory_context_xml(
     if not await is_enabled("ai_memory_retrieval", chat_tid=chat.tid, redis=redis):
         return None
     state = await read_memory(chat, await memory_cutoff(chat.tid), redis=redis)
-    if query.reserve_members and not query.person_tids:
-        terms = _terms(query.text)
-        relevant = {
-            source.speaker_tid
-            for source in state.sources
-            if (query.topic_id is None or source.topic_id == query.topic_id)
-            and (not terms or terms.intersection(_terms(source.text)))
-        }
-        relevant.update(
-            identity
-            for fact in state.facts
-            if (query.topic_id is None or fact.topic_id == query.topic_id)
-            and (not terms or terms.intersection(_terms(fact.text + " " + fact.event)))
-            for identity in (fact.speaker_tid, *fact.subject_tids)
-        )
-        query = query.model_copy(update={"person_tids": sorted(relevant)[:16]})
     evidence = retrieve_memory(state, query)
+    if query.purpose == "automatic" and not evidence.facts:
+        return None
     identify = speaker or (lambda identity: f"tg://user?id={identity}")
     return _memory_evidence_xml(evidence, identify, include_recorded_at=query.history or query.as_of is not None)
 

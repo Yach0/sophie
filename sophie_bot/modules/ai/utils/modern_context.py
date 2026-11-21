@@ -784,7 +784,10 @@ class ModernContext:
             evidence = await memory_context_xml(
                 chat,
                 MemoryQuery(
-                    text=context.user_text or "", topic_id=context.topic_id, anchor_id=context.reply_to_message_id
+                    text=context.user_text or "",
+                    topic_id=context.topic_id,
+                    anchor_id=context.reply_to_message_id,
+                    purpose="automatic",
                 ),
                 redis=self._redis,
                 speaker=self.speaker_reference,
@@ -883,7 +886,7 @@ class ModernContext:
             history._register_cached(row)
         return await memory_context(
             chat,
-            MemoryQuery(text=" ".join(row.text for row in messages), social=True),
+            MemoryQuery(text=" ".join(row.text for row in messages), purpose="automatic"),
             redis=services.redis,
             speaker=history.speaker_reference,
         )
@@ -1496,7 +1499,10 @@ async def _build_chatbot_runtime_context(context: SophieAIToolContext, mode: AIM
             context_doc += await memory_context(
                 chat_model,
                 MemoryQuery(
-                    text=context.user_text or "", topic_id=context.topic_id, anchor_id=context.reply_to_message_id
+                    text=context.user_text or "",
+                    topic_id=context.topic_id,
+                    anchor_id=context.reply_to_message_id,
+                    purpose="automatic",
                 ),
                 redis=context.services.redis,
             )
