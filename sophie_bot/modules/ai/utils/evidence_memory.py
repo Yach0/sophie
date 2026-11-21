@@ -465,8 +465,6 @@ def _memory_evidence_xml(
         entry.text = _INVALID_XML_CHARS.sub("\ufffd", fact.text)
         if fact.subject_tids:
             entry.set("subjects", " ".join(map(identify, fact.subject_tids)))
-        if fact.topic_id is not None:
-            entry.set("topic", str(fact.topic_id))
         if fact.evidence_ids:
             entry.set("sources", " ".join(map(str, fact.evidence_ids)))
         if fact.previous_id is not None:
@@ -485,10 +483,6 @@ def _memory_evidence_xml(
             sent_at=source.sent_at.isoformat().replace("+00:00", "Z"),
         )
         entry.text = _INVALID_XML_CHARS.sub("\ufffd", source.text)
-        if source.topic_id is not None:
-            entry.set("topic", str(source.topic_id))
-        if source.reply_to_message_id is not None:
-            entry.set("reply_to", str(source.reply_to_message_id))
 
     if evidence.unknown_person_tids:
         ElementTree.SubElement(root, "unknown_people").text = " ".join(map(identify, evidence.unknown_person_tids))

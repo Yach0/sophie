@@ -103,8 +103,8 @@ remain explicitly unknown even when another person has made a claim about them.
 
 Chatbot context, proactive decisions, and the `search_memory` tool use the same `<memory_evidence>` XML format.
 Facts and sources carry their text, IDs, attribution, and timestamps. Fact attributes link to supporting sources and
-previous versions when present. Historical queries also include the time a fact was recorded. Empty fields and
-storage-only metadata are omitted.
+previous versions when present. Historical queries also include the time a fact was recorded. The XML omits topic
+and reply IDs, empty fields, and storage-only metadata.
 
 Up to 16 relevant authors get reserved slots. Larger rosters need separate queries.
 The two budgets are independent: up to 16 facts and 16 raw matches. Fact selection also has a 48-source provenance budget;

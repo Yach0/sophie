@@ -268,7 +268,6 @@ async def test_memory_xml_preserves_attribution_history_and_unavailable_sources(
         "subjects": "tg://user?id=1",
         "occurred_at": current.occurred_at.isoformat().replace("+00:00", "Z"),
         "recorded_at": recorded_at.isoformat().replace("+00:00", "Z"),
-        "topic": "10",
         "sources": "2",
         "previous": original.fact_id,
         "edited_by": "tg://user?id=2",
@@ -281,8 +280,6 @@ async def test_memory_xml_preserves_attribution_history_and_unavailable_sources(
         "id": "2",
         "speaker": "tg://user?id=2",
         "sent_at": current.occurred_at.isoformat().replace("+00:00", "Z"),
-        "topic": "10",
-        "reply_to": "1",
     }
     assert root.findtext("unknown_people") == "tg://user?id=3"
     assert root.findtext("unavailable_sources") == "1"
