@@ -35,8 +35,10 @@ from pydantic_ai.messages import (
 )
 from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
@@ -856,14 +858,14 @@ async def test_request_budget_reserves_a_tool_free_final_answer(
             for message in messages
             for part in message.parts
         )
-        if info.function_tools:
+        assert [tool.name for tool in info.function_tools] == ["mutate"]
+        if (info.model_settings or {}).get("tool_choice") != "none":
             return ModelResponse(
                 parts=[
                     TextPart("Working.\n"),
                     ToolCallPart("mutate", {"amount": len(calls)}, tool_call_id=f"call-{len(calls)}"),
                 ]
             )
-        assert info.model_settings is not None and info.model_settings["tool_choice"] == "none"
         assert "available information" in str(messages).lower()
         assert not info.model_request_parameters.native_tools
         return ModelResponse(parts=[TextPart("Finished from completed results")])
@@ -929,7 +931,55 @@ async def test_request_budget_reserves_a_tool_free_final_answer(
     assert "available information" in str(result.new_messages).lower()
     assert result.request_usage_limits is limits
     assert result.last_model_request is not None
-    assert not result.last_model_request.model_request_parameters.function_tools
+    assert result.last_model_request.model_settings is not None
+    assert result.last_model_request.model_settings["tool_choice"] == "none"
+
+
+async def test_reserved_request_sends_tool_schemas_with_claude_history() -> None:
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        payload = json.loads(request.content)
+        assert [tool["function"]["name"] for tool in payload["tools"]] == ["mutate"]
+        assert payload["tool_choice"] == "none"
+        call = next(message["tool_calls"][0] for message in payload["messages"] if message.get("tool_calls"))
+        assert call["function"]["name"] == "mutate"
+        assert {
+            "role": "tool",
+            "tool_call_id": call["id"],
+            "content": "completed",
+        } in payload["messages"]
+        return httpx2.Response(
+            200,
+            json={
+                "id": "offline",
+                "created": 0,
+                "model": payload["model"],
+                "object": "chat.completion",
+                "provider": "Anthropic",
+                "choices": [
+                    {"index": 0, "message": {"role": "assistant", "content": "Finished"}, "finish_reason": "stop"}
+                ],
+            },
+        )
+
+    history = [
+        ModelRequest(parts=[UserPromptPart("Make a change")]),
+        ModelResponse(parts=[ToolCallPart("mutate", {"amount": 1}, tool_call_id="original")]),
+        ModelRequest(parts=[ToolReturnPart("mutate", "completed", tool_call_id="original")]),
+        ModelResponse(parts=[TextPart("I made the change")]),
+    ]
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        provider = OpenRouterProvider(api_key="offline", http_client=client)
+        agent = Agent(OpenRouterModel("anthropic/claude-sonnet-4.6", provider=provider))
+
+        @agent.tool_plain
+        async def mutate(amount: int) -> str:
+            pytest.fail("The reserved request must not run a tool")
+
+        result = await run_ai_text(
+            agent, "Summarize", message_history=history, usage_limits=UsageLimits(request_limit=1)
+        )
+
+    assert result.output == "Finished"
 
 
 @pytest.mark.parametrize("streaming", [False, True])

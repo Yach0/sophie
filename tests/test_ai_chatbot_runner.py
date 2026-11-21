@@ -97,7 +97,7 @@ async def test_request_budget_completion_charges_the_full_real_run(monkeypatch: 
     async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
         nonlocal calls
         calls += 1
-        if info.function_tools:
+        if (info.model_settings or {}).get("tool_choice") != "none":
             return ModelResponse(parts=[ToolCallPart("mutate", {"amount": calls}, tool_call_id=f"call-{calls}")])
         assert calls == 8
         assert len([part for message in messages for part in message.parts if isinstance(part, ToolReturnPart)]) == 7

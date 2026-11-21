@@ -617,12 +617,12 @@ class _ModelRequests:
         self.attempt_started = time.perf_counter()
         prepared = replace(request_context, messages=messages, model_settings=settings)
         if self.final_request:
-            # SDK 2.68's native setting disables function-tool choice, but some adapters
-            # still advertise definitions. Remove those and native tools from this request too.
+            # Claude needs tool schemas alongside tool history. The SDK's tool_choice setting
+            # disables function calls, but does not reliably disable provider-executed native tools.
             prepared = replace(
                 prepared,
                 model_settings={**settings, "tool_choice": "none"},
-                model_request_parameters=replace(prepared.model_request_parameters, function_tools=[], native_tools=[]),
+                model_request_parameters=replace(prepared.model_request_parameters, native_tools=[]),
             )
         self.last_model_request = prepared
         return prepared
