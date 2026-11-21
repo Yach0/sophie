@@ -72,11 +72,18 @@ class WriterPrompt:
                 fact_id = self.heads[action.target_id].fact_id if action.target_id is not None else None
                 speaker_tid = self.speakers[action.speaker_tid]
                 subject_tids = [self.speakers[label] for label in action.subject_tids]
-                evidence_ids = [self.messages[label].message_id for label in action.evidence_ids]
+                evidence = [self.messages[label] for label in action.evidence_ids]
             except KeyError as error:
                 raise ValueError("Memory writer used a reference outside its prompt") from error
+            evidence_ids = [source.message_id for source in evidence]
             if not self.batch_ids.intersection(evidence_ids):
                 raise ValueError("Memory writer action has no new evidence")
+            if action.kind == "joke" or (
+                action.action == "ADD"
+                and action.layer == "observation"
+                and len({source.speaker_tid for source in evidence}) < 2
+            ):
+                continue
             decoded.append(
                 MemoryAction(
                     action=action.action,
