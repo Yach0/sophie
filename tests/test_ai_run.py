@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncGenerator, AsyncIterable, Awaitable, Callable, Iterator, Sequence
+from collections.abc import AsyncGenerator, AsyncIterable, AsyncIterator, Awaitable, Callable, Iterator, Sequence
 from contextlib import asynccontextmanager
 from dataclasses import replace
 from typing import Any, cast
@@ -22,7 +22,7 @@ from pydantic_ai import (
     ThinkingPart,
     ThinkingPartDelta,
 )
-from pydantic_ai.exceptions import UsageLimitExceeded
+from pydantic_ai.exceptions import ModelHTTPError, UsageLimitExceeded
 from pydantic_ai.messages import (
     BinaryContent,
     ModelMessage,
@@ -33,10 +33,12 @@ from pydantic_ai.messages import (
     UserContent,
     UserPromptPart,
 )
-from pydantic_ai.models.function import AgentInfo, FunctionModel
+from pydantic_ai.models.function import AgentInfo, DeltaToolCall, DeltaToolCalls, FunctionModel
 from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.models.openrouter import OpenRouterModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.providers.openai import OpenAIProvider
+from pydantic_ai.providers.openrouter import OpenRouterProvider
 from pydantic_ai.usage import RunUsage, UsageLimits
 
 from sophie_bot.modules.ai.utils import ai_run
@@ -831,3 +833,247 @@ async def test_provider_timeouts_allow_five_attempts(
                 await run()
 
     assert attempts == 5
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("request_limit", [1, 2, 8])
+@pytest.mark.parametrize("project_context", [False, True])
+async def test_request_budget_reserves_a_tool_free_final_answer(
+    streaming: bool, request_limit: int, project_context: bool
+) -> None:
+    calls: list[AgentInfo] = []
+    effects: list[int] = []
+    streamed: list[str] = []
+    history = [
+        ModelRequest(parts=[UserPromptPart("Earlier context")]),
+        ModelResponse(parts=[TextPart("Earlier answer")]),
+    ]
+
+    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        calls.append(info)
+        returns = [part for message in messages for part in message.parts if isinstance(part, ToolReturnPart)]
+        assert [part.content for part in returns] == [f"completed {amount}" for amount in effects]
+        assert any(
+            isinstance(part, TextPart) and part.content == "Earlier answer"
+            for message in messages
+            for part in message.parts
+        )
+        assert [tool.name for tool in info.function_tools] == ["mutate"]
+        if (info.model_settings or {}).get("tool_choice") != "none":
+            return ModelResponse(
+                parts=[
+                    TextPart("Working.\n"),
+                    ToolCallPart("mutate", {"amount": len(calls)}, tool_call_id=f"call-{len(calls)}"),
+                ]
+            )
+        assert "available information" in str(messages).lower()
+        assert not info.model_request_parameters.native_tools
+        return ModelResponse(parts=[TextPart("Finished from completed results")])
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | DeltaToolCalls]:
+        response = await respond(messages, info)
+        for part_index, part in enumerate(response.parts):
+            if isinstance(part, TextPart):
+                yield part.content
+            elif isinstance(part, ToolCallPart):
+                yield {
+                    part_index: DeltaToolCall(
+                        name=part.tool_name, json_args=part.args_as_json_str(), tool_call_id=part.tool_call_id
+                    )
+                }
+
+    agent = Agent(FunctionModel(respond, stream_function=stream))
+
+    @agent.tool_plain
+    async def mutate(amount: int) -> str:
+        effects.append(amount)
+        return f"completed {amount}"
+
+    async def on_text(text: str) -> None:
+        streamed.append(text)
+
+    def project(
+        candidate: AIModelCandidate, continuation: Sequence[ModelRequest | ModelResponse]
+    ) -> tuple[list[UserContent], list[ModelRequest | ModelResponse]]:
+        return ["Make changes"], history
+
+    options = AIRequestOptions(context_projection=project if project_context else None)
+    limits = UsageLimits(request_limit=request_limit)
+    if streaming:
+        result = await run_ai_stream(
+            agent, "Make changes", on_text, message_history=history, usage_limits=limits, request_options=options
+        )
+        assert streamed[-1] == result.output
+    else:
+        result = await run_ai_text(
+            agent, "Make changes", message_history=history, usage_limits=limits, request_options=options
+        )
+
+    assert result.output == "Working.\n" * (request_limit - 1) + "Finished from completed results"
+    assert all(result.output.startswith(update) for update in streamed)
+    assert len(calls) == result.usage.requests == request_limit
+    assert effects == list(range(1, request_limit))
+    assert result.usage.tool_calls == request_limit - 1
+    assert (
+        sum(message.usage.input_tokens for message in result.new_messages if isinstance(message, ModelResponse))
+        == result.usage.input_tokens
+    )
+    assert (
+        sum(message.usage.output_tokens for message in result.new_messages if isinstance(message, ModelResponse))
+        == result.usage.output_tokens
+    )
+    assert result.usage.total_tokens > 0
+    assert (
+        len([part for message in result.new_messages for part in message.parts if isinstance(part, ToolReturnPart)])
+        == request_limit - 1
+    )
+    assert result.message_history[-len(result.new_messages) :] == result.new_messages
+    assert "available information" in str(result.new_messages).lower()
+    assert result.request_usage_limits is limits
+    assert result.last_model_request is not None
+    assert result.last_model_request.model_settings is not None
+    assert result.last_model_request.model_settings["tool_choice"] == "none"
+
+
+async def test_reserved_request_sends_tool_schemas_with_claude_history() -> None:
+    def handle(request: httpx2.Request) -> httpx2.Response:
+        payload = json.loads(request.content)
+        assert [tool["function"]["name"] for tool in payload["tools"]] == ["mutate"]
+        assert payload["tool_choice"] == "none"
+        call = next(message["tool_calls"][0] for message in payload["messages"] if message.get("tool_calls"))
+        assert call["function"]["name"] == "mutate"
+        assert {
+            "role": "tool",
+            "tool_call_id": call["id"],
+            "content": "completed",
+        } in payload["messages"]
+        return httpx2.Response(
+            200,
+            json={
+                "id": "offline",
+                "created": 0,
+                "model": payload["model"],
+                "object": "chat.completion",
+                "provider": "Anthropic",
+                "choices": [
+                    {"index": 0, "message": {"role": "assistant", "content": "Finished"}, "finish_reason": "stop"}
+                ],
+            },
+        )
+
+    history = [
+        ModelRequest(parts=[UserPromptPart("Make a change")]),
+        ModelResponse(parts=[ToolCallPart("mutate", {"amount": 1}, tool_call_id="original")]),
+        ModelRequest(parts=[ToolReturnPart("mutate", "completed", tool_call_id="original")]),
+        ModelResponse(parts=[TextPart("I made the change")]),
+    ]
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handle)) as client:
+        provider = OpenRouterProvider(api_key="offline", http_client=client)
+        agent = Agent(OpenRouterModel("anthropic/claude-sonnet-4.6", provider=provider))
+
+        @agent.tool_plain
+        async def mutate(amount: int) -> str:
+            pytest.fail("The reserved request must not run a tool")
+
+        result = await run_ai_text(
+            agent, "Summarize", message_history=history, usage_limits=UsageLimits(request_limit=1)
+        )
+
+    assert result.output == "Finished"
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+async def test_final_request_cannot_execute_tools_even_if_model_ignores_disabling(streaming: bool) -> None:
+    effects: list[int] = []
+    calls = 0
+
+    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        nonlocal calls
+        calls += 1
+        return ModelResponse(parts=[ToolCallPart("mutate", {"amount": calls}, tool_call_id=f"call-{calls}")])
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[DeltaToolCalls]:
+        response = await respond(messages, info)
+        part = cast(ToolCallPart, response.parts[0])
+        yield {0: DeltaToolCall(name=part.tool_name, json_args=part.args_as_json_str(), tool_call_id=part.tool_call_id)}
+
+    agent = Agent(FunctionModel(respond, stream_function=stream))
+
+    @agent.tool_plain
+    async def mutate(amount: int) -> str:
+        effects.append(amount)
+        return "completed"
+
+    async def on_text(text: str) -> None:
+        pass
+
+    with pytest.raises(UsageLimitExceeded):
+        if streaming:
+            await run_ai_stream(agent, "Make changes", on_text, usage_limits=UsageLimits(request_limit=2))
+        else:
+            await run_ai_text(agent, "Make changes", usage_limits=UsageLimits(request_limit=2))
+
+    assert calls == 2
+    assert effects == [1]
+
+
+@pytest.mark.parametrize("streaming", [False, True])
+@pytest.mark.parametrize("budget", ["normal", "unlimited", "tokens", "tool_calls", "provider"])
+async def test_request_reservation_preserves_normal_completion_and_other_failures(streaming: bool, budget: str) -> None:
+    calls: list[AgentInfo] = []
+    effects: list[int] = []
+
+    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        calls.append(info)
+        assert info.function_tools
+        assert (info.model_settings or {}).get("tool_choice") != "none"
+        if budget == "provider":
+            raise ModelHTTPError(401, "offline", {"error": "unauthorized"})
+        if len(calls) == 1:
+            return ModelResponse(parts=[ToolCallPart("mutate", {"amount": 1}, tool_call_id="first")])
+        return ModelResponse(parts=[TextPart("Normal answer")])
+
+    async def stream(messages: list[ModelMessage], info: AgentInfo) -> AsyncIterator[str | DeltaToolCalls]:
+        response = await respond(messages, info)
+        for part in response.parts:
+            if isinstance(part, TextPart):
+                yield part.content
+            elif isinstance(part, ToolCallPart):
+                yield {
+                    0: DeltaToolCall(
+                        name=part.tool_name, json_args=part.args_as_json_str(), tool_call_id=part.tool_call_id
+                    )
+                }
+
+    agent = Agent(FunctionModel(respond, stream_function=stream))
+
+    @agent.tool_plain
+    async def mutate(amount: int) -> str:
+        effects.append(amount)
+        return "completed"
+
+    async def on_text(text: str) -> None:
+        pass
+
+    limits = UsageLimits(
+        request_limit=None if budget == "unlimited" else 8,
+        output_tokens_limit=0 if budget == "tokens" else None,
+        tool_calls_limit=0 if budget == "tool_calls" else None,
+    )
+
+    async def run() -> ai_run.AIAgentResult[str]:
+        if streaming:
+            return await run_ai_stream(agent, "Make changes", on_text, usage_limits=limits)
+        return await run_ai_text(agent, "Make changes", usage_limits=limits)
+
+    if budget in {"normal", "unlimited"}:
+        result = await run()
+        assert result.output == "Normal answer"
+        assert result.usage.requests == len(calls) == 2
+        assert effects == [1]
+    else:
+        error_type = ModelHTTPError if budget == "provider" else UsageLimitExceeded
+        with pytest.raises(error_type):
+            await run()
+        assert len(calls) == 1
+        assert effects == []
