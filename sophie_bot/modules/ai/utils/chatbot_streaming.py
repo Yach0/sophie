@@ -9,6 +9,7 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
+from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import InlineKeyboardMarkup, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
@@ -25,6 +26,7 @@ from sophie_bot.modules.ai.utils.research import (
     random_research_progress_text,
 )
 from sophie_bot.modules.ai.utils.rich_delivery import with_photo_url_fallback
+from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED
 from sophie_bot.utils.feature_flags import get_value
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -172,15 +174,7 @@ class ChatbotMessageStreamer:
             return self.response_message
 
         response_message = self.response_message
-        result = await with_photo_url_fallback(
-            rendered_rich,
-            lambda rich_message: self._editing_bot().edit_message_text(
-                chat_id=response_message.chat.id,
-                message_id=response_message.message_id,
-                rich_message=rich_message,
-                reply_markup=reply_markup,
-            ),
-        )
+        result = await self._edit_rich_message(response_message, rendered_rich, reply_markup=reply_markup)
         self._last_sent_rich = rendered_rich
         self._last_sent_reply_markup = reply_markup
         self.final_message_sent = True
@@ -291,8 +285,31 @@ class ChatbotMessageStreamer:
             raise RuntimeError("No bot attached to AI progress message")
         return bot
 
+    async def _edit_rich_message(
+        self,
+        response_message: Message,
+        rendered_rich: str,
+        *,
+        reply_markup: InlineKeyboardMarkup | None = None,
+    ) -> Message | bool:
+        """Treat Telegram's unchanged rich edit as success, including after photo fallback."""
+        try:
+            return await with_photo_url_fallback(
+                rendered_rich,
+                lambda rich_message: self._editing_bot().edit_message_text(
+                    chat_id=response_message.chat.id,
+                    message_id=response_message.message_id,
+                    rich_message=rich_message,
+                    reply_markup=reply_markup,
+                ),
+            )
+        except TelegramBadRequest as error:
+            if MSG_NOT_MODIFIED not in error.message:
+                raise
+            return response_message
+
     async def _update(self, doc: Doc) -> None:
-        """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
+        """Edit the placeholder in place; unexpected Telegram edit failures propagate."""
         rendered_rich = doc.to_rich()
         if rendered_rich == self._last_sent_rich:
             return
@@ -300,15 +317,7 @@ class ChatbotMessageStreamer:
         if self.response_message is None:
             self.response_message = await send_ai_rich_message(self.source_message, doc)
         else:
-            response_message = self.response_message
-            await with_photo_url_fallback(
-                rendered_rich,
-                lambda rich_message: self._editing_bot().edit_message_text(
-                    chat_id=response_message.chat.id,
-                    message_id=response_message.message_id,
-                    rich_message=rich_message,
-                ),
-            )
+            await self._edit_rich_message(self.response_message, rendered_rich)
 
         self._last_sent_rich = rendered_rich
         self._last_sent_reply_markup = None
