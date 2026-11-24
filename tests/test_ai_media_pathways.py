@@ -40,7 +40,11 @@ from sophie_bot.modules.ai.utils.cache_messages import (
     get_context_epoch_key,
     reset_modern_context,
 )
-from sophie_bot.modules.ai.utils.modern_context import build_message_parts
+from sophie_bot.modules.ai.utils.modern_context import (
+    BackgroundMediaBudget,
+    build_cached_message_parts,
+    build_message_parts,
+)
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from tests.test_modern_context import CHAT_TID, OTHER_TID, _build, _byte_counter, _events, _message
@@ -58,8 +62,10 @@ def _media_message(kind: str, *, thumbnail: bool = False) -> Message:
     media = {"file_id": "attachment", "file_unique_id": "unique", "file_size": 200}
     if kind in {"voice", "audio", "animation", "video", "video_note"}:
         media["duration"] = 2
-    if kind == "video":
+    if kind in {"photo", "video", "sticker"}:
         media.update(width=16, height=16)
+    if kind == "sticker":
+        media.update(type="regular", is_animated=False, is_video=False)
     if kind == "video_note":
         media["length"] = 16
     if kind == "animation":
@@ -78,7 +84,7 @@ def _media_message(kind: str, *, thumbnail: bool = False) -> Message:
                     "message_id": 1,
                     "date": datetime.now(UTC),
                     "chat": {"id": CHAT_TID, "type": "supergroup"},
-                    kind: media,
+                    kind: [media] if kind == "photo" else media,
                 }
             ).__getattribute__(kind),
         }
@@ -99,6 +105,198 @@ def _download(bot: Bot, data: bytes, monkeypatch: pytest.MonkeyPatch) -> AsyncMo
     mocked = AsyncMock(side_effect=download)
     monkeypatch.setattr(bot, "download", mocked)
     return mocked
+
+
+@pytest.mark.parametrize("kind", ["photo", "sticker", "video", "video_note", "animation", "document"])
+@pytest.mark.parametrize("source", ["direct", "background", "explicit_cached"])
+async def test_media_processing_activity_depends_on_reference_reuse(
+    kind: str,
+    source: str,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    message = _media_message(kind, thumbnail=True)
+    activity = AsyncMock()
+    processing = "Processing video..." if kind in {"video", "video_note"} else "Processing image..."
+    expected_processing = [processing] if source == "direct" else []
+
+    async def download(*args: object, **kwargs: object) -> BytesIO | bytes:
+        # A direct miss must announce work before it starts, even if it later fails.
+        assert [call.args[0] for call in activity.await_args_list] == expected_processing
+        return BytesIO(b"image") if kind in {"photo", "sticker"} else b"image"
+
+    downloaded = AsyncMock(side_effect=download)
+    monkeypatch.setattr(test_services.bot, "download", downloaded)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.download_media", downloaded)
+    samples = AsyncMock(return_value=[transform_animation.AnimationSample(b"image", 0, 1, False)])
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.extract_animation_samples", samples)
+    transcription = AsyncMock(return_value="video speech")
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.transform_video_to_text", transcription)
+    if source == "direct":
+        parts = await build_message_parts(
+            message,
+            "caption",
+            "",
+            None,
+            True,
+            bot=test_services.bot,
+            redis=test_services.redis,
+            on_activity=activity,
+        )
+    else:
+        row = MessageType.model_validate_json(
+            MessageType(
+                user_id=OTHER_TID,
+                message_id=message.message_id,
+                text="caption",
+                media=CachedMedia.from_message(message),
+                created_at=message.date,
+            ).model_dump_json()
+        )
+        assert row.media is not None
+        parts = await build_cached_message_parts(
+            row.media.as_message(row, CHAT_TID),
+            row.text,
+            bot=test_services.bot,
+            redis=test_services.redis,
+            on_activity=activity,
+            transcribe_video=source == "explicit_cached",
+            budget=BackgroundMediaBudget() if source == "background" else None,
+        )
+    assert any(isinstance(part, BinaryContent) for part in parts)
+    if kind == "document":
+        samples.assert_awaited_once()
+    else:
+        downloaded.assert_awaited_once()
+    expected_activities = expected_processing.copy()
+    if kind in {"video", "video_note"} and source != "background":
+        transcription.assert_awaited_once()
+        assert "video speech" in str(parts)
+        expected_activities.append("Transcribing video audio...")
+    else:
+        transcription.assert_not_awaited()
+    assert [call.args[0] for call in activity.await_args_list] == expected_activities
+
+
+@pytest.mark.parametrize("cached", [False, True])
+async def test_failed_image_processing_preserves_direct_and_cached_semantics(
+    cached: bool, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    activity = AsyncMock()
+    download = AsyncMock(side_effect=OSError("download failed"))
+    monkeypatch.setattr(test_services.bot, "download", download)
+    message = _media_message("photo")
+    if cached:
+        parts = await build_cached_message_parts(
+            message,
+            "caption",
+            bot=test_services.bot,
+            redis=test_services.redis,
+            on_activity=activity,
+            budget=None,
+        )
+        assert parts == ["caption"]
+        activity.assert_not_awaited()
+    else:
+        with pytest.raises(OSError, match="download failed"):
+            await build_message_parts(
+                message,
+                "caption",
+                "",
+                None,
+                True,
+                bot=test_services.bot,
+                redis=test_services.redis,
+                on_activity=activity,
+            )
+        activity.assert_awaited_once_with("Processing image...")
+    download.assert_awaited_once()
+
+
+@pytest.mark.parametrize("kind", ["photo", "sticker", "animation", "document", "video", "video_note", "voice", "audio"])
+@pytest.mark.parametrize(
+    "pathway",
+    [
+        "modern_current",
+        "modern_reply",
+        "modern_background",
+        "legacy_current",
+        "legacy_reply",
+        "legacy_background",
+        "legacy_cached_reply",
+    ],
+)
+async def test_context_media_activity_ownership(
+    kind: str,
+    pathway: str,
+    context: SophieAIToolContext,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attachment = _media_message(kind, thumbnail=True)
+    cached = "background" in pathway or pathway == "legacy_cached_reply"
+    current = _message(10)
+    if "current" in pathway:
+        current = attachment.model_copy(update={"message_id": 10})
+    elif "reply" in pathway:
+        current = current.model_copy(update={"reply_to_message": attachment})
+    if cached:
+        await cache_message(
+            "cached caption",
+            CHAT_TID,
+            OTHER_TID,
+            1,
+            attachment.date,
+            None,
+            media=CachedMedia.from_message(attachment),
+            redis=context.services.redis,
+        )
+    activity = AsyncMock()
+    expected: list[str] = []
+    if kind in {"voice", "audio"}:
+        expected.append("Transcribing voice message...")
+    elif not cached:
+        expected.append("Processing video..." if kind in {"video", "video_note"} else "Processing image...")
+    if kind in {"video", "video_note"} and "background" not in pathway:
+        expected.append("Transcribing video audio...")
+
+    async def download(*args: object, **kwargs: object) -> BytesIO | bytes:
+        # Progress must already be visible when direct extraction starts.
+        expected_visual = expected[:1] if not cached else []
+        assert [call.args[0] for call in activity.await_args_list] == expected_visual
+        return BytesIO(b"image") if kind in {"photo", "sticker"} else b"image"
+
+    monkeypatch.setattr(context.services.bot, "download", AsyncMock(side_effect=download))
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.download_media", AsyncMock(side_effect=download))
+    monkeypatch.setattr(
+        "sophie_bot.modules.ai.utils.modern_context.extract_animation_samples",
+        AsyncMock(return_value=[transform_animation.AnimationSample(b"image", 0, 1, False)]),
+    )
+    voice = AsyncMock(return_value="voice speech")
+    video = AsyncMock(return_value="video speech")
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.transform_voice_to_text", voice)
+    monkeypatch.setattr("sophie_bot.modules.ai.utils.modern_context.transform_video_to_text", video)
+    if pathway.startswith("modern"):
+        history = await _build(current, context, on_activity=activity)
+        try:
+            parts = str(history.prompt) + str(history.message_history)
+        finally:
+            await history.abort()
+    else:
+        history = OldContext(services=context.services)
+        await history.add_from_cache(CHAT_TID, fold_background=True)
+        await history.add_from_message(current, on_activity=activity)
+        parts = str(history.prompt)
+    assert [call.args[0] for call in activity.await_args_list] == expected
+    if kind in {"voice", "audio"}:
+        voice.assert_awaited_once()
+        assert "voice speech" in parts
+    elif kind in {"video", "video_note"} and "background" not in pathway:
+        video.assert_awaited_once()
+        assert "video speech" in parts
+    else:
+        video.assert_not_awaited()
+    if kind not in {"voice", "audio"}:
+        assert "BinaryContent" in parts
 
 
 @pytest.mark.parametrize("kind", ["voice", "audio"])
