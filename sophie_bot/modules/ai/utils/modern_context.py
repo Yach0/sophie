@@ -234,12 +234,40 @@ async def build_message_parts(
         )
     ]
 
+    # Direct input owns visual processing progress; cached references share extraction
+    # below, including transcription activities, without announcing background visual work.
+    if on_activity is not None:
+        if (
+            message.animation
+            or (message.document and message.document.mime_type == "image/gif")
+            or message.photo
+            or message.sticker
+        ):
+            await on_activity(_("Processing image..."))
+        elif message.video or message.video_note:
+            await on_activity(_("Processing video..."))
+    prompt.extend(
+        await _build_media_parts(
+            message, bot=bot, redis=redis, on_activity=on_activity, transcribe_video=transcribe_video
+        )
+    )
+    return prompt
+
+
+async def _build_media_parts(
+    message: Message,
+    *,
+    bot: Bot,
+    redis: Redis,
+    on_activity: ActivityCallback | None,
+    transcribe_video: bool,
+) -> list[UserContent]:
+    """Extract native media for direct input and cached references alike."""
+    prompt: list[UserContent] = []
     media = message.animation or (
         message.document if message.document and message.document.mime_type == "image/gif" else None
     )
     if media:
-        if on_activity is not None:
-            await on_activity(_("Processing image..."))
         group = uuid4().hex
         source = hashlib.sha256(f"{message.chat.id}:{message.message_id}".encode()).hexdigest()
         # Only positive Telegram duration can authorize the short thumbnail path.
@@ -281,8 +309,6 @@ async def build_message_parts(
         elif message.sticker:
             image_file_id = message.sticker.file_id
 
-        if on_activity is not None:
-            await on_activity(_("Processing image..."))
         downloaded_image: BinaryIO | None = await bot.download(image_file_id)
 
         if not downloaded_image:
@@ -314,8 +340,6 @@ async def build_message_parts(
     if message.video or message.video_note:
         video = message.video or message.video_note
 
-        if on_activity is not None:
-            await on_activity(_("Processing video..."))
         # Add video thumbnail if available
         if video and video.thumbnail:
             thumbnail_file_id = video.thumbnail.file_id
@@ -373,6 +397,7 @@ async def build_cached_message_parts(
     """Resolve optional cached media, retaining text when its processing budget expires.
 
     Explicit cached replies use no budget to preserve current-request media behavior.
+    Reused references omit image/video processing activities but retain transcription activities.
     Background video decoding remains disabled by default.
     """
     timeout = budget.remaining_timeout() if budget is not None else None
@@ -380,17 +405,14 @@ async def build_cached_message_parts(
         return [content_text]
     try:
         async with asyncio.timeout(timeout):
-            return await build_message_parts(
+            media_parts = await _build_media_parts(
                 message,
-                content_text,
-                "",
-                None,
-                True,
                 bot=bot,
                 redis=redis,
                 on_activity=on_activity,
                 transcribe_video=transcribe_video,
             )
+            return [content_text, *media_parts]
     except (
         TelegramAPIError,
         ClientError,
