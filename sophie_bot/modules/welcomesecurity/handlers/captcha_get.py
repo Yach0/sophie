@@ -107,7 +107,6 @@ class CaptchaGetHandler(SophieMessageCallbackQueryHandler):
         )
 
         if shuffle:
-            text += ""
             text += Bold(_("❌ Incorrect solution. Please, try again."))
 
         buttons = InlineKeyboardBuilder()
