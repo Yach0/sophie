@@ -34,9 +34,7 @@ class FederationPermissionService:
 
     @staticmethod
     async def can_ban_in_federation(federation: Federation | None, user_tid: int) -> bool:
-        if federation is None:
-            return False
-        return await FederationPermissionService.is_federation_admin(federation, user_tid)
+        return federation is not None and await FederationPermissionService.is_federation_admin(federation, user_tid)
 
     @staticmethod
     async def validate_federation_owner(federation: Federation, user_tid: int) -> bool:
