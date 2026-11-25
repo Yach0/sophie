@@ -11,9 +11,7 @@ class IsOwner(Filter):
         self.is_owner = is_owner
 
     async def __call__(self, message: Message) -> bool:  # ty: ignore[incompatible-mutable-override]
-        if message.from_user and message.from_user.id == CONFIG.owner_id:
-            return self.is_owner
-        return not self.is_owner
+        return bool(message.from_user and message.from_user.id == CONFIG.owner_id) == self.is_owner
 
 
 class IsOP(Filter):
@@ -23,6 +21,4 @@ class IsOP(Filter):
         self.is_op = is_op
 
     async def __call__(self, message: Message) -> bool:  # ty: ignore[incompatible-mutable-override]
-        if message.from_user and message.from_user.id in CONFIG.operators:
-            return self.is_op
-        return not self.is_op
+        return bool(message.from_user and message.from_user.id in CONFIG.operators) == self.is_op
