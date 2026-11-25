@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from collections.abc import AsyncIterator
 from dataclasses import replace
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -11,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from aiogram import Bot
 from aiogram.exceptions import TelegramAPIError, TelegramBadRequest, TelegramForbiddenError
-from aiogram.methods import EditMessageText, SendDocument
+from aiogram.methods import SendDocument
 from aiogram.types import BufferedInputFile, Chat, Message, User
 from aiogram_test_framework import MockBot, RequestCapture
 from aiogram_test_framework.types import RequestType
@@ -27,7 +26,7 @@ from pydantic_ai.messages import (
     ToolReturnPart,
     UserPromptPart,
 )
-from pydantic_ai.models.function import AgentInfo, DeltaToolCall, FunctionModel
+from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
 from pydantic_ai.usage import RunUsage
 from redis.exceptions import ConnectionError as RedisConnectionError
@@ -36,87 +35,19 @@ from sophie_bot.config import CONFIG
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils import ai_chatbot_reply as chatbot_reply
 from sophie_bot.modules.ai.utils import ai_run, chatbot_agent, chatbot_debug
-from sophie_bot.modules.ai.utils.ai_chatbot_reply import _cache_chatbot_reply
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import MessageType, get_message_cache_key
 from sophie_bot.modules.ai.utils.chatbot_agent import ChatbotRunConfig
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
-from sophie_bot.modules.ai.utils.chatbot_tool_history import tool_history_key
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.old_context import OldContext
-from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED
 from sophie_bot.services.application import ApplicationServices
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 LARGE_CONTEXT = "Контекст 🦊 <raw>\n" * 900
 OPERATOR_TID = 123456
-
-
-async def test_final_not_modified_preserves_reply_cache_and_tool_history(
-    debug_pipeline: DebugPipeline, test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    state = debug_pipeline
-    source = state["message"].model_copy(update={"text": "question"})
-    original = source.model_copy(update={"message_id": 11, "text": None})
-    original_state = original.model_dump()
-    streamer = ChatbotMessageStreamer(source, "Thinking", 0, redis=test_services.redis)
-    streamer.response_message = original
-    monkeypatch.setattr(chatbot_reply, "build_message_streamer", AsyncMock(return_value=streamer))
-    monkeypatch.setattr(chatbot_reply, "_cache_chatbot_reply", _cache_chatbot_reply)
-    model_calls: list[int] = []
-    tool_effects: list[str] = []
-
-    async def respond(_messages: list[ModelMessage], _info: AgentInfo) -> AsyncIterator[str | dict[int, DeltaToolCall]]:
-        model_calls.append(1)
-        if len(model_calls) == 1:
-            yield {0: DeltaToolCall(name="record_effect", json_args="{}", tool_call_id="effect-1")}
-        else:
-            yield "Answer"
-
-    async def record_effect() -> str:
-        tool_effects.append("done")
-        return "completed"
-
-    agent = Agent(FunctionModel(stream_function=respond), tools=[record_effect])
-    # Exercise final delivery after generation; draft no-ops have separate coverage.
-    monkeypatch.setattr(streamer, "stream", AsyncMock())
-    monkeypatch.setattr(streamer, "update_thinking_for_tool", AsyncMock())
-    config = replace(state["config"], agent=agent)
-    monkeypatch.setattr(chatbot_agent, "_build_chatbot_run_config", AsyncMock(return_value=config))
-    request = AsyncMock(
-        side_effect=TelegramBadRequest(
-            method=EditMessageText(chat_id=source.chat.id, message_id=original.message_id), message=MSG_NOT_MODIFIED
-        )
-    )
-    monkeypatch.setattr(state["bot"].session, "make_request", request)
-
-    result = await chatbot_reply.ai_chatbot_reply(source, state["connection"], services=test_services)
-
-    assert result is original
-    assert streamer.response_message is original
-    assert original.model_dump() == original_state
-    assert streamer.final_message_sent
-    request.assert_awaited_once()
-    assert isinstance(request.await_args.args[1], EditMessageText)
-    state["send_reply"].assert_not_awaited()
-    assert len(model_calls) == 2
-    assert tool_effects == ["done"]
-    cached_rows = await test_services.redis.zrange(get_message_cache_key(source.chat.id), 0, -1)
-    assert len(cached_rows) == 1
-    cached = MessageType.model_validate_json(cached_rows[0])
-    assert cached.message_id == original.message_id
-    assert cached.created_at == original.date
-    assert cached.message_thread_id == original.message_thread_id
-    assert cached.text == "<p>Answer</p>"
-    assert cached.handled_by_ai
-    exchanges = await test_services.redis.hget(tool_history_key(source.chat.id), str(original.message_id))
-    assert exchanges is not None
-    assert b"effect-1" in exchanges
-    assert b"completed" in exchanges
 
 
 class DebugPipeline(TypedDict):

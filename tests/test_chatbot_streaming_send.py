@@ -13,22 +13,13 @@ from fakeredis import FakeAsyncRedis
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from stfu_tg import Bold, Doc, Image
+from stfu_tg import Bold, Doc, Image, Url
 
 from sophie_bot.modules.ai.utils.ai_run import run_ai_stream
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, chatbot_streaming_session
 from sophie_bot.modules.utils_.telegram_exceptions import MSG_NOT_MODIFIED
 
 pytestmark = pytest.mark.usefixtures("db_init")
-
-NOT_MODIFIED_DESCRIPTIONS = (
-    MSG_NOT_MODIFIED,
-    f"Bad Request: {MSG_NOT_MODIFIED}",
-    (
-        f"Bad Request: {MSG_NOT_MODIFIED}: specified new message content and reply markup are exactly the same "
-        "as a current content and reply markup of the message"
-    ),
-)
 
 
 @pytest.fixture
@@ -133,15 +124,10 @@ async def test_final_send_tracks_content_and_only_changed_keyboard_edits(
 @pytest.mark.parametrize(
     "error_type,error_message",
     [
-        (TelegramBadRequest, "message was not modified"),
-        (TelegramBadRequest, "message is not modifie"),
-        (TelegramBadRequest, "message is not Modified"),
-        (TelegramBadRequest, "MESSAGE_NOT_MODIFIED"),
+        (TelegramBadRequest, MSG_NOT_MODIFIED),
         (TelegramBadRequest, "message is too long"),
         (TelegramForbiddenError, "bot was blocked"),
-        (TelegramForbiddenError, MSG_NOT_MODIFIED),
         (TelegramNetworkError, "connection lost"),
-        (TelegramNetworkError, MSG_NOT_MODIFIED),
     ],
 )
 async def test_real_edit_failures_still_propagate(
@@ -174,115 +160,6 @@ async def test_real_edit_failures_still_propagate(
             await streamer.send_final(Doc("Final answer"))
     request.assert_awaited_once()
     assert streamer._last_sent_rich is not None
-
-
-@pytest.mark.parametrize("error_message", NOT_MODIFIED_DESCRIPTIONS)
-async def test_draft_not_modified_preserves_message_and_allows_changed_edit(
-    error_message: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
-) -> None:
-    streamer = make_streamer(streaming_bot, test_redis)
-    original = streamer.response_message
-    assert original is not None
-    original_state = original.model_dump()
-    error = TelegramBadRequest(method=EditMessageText(chat_id=1, message_id=3), message=error_message)
-    request = AsyncMock(side_effect=[error, original])
-    with patch.object(streaming_bot.session, "make_request", request):
-        await streamer.stream("Answer")
-        assert streamer.response_message is original
-        assert streamer._last_sent_rich == (await streamer._render_doc("Answer")).to_rich()
-        assert streamer.last_sent_text == "Answer"
-        assert streamer.last_sent_at > 0
-        await streamer.stream("Answer")
-        request.assert_awaited_once()
-        await streamer.stream("Answer continued")
-    assert request.await_count == 2
-    assert all(isinstance(call.args[1], EditMessageText) for call in request.await_args_list)
-    assert "Answer continued" in request.await_args.args[1].rich_message.html
-    assert streamer.response_message is original
-    assert original.model_dump() == original_state
-
-
-@pytest.mark.parametrize("photo_fallback", [False, True])
-@pytest.mark.parametrize("error_message", NOT_MODIFIED_DESCRIPTIONS)
-async def test_final_not_modified_completes_without_deleting_or_resending(
-    photo_fallback: bool, error_message: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
-) -> None:
-    streamer = make_streamer(streaming_bot, test_redis)
-    original = streamer.response_message
-    assert original is not None
-    original_state = original.model_dump()
-    doc = Doc("Answer", Image("https://example.com/photo")) if photo_fallback else Doc("Answer")
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
-    no_op = TelegramBadRequest(method=EditMessageText(chat_id=1, message_id=3), message=error_message)
-    outcomes = [no_op]
-    if photo_fallback:
-        outcomes.insert(
-            0, TelegramBadRequest(method=no_op.method, message="Bad Request: RICH_MESSAGE_PHOTO_URL_INVALID")
-        )
-    request = AsyncMock(side_effect=outcomes)
-    with patch.object(streaming_bot.session, "make_request", request):
-        async with chatbot_streaming_session(streamer):
-            assert await streamer.send_final(doc, reply_markup=keyboard) is original
-            assert streamer.final_message_sent
-            assert streamer._last_sent_rich == doc.to_rich()
-            assert await streamer.send_final(doc, reply_markup=keyboard) is original
-    assert request.await_count == len(outcomes)
-    assert all(isinstance(call.args[1], EditMessageText) for call in request.await_args_list)
-    assert streamer.response_message is original
-    assert original.model_dump() == original_state
-    if photo_fallback:
-        assert "<img" not in request.await_args.args[1].rich_message.html
-
-
-@pytest.mark.parametrize("stage", ["thinking", "draft", "final"])
-@pytest.mark.parametrize("error_message", NOT_MODIFIED_DESCRIPTIONS)
-async def test_not_modified_on_send_still_propagates(
-    stage: str, error_message: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
-) -> None:
-    streamer = make_streamer(streaming_bot, test_redis)
-    streamer.response_message = None
-    error = TelegramBadRequest(method=EditMessageText(chat_id=1, message_id=3), message=error_message)
-    request = AsyncMock(side_effect=error)
-    with patch.object(streaming_bot.session, "make_request", request), pytest.raises(TelegramBadRequest) as raised:
-        if stage == "thinking":
-            await streamer.send_thinking_message()
-        elif stage == "draft":
-            await streamer.stream("Answer")
-        else:
-            await streamer.send_final(Doc("Answer"))
-    assert raised.value is error
-    request.assert_awaited_once()
-    assert streamer.response_message is None
-    assert streamer._last_sent_rich is None
-    assert not streamer.final_message_sent
-
-
-@pytest.mark.parametrize("error_message", NOT_MODIFIED_DESCRIPTIONS)
-async def test_draft_photo_fallback_not_modified_allows_later_changed_edit(
-    error_message: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
-) -> None:
-    streamer = make_streamer(streaming_bot, test_redis)
-    original = streamer.response_message
-    doc = Doc("Answer", Image("https://example.com/photo"))
-    method = EditMessageText(chat_id=1, message_id=3)
-    request = AsyncMock(
-        side_effect=[
-            TelegramBadRequest(method=method, message="Bad Request: RICH_MESSAGE_PHOTO_URL_INVALID"),
-            TelegramBadRequest(method=method, message=error_message),
-            original,
-        ]
-    )
-    with patch.object(streaming_bot.session, "make_request", request):
-        await streamer._update(doc)
-        assert streamer._last_sent_rich == doc.to_rich()
-        assert streamer.response_message is original
-        await streamer._update(doc)
-        assert request.await_count == 2
-        await streamer._update(Doc("Changed answer"))
-    assert request.await_count == 3
-    assert all(isinstance(call.args[1], EditMessageText) for call in request.await_args_list)
-    assert "<img" not in request.await_args_list[1].args[1].rich_message.html
-    assert request.await_args.args[1].rich_message.html == "Changed answer"
 
 
 @pytest.mark.parametrize("stage", ["thinking", "draft", "final"])
@@ -334,4 +211,56 @@ async def test_failed_markup_edit_preserves_last_successful_content(
         await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
         assert request.await_count == 3
         await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        assert request.await_count == 3
+
+
+@pytest.mark.parametrize("initial_stage", ["draft", "send"])
+async def test_photo_fallback_state_skips_unchanged_link_render_and_reuses_links_for_keyboard(
+    initial_stage: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    original = streamer.response_message
+    photo = Doc("Answer", Image("https://example.com/photo", alt="Photo"))
+    links = Doc("Answer", Url("Photo", "https://example.com/photo"))
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    error = TelegramBadRequest(
+        method=EditMessageText(chat_id=1, message_id=3), message="Bad Request: RICH_MESSAGE_PHOTO_URL_INVALID"
+    )
+    request = AsyncMock(side_effect=[error, original, original])
+    with patch.object(streaming_bot.session, "make_request", request):
+        if initial_stage == "send":
+            streamer.response_message = None
+            await streamer.send_final(photo)
+        else:
+            await streamer._update(photo)
+        assert request.await_count == 2
+        assert streamer._last_sent_rich == links.to_rich()
+        await streamer.send_final(photo)
+        assert request.await_count == 2
+        await streamer.send_final(photo, reply_markup=keyboard)
+        assert request.await_count == 3
+        assert request.await_args.args[1].rich_message.html == links.to_rich()
+        assert request.await_args.args[1].reply_markup == keyboard
+        assert await streamer.send_final(links, reply_markup=keyboard.model_copy(deep=True)) is original
+        assert request.await_count == 3
+        assert streamer.final_message_sent
+        await streamer.send_final(photo, reply_markup=keyboard)
+        assert request.await_count == 3
+
+
+async def test_omitted_keyboard_is_preserved_across_content_change(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    request = AsyncMock(return_value=streamer.response_message)
+    with patch.object(streaming_bot.session, "make_request", request):
+        await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        await streamer.send_final(Doc("Changed answer"))
+        assert request.await_args.args[1].reply_markup == keyboard
+        await streamer.send_final(Doc("Changed answer"), reply_markup=keyboard.model_copy(deep=True))
+        assert request.await_count == 2
+        await streamer.send_final(Doc("Changed answer"), reply_markup=None)
+        assert request.await_count == 3
+        await streamer.send_final(Doc("Changed answer"), reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
         assert request.await_count == 3
