@@ -179,8 +179,7 @@ def _extract_chat_tid(chat_value: object, current_chat_tid: int) -> int | None:
     parsed_value = getattr(chat_value, "value", chat_value)
     if parsed_value is _CURRENT_CHAT_SENTINEL:
         return current_chat_tid
-    chat_tid = cast(int, parsed_value)
-    return chat_tid
+    return cast(int, parsed_value)
 
 
 def _extract_rollout_percentage(rollout_value: object) -> int | object | None:
@@ -189,8 +188,7 @@ def _extract_rollout_percentage(rollout_value: object) -> int | object | None:
     parsed_value = getattr(rollout_value, "value", rollout_value)
     if parsed_value is _ROLLOUT_LIST_SENTINEL:
         return _ROLLOUT_LIST_SENTINEL
-    percentage = cast(int, parsed_value)
-    return percentage
+    return cast(int, parsed_value)
 
 
 def _extract_optional_int(value: object) -> int | None:
