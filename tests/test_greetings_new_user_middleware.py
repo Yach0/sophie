@@ -56,7 +56,7 @@ def _data(
     bot: object | None = None,
 ) -> dict[str, object]:
     return {
-        "context": SimpleNamespace(event_chat=chat_db),
+        "context": SimpleNamespace(event_chat=chat_db, antispam_removed_joiners=frozenset()),
         "new_users": new_users,
         "services": SimpleNamespace(
             bot=bot or object(),

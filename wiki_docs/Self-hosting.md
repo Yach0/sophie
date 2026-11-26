@@ -120,6 +120,63 @@ The artifact was trained with scikit-learn 1.8; the current dependency uses 1.9 
 emits a version warning when loading it. The build and CI smoke checks exercise
 prediction with the installed version so an incompatible artifact fails before deployment.
 
+## Anti-spam
+
+Enable the `antispam` feature flag for the groups you want to protect. Anti-spam
+defaults to `normal` mode with third-party sources enabled. Group admins can
+manage settings with:
+
+- `/antispam` to view the current mode and active services (built-in USSR model,
+  CAS, and configured OFD servers).
+- `/antispam <off|normal|strict>` to set the protection mode:
+  - `off` disables anti-spam in the chat.
+  - `normal` mutes flagged users and posts a notice with **Unmute** and **Ban**
+    buttons.
+  - `strict` bans flagged users (and declines + bans flagged join requests) and
+    posts a notice with an **Unban** button.
+- `/antispam_3party on|off` to toggle third-party sources while keeping the
+  built-in USSR classifier active.
+- `/antispam_trust <3d|30d|off>` to exempt long-standing chat members from
+  anti-spam checks after the given membership age (default: `30d`).
+- `/info` to check third-party anti-spam lookup verdicts alongside user details.
+
+Tapping **Unmute** or **Unban** reverses the restriction, records the user in
+`antispam_exclusions` (including the original message text when triggered by
+USSR for post-training), and preserves the user's message. Otherwise, both
+Sophie's notice and the flagged user message are tracked in `antispam_incidents`
+and deleted by the scheduler after about 10 minutes
+(`antispam_notice_delete_after_seconds`). Tapping **Ban** on a `normal`-mode
+notice bans the user, removes the flagged message immediately, and saves the
+message text and timestamps to `antispam_confirmed_spam` for post-training.
+
+- Set `ANTISPAM_CAS_API_KEY` to the Combot API key for online lookup and
+  enrichment. Combot has retired its public CSV export. Set
+  `ANTISPAM_CAS_EXPORT_URL=None` for API-only operation, or supply a trusted,
+  compatible CSV mirror with the Telegram user ID in the first column. The
+  scheduler refreshes that mirror every six hours. Sophie uses online lookups
+  when the mirror is unavailable and `ANTISPAM_CAS_LOOKUP_FALLBACK` is enabled.
+  [CAS API documentation](https://cas.chat/api.html)
+- Set `ANTISPAM_OFD_SERVERS` to a JSON array of Open Federated Database servers.
+  Each entry has `id`, `name`, and `url`, plus optional `access_token`,
+  `web_url` for attribution and appeals, and `entity_host` (default
+  `telegram.org`). Keep each `id` stable because logs reference `ofd:<id>`. IDs
+  can contain up to 36 lowercase letters, digits, hyphens or underscores.
+
+This configuration uses the CAS API and one OFD server.
+
+```ini
+ANTISPAM_CAS_EXPORT_URL=None
+ANTISPAM_OFD_SERVERS=[{"id":"community","name":"Community OFD","url":"https://ofd.example.org"}]
+```
+
+When third-party sources are enabled, user lookup sends a Telegram user ID to
+the selected service when it needs a remote verdict, and OFD content scanning
+sends eligible message text or captions and the author's ID to that server
+(capped to the first five observed messages per member by default, and gated by
+the `antispam_ofd_content_scan` feature flag). The built-in USSR classifier runs
+locally with no external network requests. Review providers' terms and privacy
+practices before enabling third-party sources.
+
 ## AI models and providers
 
 Sophie's AI models, the endpoints they are served from and the API keys used to reach them live in

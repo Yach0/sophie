@@ -11,6 +11,7 @@ from aiogram.types import ChatJoinRequest, InlineKeyboardButton, InlineKeyboardM
 from sophie_bot.config import CONFIG
 from sophie_bot.constants import WELCOMESECURITY_JOIN_TIMEOUT_MINUTES
 from sophie_bot.db.models import ChatModel, GreetingsModel, RulesModel, WSUserModel
+from sophie_bot.modules.antispam.service import AntispamService
 from sophie_bot.modules.greetings.default_welcome import get_default_join_request_message
 from sophie_bot.modules.notes.utils.send import send_saveable
 from sophie_bot.modules.utils_.admin import is_user_admin
@@ -96,6 +97,10 @@ class ChatJoinRequestHandler(SophieBaseHandler[ChatJoinRequest]):
         # Get chat model
         chat = await ChatModel.get_by_tid(chat_tid)
         if not chat:
+            return
+
+        protection = await AntispamService.for_chat(self.services, chat)
+        if protection is not None and await protection.protect(self.event.from_user, request=self.event, joining=True):
             return
 
         # Get greetings model

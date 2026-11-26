@@ -197,7 +197,7 @@ class NewUserMiddleware(BaseMiddleware):
     ) -> Any:
         # TODO: Handle multiple users add
 
-        if isinstance(event, Message) and event.new_chat_members:
+        if isinstance(event, Message) and (members := event.new_chat_members):
             if not event.from_user:
                 raise ValueError("NewUserMiddleware: 'event.from_user' is None!")
 
@@ -206,10 +206,15 @@ class NewUserMiddleware(BaseMiddleware):
             chat_db: ChatModel = data["context"].event_chat
             new_users: list[ChatModel] = data["new_users"]
 
+            if removed := data["context"].antispam_removed_joiners:
+                members = [member for member in members if member.id not in removed]
+                event = event.model_copy(update={"new_chat_members": members})
+                new_users = [user for user in new_users if user.tid not in removed]
+
             # Bot was added to the chat
-            if any(user for user in event.new_chat_members if user.id == CONFIG.bot_id):
+            if any(user for user in members if user.id == CONFIG.bot_id):
                 await self.self_welcome(event)
-                if len(event.new_chat_members) == 1:
+                if len(members) == 1:
                     await delete_noise(data["services"].bot, chat_db.tid, event.message_id)
                 return await handler(event, data)
 
@@ -229,13 +234,13 @@ class NewUserMiddleware(BaseMiddleware):
                 return await handler(event, data)
 
             # Sanity check
-            if tuple(user.id for user in event.new_chat_members) != tuple(user.tid for user in new_users):
+            if tuple(user.id for user in members) != tuple(user.tid for user in new_users):
                 raise ValueError("NewUserMiddleware: unexpected / incorrect 'new_users' data from SaveChatsMiddleware!")
 
             human_users = [new_user for new_user in new_users if not new_user.is_bot]
 
             # The greeting is about whoever joined, not about whoever produced the service message.
-            new_member = event.new_chat_members[0]
+            new_member = members[0]
 
             cleanservice_enabled = bool(db_item.clean_service and db_item.clean_service.enabled)
 
@@ -260,7 +265,7 @@ class NewUserMiddleware(BaseMiddleware):
                 welcome_saveable: Saveable = db_item.note or get_default_welcome_message(bool(chat_rules))
                 # One greeting per member, visible only to them and filled with their own name.
                 # None of them is in the chat, so none is handed to the clean-welcome cleanup.
-                for member in event.new_chat_members:
+                for member in members:
                     if member.is_bot:
                         continue
                     await send_welcome(

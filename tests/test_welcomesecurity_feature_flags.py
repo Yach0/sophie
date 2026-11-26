@@ -74,6 +74,7 @@ async def test_new_user_middleware_falls_back_to_regular_welcome_when_captcha_fl
             {
                 "context": SimpleNamespace(
                     event_chat=chat_db,
+                    antispam_removed_joiners=frozenset(),
                     actor=new_users[0],
                     user_in_group=None,
                 ),

@@ -8,7 +8,9 @@ from sophie_bot.args.users import SophieUserArg
 from sophie_bot.db.models import ChatModel
 from sophie_bot.db.models.chat import UserInGroupModel
 from sophie_bot.filters.cmd import CMDFilter
+from sophie_bot.modules.antispam.service import build_user_antispam_section
 from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_answer import reply_or_answer
 from sophie_bot.utils import flags
 from sophie_bot.utils.federation_ban_check import get_user_federation_ban_info
@@ -19,20 +21,23 @@ from sophie_bot.utils.i18n import lazy_gettext as l_
 
 @flags.handler_help(description=l_("Shows the additional information about the user."))
 @flags.disableable(name="info")
-@flags.args(user=OptionalArg(SophieUserArg(l_("User"))))
+@flags.args(user=OptionalArg(SophieUserArg(l_("User"), allow_unknown_id=True)))
 class UserInfoHandler(SophieMessageHandler):
     @staticmethod
     def filters() -> tuple[CallbackType, ...]:
         return (CMDFilter("info"),)
 
     async def handle(self) -> Any:
-        # Fallback to self if no user provided
+        # Fallback to replied user or self if no user argument was provided
         target_user: ChatModel | None = self.data.get("user")
         if not target_user:
-            # If no user arg, try to get self from event
-            user = getattr(self.event, "from_user", None)
-            if user:
-                target_user = await ChatModel.upsert_user(user)
+            reply = self.event.reply_to_message if is_real_reply(self.event) else None
+            if reply is not None and reply.from_user is not None and reply.sender_chat is None:
+                target_user = await ChatModel.upsert_user(reply.from_user)
+            else:
+                user = getattr(self.event, "from_user", None)
+                if user:
+                    target_user = await ChatModel.upsert_user(user)
 
         if not target_user:
             await reply_or_answer(self.event, _("Could not identify user."))
@@ -87,5 +92,9 @@ class UserInfoHandler(SophieMessageHandler):
         shared_chats_count = await UserInGroupModel.find(UserInGroupModel.user.id == target_user.iid).count()
 
         doc += KeyValue(_("Shared Chats"), shared_chats_count)
+
+        antispam_section = await build_user_antispam_section(user_tid, chat_tid, self.services)
+        if antispam_section is not None:
+            doc += antispam_section
 
         await reply_or_answer(self.event, doc)
