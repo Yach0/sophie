@@ -13,7 +13,7 @@ from fakeredis import FakeAsyncRedis
 from pydantic_ai import Agent
 from pydantic_ai.messages import ModelMessage
 from pydantic_ai.models.function import AgentInfo, FunctionModel
-from stfu_tg import Bold, Doc
+from stfu_tg import Bold, Doc, Image, Url
 
 from sophie_bot.modules.ai.utils.ai_run import run_ai_stream
 from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, chatbot_streaming_session
@@ -211,4 +211,56 @@ async def test_failed_markup_edit_preserves_last_successful_content(
         await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
         assert request.await_count == 3
         await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        assert request.await_count == 3
+
+
+@pytest.mark.parametrize("initial_stage", ["draft", "send"])
+async def test_photo_fallback_state_skips_unchanged_link_render_and_reuses_links_for_keyboard(
+    initial_stage: str, streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    original = streamer.response_message
+    photo = Doc("Answer", Image("https://example.com/photo", alt="Photo"))
+    links = Doc("Answer", Url("Photo", "https://example.com/photo"))
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    error = TelegramBadRequest(
+        method=EditMessageText(chat_id=1, message_id=3), message="Bad Request: RICH_MESSAGE_PHOTO_URL_INVALID"
+    )
+    request = AsyncMock(side_effect=[error, original, original])
+    with patch.object(streaming_bot.session, "make_request", request):
+        if initial_stage == "send":
+            streamer.response_message = None
+            await streamer.send_final(photo)
+        else:
+            await streamer._update(photo)
+        assert request.await_count == 2
+        assert streamer._last_sent_rich == links.to_rich()
+        await streamer.send_final(photo)
+        assert request.await_count == 2
+        await streamer.send_final(photo, reply_markup=keyboard)
+        assert request.await_count == 3
+        assert request.await_args.args[1].rich_message.html == links.to_rich()
+        assert request.await_args.args[1].reply_markup == keyboard
+        assert await streamer.send_final(links, reply_markup=keyboard.model_copy(deep=True)) is original
+        assert request.await_count == 3
+        assert streamer.final_message_sent
+        await streamer.send_final(photo, reply_markup=keyboard)
+        assert request.await_count == 3
+
+
+async def test_omitted_keyboard_is_preserved_across_content_change(
+    streaming_bot: Bot, test_redis: FakeAsyncRedis
+) -> None:
+    streamer = make_streamer(streaming_bot, test_redis)
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="More", callback_data="more")]])
+    request = AsyncMock(return_value=streamer.response_message)
+    with patch.object(streaming_bot.session, "make_request", request):
+        await streamer.send_final(Doc("Answer"), reply_markup=keyboard)
+        await streamer.send_final(Doc("Changed answer"))
+        assert request.await_args.args[1].reply_markup == keyboard
+        await streamer.send_final(Doc("Changed answer"), reply_markup=keyboard.model_copy(deep=True))
+        assert request.await_count == 2
+        await streamer.send_final(Doc("Changed answer"), reply_markup=None)
+        assert request.await_count == 3
+        await streamer.send_final(Doc("Changed answer"), reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
         assert request.await_count == 3
