@@ -7,6 +7,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
 from sophie_bot.modules.ai.utils.media_download import MediaLimitError, download_media
+from sophie_bot.modules.ai.utils.transcription import transcription_errors
 
 MAX_AUDIO_DURATION = 600
 
@@ -28,15 +29,16 @@ async def transform_voice_to_text(voice: Voice | Audio, *, bot: Bot, redis: Redi
     content_type = voice.mime_type or (guess_type(file_name or "")[0] if isinstance(voice, Audio) else "audio/ogg")
     content_type = content_type or "audio/mpeg"
     file_name = file_name or "audio" + (guess_extension(content_type) or ".bin")
-    client = await get_mistral_client(redis=redis)
-    resp = await client.audio.transcriptions.complete_async(
-        model="voxtral-mini-latest",
-        file={
-            "file_name": file_name,
-            "content": audio_bytes,
-            "content_type": content_type,
-        },
-    )
+    with transcription_errors():
+        client = await get_mistral_client(redis=redis)
+        resp = await client.audio.transcriptions.complete_async(
+            model="voxtral-mini-latest",
+            file={
+                "file_name": file_name,
+                "content": audio_bytes,
+                "content_type": content_type,
+            },
+        )
 
     respond: str = resp.text
     return respond.removesuffix("\n")

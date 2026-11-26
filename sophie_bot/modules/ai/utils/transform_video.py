@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
 from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
+from sophie_bot.modules.ai.utils.transcription import transcription_errors
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -111,17 +112,16 @@ async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: 
     if audio_bytes is None:
         return None
 
-    audio_bytes_io = BufferedReader(BytesIO(audio_bytes))
-
-    client = await get_mistral_client(redis=redis)
-    resp = await client.audio.transcriptions.complete_async(
-        model="voxtral-mini-latest",
-        file={
-            "file_name": "audio.ogg",
-            "content": audio_bytes_io,
-            "content_type": "audio/ogg",
-        },
-    )
+    with BufferedReader(BytesIO(audio_bytes)) as audio_bytes_io, transcription_errors():
+        client = await get_mistral_client(redis=redis)
+        resp = await client.audio.transcriptions.complete_async(
+            model="voxtral-mini-latest",
+            file={
+                "file_name": "audio.ogg",
+                "content": audio_bytes_io,
+                "content_type": "audio/ogg",
+            },
+        )
 
     transcribed_text = resp.text.removesuffix("\n")
     log.debug("Transcribed text", transcribed_text=transcribed_text)

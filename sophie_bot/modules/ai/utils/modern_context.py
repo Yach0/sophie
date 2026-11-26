@@ -47,6 +47,7 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import AIChatSummaryModel, AIMemoryModel, ChatModel, NoteModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget, TokenCounter
@@ -413,6 +414,11 @@ async def build_cached_message_parts(
                 transcribe_video=transcribe_video,
             )
             return [content_text, *media_parts]
+    except AIRequestFailed as error:
+        if budget is None:
+            raise
+        log.debug("Skipping unavailable cached media", message_id=message.message_id, error_type=type(error).__name__)
+        return [content_text]
     except (
         TelegramAPIError,
         ClientError,

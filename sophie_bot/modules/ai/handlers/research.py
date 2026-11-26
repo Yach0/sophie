@@ -12,7 +12,12 @@ from sophie_bot.filters.cmd import CMDFilter
 from sophie_bot.middlewares.connections import ConnectionsMiddleware
 from sophie_bot.modules.ai.filters.ai_mode import AICapabilityFilter
 from sophie_bot.modules.ai.filters.quota import AIQuotaFilter
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+    ai_request_failed_message,
+)
 from sophie_bot.modules.ai.utils.ai_header import build_ai_progress_doc
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.chatbot_response import build_chatbot_header
@@ -84,6 +89,7 @@ class ResearchCmd(SophieMessageHandler):
             AIQuotaFilter(AI_FEATURE_RESEARCH),
         )
 
+    @ai_error_boundary(AIErrorContext(operation="research", origin="explicit"))
     async def handle(self) -> Any:
         # Disconnect from any connected group before running research so that quota
         # is charged to the private chat, not the connected group.

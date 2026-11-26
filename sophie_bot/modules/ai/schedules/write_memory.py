@@ -21,7 +21,12 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
     MemoryState,
 )
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS, AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AI_PROVIDER_EXCEPTIONS,
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+)
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import single_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
@@ -299,6 +304,7 @@ class WriteMemory:
             return MemoryActions(), set()
         return MemoryActions(actions=prompt.decode_actions(result.output.actions)), set(prompt.batch_ids)
 
+    @ai_error_boundary(AIErrorContext(operation="memory:writer:single", origin="automatic"))
     async def _run_writer(self, chat: ChatModel, prompt: WriterPrompt) -> AIAgentResult[WriterOutput]:
         plan = single_model_plan("openai/gpt-6-luna")
         history = OldContext(services=self.services)

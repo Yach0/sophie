@@ -6,6 +6,7 @@ from sophie_bot.db.models import BetaModeModel, ChatModel, NoteModel
 from sophie_bot.db.models.beta import CurrentMode
 from sophie_bot.modules.ai.json_schemas.update_note_description import AIUpdateNoteData
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_boundary
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.old_context import OldContext
@@ -21,6 +22,7 @@ class GenerateAITitles:
     def __init__(self, services: ApplicationServices) -> None:
         self.services = services
 
+    @ai_error_boundary(AIErrorContext(operation="notes:metadata", origin="automatic"))
     async def generate_data(
         self,
         note: NoteModel,

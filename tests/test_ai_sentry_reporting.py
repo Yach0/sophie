@@ -2,14 +2,24 @@ from __future__ import annotations
 
 import json
 from collections.abc import Awaitable, Callable, Iterator
+from datetime import UTC, datetime
 from typing import Any
+from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 import sentry_sdk
+from beanie import PydanticObjectId
 from mistralai.client.errors import SDKError
 from pydantic_ai import Agent
-from pydantic_ai.exceptions import ModelHTTPError
+from pydantic_ai.exceptions import (
+    AgentRunError,
+    FallbackExceptionGroup,
+    ModelHTTPError,
+    ToolFailedError,
+    ToolRetryError,
+    UserError,
+)
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.models.test import TestModel
@@ -18,20 +28,29 @@ from sentry_sdk.transport import Transport
 from structlog.testing import capture_logs
 from tenacity import wait_none
 
+from sophie_bot.db.models import ChatModel, NoteModel
+from sophie_bot.db.models.chat import ChatType
+from sophie_bot.modules.ai.schedules import generate_chat_summaries, write_memory
 from sophie_bot.modules.ai.utils import ai_errors, ai_run
 from sophie_bot.modules.ai.utils.ai_errors import (
     _DEFAULT_AI_FAILED_MESSAGE,
+    AI_PROVIDER_EXCEPTIONS,
     AIErrorContext,
     AIRequestFailed,
+    ai_error_scope,
     ai_request_failed_message,
     capture_ai_error,
     ensure_sentry_event_id,
     run_ai_request_with_retries,
 )
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
+from sophie_bot.modules.ai.utils.memory_writer import WriterPrompt
 from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable, run_moderation_request
+from sophie_bot.modules.ai.utils.summary_transcript import build_summary_transcript
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
+from sophie_bot.modules.notes.schedules import generate_ai_titles
 from sophie_bot.services import sentry
+from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.exception import SophieException
 
 
@@ -71,18 +90,8 @@ def instant_retries(monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
 
 
 @pytest.fixture
-def sentry_events() -> Iterator[list[dict[str, Any]]]:
-    events: list[dict[str, Any]] = []
-    sentry_sdk.init(
-        dsn="https://public@sentry.invalid/1",
-        transport=_CapturingTransport(events),
-        default_integrations=False,
-        environment="test",
-    )
-    with sentry_sdk.isolation_scope() as scope:
-        scope.clear_breadcrumbs()
-        yield events
-    sentry_sdk.get_global_scope().set_client(None)
+def sentry_events(runtime_sentry_events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return runtime_sentry_events
 
 
 async def _run_candidates(operation: Callable[[str], Awaitable[str]]) -> ai_run.AIAgentResult[str]:
@@ -136,9 +145,9 @@ def test_capture_ai_error_tags_and_groups_by_model_and_status(sentry_events: lis
     assert event["tags"]["ai.status_code"] == "503"
     assert event["tags"]["ai.error_type"] == "ModelHTTPError"
     assert event["tags"]["ai.is_fallback"] is False
-    assert event["contexts"]["ai_request"]["provider_message"] == "upstream is down"
-    # Without an explicit fingerprint these group by the tenacity frames they surface through,
-    # merging every model and status code into one issue.
+    assert "provider_message" not in event["contexts"]["ai_request"]
+    assert "exception" not in event
+    # Sanitized events still distinguish models and status codes without provider payloads.
     assert event["fingerprint"] == ["ai-provider-error", "agent", "openai/gpt-5", "ModelHTTPError", "503"]
 
 
@@ -303,7 +312,7 @@ def test_error_handler_captures_ai_failure_cause_when_contextual_capture_failed(
         event_id = SophieErrorHandler.capture_sentry(failure)
 
     assert event_id is not None
-    assert sentry_events[0]["exception"]["values"][0]["type"] == "ModelHTTPError"
+    assert sentry_events[0]["tags"]["ai.error_type"] == "ModelHTTPError"
 
 
 def test_error_handler_still_captures_exceptions_nobody_reported(sentry_events: list[dict[str, Any]]) -> None:
@@ -312,10 +321,6 @@ def test_error_handler_still_captures_exceptions_nobody_reported(sentry_events: 
 
 
 def test_ai_provider_exceptions_include_tool_failed_error() -> None:
-    from pydantic_ai.exceptions import AgentRunError, ToolFailedError, ToolRetryError, UserError
-
-    from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS
-
     assert ToolFailedError in AI_PROVIDER_EXCEPTIONS
     # Control flow and programmer errors must not be routed through provider failover
     assert AgentRunError not in AI_PROVIDER_EXCEPTIONS
@@ -366,34 +371,40 @@ def test_capture_ai_error_includes_user_facing_message_in_context_and_tags(
     assert event["contexts"]["ai_request"]["user_facing_message"] == expected_message
 
 
-def test_sentry_before_send_filters_unhandled_pydantic_ai_exceptions() -> None:
-    from sophie_bot.services.sentry import _before_send
+async def test_runtime_filter_preserves_unexpected_agent_failure_without_duplicates(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    failure = RuntimeError("unexpected agent bug")
 
-    pydantic_ai_unhandled_event = {
-        "exception": {
-            "values": [
-                {
-                    "type": "ModelHTTPError",
-                    "value": "503",
-                    "mechanism": {"type": "pydantic_ai", "handled": False},
-                }
-            ]
-        }
-    }
-    assert _before_send(pydantic_ai_unhandled_event, {}) is None
+    async def operation(active: str) -> str:
+        raise failure
 
-    generic_ai_event = {
-        "exception": {
-            "values": [
-                {
-                    "type": "ModelHTTPError",
-                    "value": "503",
-                    "mechanism": {"type": "generic", "handled": True},
-                }
-            ]
-        }
-    }
-    assert _before_send(generic_ai_event, {}) == generic_ai_event
+    with (
+        ai_error_scope(AIErrorContext(operation="response", origin="automatic")),
+        pytest.raises(RuntimeError) as raised,
+    ):
+        await _run_candidates(operation)
+
+    assert raised.value is failure
+    (event,) = sentry_events
+    assert event["exception"]["values"][-1]["type"] == "RuntimeError"
+    assert event["tags"]["ai.origin"] == "automatic"
+    assert event["tags"]["ai.operation"] == "response"
+    assert SophieErrorHandler.capture_sentry(failure) == event["event_id"]
+    assert sentry_events == [event]
+
+
+async def test_runtime_filter_preserves_provider_failure_outside_owned_boundary(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise _model_http_error(402)
+
+    with pytest.raises(ModelHTTPError):
+        await Agent(FunctionModel(respond)).run("private request")
+
+    (event,) = sentry_events
+    assert event["exception"]["values"][-1]["type"] == "ModelHTTPError"
 
 
 def test_ensure_sentry_event_id_captures_cause_when_missing(
@@ -408,7 +419,7 @@ def test_ensure_sentry_event_id_captures_cause_when_missing(
     assert event_id is not None
     assert failure.sentry_event_id == event_id
     assert len(sentry_events) == 1
-    assert sentry_events[0]["exception"]["values"][0]["type"] == "ModelHTTPError"
+    assert sentry_events[0]["tags"]["ai.error_type"] == "ModelHTTPError"
 
 
 def test_ai_request_failed_message_preserves_custom_docs_from_error() -> None:
@@ -420,3 +431,142 @@ def test_ai_request_failed_message_preserves_custom_docs_from_error() -> None:
     assert custom_text in message["text"]
     assert "Reference ID" in message["text"]
     assert "test-event-id" in message["text"]
+
+
+def test_automatic_failure_is_reported_without_claiming_public_delivery(
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    capture_ai_error(
+        _model_http_error(402),
+        AIErrorContext(operation="agent", model_name="openai/gpt-5", origin="automatic"),
+    )
+    assert sentry_events
+    event = sentry_events[-1]
+    assert event["contexts"]["ai_request"]["origin"] == "automatic"
+    assert "user_facing_message" not in event["contexts"]["ai_request"]
+    assert "ai.user_facing_error" not in event["tags"]
+
+
+def test_terminal_failure_does_not_reuse_a_warning_reference(sentry_events: list[dict[str, Any]]) -> None:
+    failure = _model_http_error()
+    context = AIErrorContext(operation="response")
+    warning_id = capture_ai_error(failure, context, level="warning")
+    terminal_id = capture_ai_error(failure, context)
+    assert warning_id != terminal_id
+    assert [event["level"] for event in sentry_events] == ["warning", "error"]
+    assert SophieErrorHandler.capture_sentry(failure) == terminal_id
+    assert len(sentry_events) == 2
+
+
+async def test_nested_agents_report_unexpected_failure_once(sentry_events: list[dict[str, Any]]) -> None:
+    failure = RuntimeError("nested agent bug")
+
+    async def inner(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise failure
+
+    async def outer(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        return await Agent(FunctionModel(inner)).run("inner")
+
+    with pytest.raises(RuntimeError), ai_error_scope(AIErrorContext(operation="response")):
+        await Agent(FunctionModel(outer)).run("outer")
+    assert len(sentry_events) == 1
+    assert SophieErrorHandler.capture_sentry(failure) == sentry_events[0]["event_id"]
+
+
+def test_global_provider_failure_log_does_not_include_private_traceback() -> None:
+    try:
+        raise ModelHTTPError(402, "model", body="private provider payload")
+    except ModelHTTPError as failure:
+        with capture_logs() as logs:
+            SophieErrorHandler.log_to_console(
+                type(failure), failure, failure.__traceback__, sentry_event_id="reference"
+            )
+    assert len(logs) == 1
+    assert logs[0]["sentry_event_id"] == "reference"
+    assert "exc_info" not in logs[0]
+    assert "private provider payload" not in json.dumps(logs)
+
+
+async def test_mixed_fallback_group_preserves_unexpected_failure(
+    sentry_events: list[dict[str, Any]], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    failure = FallbackExceptionGroup("mixed failures", [_model_http_error(), ValueError("programming bug")])
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
+
+    async def operation(active: str) -> str:
+        raise failure
+
+    with pytest.raises(FallbackExceptionGroup) as raised:
+        await _run_candidates(operation)
+    assert raised.value is failure
+    (event,) = sentry_events
+    assert any(value["type"] == "ValueError" for value in event["exception"]["values"])
+    assert SophieErrorHandler.capture_sentry(failure) == event["event_id"]
+    assert len(sentry_events) == 1
+
+
+@pytest.mark.parametrize("operation", ["notes:metadata", "summary:chat", "memory:writer:single"])
+@pytest.mark.parametrize("failure_kind", ["provider", "configuration", "unexpected"])
+async def test_scheduled_task_entry_points_report_automatic_failures(
+    operation: str,
+    failure_kind: str,
+    test_services: ApplicationServices,
+    sentry_events: list[dict[str, Any]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    failure = (
+        RuntimeError("unexpected task bug")
+        if failure_kind == "unexpected"
+        else _model_http_error(402 if failure_kind == "configuration" else 503)
+    )
+
+    async def respond(messages: list[ModelMessage], info: AgentInfo) -> ModelResponse:
+        raise failure
+
+    model = FunctionModel(respond, model_name="scheduled/model")
+    plan = AIModelPlan((AIModelCandidate(model, model.model_name),))
+    monkeypatch.setattr(ai_run, "_last_resort_candidate", lambda candidates: None)
+    monkeypatch.setattr(generate_ai_titles, "get_chat_default_model_plan", AsyncMock(return_value=plan))
+    monkeypatch.setattr(generate_chat_summaries, "get_chat_summary_model_plan", AsyncMock(return_value=plan))
+    monkeypatch.setattr(generate_chat_summaries, "get_value", AsyncMock(return_value="Summarize discussions"))
+    monkeypatch.setattr(generate_chat_summaries, "resolve_chat_service_tier", AsyncMock(return_value=None))
+    monkeypatch.setattr(write_memory, "single_model_plan", lambda name: plan)
+    chat = ChatModel(
+        id=PydanticObjectId(),
+        tid=-123,
+        type=ChatType.group,
+        first_name_or_title="Scheduled tasks",
+        username=None,
+        is_bot=False,
+        last_saw=datetime.now(UTC),
+    )
+
+    expected_type = AIRequestFailed if failure_kind == "provider" else type(failure)
+    with pytest.raises(expected_type) as raised:
+        if operation == "notes:metadata":
+            note = NoteModel(chat_id=chat.tid, chat=chat, names=("test",), text="Note content")
+            await generate_ai_titles.GenerateAITitles(test_services).generate_data(note, chat.iid, chat.tid)
+        elif operation == "summary:chat":
+            transcript = build_summary_transcript((), anonymize=True)
+            await generate_chat_summaries.GenerateChatSummaries(test_services).generate_summary_groups(
+                transcript, chat.iid, chat.tid
+            )
+        else:
+            prompt = WriterPrompt(text="Message batch", batch_ids=frozenset(), messages={}, speakers={}, heads={})
+            await write_memory.WriteMemory(test_services)._run_writer(chat, prompt)
+
+    if failure_kind == "provider":
+        assert raised.value.__cause__ is failure
+    else:
+        assert raised.value is failure
+    assert ai_errors.is_silent_ai_error(raised.value)
+    event_id = SophieErrorHandler.capture_sentry(raised.value)
+    (event,) = sentry_events
+    assert event_id == event["event_id"]
+    assert event["tags"]["ai.origin"] == "automatic"
+    assert event["tags"]["ai.operation"] == operation
+    assert event["contexts"]["ai_request"]["origin"] == "automatic"
+    assert "user_facing_message" not in event["contexts"]["ai_request"]
+    assert "ai.user_facing_error" not in event["tags"]
+    assert SophieErrorHandler.capture_sentry(raised.value) == event["event_id"]
+    assert len(sentry_events) == 1

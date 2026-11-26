@@ -10,6 +10,7 @@ from redis.asyncio import Redis
 from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
     AIErrorContext,
+    ai_error_scope,
     capture_ai_error,
     is_retryable_ai_provider_error,
     run_ai_request_with_retries,
@@ -28,22 +29,23 @@ async def run_moderation_request[ModerationOutputT](
     operation: Callable[[], Awaitable[ModerationOutputT]],
     context: AIErrorContext,
 ) -> ModerationOutputT:
-    try:
-        return await run_ai_request_with_retries(operation, context)
-    except AI_PROVIDER_EXCEPTIONS as error:
-        # OpenAI wraps transport errors after SDK retries; do not add another retry budget.
-        if not is_retryable_ai_provider_error(error) and not isinstance(error, APIConnectionError):
-            raise
-        event_id = capture_ai_error(error, context)
-        log.warning(
-            "AI moderation unavailable after provider retries",
-            operation=context.operation,
-            model=context.model_name,
-            error_type=type(error).__name__,
-            sentry_event_id=event_id,
-        )
-        # The handled signal must not retain private SDK input in its traceback.
-        raise ModerationUnavailable from None
+    with ai_error_scope(context):
+        try:
+            return await run_ai_request_with_retries(operation, context)
+        except AI_PROVIDER_EXCEPTIONS as error:
+            # OpenAI wraps transport errors after SDK retries; do not add another retry budget.
+            if not is_retryable_ai_provider_error(error) and not isinstance(error, APIConnectionError):
+                raise
+            event_id = capture_ai_error(error, context)
+            log.warning(
+                "AI moderation unavailable after provider retries",
+                operation=context.operation,
+                model=context.model_name,
+                error_type=type(error).__name__,
+                sentry_event_id=event_id,
+            )
+            # The handled signal must not retain private SDK input in its traceback.
+            raise ModerationUnavailable from None
 
 
 @dataclass(frozen=True)

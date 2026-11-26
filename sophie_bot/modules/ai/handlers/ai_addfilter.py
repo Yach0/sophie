@@ -20,7 +20,12 @@ from sophie_bot.modules.ai.json_schemas.filter_suggestions import (
     AIFilterSuggestionsResponse,
 )
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+    ai_request_failed_message,
+)
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.shared.lock_constants import (
@@ -206,6 +211,7 @@ class AIFilterAddHandler(SophieMessageHandler):
     async def handler_args(cls, message: Message | None, data: dict) -> dict[str, ArgFabric]:
         return {"prompt": TextArg(l_("Describe what the filter should catch"))}
 
+    @ai_error_boundary(AIErrorContext(operation="suggestions", origin="explicit"))
     async def handle(self) -> Any:
         prompt: str = self.data["prompt"].strip()
         history = OldContext(services=self.services)
