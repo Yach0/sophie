@@ -30,9 +30,7 @@ from sophie_bot.utils.i18n import LazyProxy
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
-# openai and pydantic-ai speak httpx2; mistralai and the Tavily search tool still speak legacy
-# httpx. The two libraries' exception trees are unrelated -- httpx2.HTTPError is not a subclass of
-# httpx.HTTPError -- so every handler that classifies a transport failure has to name both.
+# Tavily still uses legacy httpx. Its exceptions do not inherit from the corresponding httpx2 types.
 _HTTP_ERRORS: Final = (httpx.HTTPError, httpx2.HTTPError)
 _HTTP_STATUS_ERRORS: Final = (httpx.HTTPStatusError, httpx2.HTTPStatusError)
 # TimeoutException subclasses RequestError in both libraries, so RequestError alone covers timeouts.

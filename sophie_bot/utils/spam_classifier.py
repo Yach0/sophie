@@ -5,9 +5,9 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Protocol, TypedDict, cast
 
+import httpx2
 import joblib
 import numpy as np
-import requests
 from numpy.typing import NDArray
 
 MODEL_PATH = Path(__file__).resolve().parents[1] / "spam_model_data" / "ussr_text_classifier.joblib"
@@ -48,7 +48,7 @@ def predict_message(text: str) -> SpamPrediction:
 
 def bundle_model() -> None:
     """Fetch and verify the pinned model during build, never during message handling."""
-    response = requests.get(MODEL_URL, timeout=120)
+    response = httpx2.get(MODEL_URL, timeout=120, follow_redirects=True)
     response.raise_for_status()
     artifact = response.content
     if sha256(artifact).hexdigest() != MODEL_SHA256:
