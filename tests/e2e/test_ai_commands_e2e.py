@@ -712,7 +712,7 @@ async def test_translate_ai_failure(test_client: TestClient, test_services: Appl
     ]
     assert "<i>Translating...</i>" in edits[0].params["rich_message"]["html"]
     response_text = edits[-1].text or ""
-    assert "AI provider did not complete" in response_text, f"Expected AI failure message, got: {response_text}"
+    assert "Translation could not be completed" in response_text, f"Expected AI failure message, got: {response_text}"
 
 
 async def test_explicit_ai_request_failure_stays_visible(
@@ -743,7 +743,7 @@ async def test_explicit_ai_request_failure_stays_visible(
             command="ai", args="hello", from_user=user_wrapper.user, chat=group_chat
         )
 
-    assert any("AI provider did not complete" in (request.text or "") for request in requests)
+    assert any("The AI response could not be generated" in (request.text or "") for request in requests)
 
 
 @pytest.mark.asyncio
@@ -818,3 +818,31 @@ async def test_ai_summaries_time_nonadmin_cannot_change_time(test_client: TestCl
     chat = await ChatModel.get_by_tid(group_chat.id)
     assert chat is not None
     assert chat.ai_summary_time_utc == "23:30"
+
+
+@pytest.mark.parametrize("unexpected", [False, True])
+async def test_translate_voice_failure_removes_progress(test_client: TestClient, unexpected: bool) -> None:
+    group_chat = ChatFactory.create_group(chat_id=-1002900000063, title="Voice Failure Group")
+    member = test_client.create_user(user_id=929000063, first_name="VoiceUser").user
+    await test_client.send_message(text="init", from_user=member, chat=group_chat)
+    replied_voice = MessageFactory.create(text="placeholder", from_user=member, chat=group_chat).model_copy(
+        update={"text": None, "voice": Voice(file_id="voice", file_unique_id="voice", duration=5)}
+    )
+    failure = ValueError("private transcription bug") if unexpected else AIRequestFailed("transcription-reference")
+    with ExitStack() as stack:
+        _apply_ai_admin_patches(stack)
+        _simulate_rich_send_response(test_client, stack)
+        stack.enter_context(
+            patch("sophie_bot.modules.ai.handlers.translate.transform_voice_to_text", AsyncMock(side_effect=failure))
+        )
+        requests = await send_reply_command(
+            test_client, command="tr", from_user=member, group=group_chat, replied=replied_voice
+        )
+    placeholders = [request for request in requests if request.request_type == RequestType.OTHER]
+    deletes = [request for request in requests if request.request_type == RequestType.DELETE_MESSAGE]
+    assert len(placeholders) == len(deletes) == 1
+    assert deletes[0].params["message_id"] == placeholders[0].response.message_id
+    errors = [request.text for request in requests if request.request_type == RequestType.SEND_MESSAGE]
+    assert len(errors) == 1
+    assert "Translation could not be completed" in errors[0]
+    assert "private" not in errors[0]

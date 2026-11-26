@@ -6,6 +6,12 @@ from stfu_tg import BlockQuote, Doc, Italic, Title
 from stfu_tg.doc import Element
 
 from sophie_bot.config import CONFIG
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIRequestFailed,
+    ai_action_failure_text,
+    ai_request_failed_message,
+    get_ai_error_context,
+)
 from sophie_bot.modules.error.utils.haikus import HAIKUS
 from sophie_bot.utils.error_references import error_reference_elements
 from sophie_bot.utils.exception import SophieException
@@ -32,6 +38,11 @@ def generic_error_message(
     hide_contact: bool = False,
     title: str | LazyProxy | Element = _DEFAULT_ERROR_TITLE,
 ) -> dict[str, Any]:
+    context = get_ai_error_context(exception)
+    if isinstance(exception, AIRequestFailed):
+        return ai_request_failed_message(sentry_event_id=sentry_event_id, error=exception)
+    if context is not None and not isinstance(exception, SophieException):
+        return ai_request_failed_message(sentry_event_id=sentry_event_id, docs=(ai_action_failure_text(context),))
     return {
         "text": str(
             Doc(

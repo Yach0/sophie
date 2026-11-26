@@ -23,6 +23,7 @@ from sophie_bot.modules.ai.utils.ai_header import AI_CHATBOT_CUSTOM_EMOJI_ID, AI
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, build_model_plan
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages
 from sophie_bot.modules.ai.utils.chatbot_tool_history import get_tool_exchanges
+from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, set_feature
 
 TABLE_OUTPUT = "Comparison\n\n| Item | Value |\n| --- | --- |\n| Alpha | **one** |\n| Beta | two |"
@@ -277,15 +278,19 @@ async def test_ai_filter_silent_mode_tracks_final_replies(
         plain_sends = [request for request in requests if request.request_type == RequestType.SEND_MESSAGE]
         if provider_failure:
             failures = [request for request in requests if "AI request failed" in (request.text or "")]
-            assert len(failures) == 1
-            final_ai = failures[0]
-            assert final_ai.request_type == (RequestType.EDIT_MESSAGE_TEXT if streaming else RequestType.SEND_MESSAGE)
-            assert len(plain_sends) == (0 if streaming else 1)
-            rich_sends = [request for request in requests if "rich_message" in request.params]
-            assert len(rich_sends) == (1 if streaming else 0)
+            assert not failures
+            assert not plain_sends
+            placeholders = [request for request in requests if "rich_message" in request.params]
+            assert len(placeholders) == (1 if streaming else 0)
+            deletes = [request for request in requests if request.request_type == RequestType.DELETE_MESSAGE]
+            assert len(deletes) == (1 if streaming else 0)
             if streaming:
-                assert final_ai.response.message_id == rich_sends[0].response.message_id
-            reply_ids = [final_ai.response.message_id]
+                assert deletes[0].params["message_id"] == placeholders[0].response.message_id
+            schedule.assert_called_once()
+            assert schedule.call_args.args[0] == group.id
+            assert len(schedule.call_args.args[1]) == 1  # Silent enforcement still removes the trigger.
+            assert schedule.call_args.kwargs == {"delay_seconds": 30}
+            return
         else:
             _final_payload(
                 [request for request in requests if request.request_type != RequestType.SEND_MESSAGE],
@@ -306,7 +311,9 @@ async def test_ai_filter_silent_mode_tracks_final_replies(
         schedule.assert_called_once_with(group.id, [trigger_id, *reply_ids], delay_seconds=30)
         assert len(set(reply_ids)) == len(reply_ids)
         await deletions.delete_messages_after_delay(group.id, schedule.call_args.args[1], delay_seconds=0)
-        deletion_candidates = (request for request in test_client.capture.all_requests if "message_ids" in request.params)
+        deletion_candidates = (
+            request for request in test_client.capture.all_requests if "message_ids" in request.params
+        )
         deletion = next(deletion_candidates)
         assert deletion.params["chat_id"] == group.id
         assert deletion.params["message_ids"] == [trigger_id, *reply_ids]
@@ -316,7 +323,11 @@ async def test_ai_filter_silent_mode_tracks_final_replies(
 @pytest.mark.parametrize("streaming", [True, False])
 @pytest.mark.parametrize("failure_stage", ["generation", "delivery", "caching"])
 async def test_ai_reply_unexpected_failure_cleans_progress(
-    test_client: TestClient, ordinary: bool, streaming: bool, failure_stage: str
+    test_client: TestClient,
+    ordinary: bool,
+    streaming: bool,
+    failure_stage: str,
+    runtime_sentry_events: list[dict[str, Any]],
 ) -> None:
     user, group, _user_model = await create_test_user_and_group(test_client)
     chat = await ChatModel.get_by_tid(group.id)
@@ -362,9 +373,6 @@ async def test_ai_reply_unexpected_failure_cleans_progress(
             patch("sophie_bot.modules.ai.utils.ai_quota.estimate_model_credit_cost", AsyncMock(return_value=0))
         )
         stack.enter_context(patch.object(test_client.bot, "send_chat_action", AsyncMock(return_value=True)))
-        reported = stack.enter_context(
-            patch("sophie_bot.modules.error.handlers.error.capture_sentry", return_value=None)
-        )
         if failure_stage == "caching":
             stack.enter_context(
                 patch("sophie_bot.modules.ai.utils.ai_chatbot_reply.enqueue_cached_message", side_effect=error)
@@ -383,8 +391,11 @@ async def test_ai_reply_unexpected_failure_cleans_progress(
             await test_client.send_command(command="ai", args="compare", from_user=user, chat=group)
         else:
             await test_client.send_message(text="spam comparison", from_user=user, chat=group)
-        # The same unexpected exception reaches the framework's error reporter.
-        reported.assert_called_once_with(error)
+        (event,) = runtime_sentry_events
+        assert event["exception"]["values"][-1]["type"] == "ValueError"
+        assert event["tags"]["ai.origin"] == ("explicit" if ordinary else "automatic")
+        assert SophieErrorHandler.capture_sentry(error) == event["event_id"]
+        assert len(runtime_sentry_events) == 1
         requests = test_client.capture.all_requests
         placeholders = [
             request
@@ -400,5 +411,10 @@ async def test_ai_reply_unexpected_failure_cleans_progress(
             _final_payload([request for request in requests if "rich_message" in request.params], streaming=streaming)
         elif streaming:
             assert deletes[0].params["message_id"] == placeholders[0].response.message_id
+        error_cards = [request for request in requests if "AI request failed" in (request.text or "")]
+        assert len(error_cards) == (1 if ordinary else 0)
+        if ordinary:
+            assert event["event_id"] in error_cards[0].text
+            assert "Unexpected reply failure" not in error_cards[0].text
         cached = await get_cached_messages(group.id, redis=test_client.dispatcher.workflow_data["services"].redis)
         assert not any(entry.is_bot for entry in cached)

@@ -13,6 +13,7 @@ from pydantic_ai.models import Model, ModelRequestContext
 from pydantic_ai.usage import RunUsage, UsageLimits
 from redis.asyncio import Redis
 
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_scope
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIAgentResult, AIRequestOptions, run_ai_structured
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -80,16 +81,17 @@ async def run_structured_task[OutputT: BaseModel](
                 await charge_ai_usage(chat_iid, task.feature, request_context.model, usage, redis=redis)
         return response
 
-    result = await run_ai_structured(
-        agent,
-        user_prompt=history.prompt,
-        message_history=history.message_history,
-        request_options=request_options,
-        model_settings=task.model_settings,
-        model_plan=model_plan,
-        usage_limits=usage_limits,
-        capabilities=[Hooks(after_model_request=observe)] if on_response is not None else [],
-    )
+    with ai_error_scope(AIErrorContext(operation=task.name, model_name=model_plan.primary.model_name)):
+        result = await run_ai_structured(
+            agent,
+            user_prompt=history.prompt,
+            message_history=history.message_history,
+            request_options=request_options,
+            model_settings=task.model_settings,
+            model_plan=model_plan,
+            usage_limits=usage_limits,
+            capabilities=[Hooks(after_model_request=observe)] if on_response is not None else [],
+        )
     if (
         on_response is None
         and chat_iid is not None

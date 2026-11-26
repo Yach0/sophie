@@ -21,7 +21,13 @@ from sophie_bot.metrics import track_ai_conversation
 from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.callbacks import AIMemoryEditCallback
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+    ai_request_failed_message,
+    is_silent_ai_error,
+)
 from sophie_bot.modules.ai.utils.ai_mode import get_capabilities
 from sophie_bot.modules.ai.utils.ai_model_factory import registered_context_window_tokens
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan, build_model_plan
@@ -230,7 +236,12 @@ async def _send_chatbot_ai_failure_reply(
     message_streamer: ChatbotMessageStreamer | None,
     error: AIRequestFailed,
     **reply_kwargs: Any,
-) -> Message:
+) -> Message | None:
+    if is_silent_ai_error(error):
+        if message_streamer is not None:
+            await message_streamer.stop()
+            await message_streamer.delete_progress()
+        return None
     failure_message = ai_request_failed_message(error=error)
     if message_streamer and message_streamer.response_message is not None:
         await message_streamer.stop()
@@ -343,6 +354,7 @@ async def _send_memory_edit_confirmation(
         await send_ai_rich_message(message, document, reply_markup=buttons)
 
 
+@ai_error_boundary(AIErrorContext(operation="response", origin="explicit"))
 async def ai_chatbot_reply(
     message: Message,
     connection: ChatConnection,

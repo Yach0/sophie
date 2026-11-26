@@ -43,8 +43,10 @@ from sophie_bot.modules.ai.utils.ai_errors import (
     AI_REQUEST_RETRY_ATTEMPTS,
     AIErrorContext,
     AIRetryCallback,
+    ai_error_scope,
     ai_request_failed_from_error,
     capture_ai_error,
+    is_ai_provider_failure,
     is_provider_configuration_error,
     is_retryable_ai_provider_error,
 )
@@ -629,7 +631,7 @@ class _ModelRequests:
 
     async def falls_back(self, error: Exception) -> bool:
         self.finish_attempt(type(error).__name__)
-        if not isinstance(error, AI_PROVIDER_EXCEPTIONS):
+        if not is_ai_provider_failure(error):
             return False
         allowed = _should_try_next_model(error) if self.allow_plan_failover else is_retryable_ai_provider_error(error)
         if allowed and self.active is not self.candidates[-1]:
@@ -667,7 +669,8 @@ class _ModelRequests:
         self, _ctx: RunContext[object], *, request_context: ModelRequestContext, handler: WrapModelRequestHandler
     ) -> ModelResponse:
         try:
-            return await handler(request_context)
+            with ai_error_scope(self.error_context()):
+                return await handler(request_context)
         except AI_PROVIDER_EXCEPTIONS as error:
             self.finish_attempt(type(error).__name__)
             raise
@@ -713,7 +716,7 @@ async def _run_with_metrics[DepsT, OutputT](
         agent, run_kwargs, request_options, model_settings, model_plan, on_retry, operation_label
     )
     try:
-        with ai_retry_status(on_retry):
+        with ai_error_scope(requests.error_context()), ai_retry_status(on_retry):
             result = await agent.run(**requests.run_kwargs(run_kwargs))
     except AI_PROVIDER_EXCEPTIONS as error:
         requests.raise_failure(error)
@@ -961,7 +964,7 @@ async def run_ai_stream[DepsT](
     run_kwargs.update(extra_run_kwargs)
     requests = _ModelRequests.create(agent, run_kwargs, request_options, model_settings, model_plan, on_retry, "stream")
     try:
-        with ai_retry_status(on_retry):
+        with ai_error_scope(requests.error_context()), ai_retry_status(on_retry):
             outcome = await _stream_via_events(
                 agent,
                 requests.run_kwargs(run_kwargs),

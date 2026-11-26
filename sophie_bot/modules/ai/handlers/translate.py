@@ -1,3 +1,4 @@
+from contextlib import AsyncExitStack
 from math import ceil
 from typing import Any, Final
 
@@ -27,7 +28,13 @@ from sophie_bot.modules.ai.utils.ai_chat_models import (
     get_chat_translations_model_plan,
     resolve_chat_service_tier,
 )
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed, ai_request_failed_message
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+    ai_request_failed_message,
+    is_silent_ai_error,
+)
 from sophie_bot.modules.ai.utils.ai_header import (
     ai_credit_header,
     build_ai_message_doc,
@@ -36,7 +43,7 @@ from sophie_bot.modules.ai.utils.ai_progress import random_ai_thinking_text
 from sophie_bot.modules.ai.utils.ai_quota import get_quota_info
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
-from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer
+from sophie_bot.modules.ai.utils.chatbot_streaming import ChatbotMessageStreamer, chatbot_streaming_session
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.modules.ai.utils.self_reply import cut_titlebar
 from sophie_bot.modules.ai.utils.transform_audio import transform_voice_to_text
@@ -177,7 +184,12 @@ class AiTranslate(SophieMessageHandler):
     def register(cls, router: Router) -> None:
         router.message.register(cls, *cls.filters(), flags={"args": text_or_reply})
 
+    @ai_error_boundary(AIErrorContext(operation="translation", origin="explicit"))
     async def handle(self) -> Any:
+        async with AsyncExitStack() as cleanup:
+            await self._translate(cleanup)
+
+    async def _translate(self, cleanup: AsyncExitStack) -> None:
         is_autotranslate: bool = self.data.get("autotranslate", False)
 
         language_name = self.data["i18n"].current_locale_display
@@ -186,6 +198,7 @@ class AiTranslate(SophieMessageHandler):
         progress_streamer: ChatbotMessageStreamer | None = None
         if reply_to_message and (reply_to_message.voice or reply_to_message.audio) and not is_autotranslate:
             progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
+            await cleanup.enter_async_context(chatbot_streaming_session(progress_streamer))
             await progress_streamer.update_processing_activity(_("Transcribing voice message..."))
 
         to_translate, is_voice = await _resolve_translation_input(self.event, self.data, services=self.services)
@@ -218,6 +231,7 @@ class AiTranslate(SophieMessageHandler):
 
         if not is_autotranslate and progress_streamer is None:
             progress_streamer = await _start_translation_progress(self.event, redis=self.services.redis)
+            await cleanup.enter_async_context(chatbot_streaming_session(progress_streamer))
 
         # AI Context
         ai_context = OldContext(services=self.services)
@@ -293,6 +307,8 @@ class AiTranslate(SophieMessageHandler):
             )
             translated = result.output
         except AIRequestFailed as err:
+            if is_silent_ai_error(err):
+                return
             error_message = ai_request_failed_message(error=err, title=_("Error generating translation"))
             progress_message = progress_streamer.response_message if progress_streamer else None
             if progress_message and self.event.bot:
