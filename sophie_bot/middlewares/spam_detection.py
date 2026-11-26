@@ -13,7 +13,6 @@ from pymongo.errors import PyMongoError
 from sophie_bot.db.models.spam_match import SpamMatchModel
 from sophie_bot.middlewares.request_context import RequestContext
 from sophie_bot.modules.utils_.admin import is_user_admin
-from sophie_bot.utils.feature_flags import is_enabled
 from sophie_bot.utils.group_whitelist import is_user_group_whitelisted
 from sophie_bot.utils.group_whitelist_logging import log_group_whitelist_exemption
 from sophie_bot.utils.logger import log
@@ -68,8 +67,7 @@ class SpamDetectionMiddleware(BaseMiddleware):
             links = tuple(
                 entity.url for entity in entities or () if entity.type == MessageEntityType.TEXT_LINK and entity.url
             )
-            precision = await is_enabled("spam_precision_classifier", chat_tid, redis=redis)
-            result = await asyncio.to_thread(predict_message, text, links, precision=precision)
+            result = await asyncio.to_thread(predict_message, text, links)
             spam_prob = result["spam_probability"]
             nsfw_prob = result["nsfw_probability"]
 

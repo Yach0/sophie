@@ -103,16 +103,14 @@ Telegram accepts at most five ephemeral messages per user.
 
 ## USSR spam classifier
 
-The runtime image bundles the precision text model, its encoder files, and a rollback
-model. The build verifies each download against its SHA-256. For source checkouts,
+The runtime image bundles the pinned USSR precision classifier and its encoder
+files. The build verifies each download against its SHA-256. For source checkouts,
 run `make spam_model` to prepare `sophie_bot/spam_model_data/`. Set `SSL_CERT_FILE`
 for the build if you use a custom CA bundle.
 
-The `spam_precision_classifier` feature flag defaults to enabled. Disable it
-globally or for a chat to use the previous text classifier. Scoring runs locally
-on CPU and includes embedded Telegram link destinations. Sophie records spam
-matches from group message text and captions. Administrators and group-whitelisted
-users are exempt.
+Scoring runs locally on CPU and includes embedded Telegram link destinations.
+Sophie records spam matches from group message text and captions. Administrators
+and group-whitelisted users are exempt.
 
 ## AI models and providers
 
