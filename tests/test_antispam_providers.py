@@ -8,11 +8,13 @@ import httpx
 import httpx2
 import pytest
 from fakeredis import FakeAsyncRedis
+from pydantic import ValidationError
 
-from sophie_bot.config import OfdServerConfig
+from sophie_bot.config import Config, OfdServerConfig
 from sophie_bot.modules.antispam import cas
 from sophie_bot.modules.antispam.ofd import OfdProvider
 from sophie_bot.modules.antispam.provider import ProtectionUnavailable, ThreatCategory
+from sophie_bot.modules.antispam.registry import ProviderRegistry
 
 EXPORT_URL = "https://cas.example/export.csv"
 
@@ -199,3 +201,66 @@ async def test_ofd_circuit_fails_open_without_sleeping_or_caching_errors(status:
         assert not (await provider.check_user(123)).matched
         assert not (await provider.check_user(123)).matched
         assert calls == [status, status]
+
+
+async def test_antispam_flat_env_config_registers_cas_and_ofd(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANTISPAM_CAS_API_KEY", "cas-secret")
+    monkeypatch.setenv("ANTISPAM_OFD_URL", "https://ofd.example")
+    monkeypatch.setenv("ANTISPAM_OFD_API_KEY", "ofd-secret")
+    monkeypatch.setenv("ANTISPAM_OFD_NAME", "Primary OFD")
+    monkeypatch.setenv("ANTISPAM_OFD_WEB_URL", "https://appeals.example")
+
+    config = Config(_env_file=None)
+    assert config.antispam_cas_export_url is None
+    assert config.antispam_cas_api_key is not None
+    assert config.antispam_cas_api_key.get_secret_value() == "cas-secret"
+    assert len(config.resolved_antispam_ofd_servers) == 1
+    server = config.resolved_antispam_ofd_servers[0]
+    assert server.id == "default"
+    assert server.name == "Primary OFD"
+    assert str(server.url) == "https://ofd.example/"
+    assert server.access_token is not None
+    assert server.access_token.get_secret_value() == "ofd-secret"
+    assert str(server.web_url) == "https://appeals.example/"
+
+    async with FakeAsyncRedis() as redis:
+        registry = ProviderRegistry(config, redis)
+        try:
+            cas_provider = registry.providers["cas"]
+            ofd_provider = registry.providers["ofd:default"]
+            assert isinstance(cas_provider, cas.CasProvider)
+            assert cas_provider.export_url is None
+            assert cas_provider.api_key == "cas-secret"
+            assert isinstance(ofd_provider, OfdProvider)
+            assert ofd_provider.display_name == "Primary OFD"
+        finally:
+            await registry.close()
+
+
+def test_antispam_blank_env_strings_normalize_to_none(monkeypatch: pytest.MonkeyPatch) -> None:
+    for env_name in (
+        "ANTISPAM_CAS_API_KEY",
+        "ANTISPAM_CAS_EXPORT_URL",
+        "ANTISPAM_OFD_URL",
+        "ANTISPAM_OFD_API_KEY",
+        "ANTISPAM_OFD_WEB_URL",
+    ):
+        monkeypatch.setenv(env_name, "   ")
+
+    config = Config(_env_file=None)
+    assert config.antispam_cas_api_key is None
+    assert config.antispam_cas_export_url is None
+    assert config.antispam_ofd_url is None
+    assert config.antispam_ofd_api_key is None
+    assert config.antispam_ofd_web_url is None
+    assert config.resolved_antispam_ofd_servers == ()
+
+
+def test_antispam_rejects_duplicate_ofd_id_across_flat_and_list() -> None:
+    with pytest.raises(ValidationError, match="OFD server IDs must be unique"):
+        Config(
+            _env_file=None,
+            antispam_ofd_url="https://ofd-a.example",
+            antispam_ofd_id="primary",
+            antispam_ofd_servers=[OfdServerConfig(id="primary", name="Other", url="https://ofd-b.example")],
+        )
