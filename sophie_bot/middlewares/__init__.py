@@ -72,7 +72,9 @@ def enable_middlewares(
 
     if CONFIG.proxy_enable:
         log.info("Enabled Proxy!")
-        dispatcher.update.middleware(BetaMiddleware())
+        beta = BetaMiddleware()
+        dispatcher.update.middleware(beta)
+        dispatcher.shutdown.register(beta.close)
 
     dispatcher.message.middleware(ArgsMiddleware(i18n=services.locales.i18n))
     dispatcher.update.outer_middleware(SaveChatsMiddleware())

@@ -7,9 +7,9 @@ from shlex import split
 from subprocess import run
 from unittest.mock import MagicMock
 
+import httpx2
 import numpy as np
 import pytest
-import requests
 
 from sophie_bot.utils import spam_classifier
 
@@ -70,7 +70,7 @@ def test_bundle_verifies_artifact_before_writing(
     response = MagicMock(content=artifact)
     download = MagicMock(return_value=response)
     destination = tmp_path / "models" / "classifier.joblib"
-    monkeypatch.setattr(spam_classifier.requests, "get", download)
+    monkeypatch.setattr(spam_classifier.httpx2, "get", download)
     monkeypatch.setattr(spam_classifier, "MODEL_PATH", destination)
     monkeypatch.setattr(spam_classifier, "MODEL_SHA256", sha256(artifact if valid_checksum else b"other").hexdigest())
 
@@ -81,17 +81,16 @@ def test_bundle_verifies_artifact_before_writing(
         with pytest.raises(ValueError, match="checksum mismatch"):
             spam_classifier.bundle_model()
         assert not destination.exists()
-    download.assert_called_once_with(spam_classifier.MODEL_URL, timeout=120)
+    download.assert_called_once_with(spam_classifier.MODEL_URL, timeout=120, follow_redirects=True)
     response.raise_for_status.assert_called_once()
 
 
 def test_bundle_http_failure_does_not_write_model(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    response = MagicMock()
-    response.raise_for_status.side_effect = requests.HTTPError("Not found")
-    monkeypatch.setattr(spam_classifier.requests, "get", MagicMock(return_value=response))
+    response = httpx2.Response(404, request=httpx2.Request("GET", spam_classifier.MODEL_URL))
+    monkeypatch.setattr(spam_classifier.httpx2, "get", MagicMock(return_value=response))
     destination = tmp_path / "classifier.joblib"
     monkeypatch.setattr(spam_classifier, "MODEL_PATH", destination)
-    with pytest.raises(requests.HTTPError):
+    with pytest.raises(httpx2.HTTPStatusError):
         spam_classifier.bundle_model()
     assert not destination.exists()
 
