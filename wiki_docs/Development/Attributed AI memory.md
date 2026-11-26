@@ -129,8 +129,10 @@ semantic answers without a reply link still depend on the decision model and rec
 The **Memory** section under **Sophie AI** in `/help` lists two commands when `ai_memory_controls` is enabled.
 
 - `/ai_memory` lists your current memories. Add search text, mention a member, or reply to one of their messages to view
-  their memories. The numbered buttons open full memory text and let you copy a fact ID. Use **History**, **Sources**,
-  **Privacy**, or **Help** in the browser. Navigation is restricted to the requester and expires after 15 minutes.
+  their memories. **Details** opens a reply with the full memory and its fact ID. Tap **Edit** and reply to Sophie's
+  prompt with the replacement text within five minutes. The edit uses the same permissions, chat mode, and feature flags
+  as chatbot memory edits. Use `/ai_memory --history` for previous versions, `/ai_memory --sources` for source messages,
+  or `/ai_memory --privacy` for privacy controls. Browser actions are restricted to the requester and expire after 15 minutes.
 - `/ai_memory_delete ID [ID ...]` deletes one or more exact fact IDs and their complete version chains. It accepts up to
   20 IDs separated by spaces. Members can delete their own personal facts. Chat administrators can delete other
   members’ or shared facts. The command preserves original conversation messages in the normal chat cache.

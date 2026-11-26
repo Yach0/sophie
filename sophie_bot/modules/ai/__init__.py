@@ -31,6 +31,7 @@ from sophie_bot.modules.ai.handlers.memory import (
     AIMemoryClearHandler,
     AIMemoryDelete,
     AIMemoryEditHandler,
+    AIMemoryEditReply,
     AIMemoryPageHandler,
 )
 from sophie_bot.modules.ai.handlers.mention import AiMentionHandler
@@ -147,6 +148,7 @@ module_manifest = ModuleManifest(
         AIMemoryBrowse,
         AIMemoryDelete,
         AIMemoryEditHandler,
+        AIMemoryEditReply,
         AIMemoryPageHandler,
         AIMemoryClearHandler,
         ResearchCmd,

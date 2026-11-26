@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import AsyncIterator
 from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
+from html import unescape
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -62,6 +64,16 @@ def _message_text(requests: list[CapturedRequest]) -> str:
     return "\n".join(request.params.get("rich_message", {}).get("html") or request.text or "" for request in requests)
 
 
+def _rich_callbacks(requests: list[CapturedRequest], label: str) -> list[str]:
+    return [
+        unescape(data)
+        for data in re.findall(
+            rf'<tg-button type="callback_data" data="([^"]+)"[^>]*>{re.escape(label)}</tg-button>',
+            _message_text(requests),
+        )
+    ]
+
+
 def _bot_message(chat: Chat) -> Message:
     bot = UserFactory.create(user_id=42, first_name="Sophie", is_bot=True)
     return MessageFactory.create(text="AI memory", from_user=bot, chat=chat)
@@ -88,18 +100,21 @@ async def test_silent_capture_controls_and_chat_boundaries(
     state = await read_memory(chat, datetime.now(UTC), redis=test_services.redis)
     assert any(source.text == "I prefer brief replies." for source in state.sources)
     message = _bot_message(group)
-    browser = await test_client.send_command(command="ai_memory", from_user=user, chat=group)
-    requests = await test_client.send_callback(_callback(browser, "Sources"), from_user=user, message=message)
-    assert "<li>I prefer brief replies.</li>" in _message_text(requests)
+    requests = await test_client.send_command(command="ai_memory --sources", from_user=user, chat=group)
+    assert "<li><p>I prefer brief replies." in _message_text(requests)
     await AIMemoryModel.append_line(chat, "Keep legacy memory")
     summary_date = datetime.now(UTC).date()
     await AIChatSummaryModel.upsert_for_date(chat, summary_date, "Keep summary", [])
-    privacy = _callback(browser, "Privacy")
-    controls = await test_client.send_callback(privacy, from_user=user, message=message)
-    assert all("Clear shared memory" not in str(request.reply_markup) for request in controls)
-    for target in ("forget", "off"):
-        forged = AIMemoryPageCallback.unpack(privacy).model_copy(update={"target": target}).pack()
-        requests = await test_client.send_callback(forged, from_user=user, message=message)
+    controls = await test_client.send_command(command="ai_memory --privacy", from_user=user, chat=group)
+    assert "You allow AI memory capture" in _message_text(controls)
+    assert not _rich_callbacks(controls, "Clear shared memory")
+    admin = await grant_admin(chat.tid, user.id)
+    controls = await test_client.send_command(command="ai_memory --privacy", from_user=user, chat=group)
+    (stop,) = _rich_callbacks(controls, "Stop saving my messages")
+    (clear,) = _rich_callbacks(controls, "Clear shared memory")
+    await admin.delete()
+    for action in (clear, stop):
+        requests = await test_client.send_callback(action, from_user=user, message=message)
         assert "Only chat administrators" in _message_text(requests)
     assert await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid) is None
     assert (await read_memory(chat, datetime.now(UTC), redis=test_services.redis)).sources
@@ -109,15 +124,13 @@ async def test_silent_capture_controls_and_chat_boundaries(
     admin = await grant_admin(chat.tid, user.id)
     for legacy in ("show", "sources", "forget", "off", "on"):
         requests = await test_client.send_command(command=f"ai_memory {legacy}", from_user=user, chat=group)
-        assert _message_text(requests) == "Open /ai_memory to browse memories and manage privacy."
+        assert _message_text(requests) == "Use /ai_memory to browse memories or /ai_memory --privacy for privacy."
         assert not any(request.reply_markup for request in requests)
     assert await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid) is None
-    controls = await test_client.send_callback(privacy, from_user=user, message=message)
-    stop = _callback(controls, "Stop saving my messages")
     prompt = await test_client.send_callback(stop, from_user=user, message=message)
     assert "for everyone" in _message_text(prompt)
     assert "stops AI memory capture for you" in _message_text(prompt)
-    confirm = _callback(prompt, "Clear shared memory")
+    (confirm,) = _rich_callbacks(prompt, "Clear shared memory")
     assert await AIMemoryModel.get_lines(chat.iid) == ["Keep legacy memory"]
     assert await AIChatSummaryModel.get_for_date(chat.iid, summary_date) is not None
     other_admin = test_client.create_user(first_name="Other admin").user
@@ -130,14 +143,15 @@ async def test_silent_capture_controls_and_chat_boundaries(
     assert (await read_memory(chat, datetime.now(UTC), redis=test_services.redis)).sources
     await grant_admin(chat.tid, user.id)
 
-    requests = await test_client.send_callback(_callback(prompt, "Cancel"), from_user=user, message=message)
+    (cancel,) = _rich_callbacks(prompt, "Cancel")
+    requests = await test_client.send_callback(cancel, from_user=user, message=message)
     assert "canceled" in _message_text(requests)
     requests = await test_client.send_callback(confirm, from_user=user, message=message)
     assert "no longer active" in _message_text(requests)
     assert (await read_memory(chat, datetime.now(UTC), redis=test_services.redis)).sources
 
     prompt = await test_client.send_callback(stop, from_user=user, message=message)
-    confirm = _callback(prompt, "Clear shared memory")
+    (confirm,) = _rich_callbacks(prompt, "Clear shared memory")
     requests = await test_client.send_callback(confirm, from_user=user, message=message)
     assert "AI memory capture is now off for you" in _message_text(requests)
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
@@ -157,10 +171,9 @@ async def test_silent_capture_controls_and_chat_boundaries(
     )
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
     assert document and not (await read_memory(chat, datetime.now(UTC), redis=test_services.redis)).sources
-    controls = await test_client.send_callback(_callback(requests, "Privacy"), from_user=user, message=message)
-    requests = await test_client.send_callback(
-        _callback(controls, "Resume saving my messages"), from_user=user, message=message
-    )
+    controls = await test_client.send_command(command="ai_memory --privacy", from_user=user, chat=group)
+    (resume,) = _rich_callbacks(controls, "Resume saving my messages")
+    requests = await test_client.send_callback(resume, from_user=user, message=message)
     assert "Your messages can be saved again" in _message_text(requests)
     await _feed(
         test_client,
@@ -178,13 +191,9 @@ async def test_silent_capture_controls_and_chat_boundaries(
     requests = await test_client.send_callback(confirm, from_user=user, message=message)
     assert "no longer active" in _message_text(requests)
     assert (await read_memory(chat, datetime.now(UTC), redis=test_services.redis)).sources
-    controls = await test_client.send_callback(privacy, from_user=user, message=message)
-    prompt = await test_client.send_callback(
-        _callback(controls, "Clear shared memory"), from_user=user, message=message
-    )
-    requests = await test_client.send_callback(
-        _callback(prompt, "Clear shared memory"), from_user=user, message=message
-    )
+    prompt = await test_client.send_callback(clear, from_user=user, message=message)
+    (confirm,) = _rich_callbacks(prompt, "Clear shared memory")
+    requests = await test_client.send_callback(confirm, from_user=user, message=message)
     assert "Shared AI memory and context were cleared" in _message_text(requests)
     document = await AIEvidenceMemoryModel.find_one(AIEvidenceMemoryModel.chat.id == chat.iid)
     assert (
@@ -237,15 +246,14 @@ async def test_delete_memory_by_id_is_atomic_and_forgets_all_versions(
     first, latest, foreign = state.facts
     message = _bot_message(group)
     browser = await test_client.send_command(command="ai_memory", from_user=user, chat=group)
-    details = await test_client.send_callback(_callback(browser, "1"), from_user=user, message=message)
+    (detail,) = _rich_callbacks(browser, "Details")
+    details = await test_client.send_callback(detail, from_user=user, message=message)
     assert "Saturday" in _message_text(details)
-    copy = _button(details, "Copy fact ID").copy_text
-    assert copy and copy.text == latest.fact_id
-    history = await test_client.send_callback(_callback(browser, "History"), from_user=user, message=message)
-    assert "<li>Friday</li>" in _message_text(history) and "Saturday" not in _message_text(history)
-    help_requests = await test_client.send_callback(_callback(browser, "Help"), from_user=user, message=message)
-    assert "/ai_memory_delete FACT_ID" in _message_text(help_requests)
-    assert "/ai_memory_correct" not in _message_text(help_requests)
+    assert f"<code>{latest.fact_id}</code>" in _message_text(details)
+    assert not any(request.reply_markup for request in details)
+    history = await test_client.send_command(command="ai_memory --history", from_user=user, chat=group)
+    assert "<li><p>Friday" in _message_text(history) and "Saturday" not in _message_text(history)
+    assert _rich_callbacks(history, "Details") and not _rich_callbacks(history, "Edit")
 
     malformed = await test_client.send_command(command="ai_memory_delete", args="bad", from_user=user, chat=group)
     assert "valid memory fact IDs" in _message_text(malformed)
@@ -473,6 +481,7 @@ async def test_help_shows_memory_commands_in_one_section(
     assert "/ai_memory" not in following
     assert "<code>/ai_memory</code>" in memory
     assert "<code>/ai_memory_delete</code>" in memory
+    assert "--history" in memory and "--sources" in memory and "--privacy" in memory
     assert "/ai_memory_correct" not in memory
     assert memory.count("<code>/ai_memory") == 2
 
@@ -518,13 +527,15 @@ async def test_browse_memories_by_mention_reply_or_search(
     listed = _message_text(username_reply)
     assert "AI memory for Sam &lt;3" in listed and "Sam prefers tea" in listed and "Sam enjoys hiking" in listed
     assert "My plan" not in listed
-    buttons = next(request.reply_markup["inline_keyboard"] for request in username_reply if request.reply_markup)
-    assert all(button["text"] not in {"History", "Sources"} for row in buttons for button in row)
+    assert not any(request.reply_markup for request in username_reply)
+    edits = _rich_callbacks(username_reply, "Edit")
+    details = _rich_callbacks(username_reply, "Details")
+    assert len(edits) == len(details) == 2
 
     quoted = await send_reply_command(
         test_client, command="ai_memory", from_user=user, group=group, replied=user_message
     )
-    assert _message_text(quoted) == listed
+    assert re.sub(r' data="[^"]+"', "", _message_text(quoted)) == re.sub(r' data="[^"]+"', "", listed)
     mentioned = await _feed(
         test_client,
         MessageFactory.create(
@@ -534,16 +545,15 @@ async def test_browse_memories_by_mention_reply_or_search(
             entities=[MessageEntity(type="text_mention", offset=11, length=6, user=member)],
         ),
     )
-    assert _message_text(mentioned) == listed
+    assert re.sub(r' data="[^"]+"', "", _message_text(mentioned)) == re.sub(r' data="[^"]+"', "", listed)
 
-    callback = _callback(username_reply, "1")
+    callback = details[0]
     bot_message = _bot_message(group)
-    details = await test_client.send_callback(callback, from_user=user, message=bot_message)
-    assert "Sam enjoys hiking" in _message_text(details) and "Source messages" not in _message_text(details)
-    buttons = next(request.reply_markup["inline_keyboard"] for request in details if request.reply_markup)
-    assert [button["text"] for row in buttons for button in row] == ["Copy fact ID", "Back to list"]
-    back = await test_client.send_callback(_callback(details, "Back to list"), from_user=user, message=bot_message)
-    assert _message_text(back).strip() == listed.strip()
+    result = await test_client.send_callback(callback, from_user=user, message=bot_message)
+    assert "Sam enjoys hiking" in _message_text(result) and "Source messages" not in _message_text(result)
+    payload = next(request for request in result if request.params.get("rich_message"))
+    assert payload.params["reply_parameters"]["message_id"] == bot_message.message_id
+    assert not payload.reply_markup
     forged_sources = AIMemoryPageCallback.unpack(callback).model_copy(update={"view": "sources", "target": ""}).pack()
     requests = await test_client.send_callback(forged_sources, from_user=user, message=bot_message)
     assert "only shows the member" in _message_text(requests)
@@ -559,6 +569,67 @@ async def test_browse_memories_by_mention_reply_or_search(
         assert f"Search: {query}" in _message_text(search)
     unknown = await test_client.send_command(command="ai_memory @unknown_user", from_user=user, chat=group)
     assert "could not find that username" in _message_text(unknown)
+
+
+async def test_edit_memory_inline_uses_the_requesters_reply(
+    test_client: TestClient, test_services: ApplicationServices
+) -> None:
+    user, group, _user_model = await create_test_user_and_group(test_client)
+    other = test_client.create_user(first_name="Other").user
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat
+    await set_feature(test_client, "ai_memory_controls", True, chat_tid=chat.tid)
+    await set_feature(test_client, "ai_memory_retrieval", True, chat_tid=chat.tid)
+    await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
+    now = datetime.now(UTC) - timedelta(minutes=1)
+    fact = MemoryFact(
+        speaker_tid=user.id,
+        subject_tids=[user.id],
+        scope="person",
+        layer="personal",
+        kind="fact",
+        event="preferences",
+        text="I like tea",
+        topic_id=None,
+        branch_ids=[],
+        evidence_ids=[],
+        recorded_at=now,
+        occurred_at=now,
+    )
+
+    def seed(state: MemoryState) -> None:
+        state.facts.append(fact)
+
+    await mutate_memory(chat, seed, redis=test_services.redis)
+    browser = await test_client.send_command(command="aimemory", from_user=user, chat=group)
+    (edit,) = _rich_callbacks(browser, "Edit")
+    message = _bot_message(group)
+    denied = await test_client.send_callback(edit, from_user=other, message=message)
+    assert "another user" in _message_text(denied)
+    prompt_requests = await test_client.send_callback(edit, from_user=user, message=message)
+    prompt_request = next(request for request in prompt_requests if "new memory text" in (request.text or ""))
+    assert prompt_request.reply_markup == {"force_reply": True, "selective": True}
+    assert isinstance(prompt_request.response, Message)
+    prompt = prompt_request.response.model_copy(update={"chat": group})
+    await _feed(
+        test_client,
+        MessageFactory.create(text="Not my memory", from_user=other, chat=group, reply_to_message=prompt),
+    )
+    state = await read_memory(chat, now - timedelta(days=1), redis=test_services.redis)
+    assert [item.fact_id for item in state.facts] == [fact.fact_id]
+    result = await _feed(
+        test_client,
+        MessageFactory.create(text="I like <green> tea", from_user=user, chat=group, reply_to_message=prompt),
+    )
+    assert "I updated that memory" in _message_text(result)
+    state = await read_memory(chat, now - timedelta(days=1), redis=test_services.redis)
+    original, current = state.facts
+    assert original.fact_id == current.previous_id == fact.fact_id
+    assert current.text == "I like <green> tea"
+    stale = await test_client.send_callback(edit, from_user=user, message=message)
+    assert "no longer in this list" in _message_text(stale)
+    browser = await test_client.send_command(command="aimemory", from_user=user, chat=group)
+    assert "I like &lt;green&gt; tea" in _message_text(browser)
 
 
 async def test_memory_buttons_paginate_and_reject_other_users(
@@ -609,13 +680,14 @@ async def test_memory_buttons_paginate_and_reject_other_users(
     message = _bot_message(group)
     requests = await test_client.send_command(command=f"ai_memory {query}", from_user=user, chat=group)
     text = _message_text(requests)
-    assert f"<ol><li>Fact 18 {query * 4}</li>" in text
+    assert f"<ol><li><p>Fact 18 {query * 4} <tg-button" in text
     assert "Fact 3" not in text and "Unrelated" not in text
     assert "Page 1 of 2" in text and 4096 < telegram_html_length(text)
     assert len(text.encode("utf-8")) <= 30_000 and 8 < text.count("<li>") < 16
     payload = next(request for request in requests if request.params.get("rich_message"))
     assert payload.params["reply_parameters"]["message_id"]
-    assert all(len(row) <= 8 for row in payload.reply_markup["inline_keyboard"])
+    assert [[button["text"] for button in row] for row in payload.reply_markup["inline_keyboard"]] == [["Next ▶️"]]
+    assert len(_rich_callbacks(requests, "Edit")) == len(_rich_callbacks(requests, "Details")) == text.count("<li>")
     callback = _callback(requests, "Next ▶️")
     assert AIMemoryPageCallback.unpack(callback).page == 1
     page_two = await test_client.send_callback(callback, from_user=user, message=message)
@@ -626,31 +698,27 @@ async def test_memory_buttons_paginate_and_reject_other_users(
     requests = await test_client.send_callback(callback, from_user=other.user, message=message)
     assert "another user" in _message_text(requests)
 
-    sources = await test_client.send_callback(_callback(page_two, "Sources"), from_user=user, message=message)
+    sources = await test_client.send_command(command="ai_memory --sources", from_user=user, chat=group)
     assert _message_text(sources).count("Source 19") == 1
     assert "<source end>" not in _message_text(sources)
-    source_callback = _callback(sources, "1")
+    source_callback = _rich_callbacks(sources, "Details")[0]
     details = await test_client.send_callback(source_callback, from_user=user, message=message)
     source_html = _message_text(details)
     assert "Page " not in source_html and "Source 19<br>" in source_html
     assert "&lt;source end&gt;" in source_html
     assert 4096 < telegram_html_length(source_html) and len(source_html.encode("utf-8")) <= 30_000
-    sources = await test_client.send_callback(_callback(details, "Back to list"), from_user=user, message=message)
-    requests = await test_client.send_callback(_callback(sources, "Memories"), from_user=user, message=message)
-    assert f"Search: {query}" in _message_text(requests) and "Unrelated" not in _message_text(requests)
-    fact_callback = _callback(requests, "1")
+    fact_callback = _rich_callbacks(page_two, "Details")[0]
     await test_services.redis.delete(get_message_cache_key(chat.tid))
     requests = await test_client.send_callback(source_callback, from_user=user, message=message)
     assert "expired or is unavailable" in _message_text(requests)
     requests = await test_client.send_callback(fact_callback, from_user=user, message=message)
     assert "Source messages expired or unavailable" in _message_text(requests)
     await grant_admin(chat.tid, user.id)
-    browser = await test_client.send_command(command="ai_memory", from_user=user, chat=group)
-    controls = await test_client.send_callback(_callback(browser, "Privacy"), from_user=user, message=message)
-    prompt = await test_client.send_callback(
-        _callback(controls, "Clear shared memory"), from_user=user, message=message
-    )
-    await test_client.send_callback(_callback(prompt, "Clear shared memory"), from_user=user, message=message)
+    controls = await test_client.send_command(command="ai_memory --privacy", from_user=user, chat=group)
+    (clear,) = _rich_callbacks(controls, "Clear shared memory")
+    prompt = await test_client.send_callback(clear, from_user=user, message=message)
+    (confirm,) = _rich_callbacks(prompt, "Clear shared memory")
+    await test_client.send_callback(confirm, from_user=user, message=message)
     requests = await test_client.send_callback(callback, from_user=user, message=message)
     assert "No memories match your search" in _message_text(requests)
     requests = await test_client.send_callback(fact_callback, from_user=user, message=message)

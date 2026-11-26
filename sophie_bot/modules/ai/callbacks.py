@@ -37,7 +37,8 @@ class AIMemoryPageCallback(CallbackData, prefix="aim"):
     view: MemoryListView
     page: int = 0
     target: str = ""
-    part: int = 0
+    part: int | None = None
+    edit: bool = False
 
 
 class AIMemoryClearCallback(CallbackData, prefix="aim_clear"):

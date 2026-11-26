@@ -100,6 +100,13 @@ def _owns_fact(fact: MemoryFact, actor_tid: int) -> bool:
     )
 
 
+def validate_memory_update(fact: MemoryFact, actor_tid: int, topic_id: int | None, *, admin: bool) -> None:
+    if not admin and not _owns_fact(fact, actor_tid):
+        raise MemoryEditRejected(_("Only a chat administrator can update another person's memory."))
+    if fact.scope != "person" or fact.topic_id != topic_id:
+        raise MemoryEditRejected(_("Update personal memories in their original topic."))
+
+
 def _validate_fact_ids(fact_ids: list[str]) -> None:
     if not 1 <= len(fact_ids) <= MAX_DELETE_IDS or any(
         not re.fullmatch(r"[0-9a-f]{32}", fact_id) for fact_id in fact_ids
@@ -150,10 +157,7 @@ def _save(state: MemoryState, proposal: MemoryEditProposal, *, admin: bool) -> t
     if fact_id is not None and previous is None:
         raise MemoryEditRejected(_("That memory ID was not found in this chat."))
     if previous is not None:
-        if not admin and not _owns_fact(previous, actor_tid):
-            raise MemoryEditRejected(_("Only a chat administrator can update another person's memory."))
-        if previous.scope != "person" or previous.topic_id != source.topic_id:
-            raise MemoryEditRejected(_("Update personal memories in their original topic."))
+        validate_memory_update(previous, actor_tid, source.topic_id, admin=admin)
         if any(fact.previous_id == previous.fact_id for fact in state.facts):
             raise MemoryEditRejected(_("Use the ID of the current memory version."))
         if source.sent_at < previous.occurred_at:
