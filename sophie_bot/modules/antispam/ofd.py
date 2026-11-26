@@ -128,7 +128,9 @@ class OfdProvider:
 
         return await cached_verdict(self.redis, f"{self.key_prefix}:user:{user_tid}", lambda: self._request(lookup))
 
-    async def scan_content(self, text: str, user_tid: int, *, chat_tid: int) -> ProtectionVerdict:
+    async def scan_content(
+        self, text: str, user_tid: int, *, chat_tid: int, links: tuple[str, ...] = ()
+    ) -> ProtectionVerdict:
         async def lookup() -> ProtectionVerdict:
             scan = await self.client.scan_content(
                 ContentInput(text), author=f"{user_tid}@{self.entity_host}", concerns=None

@@ -103,22 +103,14 @@ Telegram accepts at most five ephemeral messages per user.
 
 ## USSR spam classifier
 
-The runtime image bundles a checksum-verified text model from a pinned USSR revision.
-Classification runs locally without network access and loads the model once per process.
-For source checkouts, run `make spam_model` before starting the bot. This downloads the
-artifact to `sophie_bot/spam_model_data/`; it is independent of the working directory.
-The model download uses HTTPX2. For a custom CA bundle, set `SSL_CERT_FILE` for the build.
-Rebuild the runtime image to deploy changes to the pinned model.
+The runtime image bundles the pinned USSR precision classifier and its encoder
+files. The build verifies each download against its SHA-256. For source checkouts,
+run `make spam_model` to prepare `sophie_bot/spam_model_data/`. Set `SSL_CERT_FILE`
+for the build if you use a custom CA bundle.
 
-
-USSR currently ships a binary spam classifier. Sophie records its spam probability;
-NSFW probability is zero because this artifact has no NSFW output. This integration
-collects matches for group message text and captions; it does not delete messages or
-run image classification. Administrators and group-whitelisted users are exempt.
-
-The artifact was trained with scikit-learn 1.8; the current dependency uses 1.9 and
-emits a version warning when loading it. The build and CI smoke checks exercise
-prediction with the installed version so an incompatible artifact fails before deployment.
+Scoring runs locally on CPU and includes embedded Telegram link destinations.
+Sophie records spam matches from group message text and captions. Administrators
+and group-whitelisted users are exempt.
 
 ## Anti-spam
 

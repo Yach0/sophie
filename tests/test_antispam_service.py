@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from aiogram.types import Chat, Message, User
+from aiogram.types import Chat, Message, MessageEntity, User
 
 from sophie_bot.db.models.antispam import AntispamMode, AntispamPolicy
 from sophie_bot.modules.antispam import service
@@ -99,3 +99,30 @@ def test_trusted_member_age_threshold(age_days: int, threshold_days: int | None,
     membership = SimpleNamespace(first_saw=datetime.now(UTC) - timedelta(days=age_days, minutes=1))
     threshold_seconds = threshold_days * 86400 if threshold_days is not None else None
     assert service.is_trusted_member(membership, threshold_seconds) is expected
+
+
+@pytest.mark.parametrize("caption", [False, True])
+async def test_content_scan_receives_embedded_destinations(caption: bool) -> None:
+    destination = "https://example.test/guide"
+    entity = MessageEntity(type="text_link", offset=0, length=5, url=destination)
+    message = Message(
+        message_id=1,
+        chat=Chat(id=-1001234, type="supergroup"),
+        date=datetime.now(UTC),
+        text=None if caption else "Guide",
+        caption="Guide" if caption else None,
+        entities=None if caption else [entity],
+        caption_entities=[entity] if caption else None,
+    )
+    scanner = SimpleNamespace(
+        origin=ProviderOrigin.BUILTIN,
+        capabilities=ProviderCapability.CONTENT_SCAN,
+        scan_content=AsyncMock(return_value=ProtectionVerdict("ussr", False)),
+    )
+    services = SimpleNamespace(antispam=SimpleNamespace(active=AsyncMock(return_value=(scanner,))))
+    chat = SimpleNamespace(tid=message.chat.id)
+    protection = service.AntispamService(services, chat, AntispamPolicy(mode=AntispamMode.NORMAL), (scanner,))
+
+    await protection._evaluate(123, message=message, membership=None, joining=False, join_request=False)
+
+    scanner.scan_content.assert_awaited_once_with("Guide", 123, chat_tid=message.chat.id, links=(destination,))

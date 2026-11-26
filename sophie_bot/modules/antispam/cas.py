@@ -69,7 +69,9 @@ class CasProvider:
     async def close(self) -> None:
         await self.client.aclose()
 
-    async def scan_content(self, text: str, user_tid: int, *, chat_tid: int) -> ProtectionVerdict:
+    async def scan_content(
+        self, text: str, user_tid: int, *, chat_tid: int, links: tuple[str, ...] = ()
+    ) -> ProtectionVerdict:
         raise NotImplementedError
 
     async def _mirror_contains(self, user_tid: int) -> bool | None:

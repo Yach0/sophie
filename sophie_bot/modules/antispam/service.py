@@ -5,6 +5,7 @@ from collections.abc import Awaitable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from aiogram.enums import MessageEntityType
 from aiogram.exceptions import (
     TelegramAPIError,
     TelegramBadRequest,
@@ -468,11 +469,15 @@ class AntispamService:
         text = (message.text or message.caption) if message is not None else None
         if message is not None and not joining and text and text.strip():
             scan_providers = await self._scan_providers(message, membership)
+            entities = message.entities if message.text else message.caption_entities
+            links = tuple(
+                entity.url for entity in entities or () if entity.type == MessageEntityType.TEXT_LINK and entity.url
+            )
             checks.extend(
                 (
                     provider,
                     ProviderCapability.CONTENT_SCAN,
-                    provider.scan_content(text, user_tid, chat_tid=self.chat.tid),
+                    provider.scan_content(text, user_tid, chat_tid=self.chat.tid, links=links),
                 )
                 for provider in scan_providers
             )
