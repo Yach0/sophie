@@ -284,7 +284,7 @@ def capture_ai_error(
     level: _SentryLevel = "error",
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> str | None:
-    """Report an AI provider failure to Sentry with the model and operation attached."""
+    """Report an AI action failure, reserving sanitized grouping for provider failures."""
     context = resolve_ai_error_context(context)
     existing_event_id = getattr(error, "sentry_event_id", None)
     if isinstance(existing_event_id, str):
@@ -298,16 +298,7 @@ def capture_ai_error(
     )
     details = _error_details(error, context, user_facing_message=message_str)
     with sentry_sdk.new_scope() as scope:
-        scope.update_from_kwargs(
-            level=level,
-            fingerprint=[
-                "ai-provider-error",
-                context.operation,
-                context.model_name or "unknown",
-                details["error_type"],
-                str(details["status_code"]),
-            ],
-        )
+        scope.update_from_kwargs(level=level)
         scope.set_context("ai_request", details)
         scope.set_tag("ai.operation", context.operation)
         scope.set_tag("ai.origin", context.origin)
@@ -320,6 +311,13 @@ def capture_ai_error(
         if message_str is not None:
             scope.set_tag("ai.user_facing_error", message_str)
         if is_ai_provider_failure(error):
+            scope.fingerprint = [
+                "ai-provider-error",
+                context.operation,
+                context.model_name or "unknown",
+                details["error_type"],
+                str(details["status_code"]),
+            ]
             # SDK exceptions retain requests and private input in traceback locals.
             # Keep attribution and grouping, without sending that exception or its payload.
             event_id = sentry_sdk.capture_message(f"AI {context.operation} provider request failed", level=level)

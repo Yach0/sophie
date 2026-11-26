@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 from collections.abc import Awaitable, Callable, Iterator
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import AsyncMock
 
 import httpx
 import pytest
 import sentry_sdk
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.methods import SendMessage
 from beanie import PydanticObjectId
 from mistralai.client.errors import SDKError
 from pydantic_ai import Agent
@@ -48,6 +50,7 @@ from sophie_bot.modules.ai.utils.memory_writer import WriterPrompt
 from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnavailable, run_moderation_request
 from sophie_bot.modules.ai.utils.summary_transcript import build_summary_transcript
 from sophie_bot.modules.error.handlers.error import SophieErrorHandler
+from sophie_bot.modules.error.utils.error_message import generic_error_message
 from sophie_bot.modules.notes.schedules import generate_ai_titles
 from sophie_bot.services import sentry
 from sophie_bot.services.application import ApplicationServices
@@ -320,6 +323,73 @@ def test_error_handler_still_captures_exceptions_nobody_reported(sentry_events: 
     assert len(sentry_events) == 1
 
 
+@pytest.mark.parametrize("origin", ["explicit", "automatic"])
+@pytest.mark.parametrize("route", ["global", "direct"])
+@pytest.mark.parametrize("failure_kind", ["key", "telegram"])
+def test_contextual_non_provider_failure_keeps_native_sentry_grouping_and_traceback(
+    origin: Literal["explicit", "automatic"],
+    route: str,
+    failure_kind: str,
+    sentry_events: list[dict[str, Any]],
+) -> None:
+    context = AIErrorContext(operation="transcription", model_name="voxtral", origin=origin)
+    failure = (
+        KeyError("missing transcript")
+        if failure_kind == "key"
+        else TelegramBadRequest(
+            method=SendMessage(chat_id=123, text="reply"), message="Bad Request: message is too long"
+        )
+    )
+
+    def failed_delivery() -> None:
+        with ai_error_scope(context):
+            raise failure from ValueError("original cause")
+
+    try:
+        failed_delivery()
+    except (KeyError, TelegramBadRequest) as error:
+        event_id = SophieErrorHandler.capture_sentry(error) if route == "global" else capture_ai_error(error, context)
+
+    (event,) = sentry_events
+    assert event_id == event["event_id"]
+    # Leaving fingerprint unset lets Sentry group using the original exception and stack.
+    assert "fingerprint" not in event
+    cause, reported = event["exception"]["values"]
+    assert cause["type"] == "ValueError"
+    assert cause["value"] == "original cause"
+    assert reported["type"] == type(failure).__name__
+    assert reported["value"] == (failure.message if isinstance(failure, TelegramBadRequest) else str(failure))
+    assert reported["stacktrace"]["frames"][-1]["function"] == "failed_delivery"
+    assert ai_errors.get_ai_error_context(failure) == context
+    assert ai_errors.is_silent_ai_error(failure) == (origin == "automatic")
+    if origin == "explicit":
+        text = generic_error_message(failure, event_id, hide_contact=True)["text"]
+        assert "transcription" in text.lower()
+        assert event_id in text
+        assert str(failure) not in text
+    assert SophieErrorHandler.capture_sentry(failure) == event_id
+    assert len(sentry_events) == 1
+
+
+@pytest.mark.parametrize("origin", ["explicit", "automatic"])
+def test_global_handler_sanitizes_and_groups_contextual_provider_failure(
+    origin: Literal["explicit", "automatic"], sentry_events: list[dict[str, Any]]
+) -> None:
+    context = AIErrorContext(operation="transcription", model_name="voxtral", origin=origin)
+    try:
+        with ai_error_scope(context):
+            raise _model_http_error(402)
+    except ModelHTTPError as error:
+        event_id = SophieErrorHandler.capture_sentry(error)
+
+    (event,) = sentry_events
+    assert event_id == event["event_id"]
+    assert event["fingerprint"] == ["ai-provider-error", "transcription", "voxtral", "ModelHTTPError", "402"]
+    assert "exception" not in event
+    assert "upstream is down" not in json.dumps(event)
+    assert event["tags"]["ai.origin"] == origin
+
+
 def test_ai_provider_exceptions_include_tool_failed_error() -> None:
     assert ToolFailedError in AI_PROVIDER_EXCEPTIONS
     # Control flow and programmer errors must not be routed through provider failover
@@ -501,6 +571,7 @@ async def test_mixed_fallback_group_preserves_unexpected_failure(
     assert raised.value is failure
     (event,) = sentry_events
     assert any(value["type"] == "ValueError" for value in event["exception"]["values"])
+    assert "fingerprint" not in event
     assert SophieErrorHandler.capture_sentry(failure) == event["event_id"]
     assert len(sentry_events) == 1
 
