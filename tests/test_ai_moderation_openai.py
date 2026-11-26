@@ -16,6 +16,7 @@ from sophie_bot.modules.ai.utils.moderation.providers.base import ModerationUnav
 from sophie_bot.modules.ai.utils.moderation.providers.openai import OpenAIModerationProvider
 from sophie_bot.modules.ai.utils.old_context import convert_to_openai_moderation_format
 from sophie_bot.utils.feature_flags import set_value
+from tests.utils.native_catalog import select_native_models
 
 _DEFAULTS = {native.key: native.default_threshold for native in OpenAIModerationProvider.native_categories}
 
@@ -53,18 +54,8 @@ def mock_history() -> AsyncMock:
 
 
 @pytest.fixture
-async def openai_provider(test_redis: object) -> None:
-    await set_value(
-        "ai_moderation_provider",
-        "openai",
-        redis=test_redis,
-    )
-    yield
-    await set_value(
-        "ai_moderation_provider",
-        "mistral",
-        redis=test_redis,
-    )
+async def openai_provider(native_catalog: None, test_redis: object) -> None:
+    await select_native_models("openai", redis=test_redis)
 
 
 pytestmark = pytest.mark.usefixtures("db_init", "mock_history", "openai_provider")
@@ -215,10 +206,13 @@ async def test_openai_transport_outage_is_unavailable_after_sdk_retries(
         max_retries=1,
         http_client=httpx2.AsyncClient(transport=httpx2.MockTransport(fail_request)),
     ) as client:
-        with patch(
-            "sophie_bot.modules.ai.utils.moderation.providers.openai.get_openai_client",
-            new=AsyncMock(return_value=client),
-        ), pytest.raises(ModerationUnavailable) as raised:
+        with (
+            patch(
+                "sophie_bot.modules.ai.utils.moderation.providers.openai.get_openai_client",
+                new=AsyncMock(return_value=client),
+            ),
+            pytest.raises(ModerationUnavailable) as raised,
+        ):
             await check_moderator(_make_message(private_input), services=SimpleNamespace(redis=test_redis))
 
     assert len(requests) == client.max_retries + 1

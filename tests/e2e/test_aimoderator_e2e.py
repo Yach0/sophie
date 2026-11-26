@@ -33,6 +33,7 @@ from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.feature_flags import set_chat_override
 from tests.e2e.helpers import create_test_user_and_group, grant_admin, grant_bot_admin, next_user_id
+from tests.utils.native_catalog import select_native_models
 from tests.utils.rich_html import parse_rich_html
 
 
@@ -145,7 +146,7 @@ async def _enable_moderation(
     assert chat is not None
     await AIModeModel.set_mode(chat, mode)
     await set_chat_override("ai_moderation", group.id, True, redis=services.redis)
-    await set_chat_override("ai_moderation_provider", group.id, provider, redis=services.redis)
+    await select_native_models(provider, redis=services.redis, mode=mode)
     await set_chat_override("ai_moderation_notice_delete_after_seconds", group.id, 0, redis=services.redis)
     return member, group
 

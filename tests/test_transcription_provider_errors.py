@@ -11,7 +11,7 @@ import httpx
 import pytest
 from mistralai.client.errors import NoResponseError, SDKError
 
-from sophie_bot.modules.ai.utils import transcription, transform_audio, transform_video
+from sophie_bot.modules.ai.utils import transcription, transform_video
 from sophie_bot.modules.ai.utils.ai_chatbot_reply import _send_chatbot_ai_failure_reply
 from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
 from sophie_bot.modules.ai.utils.modern_context import build_cached_message_parts, build_message_parts
@@ -19,6 +19,8 @@ from sophie_bot.modules.error.handlers.error import SophieErrorHandler
 from sophie_bot.services.application import ApplicationServices
 from tests.test_ai_failure_reply_markup import _bot
 from tests.test_ai_media_pathways import _download, _media_message
+
+pytestmark = pytest.mark.usefixtures("native_catalog")
 
 BILLING_BODY = '{"message":"No API budget configured","type":"billing_no_api_budget_configured","code":"2314"}'
 
@@ -39,8 +41,7 @@ async def test_explicit_transcription_billing_failure_is_concise(
     failure = billing_failure()
     complete = AsyncMock(side_effect=failure)
     client = SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
-    monkeypatch.setattr(transform_audio, "get_mistral_client", AsyncMock(return_value=client))
-    monkeypatch.setattr(transform_video, "get_mistral_client", AsyncMock(return_value=client))
+    monkeypatch.setattr(transcription, "get_mistral_client", AsyncMock(return_value=client))
     monkeypatch.setattr(transform_video, "extract_audio_from_video", AsyncMock(return_value=b"audio"))
     _download(test_services.bot, b"audio", monkeypatch)
     warning = Mock()
@@ -119,7 +120,7 @@ async def test_video_transcription_closes_audio_on_cancellation(
         raise asyncio.CancelledError
 
     client = SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=transcribe)))
-    monkeypatch.setattr(transform_video, "get_mistral_client", AsyncMock(return_value=client))
+    monkeypatch.setattr(transcription, "get_mistral_client", AsyncMock(return_value=client))
     monkeypatch.setattr(transform_video, "extract_audio_from_video", AsyncMock(return_value=b"audio"))
     with pytest.raises(asyncio.CancelledError):
         await transform_video.transform_video_to_text(

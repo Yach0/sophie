@@ -31,13 +31,17 @@ from fakeredis import FakeAsyncRedis
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.cache.locale import LocaleStore
+from sophie_bot.db.models.ai.ai_catalog import AICatalogModelModel, AICatalogProviderModel
+from sophie_bot.db.models.feature_flag import FeatureFlagOverride
 from sophie_bot.modules import LoadedModuleRegistry
+from sophie_bot.modules.ai.utils import ai_catalog
 from sophie_bot.modules.utils_.delayed_delete import DelayedDeletionService
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.services.db import DatabaseResources
 from sophie_bot.utils.cached import RedisCache
 from sophie_bot.utils.i18n import I18nNew
 from tests.utils.db_fixture import MOCK_MONGO, cleanup_beanie, initialize_beanie
+from tests.utils.native_catalog import select_native_models
 from tests.utils.sentry import runtime_sentry_events  # noqa: F401
 
 logger = logging.getLogger(__name__)
@@ -163,3 +167,17 @@ async def test_services(
 async def reset_redis(test_redis: FakeAsyncRedis) -> None:
     """Reset the explicit shared fake Redis state between tests."""
     await test_redis.flushall()
+
+
+@pytest.fixture
+async def native_catalog(db_init: Any, test_services: ApplicationServices) -> AsyncGenerator[None]:
+    previous = ai_catalog.catalog()
+    await AICatalogModelModel.delete_all()
+    await AICatalogProviderModel.delete_all()
+    await FeatureFlagOverride.find(FeatureFlagOverride.feature == "ai_moderation_provider").delete()
+    await select_native_models("mistral", redis=test_services.redis)
+    yield
+    await AICatalogModelModel.delete_all()
+    await AICatalogProviderModel.delete_all()
+    await FeatureFlagOverride.find(FeatureFlagOverride.feature == "ai_moderation_provider").delete()
+    ai_catalog._catalog = previous

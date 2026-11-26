@@ -48,8 +48,11 @@ class MistralModerationProvider:
     name: str = "mistral"
     native_categories: tuple[NativeCategory, ...] = _NATIVE_CATEGORIES
 
-    @staticmethod
+    def __init__(self, model_name: str = MISTRAL_MODERATION_MODEL) -> None:
+        self.model_name = model_name
+
     async def classify(
+        self,
         history: OldContext,
         *,
         redis: Redis,
@@ -59,9 +62,9 @@ class MistralModerationProvider:
         response: ModerationResponse = await run_moderation_request(
             lambda: client.classifiers.moderate_chat_async(
                 inputs=moderation_messages,
-                model=MISTRAL_MODERATION_MODEL,
+                model=self.model_name,
             ),
-            AIErrorContext(operation="moderation", model_name=MISTRAL_MODERATION_MODEL),
+            AIErrorContext(operation="moderation", model_name=self.model_name),
         )
         if not response.results:
             return {}

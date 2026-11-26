@@ -28,6 +28,7 @@ from sophie_bot.modules.ai.utils.moderation.providers.mistral import MistralMode
 from sophie_bot.modules.ai.utils.moderation.settings import LEVEL_CYCLE, next_level
 from sophie_bot.modules.ai.utils.moderation.thresholds import resolve_level_multipliers, resolve_thresholds
 from sophie_bot.utils.feature_flags import set_chat_override, set_value
+from tests.utils.native_catalog import select_native_models
 from tests.utils.rich_html import parse_rich_html
 
 _MISTRAL_DEFAULTS = {native.key: native.default_threshold for native in MistralModerationProvider.native_categories}
@@ -80,7 +81,7 @@ def mock_convert() -> AsyncMock:
         yield mock_fn
 
 
-pytestmark = pytest.mark.usefixtures("db_init", "mock_history", "mock_convert")
+pytestmark = pytest.mark.usefixtures("db_init", "native_catalog", "mock_history", "mock_convert")
 
 
 # --- check_moderator ---
@@ -314,22 +315,15 @@ async def test_level_multiplier_scales_the_score(test_redis: object, test_servic
     assert result.triggered == frozenset({ModerationCategory.SEXUAL})
 
 
-async def test_provider_flag_selects_backend(test_redis: object, test_services: object) -> None:
+async def test_catalog_selects_backend(test_redis: object, test_services: object) -> None:
     assert (await get_moderation_provider(services=test_services)).name == "mistral"
+    await select_native_models("openai", redis=test_redis)
+    assert (await get_moderation_provider(services=test_services)).name == "openai"
 
+
+async def test_legacy_provider_flag_does_not_override_catalog(test_redis: object, test_services: object) -> None:
     await set_value("ai_moderation_provider", "openai", redis=test_redis)
-    try:
-        assert (await get_moderation_provider(services=test_services)).name == "openai"
-    finally:
-        await set_value("ai_moderation_provider", "mistral", redis=test_redis)
-
-
-async def test_unknown_provider_falls_back_to_mistral(test_redis: object, test_services: object) -> None:
-    await set_value("ai_moderation_provider", "nonsense", redis=test_redis)
-    try:
-        assert (await get_moderation_provider(services=test_services)).name == "mistral"
-    finally:
-        await set_value("ai_moderation_provider", "mistral", redis=test_redis)
+    assert (await get_moderation_provider(services=test_services)).name == "mistral"
 
 
 # --- the /aimoderator picker ---

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from io import BufferedReader, BytesIO
+from io import BytesIO
 from typing import BinaryIO
 
 import av
@@ -12,8 +12,7 @@ from av.audio.resampler import AudioResampler
 from redis.asyncio import Redis
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
-from sophie_bot.modules.ai.utils.ai_clients import get_mistral_client
-from sophie_bot.modules.ai.utils.transcription import transcription_errors
+from sophie_bot.modules.ai.utils.transcription import transcribe_audio
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.logger import log
@@ -94,10 +93,10 @@ async def extract_audio_from_video(video: Video | VideoNote, *, bot: Bot) -> byt
 
 
 async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: Redis) -> str | None:
-    """Transcribe video audio to text using Mistral AI.
+    """Transcribe video audio using the catalog's shared native transcription endpoint.
 
     Downloads the video, extracts audio, and transcribes it using
-    the Mistral transcription API.
+    the selected native transcription API.
 
     Args:
         bot: Telegram bot used to download the video.
@@ -112,17 +111,6 @@ async def transform_video_to_text(video: Video | VideoNote, *, bot: Bot, redis: 
     if audio_bytes is None:
         return None
 
-    with BufferedReader(BytesIO(audio_bytes)) as audio_bytes_io, transcription_errors():
-        client = await get_mistral_client(redis=redis)
-        resp = await client.audio.transcriptions.complete_async(
-            model="voxtral-mini-latest",
-            file={
-                "file_name": "audio.ogg",
-                "content": audio_bytes_io,
-                "content_type": "audio/ogg",
-            },
-        )
-
-    transcribed_text = resp.text.removesuffix("\n")
+    transcribed_text = await transcribe_audio(audio_bytes, "audio.ogg", "audio/ogg", redis=redis)
     log.debug("Transcribed text", transcribed_text=transcribed_text)
     return transcribed_text

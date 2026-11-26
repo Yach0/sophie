@@ -264,7 +264,7 @@ async def test_meta_exposes_the_enums_the_panel_builds_pickers_from() -> None:
     assert meta.model_override_flags["chatbot"] == "ai_chatbot_model"
     assert meta.model_override_flags["moderation_reason"] == "ai_moderation_reason_model"
     assert "memory_writer" in meta.purposes
-    assert set(meta.model_override_flags) == set(meta.purposes) - {"memory_writer"}
+    assert set(meta.model_override_flags) == set(meta.purposes) - {"memory_writer", "transcription", "moderation"}
 
 
 async def test_openrouter_proxy_trims_the_upstream_shape(test_services: object) -> None:

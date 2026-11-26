@@ -108,6 +108,11 @@ def _model_usage() -> Section:
                 "^priority (lower runs earlier), and the next one takes over when the current "
                 "one fails or answers with nothing."
             ),
+            _(
+                "Native transcription and moderation use only the highest-priority model. "
+                "support:transcription selects the shared audio/video service; support:moderation "
+                "and moderation:moderation select each mode's classifier."
+            ),
             Template(
                 _("A model that cannot be shown an image is skipped for image messages: set {option}."),
                 option=Code("^images=no"),
