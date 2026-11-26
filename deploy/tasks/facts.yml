@@ -2,6 +2,17 @@
   set_fact:
     operators: [834047763, 483808054]
 
+- name: Set shared anti-spam vars
+  no_log: true
+  set_fact:
+    antispam_cas_api_key: "{{ lookup('env', 'ANTISPAM_CAS_API_KEY') }}"
+    antispam_cas_export_url: "{{ lookup('env', 'ANTISPAM_CAS_EXPORT_URL') }}"
+    antispam_ofd_url: "{{ lookup('env', 'ANTISPAM_OFD_URL') }}"
+    antispam_ofd_api_key: "{{ lookup('env', 'ANTISPAM_OFD_API_KEY') }}"
+    antispam_ofd_name: "{{ lookup('env', 'ANTISPAM_OFD_NAME') | default('Open Federation', true) }}"
+    antispam_ofd_web_url: "{{ lookup('env', 'ANTISPAM_OFD_WEB_URL') }}"
+    antispam_ofd_servers: "{{ lookup('env', 'ANTISPAM_OFD_SERVERS') | default('[]', true) }}"
+
 - name: Set vars for Staging
   set_fact:
     token: "{{ lookup('env', 'BETA_TOKEN') }}"

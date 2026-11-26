@@ -142,23 +142,27 @@ notice bans the user, removes the flagged message immediately, and saves the
 message text and timestamps to `antispam_confirmed_spam` for post-training.
 
 - Set `ANTISPAM_CAS_API_KEY` to the Combot API key for online lookup and
-  enrichment. Combot has retired its public CSV export. Set
-  `ANTISPAM_CAS_EXPORT_URL=None` for API-only operation, or supply a trusted,
-  compatible CSV mirror with the Telegram user ID in the first column. The
-  scheduler refreshes that mirror every six hours. Sophie uses online lookups
-  when the mirror is unavailable and `ANTISPAM_CAS_LOOKUP_FALLBACK` is enabled.
-  [CAS API documentation](https://cas.chat/api.html)
-- Set `ANTISPAM_OFD_SERVERS` to a JSON array of Open Federated Database servers.
-  Each entry has `id`, `name`, and `url`, plus optional `access_token`,
-  `web_url` for attribution and appeals, and `entity_host` (default
-  `telegram.org`). Keep each `id` stable because logs reference `ofd:<id>`. IDs
-  can contain up to 36 lowercase letters, digits, hyphens or underscores.
+  enrichment. Combot has retired its public CSV export, so
+  `ANTISPAM_CAS_EXPORT_URL` defaults to unset (API-only). Optionally set
+  `ANTISPAM_CAS_EXPORT_URL` to a trusted, compatible CSV mirror with the
+  Telegram user ID in the first column; the scheduler refreshes that mirror
+  every six hours. [CAS API documentation](https://cas.chat/api.html)
+- Set `ANTISPAM_OFD_URL` (and optionally `ANTISPAM_OFD_API_KEY`,
+  `ANTISPAM_OFD_NAME`, `ANTISPAM_OFD_WEB_URL`, and `ANTISPAM_OFD_ENTITY_HOST`,
+  default `telegram.org`) to connect a single Open Federated Database server
+  using plain CI/environment variables.
+- For multiple OFD servers, set `ANTISPAM_OFD_SERVERS` to a JSON array of
+  server objects (`id`, `name`, `url`, plus optional `access_token`, `web_url`,
+  and `entity_host`). Keep each `id` stable because logs reference `ofd:<id>`.
 
-This configuration uses the CAS API and one OFD server.
+This configuration uses the CAS API and one OFD server (and matches the Ansible
+deployment templates in `deploy/templates/`):
 
 ```ini
-ANTISPAM_CAS_EXPORT_URL=None
-ANTISPAM_OFD_SERVERS=[{"id":"community","name":"Community OFD","url":"https://ofd.example.org"}]
+ANTISPAM_CAS_API_KEY=your-cas-api-key
+ANTISPAM_OFD_URL=https://ofd.example.org
+ANTISPAM_OFD_API_KEY=your-ofd-token
+ANTISPAM_OFD_NAME=Open Federation
 ```
 
 When third-party sources are enabled, user lookup sends a Telegram user ID to

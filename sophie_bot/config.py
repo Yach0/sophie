@@ -70,8 +70,14 @@ class Config(BaseSettings):
     redis_db_schedule: int = 3
 
     antispam_cas_api_key: SecretStr | None = None
-    antispam_cas_export_url: AnyHttpUrl | None = AnyHttpUrl("https://api.cas.chat/export.csv")
+    antispam_cas_export_url: AnyHttpUrl | None = None
     antispam_cas_lookup_fallback: bool = True
+    antispam_ofd_url: AnyHttpUrl | None = None
+    antispam_ofd_api_key: SecretStr | None = None
+    antispam_ofd_name: str = "Open Federation"
+    antispam_ofd_id: str = "default"
+    antispam_ofd_web_url: AnyHttpUrl | None = None
+    antispam_ofd_entity_host: str = "telegram.org"
     antispam_ofd_servers: list[OfdServerConfig] = Field(default_factory=list)
 
     botapi_server: AnyHttpUrl | None = None
@@ -191,12 +197,43 @@ class Config(BaseSettings):
     # dev hot-reloads, so it always reflects only the current run.
     runtime_log_file: str = "data/runtime.logs"
 
-    @field_validator("antispam_ofd_servers")
+    @field_validator(
+        "antispam_cas_api_key",
+        "antispam_cas_export_url",
+        "antispam_ofd_url",
+        "antispam_ofd_api_key",
+        "antispam_ofd_web_url",
+        mode="before",
+    )
     @classmethod
-    def unique_antispam_ids(cls, servers: list[OfdServerConfig]) -> list[OfdServerConfig]:
+    def empty_antispam_str_as_none(cls, value: object) -> object:
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @property
+    def resolved_antispam_ofd_servers(self) -> tuple[OfdServerConfig, ...]:
+        servers = list(self.antispam_ofd_servers)
+        if self.antispam_ofd_url is not None:
+            servers.insert(
+                0,
+                OfdServerConfig(
+                    id=self.antispam_ofd_id,
+                    name=self.antispam_ofd_name,
+                    url=self.antispam_ofd_url,
+                    access_token=self.antispam_ofd_api_key,
+                    entity_host=self.antispam_ofd_entity_host,
+                    web_url=self.antispam_ofd_web_url,
+                ),
+            )
+        return tuple(servers)
+
+    @model_validator(mode="after")
+    def validate_antispam_ofd_servers(self) -> "Config":
+        servers = self.resolved_antispam_ofd_servers
         if len({server.id for server in servers}) != len(servers):
             raise ValueError("OFD server IDs must be unique")
-        return servers
+        return self
 
     @field_validator("redis_username")
     @classmethod
