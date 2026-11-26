@@ -86,8 +86,11 @@ class OpenAIModerationProvider:
     name: str = "openai"
     native_categories: tuple[NativeCategory, ...] = _NATIVE_CATEGORIES
 
-    @staticmethod
+    def __init__(self, model_name: str = OPENAI_MODERATION_MODEL) -> None:
+        self.model_name = model_name
+
     async def classify(
+        self,
         history: OldContext,
         *,
         redis: Redis,
@@ -98,8 +101,8 @@ class OpenAIModerationProvider:
 
         client = await get_openai_client(redis=redis)
         response = await run_moderation_request(
-            lambda: client.moderations.create(model=OPENAI_MODERATION_MODEL, input=inputs),
-            AIErrorContext(operation="moderation", model_name=OPENAI_MODERATION_MODEL),
+            lambda: client.moderations.create(model=self.model_name, input=inputs),
+            AIErrorContext(operation="moderation", model_name=self.model_name),
         )
         if not response.results:
             return {}

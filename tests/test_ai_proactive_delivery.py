@@ -20,7 +20,7 @@ from stfu_tg import Bold, Doc
 
 from sophie_bot.db.models import AIUsageModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils import ai_run, chatbot_agent, proactive_replies, transcription, transform_audio
+from sophie_bot.modules.ai.utils import ai_run, chatbot_agent, proactive_replies, transcription
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
@@ -271,6 +271,7 @@ async def test_explicit_reply_keeps_existing_fallback(
 
 @pytest.mark.parametrize("modern", [True])
 @pytest.mark.parametrize("failure_kind", ["billing", "unrelated"])
+@pytest.mark.usefixtures("native_catalog")
 async def test_proactive_transcription_preparation_failure(
     delivery: Delivery,
     monkeypatch: pytest.MonkeyPatch,
@@ -293,7 +294,7 @@ async def test_proactive_transcription_preparation_failure(
     failure = billing_failure() if failure_kind == "billing" else ValueError("unrelated bug")
     complete = AsyncMock(side_effect=failure)
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))

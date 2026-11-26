@@ -29,6 +29,8 @@ class AIModelPurpose(str, Enum):
     moderation_reason = "moderation_reason"
     sophie_inspect = "sophie_inspect"
     research = "research"
+    transcription = "transcription"
+    moderation = "moderation"
 
 
 class AIModelRole(BaseModel):
