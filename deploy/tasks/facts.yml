@@ -11,7 +11,7 @@
     antispam_ofd_api_key: "{{ lookup('env', 'ANTISPAM_OFD_API_KEY') }}"
     antispam_ofd_name: "{{ lookup('env', 'ANTISPAM_OFD_NAME') | default('Open Federation', true) }}"
     antispam_ofd_web_url: "{{ lookup('env', 'ANTISPAM_OFD_WEB_URL') }}"
-    antispam_ofd_servers: "{{ lookup('env', 'ANTISPAM_OFD_SERVERS') | default('[]', true) }}"
+    antispam_ofd_servers: "{{ lookup('env', 'ANTISPAM_OFD_SERVERS') | trim | default('[]', true) | from_json }}"
 
 - name: Set vars for Staging
   set_fact:
