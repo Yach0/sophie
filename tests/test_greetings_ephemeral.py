@@ -126,7 +126,7 @@ async def _run_welcome(members: list[SimpleNamespace]):
             AsyncMock(),
             event,
             {
-                "context": SimpleNamespace(event_chat=chat_db),
+                "context": SimpleNamespace(event_chat=chat_db, antispam_removed_joiners=frozenset()),
                 "new_users": new_users,
                 "services": SimpleNamespace(
                     bot=object(),

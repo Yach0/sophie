@@ -17,6 +17,12 @@ from sophie_bot.db.models.ai import (
 )
 from sophie_bot.db.models.ai.ai_evidence_memory import AIEvidenceMemoryModel, AIMemoryRetentionPolicy
 from sophie_bot.db.models.antiflood import AntifloodModel
+from sophie_bot.db.models.antispam import (
+    AntispamConfirmedSpamModel,
+    AntispamExclusionModel,
+    AntispamIncidentModel,
+    AntispamSettingsModel,
+)
 from sophie_bot.db.models.api_token import ApiTokenModel
 from sophie_bot.db.models.beta import BetaModeModel
 from sophie_bot.db.models.chat import ChatModel, ChatTopicModel, UserInGroupModel
@@ -93,6 +99,10 @@ models: list[type[Document]] = [
     LocksModel,
     AIQuotaModel,
     AntifloodModel,
+    AntispamSettingsModel,
+    AntispamIncidentModel,
+    AntispamExclusionModel,
+    AntispamConfirmedSpamModel,
     ApiTokenModel,
     Federation,
     FederationBan,
@@ -122,6 +132,10 @@ __all__ = [
     "AIQuotaModel",
     "AIUsageModel",
     "AntifloodModel",
+    "AntispamConfirmedSpamModel",
+    "AntispamExclusionModel",
+    "AntispamIncidentModel",
+    "AntispamSettingsModel",
     "ApiTokenModel",
     "BetaModeModel",
     "ChatAdminModel",

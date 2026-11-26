@@ -33,6 +33,9 @@ class LogEvent(str, Enum):
     MESSAGES_PURGED = "messages_purged"
     MESSAGE_DELETED = "message_deleted"
 
+    ANTISPAM_MATCH = "antispam_match"
+    ANTISPAM_UNDONE = "antispam_undone"
+
     # Automated moderation exemptions
     GROUP_WHITELIST_EXEMPTION = "group_whitelist_exemption"
 
@@ -57,5 +60,7 @@ LOG_EVENT_STRINGS = {
     LogEvent.FILTER_DELETED: l_("Filter deleted"),
     LogEvent.MESSAGES_PURGED: l_("Messages purged"),
     LogEvent.MESSAGE_DELETED: l_("Message deleted"),
+    LogEvent.ANTISPAM_MATCH: l_("Anti-spam match"),
+    LogEvent.ANTISPAM_UNDONE: l_("Anti-spam action undone"),
     LogEvent.GROUP_WHITELIST_EXEMPTION: l_("Group whitelist exemption"),
 }

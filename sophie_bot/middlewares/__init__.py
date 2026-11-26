@@ -18,7 +18,6 @@ from sophie_bot.middlewares.media_group import MediaGroupAggregatorMiddleware, R
 from sophie_bot.middlewares.memory_debug import TracemallocMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
 from sophie_bot.middlewares.sentry_tracing import SentryTracingMiddleware
-from sophie_bot.middlewares.spam_detection import SpamDetectionMiddleware
 from sophie_bot.services.application import ApplicationServices
 from sophie_bot.utils.logger import log
 
@@ -79,7 +78,6 @@ def enable_middlewares(
     dispatcher.message.middleware(ArgsMiddleware(i18n=services.locales.i18n))
     dispatcher.update.outer_middleware(SaveChatsMiddleware())
     dispatcher.update.middleware(AdmincacheMiddleware())
-    dispatcher.update.middleware(SpamDetectionMiddleware())
     dispatcher.update.middleware(ConnectionsMiddleware())
     dispatcher.message.middleware(DisablingMiddleware())
 

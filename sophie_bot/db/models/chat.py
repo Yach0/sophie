@@ -214,6 +214,8 @@ class UserInGroupModel(Document):
     last_message_id: int | None = None
     joined_message_id: int | None = None
     ai_filter_seen_messages: int = 0
+    antispam_seen_messages: int = 0
+    antispam_last_message_id: int = 0
 
     class Settings:
         name = "users_in_groups"

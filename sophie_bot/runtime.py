@@ -72,6 +72,7 @@ async def _build_application_services(
             deletions=DelayedDeletionService(bot),
             modules=discover_modules(config.modules_load, config.modules_not_load),
             background_tasks=set(),
+            config=config,
         )
         yield services
     finally:
