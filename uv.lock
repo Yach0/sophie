@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.14, <4"
 resolution-markers = [
     "python_full_version >= '3.15' and sys_platform == 'win32'",
@@ -1930,6 +1930,19 @@ wheels = [
 ]
 
 [[package]]
+name = "pyfederation"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/55/65/dde323f194179f8100eaef53f625c3ec7c9d89bee398517a3ba52eedd0f1/pyfederation-2.2.1.tar.gz", hash = "sha256:21e3912b27812496684844d6c3a5c76f308d63cf2c4adcf18a365b8e5c34300c", size = 95693, upload-time = "2026-11-04T14:58:04.919Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/28/b2/b0c521d2c5edf17131a02d072ad2d8991b79589dba53978f241fedfca6b2/pyfederation-2.2.1-py3-none-any.whl", hash = "sha256:ff4e4aa4e9bcb36974fd8159324e024702a554766233952283e383b8a94975ae", size = 42502, upload-time = "2026-11-04T14:58:03.725Z" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.21.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2452,6 +2465,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pydantic-ai-slim", extra = ["openai", "openrouter", "tavily"] },
     { name = "pydantic-settings" },
+    { name = "pyfederation" },
     { name = "pyjwt" },
     { name = "pyyaml" },
     { name = "redis" },
@@ -2521,6 +2535,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.5,<3" },
     { name = "pydantic-ai-slim", extras = ["openai", "openrouter", "tavily"], specifier = ">=2.64.0,<3" },
     { name = "pydantic-settings", specifier = ">=2.15.0,<3" },
+    { name = "pyfederation", specifier = ">=2.2.1,<3" },
     { name = "pyjwt", specifier = ">=2.14.0,<3" },
     { name = "pyyaml", specifier = ">=6.0.3,<7" },
     { name = "redis", specifier = ">=8.1,<9" },

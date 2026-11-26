@@ -2,8 +2,36 @@ from ipaddress import IPv4Network
 from typing import Annotated, Literal
 
 from aiogram.webhook.security import DEFAULT_TELEGRAM_NETWORKS
-from pydantic import AnyHttpUrl, Field, FilePath, ValidationInfo, computed_field, field_validator, model_validator
+from pydantic import (
+    AnyHttpUrl,
+    BaseModel,
+    Field,
+    FilePath,
+    SecretStr,
+    ValidationInfo,
+    computed_field,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class OfdServerConfig(BaseModel):
+    id: str = Field(pattern=r"^[a-z0-9_-]{1,36}$")
+    name: str = Field(min_length=1, max_length=80)
+    url: AnyHttpUrl
+    access_token: SecretStr | None = None
+    entity_host: str = Field(default="telegram.org", pattern=r"^[a-zA-Z0-9.-]+$")
+    web_url: AnyHttpUrl | None = None
+
+    @field_validator("access_token")
+    @classmethod
+    def validate_token(cls, value: SecretStr | None) -> SecretStr | None:
+        if value is not None:
+            token = value.get_secret_value()
+            if not token or any(map(str.isspace, token)):
+                raise ValueError("OFD access token must be non-empty and contain no whitespace")
+        return value
 
 
 class Config(BaseSettings):
@@ -40,6 +68,11 @@ class Config(BaseSettings):
     redis_db_fsm: int = 1
     redis_db_states: int = 2
     redis_db_schedule: int = 3
+
+    antispam_cas_api_key: SecretStr | None = None
+    antispam_cas_export_url: AnyHttpUrl | None = AnyHttpUrl("https://api.cas.chat/export.csv")
+    antispam_cas_lookup_fallback: bool = True
+    antispam_ofd_servers: list[OfdServerConfig] = Field(default_factory=list)
 
     botapi_server: AnyHttpUrl | None = None
 
@@ -157,6 +190,13 @@ class Config(BaseSettings):
     # what happened during development. Truncated on every (re)start, including
     # dev hot-reloads, so it always reflects only the current run.
     runtime_log_file: str = "data/runtime.logs"
+
+    @field_validator("antispam_ofd_servers")
+    @classmethod
+    def unique_antispam_ids(cls, servers: list[OfdServerConfig]) -> list[OfdServerConfig]:
+        if len({server.id for server in servers}) != len(servers):
+            raise ValueError("OFD server IDs must be unique")
+        return servers
 
     @field_validator("redis_username")
     @classmethod

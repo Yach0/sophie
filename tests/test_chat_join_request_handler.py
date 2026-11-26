@@ -27,7 +27,7 @@ def _join_request_handler(
         state=SimpleNamespace(),
         context=SimpleNamespace(connection=connection),
         dispatcher=object(),
-        services=SimpleNamespace(bot=object(), redis=object()),
+        services=SimpleNamespace(bot=object(), redis=object(), antispam=None),
     )
     greetings = SimpleNamespace(
         welcome_security=SimpleNamespace(enabled=welcome_security_enabled),
@@ -181,6 +181,7 @@ async def test_chat_join_request_sends_unblock_message_without_sending_join_requ
     services = SimpleNamespace(
         bot=bot,
         redis=SimpleNamespace(set=redis_set),
+        antispam=None,
     )
 
     handler = ChatJoinRequestHandler(

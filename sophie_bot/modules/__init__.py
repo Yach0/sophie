@@ -82,6 +82,7 @@ MODULES = [
     "notes",
     "help",
     "federations",
+    "antispam",
     "communities",
     "privacy",
     "disabling",
