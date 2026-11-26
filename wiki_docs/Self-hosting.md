@@ -107,6 +107,7 @@ The runtime image bundles a checksum-verified text model from a pinned USSR revi
 Classification runs locally without network access and loads the model once per process.
 For source checkouts, run `make spam_model` before starting the bot. This downloads the
 artifact to `sophie_bot/spam_model_data/`; it is independent of the working directory.
+The model download uses HTTPX2. For a custom CA bundle, set `SSL_CERT_FILE` for the build.
 Rebuild the runtime image to deploy changes to the pinned model.
 
 
@@ -503,6 +504,7 @@ Sophie implements a unique proxying system where the Stable instance can redirec
 - `PROXY_BETA_INSTANCE_URL`: URL of the beta instance.
 
 When enabled, the bot can route requests between instances based on configuration, allowing for "canary" style deployments or easy beta testing for specific users/chats.
+For an HTTPS beta endpoint, install its issuing CA in the stable instance's system trust store.
 
 ## Environment Variables Reference
 
@@ -512,6 +514,7 @@ When enabled, the bot can route requests between instances based on configuratio
 | `MONGO_DB` | MongoDB Database Name |
 | `REDIS_DB_FSM` | Redis Database index for FSM |
 | `OWNER_ID` | Telegram User ID of the bot owner |
+| `GITLAB_PROJECT_ID` | Numeric project ID or current URL-encoded project path for `/op_task`. GitLab redirects are rejected to protect the API token. |
 | `ENVIRONMENT` | Name of the environment (e.g., `production-stable`) |
 | `MODE` | Set to `scheduler` for the scheduler service |
 

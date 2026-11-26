@@ -5,13 +5,18 @@ from functools import partial
 from typing import Literal
 from unittest.mock import AsyncMock
 
+import httpx2
 import pytest
+from aiogram import Dispatcher
 from aiogram.types import InlineQuery, PollAnswer, Update, User
 
+from sophie_bot.config import CONFIG
 from sophie_bot.db.models import BetaModeModel, ChatModel
 from sophie_bot.db.models.beta import CurrentMode
+from sophie_bot.middlewares import enable_middlewares
 from sophie_bot.middlewares.beta import BetaMiddleware
 from sophie_bot.middlewares.save_chats import SaveChatsMiddleware
+from sophie_bot.services.application import ApplicationServices
 
 RICH_MESSAGE_UPDATE: dict = {
     "update_id": 1,
@@ -88,6 +93,38 @@ def test_forwarded_payload_keeps_dates_as_unix_timestamps() -> None:
     payload = json.loads(BetaMiddleware().get_data(update))
 
     assert payload["callback_query"]["message"]["date"] == 1784942750
+
+
+async def test_forwarding_posts_serialized_update_and_closes_client(
+    monkeypatch: pytest.MonkeyPatch, test_services: ApplicationServices
+) -> None:
+    received: list[httpx2.Request] = []
+
+    def respond(request: httpx2.Request) -> httpx2.Response:
+        received.append(request)
+        if request.url.path == "/redirect":
+            return httpx2.Response(307, headers={"Location": "/webhook"})
+        return httpx2.Response(200)
+
+    monkeypatch.setattr(httpx2, "AsyncClient", partial(httpx2.AsyncClient, transport=httpx2.MockTransport(respond)))
+    monkeypatch.setattr(CONFIG, "proxy_enable", True)
+    dispatcher = Dispatcher()
+    enable_middlewares(dispatcher, test_services)
+    (beta,) = (middleware for middleware in dispatcher.update.middleware if isinstance(middleware, BetaMiddleware))
+    payload = beta.get_data(Update.model_validate(RICH_MESSAGE_UPDATE))
+    client = beta.get_session()
+    try:
+        await beta.send_request(payload, "https://beta.example/redirect")
+        assert beta.get_session() is client
+    finally:
+        await dispatcher.emit_shutdown()
+
+    assert client.is_closed
+    assert [request.url.path for request in received] == ["/redirect", "/webhook"]
+    for request in received:
+        assert request.method == "POST"
+        assert request.content == payload.encode()
+        assert request.headers["Content-Type"] == "text/plain; charset=utf-8"
 
 
 @pytest.mark.parametrize("event_type", ("inline_query", "poll_answer"))

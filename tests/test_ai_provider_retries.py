@@ -40,8 +40,7 @@ def test_transient_status_code_is_retryable() -> None:
     assert is_retryable_ai_provider_error(error)
 
 
-# openai and pydantic-ai moved to httpx2, while mistralai and the Tavily search tool still raise
-# legacy httpx exceptions. The two exception trees are unrelated, so classification has to keep
+# Tavily still raises legacy httpx exceptions. The two exception trees are unrelated, so classification has to keep
 # working for both; catching only one silently stops retrying half the provider failures.
 @pytest.mark.parametrize("http", [httpx, httpx2], ids=["httpx", "httpx2"])
 def test_transport_error_is_retryable_on_both_http_stacks(http: Any) -> None:

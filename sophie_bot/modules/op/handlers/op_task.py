@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-import aiohttp
+from asyncio import timeout
+from json import JSONDecodeError
+
+import httpx2
+import sentry_sdk
 from aiogram.types import Message
 from stfu_tg import Bold, Code, Doc, Italic, KeyValue, Section, Template, Title
 
@@ -35,9 +39,16 @@ async def _create_gitlab_issue(
     data: dict[str, str] = {"title": title, "description": description}
     if labels:
         data["labels"] = ",".join(labels)
-    async with aiohttp.ClientSession() as session, session.post(url, headers=headers, json=data) as resp:
-        resp.raise_for_status()
-        return await resp.json()
+    with sentry_sdk.start_span(op="http.client", name="Create GitLab issue") as span:
+        async with (
+            timeout(300),
+            httpx2.AsyncClient(timeout=httpx2.Timeout(None, connect=30), trust_env=False) as client,
+            client.stream("POST", url, headers=headers, json=data, follow_redirects=False) as response,
+        ):
+            span.set_http_status(response.status_code)
+            response.raise_for_status()
+            await response.aread()
+            return response.json()
 
 
 def _format_message(message: MessageType) -> str:
@@ -146,7 +157,7 @@ class OpTaskHandler(SophieMessageHandler):
                 description=task_result.description,
                 labels=task_result.labels,
             )
-        except (aiohttp.ClientError, TimeoutError) as exc:
+        except (httpx2.HTTPError, httpx2.InvalidURL, JSONDecodeError, TimeoutError) as exc:
             await message.reply(str(Section(Bold(_("Failed to create GitLab issue")), Italic(str(exc)))))
             return
 

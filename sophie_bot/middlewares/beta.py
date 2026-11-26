@@ -1,10 +1,12 @@
+from asyncio import timeout
 from collections.abc import Awaitable, Callable
 from random import randint
 from typing import Any, override
 
+import httpx2
+import sentry_sdk
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
-from aiohttp import ClientError, ClientSession
 
 from sophie_bot.config import CONFIG
 from sophie_bot.db.models import BetaModeModel, ChatModel, GlobalSettings
@@ -14,13 +16,22 @@ from sophie_bot.utils.serialization import serialize_bot_default
 
 
 class BetaMiddleware(BaseMiddleware):
-    def __init__(self):
-        self.session: ClientSession | None = None
+    def __init__(self) -> None:
+        self.session: httpx2.AsyncClient | None = None
 
-    async def get_session(self) -> ClientSession:
-        if not self.session:
-            self.session = ClientSession()
+    def get_session(self) -> httpx2.AsyncClient:
+        if self.session is None:
+            self.session = httpx2.AsyncClient(
+                timeout=httpx2.Timeout(None, connect=30),
+                follow_redirects=True,
+                trust_env=False,
+            )
         return self.session
+
+    async def close(self) -> None:
+        if self.session is not None:
+            await self.session.aclose()
+            self.session = None
 
     @override
     async def __call__(
@@ -83,13 +94,23 @@ class BetaMiddleware(BaseMiddleware):
         # replacing it with null is the intended outcome, not a mismatch worth reporting.
         return update.model_dump_json(by_alias=True, exclude_none=True, fallback=serialize_bot_default, warnings=False)
 
-    async def send_request(self, json_request: str, instance_url: str):
+    async def send_request(self, json_request: str, instance_url: str) -> None:
         try:
-            session = await self.get_session()
-            await session.post(instance_url, data=json_request)
-        except ClientError as e:
+            session = self.get_session()
+            with sentry_sdk.start_span(op="http.client", name="Forward beta update") as span:
+                async with (
+                    timeout(300),
+                    session.stream(
+                        "POST",
+                        instance_url,
+                        content=json_request,
+                        headers={"Content-Type": "text/plain; charset=utf-8"},
+                    ) as response,
+                ):
+                    span.set_http_status(response.status_code)
+        except (httpx2.RequestError, httpx2.InvalidURL, TimeoutError) as error:
             log.error(
                 "Failed to send request to the second backend.",
                 instance_url=instance_url,
-                error=e,
+                error=error,
             )
