@@ -82,8 +82,12 @@ While using some AI-enabled features such as AI Chatbot, AI Translator or AI Mod
 we may share the context of the conversation, which can
 include up to 40 of the most recent messages (including bot responses).
 
-The AI Moderator sends message text to a moderation classifier run by either Mistral or OpenAI,
-depending on which backend the instance is configured to use.
+The AI Moderator sends the message text and conversation input needed for classification directly to
+one selected native provider, either Mistral or OpenAI.
+AI transcription sends the audio file from voice or audio messages, or audio extracted locally from
+videos or video notes, directly to one selected native provider, either Mistral or OpenAI.
+Selection depends on the operators' model catalog configuration and, for moderation, applicable chat
+configuration. Each moderation or transcription request contacts only its selected provider, not both.
 
 ### AI modes and message history
 
@@ -107,7 +111,7 @@ may be shared with our AI service providers: OpenRouter, Tavily, and other selec
 
 ### AI data routing
 
-When you use Sophie's AI features, your data is initially sent to OpenRouter, which acts as a routing service to direct
+For AI models served through OpenRouter, your data is sent to OpenRouter, which acts as a routing service to direct
 requests to various AI providers based on the model your chat's AI mode uses. OpenRouter then forwards these
 requests to the appropriate AI provider (such as Mistral AI, OpenAI, or others). Some models may instead be served
 by an AI provider Sophie's operators have configured directly, without OpenRouter in between. Additionally, if the AI model

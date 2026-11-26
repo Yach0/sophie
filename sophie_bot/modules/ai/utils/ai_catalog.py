@@ -28,6 +28,7 @@ _VERSION_KEY = "sophie:ai:catalog_version"
 MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
     AIMode.entertainment: frozenset(
         {
+            AIModelPurpose.moderation,
             AIModelPurpose.chatbot,
             AIModelPurpose.translation,
             AIModelPurpose.filters,
@@ -39,6 +40,7 @@ MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
     ),
     AIMode.moderation: frozenset(
         {
+            AIModelPurpose.moderation,
             AIModelPurpose.chatbot,
             AIModelPurpose.translation,
             AIModelPurpose.filters,
@@ -48,6 +50,10 @@ MODE_PURPOSES: dict[AIMode, frozenset[AIModelPurpose]] = {
     ),
     AIMode.support: frozenset(
         {
+            # Transcription is a shared service for audio and video in every chat mode.
+            # Its operator selection lives in this single matrix cell.
+            AIModelPurpose.transcription,
+            AIModelPurpose.moderation,
             AIModelPurpose.chatbot,
             AIModelPurpose.translation,
             AIModelPurpose.filters,
@@ -274,3 +280,32 @@ async def resolve_role(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -
 async def resolve_model_name(mode: AIMode, purpose: AIModelPurpose, *, redis: Redis) -> str:
     """The model name serving a (mode, purpose) (see ``resolve_role`` for the per-role settings)."""
     return (await resolve_role(mode, purpose, redis=redis)).model_name
+
+
+async def resolve_native_model(
+    mode: AIMode, purpose: AIModelPurpose, *, redis: Redis, provider_name: str | None = None
+) -> CatalogModel:
+    """Resolve one native endpoint from the same ordered roles the operator matrix displays.
+
+    Native services keep their SDK retries and never fail over into a chat model or another
+    classifier taxonomy. The highest-priority role is the operator's endpoint selection;
+    a legacy per-chat provider pin restricts selection to that provider's catalog candidates.
+    """
+    current = await get_catalog(redis=redis)
+    role = next(
+        (
+            candidate
+            for candidate in current.roles_for(mode, purpose)
+            if provider_name is None or current.models[candidate.model_name].provider.name == provider_name
+        ),
+        None,
+    )
+    if role is None:
+        raise ValueError(
+            f"No AI model in the catalog serves {mode.value}:{purpose.value}"
+            + (f" on native provider {provider_name!r}" if provider_name is not None else "")
+        )
+    model = current.models[role.model_name]
+    if model.provider.kind is not AIProviderKind.moderation or model.provider.name not in {"mistral", "openai"}:
+        raise ValueError(f"AI catalog model {model.name!r} requires a native mistral or openai provider")
+    return model

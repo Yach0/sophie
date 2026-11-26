@@ -6,7 +6,7 @@ import resource
 import runpy
 import sys
 from datetime import UTC, datetime, timedelta
-from io import BytesIO
+from io import BufferedReader, BytesIO
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -28,7 +28,13 @@ from pydantic_ai.models.test import TestModel
 
 from sophie_bot.constants import AI_MAX_VIDEO_SIZE_BYTES
 from sophie_bot.modules.ai.middlewares.cache_user_messages import CacheUserMessagesMiddleware
-from sophie_bot.modules.ai.utils import animation_still, media_download, transform_animation, transform_audio
+from sophie_bot.modules.ai.utils import (
+    animation_still,
+    media_download,
+    transcription,
+    transform_animation,
+    transform_audio,
+)
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate
 from sophie_bot.modules.ai.utils.ai_tokens import ModelTokenBudget
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
@@ -49,6 +55,8 @@ from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
 from tests.test_modern_context import CHAT_TID, OTHER_TID, _build, _byte_counter, _events, _message
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
+
+pytestmark = pytest.mark.usefixtures("native_catalog")
 
 
 @pytest.fixture
@@ -305,9 +313,17 @@ async def test_audio_uses_shared_transcription_with_original_metadata(
 ) -> None:
     message = _media_message(kind)
     download = _download(test_services.bot, b"audio", monkeypatch)
-    complete = AsyncMock(return_value=SimpleNamespace(text="spoken words\n"))
+    uploaded: list[bytes] = []
+
+    async def transcribe(*, model: str, file: dict[str, object]) -> SimpleNamespace:
+        stream = file["content"]
+        assert isinstance(stream, BufferedReader)
+        uploaded.append(stream.read())
+        return SimpleNamespace(text="spoken words\n")
+
+    complete = AsyncMock(side_effect=transcribe)
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
@@ -321,7 +337,8 @@ async def test_audio_uses_shared_transcription_with_original_metadata(
     payload = complete.await_args.kwargs["file"]
     assert payload["file_name"] == ("recording.m4a" if kind == "audio" else "audio.ogg")
     assert payload["content_type"] == ("audio/mp4" if kind == "audio" else "audio/ogg")
-    assert payload["content"].read() == b"audio"
+    assert uploaded == [b"audio"]
+    assert payload["content"].closed
 
 
 @pytest.mark.parametrize("kind", ["voice", "audio"])
@@ -481,7 +498,7 @@ async def test_media_reaches_selected_ai_input(
     attachment = _media_message(kind)
     _download(context.services.bot, _gif(), monkeypatch)
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(
@@ -982,7 +999,7 @@ async def test_explicit_video_still_transcribes(
     monkeypatch.setattr("sophie_bot.modules.ai.utils.transform_video.extract_audio_from_video", extract)
     complete = AsyncMock(return_value=SimpleNamespace(text="explicit video speech"))
     monkeypatch.setattr(
-        "sophie_bot.modules.ai.utils.transform_video.get_mistral_client",
+        "sophie_bot.modules.ai.utils.transcription.get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
         ),
@@ -1045,7 +1062,7 @@ async def test_cached_media_failure_does_not_poison_later_text_requests(
     if failure in {"provider", "no_response", "httpx", "httpx2"}:
         complete.side_effect = errors[failure]
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
@@ -1144,7 +1161,7 @@ async def test_pending_background_transcriptions_share_budget_and_can_retry(
 
     complete = AsyncMock(side_effect=pending_transcription)
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
@@ -1215,7 +1232,7 @@ async def test_explicit_audio_does_not_use_background_deadlines(
 
     complete = AsyncMock(side_effect=slow_transcription)
     monkeypatch.setattr(
-        transform_audio,
+        transcription,
         "get_mistral_client",
         AsyncMock(
             return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))

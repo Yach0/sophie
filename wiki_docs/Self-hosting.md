@@ -130,7 +130,10 @@ adding a model or rotating a key never needs a redeploy.
 
 The `seed_ai_catalog` migration creates catalog models and the `openrouter` provider; the
 `seed_vendor_sdk_provider_keys` migration creates `mistral` and `openai` providers for
-moderation and transcription. All three start without keys. Configure credentials in the
+moderation and transcription. `seed_native_ai_services` adds native model entries and missing
+vendor providers without overwriting existing rows. It keeps Mistral transcription selected and
+uses the legacy global moderation-provider choice (Mistral by default) to seed moderation roles.
+Provider keys start empty. Configure credentials in the
 database before enabling AI, using `/op_ai_provider <name> ^key=<your-key>` in a private chat
 with the bot or updating the provider through the operator API.
 
@@ -147,16 +150,67 @@ No AI provider credentials are read from environment variables.
 | `/op_ai_models` | List models and what each one is used for. |
 | `/op_ai_model <name> ^provider= ^api_name= ^role= ^unrole= ^reasoning= ^context_window_tokens= ^enabled=` | Create or update a model. |
 
-`kind` is `openrouter`, `openai_compatible`, or `moderation` (a key for a vendor SDK rather than a
-chat-completions endpoint — do not point models at one). A role is `<mode>:<purpose>` — for example
-`^role=support:chatbot` — or just `<purpose>` for the purposes that are not per-chat (`summary`,
-`moderation_reason`). Purposes are `chatbot`, `translation`, `filters`, `summary` and
-`moderation_reason`, `sophie_inspect`; modes are `entertainment`, `moderation`, `support`, `sophie_pm` and
-`sophie_help`.
+`kind` is `openrouter`, `openai_compatible`, or `moderation`. The last kind holds credentials
+for native Mistral/OpenAI SDK services, including both transcription and moderation.
+Chat models use the first two kinds. A role is `<mode>:<purpose>`, for example
+`^role=support:chatbot`. The operator model matrix lists the purposes available in each mode.
+Resolution is exact; an unconfigured cell fails instead of silently choosing another mode.
+Changes invalidate the process catalog caches without a restart.
 
-A mode with no model for a purpose falls back to the `support` tier, so you only need to define the
-roles you want to differ. Changes take effect on every process within a few seconds without a
-restart.
+### Native transcription and moderation selection
+
+Native services use catalog roles and vendor SDK endpoints. They do not use chat prompts or
+Pydantic AI agents. The seed entries are:
+
+| Catalog model | Provider | Initially assigned roles |
+| --- | --- | --- |
+| `mistral/voxtral-mini-latest` | `mistral` | `support:transcription` |
+| `openai/gpt-transcribe` | `openai` | None |
+| `mistral/mistral-moderation-latest` | `mistral` | All three moderation roles, preferred by default |
+| `openai/omni-moderation-latest` | `openai` | All three moderation roles, preferred if the legacy global choice was OpenAI |
+
+`support:transcription` is the shared selection for voice, audio, video and video notes in every
+mode, including private chats. Moderation uses its chat's mode: `support:moderation`,
+`moderation:moderation`, or `entertainment:moderation` when explicitly enabled there.
+Select an endpoint through the existing model matrix, operator API or
+commands. For example, prefer OpenAI for transcription and support-mode moderation:
+
+```
+/op_ai_provider openai ^key=<your-key>
+/op_ai_model openai/gpt-transcribe ^role=support:transcription ^priority=-1
+/op_ai_model openai/omni-moderation-latest ^role=support:moderation ^priority=-1
+```
+
+Configure keys in a private chat. To switch moderation mode too, assign
+`^role=moderation:moderation`; for entertainment mode, assign `^role=entertainment:moderation`.
+Lower priority numbers win, with catalog model name breaking ties.
+Native services use only the first selected model and keep their existing SDK/error behavior;
+they do not use chat-model fallback chains or switch classifier taxonomies after a failure.
+`api_name` is sent upstream. Chat service tiers, reasoning settings and extra model parameters
+are not forwarded to these endpoints. Native entries do not require chat context capacities.
+
+The legacy global `ai_moderation_provider` choice is used only when seeding matrix priorities.
+Existing per-chat and rollout provider overrides remain compatibility pins: a pinned chat uses
+the first candidate belonging to that provider in its mode's moderation cell. Both seeded
+classifiers carry these roles, with the alternate at priority 10. Clear a chat's legacy override
+to let matrix priority select its provider. A pin with no matching enabled candidate fails
+instead of silently changing that chat's policy. Moderation enablement, chat detection levels,
+threshold overrides and level multipliers remain unchanged.
+The migration never enables moderation. Rollback removes only unchanged seed-created rows and
+keeps operator edits and configured keys. Stop catalog consumers and writers for this migration
+or rollback, then restart them. Startup loads the catalog after migrations commit; this seed
+does not invalidate Redis snapshots from inside the Mongo transaction.
+
+Voice/audio download limits, the 600-second voice/audio duration limit, video extraction and
+media budgets still apply before transcription. Both adapters return the native transcript,
+removing one trailing newline. Provider failures retain the selected upstream model and request
+origin in the existing AI error reporting. Native services retain their existing accounting;
+this change does not synthesize chat-token usage or prices.
+
+API references: [OpenAI file transcription](https://developers.openai.com/api/reference/resources/audio/subresources/transcriptions/methods/create/),
+[Mistral file transcription](https://docs.mistral.ai/api/endpoint/audio/transcriptions),
+[OpenAI moderation](https://developers.openai.com/api/docs/guides/moderation), and
+[Mistral classifiers](https://docs.mistral.ai/api/endpoint/classifiers).
 
 `context_window_tokens` is the model's authoritative positive integer context capacity.
 The `add_ai_model_context_sizes` migration fetches the public OpenRouter models API once,
@@ -372,28 +426,10 @@ previously decorated cache entries remain.
 
 ## AI moderation
 
-The AI moderator classifies messages against nine categories and deletes anything that crosses a
-threshold. It does **not** go through the AI catalog above — it calls a dedicated moderation
-classifier, chosen with the `ai_moderation_provider` feature flag:
-
-| Value | Model | Catalog provider holding the key |
-| --- | --- | --- |
-| `mistral` (default) | `mistral-moderation-latest` | `mistral` |
-| `openai` | `omni-moderation-latest` | `openai` |
-
-Switching backend is two steps: put the key in the catalog, then flip the flag. Neither needs a
-restart — the client is rebuilt as soon as the catalog version changes.
-
-```
-/op_ai_provider openai ^key=sk-...
-/op_ff ai_moderation_provider openai
-```
-
-> **Warning:** the `openrouter` provider's key cannot serve the OpenAI backend. OpenRouter proxies
-> chat completions, not `/moderations`, so selecting `openai` without a real OpenAI key makes every
-> moderation request fail — which silently leaves messages unmoderated. Check `/op_ai_providers`
-> shows a key against `openai`.
-> {.is-warning}
+The AI moderator uses the native classifier selected in the model matrix above. The `mistral`
+and `openai` catalog providers hold the respective vendor keys; an OpenRouter key cannot serve
+these native endpoints. Moderation enablement still depends on the existing chat mode, feature
+flag and chat settings.
 
 The two providers report different categories, and Sophie normalises them onto its own nine.
 `health`, `financial`, `law` and `pii` have no OpenAI equivalent and never trigger on that backend.
@@ -419,7 +455,6 @@ Off skips the category entirely rather than scaling it to zero.
 Every threshold is a feature flag, so it can be changed per chat with no redeploy:
 
 ```
-/op_ff ai_moderation_provider openai
 /op_ff ai_moderation_threshold_openai_sexual_minors 0.1
 /op_ff ai_moderation_threshold_mistral_sexual unset
 ```

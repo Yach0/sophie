@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Final
 
 from aiogram.types import Message
 
+from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
+from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
+from sophie_bot.db.models.chat import ChatModel
+from sophie_bot.modules.ai.utils.ai_catalog import resolve_native_model
 from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_boundary
+from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.moderation.categories import MODERATION_CATEGORIES_TRANSLATES, ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers import (
     MistralModerationProvider,
@@ -20,13 +24,8 @@ from sophie_bot.modules.ai.utils.moderation.thresholds import (
 )
 from sophie_bot.modules.ai.utils.old_context import OldContext
 from sophie_bot.services.application import ApplicationServices
-from sophie_bot.utils.feature_flags import get_value
+from sophie_bot.utils.feature_flags import get_chat_override, get_value
 from sophie_bot.utils.logger import log
-
-_PROVIDERS: Final[dict[str, ModerationProvider]] = {
-    provider.name: provider for provider in (MistralModerationProvider(), OpenAIModerationProvider())
-}
-_DEFAULT_PROVIDER: Final[str] = MistralModerationProvider.name
 
 
 @dataclass(frozen=True)
@@ -45,18 +44,23 @@ async def get_moderation_provider(
     *,
     services: ApplicationServices,
 ) -> ModerationProvider:
-    name = str(
-        await get_value(
-            "ai_moderation_provider",
-            chat_tid=chat_tid,
-            redis=services.redis,
-        )
+    chat = await ChatModel.get_by_tid(chat_tid) if chat_tid is not None else None
+    mode = await get_chat_mode(chat.iid) if chat is not None else AIMode.support
+    provider_pin = None
+    if chat_tid is not None:
+        # Keep existing chat/rollout membership effective while defaults move to the matrix.
+        # get_value materializes any legacy rollout pin using the existing rollout policy.
+        await get_value("ai_moderation_provider", chat_tid=chat_tid, redis=services.redis)
+        provider_pin = await get_chat_override("ai_moderation_provider", chat_tid, redis=services.redis)
+    model = await resolve_native_model(
+        mode,
+        AIModelPurpose.moderation,
+        redis=services.redis,
+        provider_name=str(provider_pin) if provider_pin is not None else None,
     )
-    provider = _PROVIDERS.get(name)
-    if provider is None:
-        log.warning("Unknown AI moderation provider, falling back", provider=name, fallback=_DEFAULT_PROVIDER)
-        return _PROVIDERS[_DEFAULT_PROVIDER]
-    return provider
+    if model.provider.name == "mistral":
+        return MistralModerationProvider(model.api_name)
+    return OpenAIModerationProvider(model.api_name)
 
 
 @ai_error_boundary(AIErrorContext(operation="moderation", origin="automatic"))
