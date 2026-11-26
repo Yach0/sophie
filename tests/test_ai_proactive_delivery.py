@@ -323,18 +323,21 @@ async def test_proactive_transcription_preparation_failure(
         assert "billing_no_api_budget_configured" not in json.dumps(event)
         assert "user_facing_message" not in event["contexts"]["ai_request"]
         warning.assert_called_once()
+        # This voice message is optional background history, so its failure must
+        # retain the caption and allow the current text response to complete.
         info.assert_any_call(
-            "Proactive AI history preparation failed; skipping response",
-            bot_id=delivery.services.bot.id,
+            "Proactive AI answer sent",
             chat_id=delivery.chat.tid,
-            error_type="AIRequestFailed",
-            cooldown_seconds=60,
+            message_id=3,
+            sent_message_id=100,
         )
-        cooldown = decision_failure_key(delivery.services.bot.id, delivery.chat.tid)
-        assert 0 < await delivery.services.redis.ttl(cooldown) <= 60
-        await delivery.run()
-        assert delivery.decision.await_count == 1
-        assert runtime_sentry_events == [event]
+        delivery.send.assert_awaited_once()
+        assert delivery.ordering == ["model", "tool", "model", "send"]
+        assert await AIUsageModel.get_today(delivery.chat.iid) == 1
+        assert not await delivery.services.redis.exists(
+            decision_failure_key(delivery.services.bot.id, delivery.chat.tid)
+        )
+        assert "voice caption" in str(delivery.histories[0].message_history)
     else:
         with pytest.raises(ValueError) as raised:
             await delivery.run()
@@ -342,15 +345,16 @@ async def test_proactive_transcription_preparation_failure(
         assert not await delivery.services.redis.exists(
             decision_failure_key(delivery.services.bot.id, delivery.chat.tid)
         )
+        delivery.send.assert_not_awaited()
+        assert delivery.ordering == []
+        assert await AIUsageModel.get_today(delivery.chat.iid) == 0
     complete.assert_awaited_once()
-    delivery.send.assert_not_awaited()
-    assert delivery.ordering == []
-    assert await AIUsageModel.get_today(delivery.chat.iid) == 0
     assert not await delivery.services.redis.exists(lock_key(delivery.chat.tid))
     assert aborted
     for history in aborted:
         assert history._closed
-        assert not await delivery.services.redis.exists(history._session_key, history._lock_key)
+        assert not await delivery.services.redis.exists(history._lock_key)
+        assert bool(await delivery.services.redis.exists(history._session_key)) == (failure_kind == "billing")
 
 
 @pytest.mark.parametrize("modern", [False, True])
