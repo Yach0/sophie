@@ -101,10 +101,19 @@ class Upstreams:
 
 @pytest_asyncio.fixture
 async def upstreams(test_services: ApplicationServices, monkeypatch: pytest.MonkeyPatch) -> AsyncIterator[Upstreams]:
+    async def reject_http(
+        _transport: httpx.AsyncHTTPTransport | httpx2.AsyncHTTPTransport,
+        _request: httpx.Request | httpx2.Request,
+    ) -> None:
+        pytest.fail("Anti-spam E2E requests must use the mock transports")
+
+    monkeypatch.setattr(httpx.AsyncHTTPTransport, "handle_async_request", reject_http)
+    monkeypatch.setattr(httpx2.AsyncHTTPTransport, "handle_async_request", reject_http)
     upstream = Upstreams()
     config = Config(
         antispam_cas_api_key="test-key",
         antispam_cas_export_url=None,
+        antispam_ofd_url=None,
         antispam_ofd_servers=[OfdServerConfig(id="example", name="Example OFD", url="https://ofd.example")],
     )
     registry = ProviderRegistry(config, test_services.redis)
