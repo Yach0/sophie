@@ -44,7 +44,7 @@ dependencies = [
     "av>=19,<20",
     "openapi-client",
     "psutil>=7.2.2,<8",
-    "ussr @ git+https://gitlab.com/SophieBot/ussr.git",
+    "ussr[precision] @ git+https://gitlab.com/SophieBot/ussr.git@02617181afce0cb7aab8b8642ad3b81c35acd8db",
     "joblib>=1.5,<2",
     "torch>=2.13.0,<3",
     "torchvision>=0.29,<0.30",
@@ -80,7 +80,6 @@ explicit = true
 stfu-tg = { git = "https://gitlab.com/SophieBot/stf.git", rev = "9385c2e74e6067ae43cfb32e71f7250c19d060a1" }
 ass-tg = { git = "https://gitlab.com/SophieBot/ass.git" }
 openapi-client = { git = "https://github.com/kagisearch/kagi-openapi-python.git" }
-ussr = { git = "https://gitlab.com/SophieBot/ussr.git" }
 torch = [{ index = "pytorch-cpu" }]
 torchvision = [{ index = "pytorch-cpu" }]
 
