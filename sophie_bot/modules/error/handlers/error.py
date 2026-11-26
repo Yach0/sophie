@@ -1,10 +1,18 @@
 import sys
+from types import TracebackType
 from typing import Any
 
 from aiogram.handlers import ErrorHandler
 from aiogram.types import Chat, Update
 
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIRequestFailed,
+    capture_ai_error,
+    ensure_sentry_event_id,
+    get_ai_error_context,
+    is_ai_provider_failure,
+    is_silent_ai_error,
+)
 from sophie_bot.modules.error.utils.backoff import compute_error_signature, should_notify
 from sophie_bot.modules.error.utils.capture import capture_sentry
 from sophie_bot.modules.error.utils.error_message import generic_error_message
@@ -13,7 +21,6 @@ from sophie_bot.modules.error.utils.permission_errors import (
     handle_no_rights_error,
     is_no_rights_error,
 )
-from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.logger import log
 
 
@@ -56,6 +63,9 @@ class SophieErrorHandler(ErrorHandler):
         except Exception as err:  # noqa: BLE001  # best-effort state reset in top-level error handler
             log.warning("Failed to clear state", err=err)
 
+        if is_silent_ai_error(exception):
+            return
+
         if update.inline_query:
             return  # Do not send messages after inline query
 
@@ -74,7 +84,15 @@ class SophieErrorHandler(ErrorHandler):
         )
 
     @staticmethod
-    def log_to_console(etype, value, tb, **kwargs):
+    def log_to_console(
+        etype: type[BaseException] | None,
+        value: BaseException | None,
+        tb: TracebackType | None,
+        **kwargs: object,
+    ) -> None:
+        if isinstance(value, AIRequestFailed) or (isinstance(value, BaseException) and is_ai_provider_failure(value)):
+            log.warning("AI request failed", error_type=type(value).__name__, **kwargs)
+            return
         if etype and value and tb:
             # Ensure traceback is attached for Sentry logging integration
             log.warning("Unhandled exception", exc_info=(etype, value, tb))
@@ -97,6 +115,12 @@ class SophieErrorHandler(ErrorHandler):
     @staticmethod
     def capture_sentry(exception: Exception) -> str | None:
         # The AI path already captured the provider failure with its model and operation.
-        if isinstance(exception, SophieException) and exception.sentry_event_id:
-            return exception.sentry_event_id
+        existing_event_id = getattr(exception, "sentry_event_id", None)
+        if isinstance(existing_event_id, str):
+            return existing_event_id
+        if isinstance(exception, AIRequestFailed):
+            return ensure_sentry_event_id(exception)
+        context = get_ai_error_context(exception)
+        if context is not None:
+            return capture_ai_error(exception, context)
         return capture_sentry(SophieErrorHandler._exception_to_report(exception))

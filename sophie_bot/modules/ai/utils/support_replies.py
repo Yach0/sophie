@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from asyncio import create_task, sleep, timeout
+from asyncio import Task, create_task, sleep, timeout
 from datetime import UTC, timedelta
 from typing import Literal
 
@@ -15,7 +15,15 @@ from sophie_bot.config import CONFIG
 from sophie_bot.db.models import ChatModel, NoteModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.metrics import track_ai_proactive_event
-from sophie_bot.modules.ai.utils.ai_errors import AI_PROVIDER_EXCEPTIONS, AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AI_PROVIDER_EXCEPTIONS,
+    AIErrorContext,
+    AIRequestFailed,
+    ai_error_boundary,
+    capture_ai_error,
+    get_ai_error_context,
+    is_ai_provider_failure,
+)
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_factory import get_proactive_replies_model_plan
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
@@ -369,8 +377,15 @@ async def maybe_run_support_reply(message: Message, chat: ChatModel, *, services
     task = create_task(_run_support_reply(message, chat, services=services))
     services.background_tasks.add(task)
     task.add_done_callback(services.background_tasks.discard)
+    task.add_done_callback(_report_support_reply_failure)
 
 
+def _report_support_reply_failure(task: Task[None]) -> None:
+    if not task.cancelled() and (error := task.exception()) is not None:
+        capture_ai_error(error, get_ai_error_context(error) or AIErrorContext(operation="response", origin="automatic"))
+
+
+@ai_error_boundary(AIErrorContext(operation="response", origin="automatic"))
 async def _run_support_reply(message: Message, chat: ChatModel, *, services: ApplicationServices) -> None:
     redis = services.redis
     failure_key = decision_failure_key(services.bot.id, chat.tid)
@@ -378,6 +393,10 @@ async def _run_support_reply(message: Message, chat: ChatModel, *, services: App
         async with timeout(60):
             await _support_reply(message, chat, services=services)
     except (AIRequestFailed, *AI_PROVIDER_EXCEPTIONS) as error:
+        if not isinstance(error, AIRequestFailed) and not is_ai_provider_failure(error):
+            raise
+        if not isinstance(error, AIRequestFailed):
+            capture_ai_error(error, AIErrorContext(operation="decision", origin="automatic"))
         await redis.set(failure_key, "1", ex=DECISION_FAILURE_COOLDOWN_SECONDS)
         _skip("provider_failure")
         log.warning("Proactive support decision failed", chat_id=chat.tid, error_type=type(error).__name__)

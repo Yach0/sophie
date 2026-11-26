@@ -38,6 +38,7 @@ from sophie_bot.services.db import DatabaseResources
 from sophie_bot.utils.cached import RedisCache
 from sophie_bot.utils.i18n import I18nNew
 from tests.utils.db_fixture import MOCK_MONGO, cleanup_beanie, initialize_beanie
+from tests.utils.sentry import runtime_sentry_events  # noqa: F401
 
 logger = logging.getLogger(__name__)
 

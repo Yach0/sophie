@@ -27,7 +27,10 @@ from sophie_bot.middlewares.connections import ChatConnection
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_default_model_plan, resolve_chat_service_tier
 from sophie_bot.modules.ai.utils.ai_errors import (
     AI_PROVIDER_EXCEPTIONS,
+    AIErrorContext,
     AIRequestFailed,
+    ai_error_boundary,
+    capture_ai_error,
     is_provider_configuration_error,
 )
 from sophie_bot.modules.ai.utils.ai_mode import get_chat_mode
@@ -496,6 +499,7 @@ async def _build_answer_history(
     return history
 
 
+@ai_error_boundary(AIErrorContext(operation="response", origin="automatic"))
 async def _answer_message(
     chat_tid: int,
     chat: ChatModel,
@@ -537,9 +541,22 @@ async def _answer_message(
             user_tid=None,
             services=services,
         )
-        history = await _build_answer_history(
-            chat_tid, target_message, services=services, context=context, model_plan=model_plan
-        )
+        try:
+            history = await _build_answer_history(
+                chat_tid, target_message, services=services, context=context, model_plan=model_plan
+            )
+        except AIRequestFailed as error:
+            await services.redis.set(
+                decision_failure_key(services.bot.id, chat_tid), "1", ex=DECISION_FAILURE_COOLDOWN_SECONDS
+            )
+            _log_proactive_info(
+                "Proactive AI history preparation failed; skipping response",
+                bot_id=services.bot.id,
+                chat_id=chat_tid,
+                error_type=type(error).__name__,
+                cooldown_seconds=DECISION_FAILURE_COOLDOWN_SECONDS,
+            )
+            return
         if isinstance(history, ModernContext):
             cleanup.push_async_callback(history.abort)
         previous_history = list(history.message_history)
@@ -721,6 +738,7 @@ async def _execute_actions(
             await _answer_message(chat_tid, chat, target_message, services=services)
 
 
+@ai_error_boundary(AIErrorContext(operation="response", origin="automatic"))
 async def maybe_run_proactive_reply(
     message: Message,
     chat: ChatModel,
@@ -790,6 +808,8 @@ async def maybe_run_proactive_reply(
                 error
             ):
                 raise
+            if not isinstance(error, AIRequestFailed):
+                capture_ai_error(error, AIErrorContext(operation="decision", origin="automatic"))
             await services.redis.set(failure_key, "1", ex=DECISION_FAILURE_COOLDOWN_SECONDS)
             _log_proactive_info(
                 "Proactive AI decision failed; skipping response",

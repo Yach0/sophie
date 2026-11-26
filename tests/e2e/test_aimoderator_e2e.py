@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock
 
 import httpx
@@ -191,23 +193,23 @@ async def test_moderation_exhausted_provider_failure_is_silent_and_stops_all_han
     mode: AIMode,
     provider: str,
     status_code: int,
+    runtime_sentry_events: list[dict[str, Any]],
 ) -> None:
     member, group = await _enable_moderation(test_client, test_services, mode, provider)
     _attach_later_handler(extra_router)
     classify = AsyncMock(side_effect=_provider_failure(provider, status_code))
     _patch_classifier_client(monkeypatch, provider, classify)
     monkeypatch.setattr(ai_errors, "AI_REQUEST_RETRY_WAIT", wait_none())
-    framework_errors: list[Exception] = []
-
-    def capture_framework_error(error: Exception) -> None:
-        framework_errors.append(error)
-
-    monkeypatch.setattr(SophieErrorHandler, "capture_sentry", staticmethod(capture_framework_error))
-
     requests = await test_client.send_message(text=_CLASSIFIER_INPUT, from_user=member, chat=group)
 
     assert not any(request.request_type == RequestType.SEND_MESSAGE for request in requests)
-    assert not framework_errors
+    (event,) = runtime_sentry_events
+    assert event["event_id"]
+    assert event["contexts"]["ai_request"]["origin"] == "automatic"
+    assert event["tags"]["ai.operation"] == "moderation"
+    assert event["tags"]["ai.status_code"] == str(status_code)
+    assert _CLASSIFIER_INPUT not in json.dumps(event)
+    assert "exception" not in event
     assert classify.await_count == ai_errors.AI_REQUEST_RETRY_ATTEMPTS
     assert not any(
         request.request_type
@@ -221,24 +223,40 @@ async def test_moderation_exhausted_provider_failure_is_silent_and_stops_all_han
     assert not await get_cached_messages(group.id, redis=test_services.redis)
 
 
-@pytest.mark.parametrize("configuration_error", [False, True], ids=["unknown-error", "configuration-error"])
+@pytest.mark.parametrize("status_code", [None, 401, 402, 422])
 async def test_moderation_unknown_failures_remain_framework_errors(
     test_client: TestClient,
     test_services: ApplicationServices,
     extra_router: Callable[[Router], Router],
     monkeypatch: pytest.MonkeyPatch,
-    configuration_error: bool,
+    status_code: int | None,
+    runtime_sentry_events: list[dict[str, Any]],
 ) -> None:
     member, group = await _enable_moderation(test_client, test_services, AIMode.moderation)
     _attach_later_handler(extra_router)
-    failure = _provider_failure("mistral", 401) if configuration_error else RuntimeError("Classifier programming bug")
+    failure = _provider_failure("mistral", status_code) if status_code else RuntimeError("Classifier programming bug")
     classify = AsyncMock(side_effect=failure)
     _patch_classifier_client(monkeypatch, "mistral", classify)
 
     requests = await test_client.send_message(text=_CLASSIFIER_INPUT, from_user=member, chat=group)
 
+    (event,) = runtime_sentry_events
+    assert event["event_id"]
+    assert event["tags"]["ai.origin"] == "automatic"
+    assert event["tags"]["ai.operation"] == "moderation"
+    assert SophieErrorHandler.capture_sentry(failure) == event["event_id"]
+    assert len(runtime_sentry_events) == 1
+    if status_code is not None:
+        assert event["tags"]["ai.status_code"] == str(status_code)
+        assert "exception" not in event
+        assert _CLASSIFIER_INPUT not in json.dumps(event)
+    else:
+        assert event["exception"]["values"][-1]["type"] == "RuntimeError"
+    assert ai_errors.get_ai_error_context(failure) == ai_errors.AIErrorContext(
+        operation="moderation", model_name="mistral-moderation-latest", origin="automatic"
+    )
     texts = [request.params["text"] for request in requests if request.request_type == RequestType.SEND_MESSAGE]
-    assert texts
+    assert not texts
     assert not any(_LATER_HANDLER_REPLY in text for text in texts)
     assert classify.await_count == 1
     assert not any(

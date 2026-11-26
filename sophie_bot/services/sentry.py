@@ -31,6 +31,11 @@ from sentry_sdk.types import Event
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import SOPHIE_MODE
+from sophie_bot.modules.ai.utils.ai_errors import (
+    AIRequestFailed,
+    current_ai_error_context,
+    is_ai_provider_failure,
+)
 from sophie_bot.modules.error.utils.ignored import SENTRY_IGNORED_EXCEPTIONS
 from sophie_bot.utils.logger import log
 from sophie_bot.versions import SOPHIE_COMMIT, SOPHIE_VERSION
@@ -59,18 +64,42 @@ def _before_send_transaction(event: Event, _hint: dict[str, Any]) -> Event | Non
     return event
 
 
-def _before_send(event: Event, _hint: dict[str, Any]) -> Event | None:
-    """Drop unhandled pydantic_ai exceptions from intermediate retry attempts.
+def _before_send(event: Event, hint: dict[str, Any]) -> Event | None:
+    """Drop provider retry events only while Sophie's AI boundary owns reporting.
 
     PydanticAIIntegration hooks Agent.run and emits an unhandled error event on every failing
     attempt before retries/failovers occur. Sophie's ai_run candidate loop handles retries with
     exponential backoff and reports terminal failures with full AI context and fingerprinting.
     """
     exc_values = event.get("exception", {}).get("values", [])
+    exc_info = hint.get("exc_info")
+    error = exc_info[1] if exc_info else None
+    context = current_ai_error_context()
     for exc in exc_values:
         mechanism = exc.get("mechanism")
         if mechanism and mechanism.get("type") == "pydantic_ai" and not mechanism.get("handled"):
-            return None
+            if (
+                context is not None
+                and isinstance(error, BaseException)
+                and (isinstance(error, AIRequestFailed) or is_ai_provider_failure(error))
+            ):
+                return None
+            if isinstance(error, Exception):
+                if isinstance(getattr(error, "sentry_event_id", None), str):
+                    return None
+                # Preserve unexpected integration events and reuse their reference at the global
+                # handler, rather than emitting the same exception for a second time.
+                error.__dict__["sentry_event_id"] = event.get("event_id")
+                if context is not None:
+                    event.setdefault("tags", {}).update(
+                        {"ai.origin": context.origin, "ai.operation": context.operation}
+                    )
+                    event.setdefault("contexts", {})["ai_request"] = {
+                        "origin": context.origin,
+                        "operation": context.operation,
+                        "model": context.model_name,
+                        "error_type": type(error).__name__,
+                    }
     return event
 
 

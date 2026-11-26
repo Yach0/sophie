@@ -124,7 +124,9 @@ async def test_translate_document_reply(
     monkeypatch.setattr(test_services.bot, "download", download)
     response = AsyncMock()
     monkeypatch.setattr(Message, "reply", response)
-    streamer = SimpleNamespace(update_processing_activity=AsyncMock(), send_final=AsyncMock(), response_message=None)
+    streamer = SimpleNamespace(
+        update_processing_activity=AsyncMock(), send_final=AsyncMock(), stop=AsyncMock(), response_message=None
+    )
     monkeypatch.setattr(translate, "_start_translation_progress", AsyncMock(return_value=streamer))
     monkeypatch.setattr(translate, "get_value", AsyncMock(return_value="Translate"))
     monkeypatch.setattr(translate, "get_chat_translations_model_plan", AsyncMock())
@@ -152,12 +154,14 @@ async def test_translate_document_reply(
     await handler.handle()
 
     if not accepted:
+        streamer.stop.assert_not_awaited()
         model.assert_not_awaited()
         download.assert_not_awaited()
         response.assert_awaited_once_with("Please provide text to translate.")
         return
 
     model.assert_awaited_once()
+    streamer.stop.assert_awaited_once_with()
     context = model.call_args.args[2]
     media = [part for part in context.prompt if isinstance(part, BinaryContent)]
     assert media == [BinaryContent(data=b"decoded still", media_type="image/jpeg")]

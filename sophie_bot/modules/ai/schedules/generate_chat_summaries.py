@@ -13,6 +13,7 @@ from sophie_bot.db.models import AIChatSummaryLine, AIChatSummaryModel, ChatMode
 from sophie_bot.db.models.ai.ai_catalog import AIModelPurpose
 from sophie_bot.modules.ai.json_schemas.chat_summary import AIChatSummaryGroup, AIChatSummaryGroups
 from sophie_bot.modules.ai.utils.ai_chat_models import get_chat_summary_model_plan, resolve_chat_service_tier
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_boundary
 from sophie_bot.modules.ai.utils.ai_mode import resolve_chat_capabilities
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message_to_chat
 from sophie_bot.modules.ai.utils.ai_tasks import AIStructuredTask, run_structured_task
@@ -203,6 +204,7 @@ class GenerateChatSummaries:
     def __init__(self, services: ApplicationServices) -> None:
         self.services = services
 
+    @ai_error_boundary(AIErrorContext(operation="summary:chat", origin="automatic"))
     async def generate_summary_groups(
         self,
         transcript: SummaryTranscript,

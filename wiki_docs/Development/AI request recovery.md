@@ -83,3 +83,22 @@ against the last candidate.
 
 The separate moderation request helper still uses its own retry policy. It does
 not execute agent tools.
+
+Explicit AI failures show the failed action, a brief retry suggestion, and the
+Sentry reference when reporting is enabled. Provider payloads and generic error
+haikus are omitted. Audio and video transcription failures identify transcription
+as the failed action, including when it happens while preparing another AI request.
+
+Optional cached background media retains its text when transcription fails, so stale
+voice messages cannot prevent later text requests. Explicit media requests, including
+cached replies, still propagate transcription failures.
+
+Automatic translation, filter replies, proactive replies, scheduled note metadata,
+chat summaries, and memory writing attribute failures as automatic and keep them out
+of the chat. Handled provider failures emit a sanitized Sentry event with the origin,
+operation, model/status metadata, and a reference reused by the error handler.
+Intermediate SDK retry events are suppressed while Sophie owns reporting;
+recovered model failures retain their warning reports. Unexpected bugs propagate
+and retain their exception report, including failures in background support tasks.
+Progress/session cleanup and proactive cooldowns still apply. Moderation retains
+its existing unavailable outcome and enforcement policy.

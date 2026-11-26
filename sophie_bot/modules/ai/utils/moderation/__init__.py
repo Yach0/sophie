@@ -6,6 +6,7 @@ from typing import Final
 from aiogram.types import Message
 
 from sophie_bot.db.models.ai.ai_moderator import AIModeratorModel, DetectionLevel
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_boundary
 from sophie_bot.modules.ai.utils.moderation.categories import MODERATION_CATEGORIES_TRANSLATES, ModerationCategory
 from sophie_bot.modules.ai.utils.moderation.providers import (
     MistralModerationProvider,
@@ -58,6 +59,7 @@ async def get_moderation_provider(
     return provider
 
 
+@ai_error_boundary(AIErrorContext(operation="moderation", origin="automatic"))
 async def check_moderator(
     message: Message,
     settings: AIModeratorModel | None = None,

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from collections.abc import Awaitable, Callable, Generator, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from dataclasses import dataclass, replace
+from functools import wraps
 from typing import Any, Final, Literal
 
 import httpx
 import httpx2
 import sentry_sdk
-from mistralai.client.errors import MistralError
+from mistralai.client.errors import MistralError, NoResponseError
 from openai import OpenAIError
 from pydantic_ai.exceptions import (
     FallbackExceptionGroup,
@@ -24,6 +27,7 @@ from tenacity import AsyncRetrying, RetryCallState, retry_if_exception, stop_aft
 from sophie_bot.utils.error_references import error_reference_elements
 from sophie_bot.utils.exception import SophieException
 from sophie_bot.utils.i18n import LazyProxy
+from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.i18n import lazy_gettext as l_
 
 # openai and pydantic-ai speak httpx2; mistralai and the Tavily search tool still speak legacy
@@ -46,6 +50,7 @@ AI_PROVIDER_EXCEPTIONS: Final[tuple[type[Exception], ...]] = (
     *_HTTP_ERRORS,
     OpenAIError,
     MistralError,
+    NoResponseError,
     TimeoutError,
 )
 AI_REQUEST_RETRY_ATTEMPTS: Final = 5
@@ -58,11 +63,10 @@ AI_CONFIGURATION_ERROR_STATUS_CODES: Final = frozenset({401, 402, 403})
 _OPENROUTER_PROVIDER_ERROR_STATUS_CODE: Final = 400
 _OPENROUTER_PROVIDER_ERROR_TEXT: Final = "provider returned error"
 AIRetryCallback = Callable[[int, int], Awaitable[None]]
-_PROVIDER_MESSAGE_LIMIT: Final = 500
 type _SentryLevel = Literal["warning", "error"]
 
 _DEFAULT_AI_FAILED_TITLE: Final = l_("🤖 AI request failed")
-_DEFAULT_AI_FAILED_MESSAGE: Final = l_("The AI provider did not complete the request. Please try again in a moment.")
+_DEFAULT_AI_FAILED_MESSAGE: Final = l_("The AI request could not be completed. Please try again in a moment.")
 
 
 class AIRequestFailed(SophieException):
@@ -71,18 +75,105 @@ class AIRequestFailed(SophieException):
     def __init__(self, sentry_event_id: str | None, *docs: str | Element | LazyProxy) -> None:
         super().__init__(*(docs or (_DEFAULT_AI_FAILED_MESSAGE,)))
         self.sentry_event_id = sentry_event_id
+        self.ai_error_context = _CURRENT_AI_CONTEXT.get()
         Exception.__init__(self, "AI request failed")
 
 
 @dataclass(frozen=True, slots=True)
 class AIErrorContext:
-    """Attribution for an AI provider failure, used to tag and group its Sentry event."""
+    """AI action attribution for operator reporting and public error delivery."""
 
     operation: str
     model_name: str | None = None
     """Model the failing request was sent to."""
     primary_model_name: str | None = None
     """Set when this request was already a fallback for a model that failed first."""
+    origin: Literal["explicit", "automatic"] = "explicit"
+
+
+_CURRENT_AI_CONTEXT: ContextVar[AIErrorContext | None] = ContextVar("ai_error_context", default=None)
+
+
+def get_ai_error_context(error: BaseException) -> AIErrorContext | None:
+    context = getattr(error, "ai_error_context", None)
+    return context if isinstance(context, AIErrorContext) else None
+
+
+def current_ai_error_context() -> AIErrorContext | None:
+    return _CURRENT_AI_CONTEXT.get()
+
+
+def is_silent_ai_error(error: Exception) -> bool:
+    context = get_ai_error_context(error) or _CURRENT_AI_CONTEXT.get()
+    return (
+        context is not None
+        and context.origin == "automatic"
+        and (isinstance(error, AIRequestFailed) or not isinstance(error, SophieException))
+    )
+
+
+def resolve_ai_error_context(context: AIErrorContext) -> AIErrorContext:
+    parent = _CURRENT_AI_CONTEXT.get()
+    if parent is None:
+        return context
+    return replace(
+        context,
+        origin="automatic" if "automatic" in {parent.origin, context.origin} else "explicit",
+        operation=parent.operation if context.operation in {"text", "stream", "structured"} else context.operation,
+    )
+
+
+@contextmanager
+def ai_error_scope(context: AIErrorContext) -> Generator[None]:
+    """Attribute escaping failures without changing their type, retry or enforcement policy."""
+    context = resolve_ai_error_context(context)
+    token = _CURRENT_AI_CONTEXT.set(context)
+    try:
+        yield
+    except Exception as error:  # presentation boundary; always re-raise the original failure
+        existing = get_ai_error_context(error)
+        error.__dict__["ai_error_context"] = (
+            replace(existing, origin="automatic")
+            if existing is not None and context.origin == "automatic"
+            else existing or context
+        )
+        raise
+    finally:
+        _CURRENT_AI_CONTEXT.reset(token)
+
+
+def ai_error_boundary[**ParamsT, ResultT](
+    context: AIErrorContext,
+) -> Callable[[Callable[ParamsT, Awaitable[ResultT]]], Callable[ParamsT, Awaitable[ResultT]]]:
+    def decorate(operation: Callable[ParamsT, Awaitable[ResultT]]) -> Callable[ParamsT, Awaitable[ResultT]]:
+        @wraps(operation)
+        async def attributed(*args: ParamsT.args, **kwargs: ParamsT.kwargs) -> ResultT:
+            with ai_error_scope(context):
+                return await operation(*args, **kwargs)
+
+        return attributed
+
+    return decorate
+
+
+def ai_action_failure_text(context: AIErrorContext) -> str:
+    # Complete messages remain extractable for translators; no provider exception text is rendered.
+    messages = {
+        "transcription": _("Audio transcription could not be completed. Please try again later."),
+        "translation": _("Translation could not be completed. Please try again in a moment."),
+        "research": _("Research could not be completed. Please try again in a moment."),
+        "suggestions": _("AI suggestions could not be generated. Please try again in a moment."),
+        "summary": _("The AI summary could not be generated. Please try again in a moment."),
+        "operator:task": _("The task description could not be generated. Please try again in a moment."),
+        "notes": _("The AI note title could not be generated. Please try again in a moment."),
+        "moderation": _("The AI moderation check could not be completed. Please try again in a moment."),
+        "embedding": _("AI search could not be completed. Please try again in a moment."),
+        "filter:suggestions": _("AI suggestions could not be generated. Please try again in a moment."),
+        "response": _("The AI response could not be generated. Please try again in a moment."),
+    }
+    return messages.get(
+        context.operation, messages.get(context.operation.partition(":")[0], str(_DEFAULT_AI_FAILED_MESSAGE))
+    )
 
 
 def _get_response_error_message(response_data: object) -> str | None:
@@ -163,6 +254,12 @@ def is_retryable_ai_provider_error(error: BaseException) -> bool:
     return status_code == _OPENROUTER_PROVIDER_ERROR_STATUS_CODE and _OPENROUTER_PROVIDER_ERROR_TEXT in error_message
 
 
+def is_ai_provider_failure(error: BaseException) -> bool:
+    if isinstance(error, BaseExceptionGroup):
+        return all(is_ai_provider_failure(child) for child in error.exceptions)
+    return isinstance(error, AI_PROVIDER_EXCEPTIONS)
+
+
 def _error_details(
     error: BaseException,
     context: AIErrorContext,
@@ -170,43 +267,41 @@ def _error_details(
 ) -> dict[str, Any]:
     details: dict[str, Any] = {
         "operation": context.operation,
+        "origin": context.origin,
         "model": context.model_name,
         "primary_model": context.primary_model_name,
         "error_type": type(error).__name__,
         "status_code": _get_status_code(error),
     }
-    # Moderation failures can echo private input in their body or exception text.
-    if context.operation != "moderation":
-        details["provider_message"] = _get_error_message(error)[:_PROVIDER_MESSAGE_LIMIT]
     if user_facing_message is not None:
         details["user_facing_message"] = user_facing_message
     return details
 
 
 def capture_ai_error(
-    error: Exception,
+    error: BaseException,
     context: AIErrorContext,
     level: _SentryLevel = "error",
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> str | None:
-    """Report an AI provider failure to Sentry with the model and operation attached."""
+    """Report an AI action failure, reserving sanitized grouping for provider failures."""
+    context = resolve_ai_error_context(context)
+    existing_event_id = getattr(error, "sentry_event_id", None)
+    if isinstance(existing_event_id, str):
+        return existing_event_id
     if not sentry_sdk.is_initialized():
         return None
-    message_str = str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE) if level == "error" else None
+    message_str = (
+        str(user_facing_message or _DEFAULT_AI_FAILED_MESSAGE)
+        if level == "error" and context.origin == "explicit"
+        else None
+    )
     details = _error_details(error, context, user_facing_message=message_str)
     with sentry_sdk.new_scope() as scope:
-        scope.update_from_kwargs(
-            level=level,
-            fingerprint=[
-                "ai-provider-error",
-                context.operation,
-                context.model_name or "unknown",
-                details["error_type"],
-                str(details["status_code"]),
-            ],
-        )
+        scope.update_from_kwargs(level=level)
         scope.set_context("ai_request", details)
         scope.set_tag("ai.operation", context.operation)
+        scope.set_tag("ai.origin", context.origin)
         scope.set_tag("ai.error_type", details["error_type"])
         scope.set_tag("ai.is_fallback", context.primary_model_name is not None)
         if context.model_name:
@@ -215,13 +310,22 @@ def capture_ai_error(
             scope.set_tag("ai.status_code", str(details["status_code"]))
         if message_str is not None:
             scope.set_tag("ai.user_facing_error", message_str)
-        if context.operation == "moderation":
-            # SDK exceptions retain the request and classifier input in traceback locals.
+        if is_ai_provider_failure(error):
+            scope.fingerprint = [
+                "ai-provider-error",
+                context.operation,
+                context.model_name or "unknown",
+                details["error_type"],
+                str(details["status_code"]),
+            ]
+            # SDK exceptions retain requests and private input in traceback locals.
             # Keep attribution and grouping, without sending that exception or its payload.
-            event_id = sentry_sdk.capture_message("AI moderation provider request failed", level=level)
+            event_id = sentry_sdk.capture_message(f"AI {context.operation} provider request failed", level=level)
         else:
             event_id = sentry_sdk.capture_exception(error)
         if event_id is not None:
+            if level == "error":
+                error.__dict__["sentry_event_id"] = event_id
             # The SDK returns the ID before its background transport has handed the envelope off.
             # Flush before exposing the ID to the user so a short-lived worker/restart cannot leave
             # them with a reference that Sentry never received.
@@ -270,9 +374,8 @@ def ensure_sentry_event_id(error: AIRequestFailed) -> str | None:
     """Ensure the failure has a Sentry event ID if it was not captured initially."""
     if error.sentry_event_id is None and sentry_sdk.is_initialized():
         cause = error.__cause__ or error
-        error.sentry_event_id = sentry_sdk.capture_exception(cause)
-        if error.sentry_event_id is not None:
-            sentry_sdk.flush(timeout=2.0)
+        context = get_ai_error_context(error) or get_ai_error_context(cause) or AIErrorContext(operation="agent")
+        error.sentry_event_id = capture_ai_error(cause, context)
     return error.sentry_event_id
 
 
@@ -281,9 +384,15 @@ def ai_request_failed_from_error(
     context: AIErrorContext,
     user_facing_message: str | LazyProxy | Element | None = None,
 ) -> AIRequestFailed:
+    if isinstance(error, BaseExceptionGroup) and not is_ai_provider_failure(error):
+        raise error
+    context = resolve_ai_error_context(context)
+    user_facing_message = user_facing_message or ai_action_failure_text(context)
     sentry_event_id = capture_ai_error(error, context, user_facing_message=user_facing_message)
     docs = (user_facing_message,) if user_facing_message is not None else ()
-    return AIRequestFailed(sentry_event_id, *docs)
+    failure = AIRequestFailed(sentry_event_id, *docs)
+    failure.ai_error_context = context
+    return failure
 
 
 def ai_request_failed_message(
@@ -297,6 +406,9 @@ def ai_request_failed_message(
             sentry_event_id = ensure_sentry_event_id(error)
         if docs is None and error.docs:
             docs = error.docs
+            context = get_ai_error_context(error) or _CURRENT_AI_CONTEXT.get()
+            if context is not None and len(docs) == 1 and docs[0] is _DEFAULT_AI_FAILED_MESSAGE:
+                docs = (ai_action_failure_text(context),)
 
     body_elements = tuple(docs) if docs else (_DEFAULT_AI_FAILED_MESSAGE,)
     return {

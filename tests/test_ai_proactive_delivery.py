@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -9,6 +12,7 @@ from aiogram.exceptions import TelegramBadRequest, TelegramNetworkError
 from aiogram.methods import SendMessage
 from aiogram.types import Chat, Message, ReplyParameters
 from pydantic_ai import Agent
+from pydantic_ai.exceptions import ModelHTTPError
 from pydantic_ai.messages import ModelMessage, ModelResponse, TextPart, ToolCallPart, ToolReturnPart
 from pydantic_ai.models.function import AgentInfo, FunctionModel
 from pydantic_ai.usage import UsageLimits
@@ -16,18 +20,20 @@ from stfu_tg import Bold, Doc
 
 from sophie_bot.db.models import AIUsageModel, ChatModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
-from sophie_bot.modules.ai.utils import ai_run, chatbot_agent, proactive_replies
+from sophie_bot.modules.ai.utils import ai_run, chatbot_agent, proactive_replies, transcription, transform_audio
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, AIModelPlan
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_tool_context import SophieAIToolContext
-from sophie_bot.modules.ai.utils.cache_messages import cache_message, get_cached_messages
+from sophie_bot.modules.ai.utils.cache_messages import CachedMedia, cache_message, get_cached_messages
 from sophie_bot.modules.ai.utils.chatbot_agent import ChatbotRunConfig
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
 from sophie_bot.modules.ai.utils.proactive_replies import ProactiveAction, ProactiveDecision, ProactiveReplySettings
 from sophie_bot.modules.ai.utils.proactive_tracking import decision_failure_key, eligible_key, lock_key
 from sophie_bot.services.application import ApplicationServices
 from tests.e2e.helpers import next_group_id
+from tests.test_ai_media_pathways import _download, _media_message
+from tests.test_transcription_provider_errors import billing_failure
 from tests.utils.ai_tokenizers import bundled_test_tokenizers  # noqa: F401
 
 ANSWER = "**Answer** with [context](https://example.com) and `code`"
@@ -261,3 +267,118 @@ async def test_explicit_reply_keeps_existing_fallback(
     assert "reply_parameters" not in fallback
     assert fallback["rich_message"] == original["rich_message"]
     assert fallback["message_thread_id"] == 9
+
+
+@pytest.mark.parametrize("modern", [True])
+@pytest.mark.parametrize("failure_kind", ["billing", "unrelated"])
+async def test_proactive_transcription_preparation_failure(
+    delivery: Delivery,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_kind: str,
+    runtime_sentry_events: list[dict[str, Any]],
+) -> None:
+    delivery.decision.return_value = ProactiveDecision(actions=[ProactiveAction(action="answer", message_id=3)])
+    attachment = _media_message("voice")
+    await cache_message(
+        "voice caption",
+        delivery.chat.tid,
+        42,
+        2,
+        delivery.message.date,
+        "sender",
+        media=CachedMedia.from_message(attachment),
+        message_thread_id=9,
+        redis=delivery.services.redis,
+    )
+    failure = billing_failure() if failure_kind == "billing" else ValueError("unrelated bug")
+    complete = AsyncMock(side_effect=failure)
+    monkeypatch.setattr(
+        transform_audio,
+        "get_mistral_client",
+        AsyncMock(
+            return_value=SimpleNamespace(audio=SimpleNamespace(transcriptions=SimpleNamespace(complete_async=complete)))
+        ),
+    )
+    _download(delivery.services.bot, b"audio", monkeypatch)
+    warning = Mock()
+    monkeypatch.setattr(transcription.log, "warning", warning)
+    info = Mock()
+    monkeypatch.setattr(proactive_replies, "_log_proactive_info", info)
+    aborted: list[ModernContext] = []
+    original_abort = ModernContext.abort
+
+    async def abort(history: ModernContext) -> None:
+        aborted.append(history)
+        await original_abort(history)
+
+    monkeypatch.setattr(ModernContext, "abort", abort)
+    if failure_kind == "billing":
+        await delivery.run()
+        (event,) = runtime_sentry_events
+        assert event["event_id"]
+        assert event["tags"]["ai.operation"] == "transcription"
+        assert event["tags"]["ai.origin"] == "automatic"
+        assert event["tags"]["ai.status_code"] == "402"
+        assert "exception" not in event
+        assert "billing_no_api_budget_configured" not in json.dumps(event)
+        assert "user_facing_message" not in event["contexts"]["ai_request"]
+        warning.assert_called_once()
+        # This voice message is optional background history, so its failure must
+        # retain the caption and allow the current text response to complete.
+        info.assert_any_call(
+            "Proactive AI answer sent",
+            chat_id=delivery.chat.tid,
+            message_id=3,
+            sent_message_id=100,
+        )
+        delivery.send.assert_awaited_once()
+        assert delivery.ordering == ["model", "tool", "model", "send"]
+        assert await AIUsageModel.get_today(delivery.chat.iid) == 1
+        assert not await delivery.services.redis.exists(
+            decision_failure_key(delivery.services.bot.id, delivery.chat.tid)
+        )
+        assert "voice caption" in str(delivery.histories[0].message_history)
+    else:
+        with pytest.raises(ValueError) as raised:
+            await delivery.run()
+        assert raised.value is failure
+        assert not await delivery.services.redis.exists(
+            decision_failure_key(delivery.services.bot.id, delivery.chat.tid)
+        )
+        delivery.send.assert_not_awaited()
+        assert delivery.ordering == []
+        assert await AIUsageModel.get_today(delivery.chat.iid) == 0
+    complete.assert_awaited_once()
+    assert not await delivery.services.redis.exists(lock_key(delivery.chat.tid))
+    assert aborted
+    for history in aborted:
+        assert history._closed
+        assert not await delivery.services.redis.exists(history._lock_key)
+        assert bool(await delivery.services.redis.exists(history._session_key)) == (failure_kind == "billing")
+
+
+@pytest.mark.parametrize("modern", [False, True])
+async def test_quiet_proactive_decision_billing_failure_emits_sanitized_event(
+    delivery: Delivery,
+    runtime_sentry_events: list[dict[str, Any]],
+) -> None:
+    private_input = "private decision input and credentials"
+    delivery.decision.side_effect = ModelHTTPError(402, "offline", body={"error": {"message": private_input}})
+    await delivery.run()
+
+    (event,) = runtime_sentry_events
+    assert event["event_id"]
+    assert event["tags"]["ai.operation"] == "decision"
+    assert event["tags"]["ai.origin"] == "automatic"
+    assert event["tags"]["ai.status_code"] == "402"
+    assert event["contexts"]["ai_request"]["origin"] == "automatic"
+    assert "user_facing_message" not in event["contexts"]["ai_request"]
+    assert "exception" not in event
+    assert private_input not in json.dumps(event)
+    delivery.send.assert_not_awaited()
+    assert (
+        0 < await delivery.services.redis.ttl(decision_failure_key(delivery.services.bot.id, delivery.chat.tid)) <= 60
+    )
+    await delivery.run()
+    delivery.decision.assert_awaited_once()
+    assert runtime_sentry_events == [event]

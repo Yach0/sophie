@@ -7,6 +7,7 @@ from aiogram.types import Message, TelegramObject
 from sophie_bot.db.models import AIAutotranslateModel, ChatModel
 from sophie_bot.db.models.chat import ChatType
 from sophie_bot.modules.ai.handlers.translate import AiTranslate
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, ai_error_scope
 from sophie_bot.modules.ai.utils.ai_quota import check_quota
 from sophie_bot.modules.ai.utils.detect_lang import should_auto_translate_text
 from sophie_bot.shared.lang_detect import detect_languages, lang_code_to_language
@@ -60,7 +61,8 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
 
             if data.get("voice"):
                 log.debug("AiAutoTranslateMiddleware: Voice message - Translating anyway!")
-                await AiTranslate(event, **data)
+                with ai_error_scope(AIErrorContext(operation="translation", origin="automatic")):
+                    await AiTranslate(event, **data)
 
             excluded_languages = {
                 lang_code_to_language(language_code)
@@ -75,6 +77,7 @@ class AiAutoTranslateMiddleware(BaseMiddleware):
                 text_to_detect, lang_code_to_language(i18n.current_locale_iso_639_1), excluded_languages
             ):
                 log.debug("AiAutoTranslateMiddleware: Detected another language, translating!")
-                await AiTranslate(event, **data)
+                with ai_error_scope(AIErrorContext(operation="translation", origin="automatic")):
+                    await AiTranslate(event, **data)
 
         return result

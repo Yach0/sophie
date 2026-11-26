@@ -18,7 +18,7 @@ from sophie_bot.modules.ai.utils.ai_chatbot_reply import (
     _cache_chatbot_reply,
     _send_chatbot_ai_failure_reply,
 )
-from sophie_bot.modules.ai.utils.ai_errors import AIRequestFailed
+from sophie_bot.modules.ai.utils.ai_errors import AIErrorContext, AIRequestFailed, ai_error_boundary
 from sophie_bot.modules.ai.utils.ai_run import AIRequestOptions, run_ai_stream, run_ai_text
 from sophie_bot.modules.ai.utils.ai_send import send_ai_rich_message
 from sophie_bot.modules.ai.utils.ai_usage_service import charge_ai_usage
@@ -100,6 +100,7 @@ class AIReplyAction(ModernActionABC[AIReplyActionDataModel]):
     def description(data: AIReplyActionDataModel) -> Element | str:
         return Section(Italic(data.prompt), title=_("Send an AI Respond with prompt"), title_underline=False)
 
+    @ai_error_boundary(AIErrorContext(operation="response", origin="automatic"))
     async def handle(
         self, message: Message, data: dict[str, Any], filter_data: AIReplyActionDataModel
     ) -> Message | None:

@@ -426,7 +426,10 @@ async def test_real_reply_continues_after_debug_document_delivery_failure(
     if request_failed:
         requests = state["bot"].capture.get_by_type(RequestType.SEND_MESSAGE)
         assert len(requests) == 1
-        assert requests[0].text == chatbot_reply.ai_request_failed_message(error=failure)["text"]
+        expected = chatbot_reply.ai_request_failed_message(
+            docs=("The AI response could not be generated. Please try again in a moment.",), error=failure
+        )
+        assert requests[0].text == expected["text"]
         assert isinstance(result, Message)
         state["send_reply"].assert_not_awaited()
         cache_reply.assert_not_awaited()
@@ -472,7 +475,10 @@ async def test_real_reply_continues_after_debug_document_build_failure(
     if request_failed:
         requests = state["bot"].capture.get_by_type(RequestType.SEND_MESSAGE)
         assert len(requests) == 1
-        assert requests[0].text == chatbot_reply.ai_request_failed_message(error=failure)["text"]
+        expected = chatbot_reply.ai_request_failed_message(
+            docs=("The AI response could not be generated. Please try again in a moment.",), error=failure
+        )
+        assert requests[0].text == expected["text"]
         assert isinstance(result, Message)
         state["send_reply"].assert_not_awaited()
         cache_reply.assert_not_awaited()
