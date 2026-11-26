@@ -74,7 +74,9 @@ async def test_photo_fallback_composes_with_deleted_reply_target(photo_first: bo
     assert "<img" not in final["rich_message"].html
 
 
-@pytest.mark.parametrize("reason", ["chat not found", "RICH_MESSAGE_PHOTO_URL_INVALID_OTHER"])
+@pytest.mark.parametrize(
+    "reason", ["chat not found", "RICH_MESSAGE_PHOTO_URL_INVALID_OTHER", "message is not modified"]
+)
 async def test_photo_delivery_propagates_unrelated_errors(reason: str) -> None:
     error = TelegramBadRequest(method=None, message=f"Bad Request: {reason}")
     request = AsyncMock(side_effect=error)
@@ -101,7 +103,9 @@ async def test_photo_delivery_without_images_does_not_retry() -> None:
     request.assert_awaited_once()
 
 
-@pytest.mark.parametrize("source", ["javascript:alert(1)", "file:///tmp/image", "https://[", "https://", "https://bad host/"])
+@pytest.mark.parametrize(
+    "source", ["javascript:alert(1)", "file:///tmp/image", "https://[", "https://", "https://bad host/"]
+)
 async def test_photo_fallback_does_not_turn_unsafe_sources_into_links(source: str) -> None:
     error = TelegramBadRequest(method=None, message="Bad Request: RICH_MESSAGE_PHOTO_URL_INVALID")
     request = AsyncMock(side_effect=[error, True])
@@ -122,7 +126,9 @@ async def test_photo_fallback_preserves_other_rich_markup_verbatim() -> None:
     request = AsyncMock(side_effect=[error, True])
     before = '<details open><summary>A &amp; B</summary>\n<table border="1"><tr><td>&#65;</td></tr></table>\n'
     after = '\n<tg-emoji emoji-id="123">✨</tg-emoji></details>'
-    await with_photo_url_fallback(before + '<img src="https://example.com/photo" alt="Photo" tg-spoiler/>' + after, request)
+    await with_photo_url_fallback(
+        before + '<img src="https://example.com/photo" alt="Photo" tg-spoiler/>' + after, request
+    )
     assert request.await_args.args[0].html == (
         before + '<tg-spoiler><a href="https://example.com/photo">Photo</a></tg-spoiler>' + after
     )

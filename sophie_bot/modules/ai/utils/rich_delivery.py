@@ -55,11 +55,15 @@ class _PhotoLinkParser(HTMLParser):
 
 
 async def with_photo_url_fallback[Result](
-    rich_html: str, send: Callable[[InputRichMessage], Awaitable[Result]]
+    rich_html: str,
+    send: Callable[[InputRichMessage], Awaitable[Result]],
+    *,
+    on_delivered: Callable[[str], None] | None = None,
 ) -> Result:
     """Retry a rejected AI photo payload once as links, preserving the rest of the answer."""
+    delivered_html = rich_html
     try:
-        return await send(InputRichMessage(html=rich_html))
+        result = await send(InputRichMessage(html=rich_html))
     except TelegramBadRequest as error:
         if error.message.removeprefix("Bad Request: ") != "RICH_MESSAGE_PHOTO_URL_INVALID":
             raise
@@ -68,4 +72,8 @@ async def with_photo_url_fallback[Result](
         if not parser.replaced:
             raise
         log.info("Telegram rejected AI photo URLs; retrying with image links")
-        return await send(InputRichMessage(html=fallback))
+        result = await send(InputRichMessage(html=fallback))
+        delivered_html = fallback
+    if on_delivered is not None:
+        on_delivered(delivered_html)
+    return result

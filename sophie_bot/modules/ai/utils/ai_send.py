@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from aiogram import Bot
@@ -16,7 +17,13 @@ def editable_reply_markup(reply_markup: Any) -> InlineKeyboardMarkup | None:
     return reply_markup if isinstance(reply_markup, InlineKeyboardMarkup) else None
 
 
-async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) -> Message:
+async def send_ai_rich_message(
+    message: Message,
+    doc: Doc,
+    *,
+    on_delivered: Callable[[str], None] | None = None,
+    **reply_kwargs: Any,
+) -> Message:
     """Send a rich AI reply, falling back to a plain message if its source was deleted."""
 
     bot = message.bot
@@ -42,7 +49,7 @@ async def send_ai_rich_message(message: Message, doc: Doc, **reply_kwargs: Any) 
                 **reply_kwargs,
             )
 
-    return await with_photo_url_fallback(doc.to_rich(), send)
+    return await with_photo_url_fallback(doc.to_rich(), send, on_delivered=on_delivered)
 
 
 async def send_ai_rich_message_to_chat(

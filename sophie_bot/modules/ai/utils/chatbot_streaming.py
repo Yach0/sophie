@@ -9,7 +9,7 @@ from random import choice
 from typing import Any
 
 from aiogram import Bot
-from aiogram.types import InlineKeyboardMarkup, Message
+from aiogram.types import InlineKeyboardMarkup, InputRichMessage, Message
 from redis.asyncio import Redis
 from stfu_tg import Doc, Italic, Template
 from stfu_tg.doc import Element
@@ -80,15 +80,18 @@ class ChatbotMessageStreamer:
         self.latest_text: str = ""
         self.last_sent_text: str = ""
         self.last_sent_at: float = 0.0
-        # Compare the rendered payload, since rich replies can have message.text=None.
+        # Track the source and successful payload; photo fallback can change the latter.
+        self._last_rendered_rich: str | None = None
         self._last_sent_rich: str | None = None
         self._last_sent_reply_markup: InlineKeyboardMarkup | None = None
         self._pending_update_task: asyncio.Task[None] | None = None
 
     async def send_thinking_message(self) -> None:
         doc = self._build_progress_doc(self.placeholder)
-        self.response_message = await send_ai_rich_message(self.source_message, doc)
-        self._last_sent_rich = doc.to_rich()
+        self.response_message = await send_ai_rich_message(
+            self.source_message, doc, on_delivered=self._record_delivered_rich
+        )
+        self._last_rendered_rich = doc.to_rich()
         self._last_sent_reply_markup = None
 
     async def stream(self, text: str) -> None:
@@ -159,30 +162,18 @@ class ChatbotMessageStreamer:
         if reply_markup is not None and not reply_markup.inline_keyboard:
             reply_markup = None
         if self.response_message is None:
-            self.response_message = await send_ai_rich_message(self.source_message, doc, **reply_kwargs)
-            self._last_sent_rich = rendered_rich
+            self.response_message = await send_ai_rich_message(
+                self.source_message, doc, on_delivered=self._record_delivered_rich, **reply_kwargs
+            )
+            self._last_rendered_rich = rendered_rich
             self._last_sent_reply_markup = reply_markup
             self.final_message_sent = True
             return self.response_message
 
-        if rendered_rich == self._last_sent_rich and (
-            "reply_markup" not in reply_kwargs or reply_markup == self._last_sent_reply_markup
-        ):
-            self.final_message_sent = True
-            return self.response_message
-
+        if "reply_markup" not in reply_kwargs:
+            reply_markup = self._last_sent_reply_markup
         response_message = self.response_message
-        result = await with_photo_url_fallback(
-            rendered_rich,
-            lambda rich_message: self._editing_bot().edit_message_text(
-                chat_id=response_message.chat.id,
-                message_id=response_message.message_id,
-                rich_message=rich_message,
-                reply_markup=reply_markup,
-            ),
-        )
-        self._last_sent_rich = rendered_rich
-        self._last_sent_reply_markup = reply_markup
+        result = await self._edit_rich_message(response_message, rendered_rich, reply_markup=reply_markup)
         self.final_message_sent = True
         return result if isinstance(result, Message) else self.response_message
 
@@ -291,27 +282,50 @@ class ChatbotMessageStreamer:
             raise RuntimeError("No bot attached to AI progress message")
         return bot
 
+    def _record_delivered_rich(self, rich_html: str) -> None:
+        self._last_sent_rich = rich_html
+
+    async def _edit_rich_message(
+        self,
+        response_message: Message,
+        rendered_rich: str,
+        *,
+        reply_markup: InlineKeyboardMarkup | None = None,
+    ) -> Message | bool:
+        # Reuse the successful fallback for the same source, including keyboard-only edits.
+        rich_html = self._last_sent_rich if rendered_rich == self._last_rendered_rich else rendered_rich
+        assert rich_html is not None
+
+        async def edit(rich_message: InputRichMessage) -> Message | bool:
+            if rich_message.html == self._last_sent_rich and reply_markup == self._last_sent_reply_markup:
+                return response_message
+            return await self._editing_bot().edit_message_text(
+                chat_id=response_message.chat.id,
+                message_id=response_message.message_id,
+                rich_message=rich_message,
+                reply_markup=reply_markup,
+            )
+
+        previous_rich = self._last_sent_rich
+        result = await with_photo_url_fallback(rich_html, edit, on_delivered=self._record_delivered_rich)
+        # An equivalent link render must not discard the known photo fallback.
+        if rendered_rich != previous_rich:
+            self._last_rendered_rich = rendered_rich
+        self._last_sent_reply_markup = reply_markup
+        return result
+
     async def _update(self, doc: Doc) -> None:
         """Edit the placeholder in place; Telegram edit failures propagate to the caller."""
         rendered_rich = doc.to_rich()
-        if rendered_rich == self._last_sent_rich:
-            return
-
         if self.response_message is None:
-            self.response_message = await send_ai_rich_message(self.source_message, doc)
-        else:
-            response_message = self.response_message
-            await with_photo_url_fallback(
-                rendered_rich,
-                lambda rich_message: self._editing_bot().edit_message_text(
-                    chat_id=response_message.chat.id,
-                    message_id=response_message.message_id,
-                    rich_message=rich_message,
-                ),
+            self.response_message = await send_ai_rich_message(
+                self.source_message, doc, on_delivered=self._record_delivered_rich
             )
+            self._last_rendered_rich = rendered_rich
+            self._last_sent_reply_markup = None
+        else:
+            await self._edit_rich_message(self.response_message, rendered_rich)
 
-        self._last_sent_rich = rendered_rich
-        self._last_sent_reply_markup = None
         self.last_sent_at = time.monotonic()
 
 
