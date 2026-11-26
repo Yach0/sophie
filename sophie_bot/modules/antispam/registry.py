@@ -24,7 +24,7 @@ class ProviderRegistry:
             lookup_fallback=config.antispam_cas_lookup_fallback,
         )
         self.providers: dict[str, AntispamProvider] = {ussr.source_id: ussr, cas.source_id: cas}
-        for server in config.antispam_ofd_servers:
+        for server in config.resolved_antispam_ofd_servers:
             provider = OfdProvider(redis, server)
             self.providers[provider.source_id] = provider
 
