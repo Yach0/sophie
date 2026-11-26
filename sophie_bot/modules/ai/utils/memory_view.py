@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import datetime
 
-from aiogram.types import CopyTextButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardMarkup
 from pydantic import BaseModel
 from stfu_tg import (
+    Button,
     Code,
     Doc,
     Heading,
@@ -24,8 +25,7 @@ from sophie_bot.modules.ai.utils.memory_edits import MemoryEditPreview
 from sophie_bot.utils.i18n import gettext as _
 from sophie_bot.utils.pagination import build_pagination_footer, build_pagination_row, paginate
 
-_BUTTONS_PER_ROW = 8
-_PAGE_SIZE = 2 * _BUTTONS_PER_ROW
+_PAGE_SIZE = 16
 _PREVIEW_LENGTH = 600
 # Measure serialized HTML to leave room under Telegram's 32,768-character rich-text limit.
 _MAX_RICH_PAGE_BYTES = 30_000
@@ -67,8 +67,14 @@ def memory_edit_confirmation(preview: MemoryEditPreview) -> Doc:
     return doc
 
 
-def _preview_list(entries: Sequence[MemoryFact | MemorySource]) -> OrderedList:
-    return OrderedList(*(ListItem(_preview(entry.text, _PREVIEW_LENGTH)) for entry in entries))
+def _preview_item(entry: MemoryFact | MemorySource, data: AIMemoryPageCallback) -> ListItem:
+    target = entry.fact_id if isinstance(entry, MemoryFact) else str(entry.message_id)
+    details = data.model_copy(update={"target": target})
+    actions = []
+    if data.view == "show":
+        actions.extend((" ", Button(_("Edit"), callback_data=details.model_copy(update={"edit": True}).pack())))
+    actions.extend((" ", Button(_("Details"), callback_data=details.pack())))
+    return ListItem(Paragraph(_preview(entry.text, _PREVIEW_LENGTH), *actions))
 
 
 def _list_header(data: AIMemoryPageCallback, browser: MemoryBrowser) -> Doc:
@@ -81,55 +87,35 @@ def _list_header(data: AIMemoryPageCallback, browser: MemoryBrowser) -> Doc:
     return header
 
 
-def _list_pages(
-    entries: Sequence[MemoryFact | MemorySource], header: Doc, status: str
-) -> list[list[MemoryFact | MemorySource]]:
-    pages: list[list[MemoryFact | MemorySource]] = []
-    items: list[MemoryFact | MemorySource] = []
-    footer = build_pagination_footer(len(entries) - 1, len(entries))
-    status_block = Paragraph(status) if status else ""
-    for entry in entries:
-        candidate = [*items, entry]
-        if items and (
-            len(items) == _PAGE_SIZE
-            or len(Doc(header, _preview_list(candidate), status_block, footer).to_rich().encode("utf-8"))
-            > _MAX_RICH_PAGE_BYTES
-        ):
-            pages.append(items)
-            items = []
-        items.append(entry)
-    if items:
-        pages.append(items)
+def _list_pages(items: Sequence[ListItem], header: Doc, status: str) -> list[list[ListItem]]:
+    pages: list[list[ListItem]] = []
+    footer = build_pagination_footer(len(items) - 1, len(items))
+    overhead = len(Doc(header, OrderedList(), Paragraph(status) if status else "", footer).to_rich().encode("utf-8"))
+    page_size = overhead
+    page: list[ListItem] = []
+    for item in items:
+        size = len(item.to_rich().encode("utf-8"))
+        if page and (len(page) == _PAGE_SIZE or page_size + size > _MAX_RICH_PAGE_BYTES):
+            pages.append(page)
+            page_size = overhead
+            page = []
+        page.append(item)
+        page_size += size
+    if page:
+        pages.append(page)
     return pages
 
 
 def _memory_list(
     data: AIMemoryPageCallback, entries: Sequence[MemoryFact | MemorySource], browser: MemoryBrowser, excluded: bool
-) -> tuple[Doc, InlineKeyboardMarkup]:
+) -> tuple[Doc, InlineKeyboardMarkup | None]:
     document = _list_header(data, browser)
     status = _("Memory capture is off for you.") if excluded and browser.member is None else ""
-    pagination = paginate(_list_pages(entries, document, status), 1, data.page)
-    buttons: list[list[InlineKeyboardButton]] = []
+    first_page = data.model_copy(update={"page": 0})
+    items = [_preview_item(entry, first_page) for entry in entries]
+    pagination = paginate(_list_pages(items, document, status), 1, data.page)
     if pagination.items:
-        items = pagination.items[0]
-        document += _preview_list(items)
-        item_buttons = [
-            InlineKeyboardButton(
-                text=str(number),
-                callback_data=data.model_copy(
-                    update={
-                        "page": pagination.page,
-                        "target": entry.fact_id if isinstance(entry, MemoryFact) else str(entry.message_id),
-                    }
-                ).pack(),
-            )
-            for number, entry in enumerate(items, start=1)
-        ]
-        buttons.extend(
-            item_buttons[offset : offset + _BUTTONS_PER_ROW] for offset in range(0, len(item_buttons), _BUTTONS_PER_ROW)
-        )
-        if pagination.total_pages > 1:
-            buttons.append(build_pagination_row(pagination, lambda page: data.model_copy(update={"page": page}).pack()))
+        document += OrderedList(*pagination.items[0])
     elif data.view == "sources":
         document += Paragraph(_("No source messages saved in this chat."))
     elif browser.search:
@@ -144,37 +130,15 @@ def _memory_list(
         document += Paragraph(status)
     if footer := build_pagination_footer(pagination.page, pagination.total_pages):
         document += footer
-    tabs: dict[MemoryListView, str] = {"show": _("Memories"), "history": _("History"), "sources": _("Sources")}
-    buttons.append(
-        [
-            InlineKeyboardButton(text=label, callback_data=AIMemoryPageCallback(token=data.token, view=view).pack())
-            for view, label in tabs.items()
-            if view != data.view and browser.member is None
-        ]
-        + [
-            InlineKeyboardButton(
-                text=_("Help"),
-                callback_data=data.model_copy(update={"page": pagination.page, "target": "help"}).pack(),
-            )
-        ]
-    )
-    if browser.member is None:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=_("Privacy"),
-                    callback_data=data.model_copy(update={"page": pagination.page, "target": "privacy"}).pack(),
-                )
-            ]
-        )
-    return document, InlineKeyboardMarkup(inline_keyboard=buttons)
+    buttons = build_pagination_row(pagination, lambda page: first_page.model_copy(update={"page": page}).pack())
+    return document, InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None
 
 
 def _timestamp(time: datetime) -> str:
     return time.strftime("%Y-%m-%d %H:%M UTC")
 
 
-def _fact_details(fact: MemoryFact, available_ids: set[int] | None) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
+def _fact_details(fact: MemoryFact, available_ids: set[int] | None) -> Doc:
     document = Doc(
         Heading(_("Memory details")),
         RichBlockQuote(*fact.text.splitlines()),
@@ -193,13 +157,13 @@ def _fact_details(fact: MemoryFact, available_ids: set[int] | None) -> tuple[Doc
             document += Paragraph(KeyValue(_("Source messages"), Code(available)))
         if unavailable:
             document += Paragraph(KeyValue(_("Source messages expired or unavailable"), Code(unavailable)))
-    return document, [[InlineKeyboardButton(text=_("Copy fact ID"), copy_text=CopyTextButton(text=fact.fact_id))]]
+    return document
 
 
-def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[Doc, list[list[InlineKeyboardButton]]]:
+def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[Doc, InlineKeyboardMarkup | None]:
     part_length = TELEGRAM_MESSAGE_LENGTH_LIMIT
     parts = [source.text[offset : offset + part_length] for offset in range(0, len(source.text), part_length)]
-    page = paginate(parts, 1, data.part)
+    page = paginate(parts, 1, data.part or 0)
     document = Doc(
         Heading(_("Source message")),
         Paragraph(KeyValue(_("ID"), Code(str(source.message_id)))),
@@ -209,15 +173,28 @@ def _source_details(data: AIMemoryPageCallback, source: MemorySource) -> tuple[D
     buttons = build_pagination_row(page, lambda part: data.model_copy(update={"part": part}).pack())
     if footer := build_pagination_footer(page.page, page.total_pages):
         document += footer
-    return document, [buttons] if buttons else []
+    return document, InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None
+
+
+def memory_facts(state: MemoryState, browser: MemoryBrowser, view: MemoryListView) -> list[MemoryFact]:
+    superseded = {fact.previous_id for fact in state.facts}
+    query = browser.search.casefold()
+    target_tid = browser.member.tid if browser.member is not None else browser.owner_tid
+    facts = [
+        fact
+        for fact in reversed(state.facts)
+        if (fact.speaker_tid == target_tid or target_tid in fact.subject_tids)
+        and (fact.fact_id in superseded) == (view == "history")
+        and query in " ".join(fact.text.split()).casefold()
+    ]
+    return sorted(facts, key=lambda fact: (fact.occurred_at, fact.recorded_at), reverse=True)
 
 
 def memory_view(
     state: MemoryState,
     browser: MemoryBrowser,
     data: AIMemoryPageCallback,
-) -> tuple[Doc, InlineKeyboardMarkup]:
-    buttons: list[list[InlineKeyboardButton]] = []
+) -> tuple[Doc, InlineKeyboardMarkup | None]:
     user_tid = browser.owner_tid
     excluded = user_tid in state.excluded_users
     if data.view == "sources":
@@ -226,45 +203,13 @@ def memory_view(
             return _memory_list(data, sources, browser, excluded)
         source = next((entry for entry in sources if str(entry.message_id) == data.target), None)
         if source is None:
-            document = Doc(_("This source message expired or is unavailable."))
-        else:
-            document, buttons = _source_details(data, source)
-    else:
-        superseded = {fact.previous_id for fact in state.facts}
-        query = browser.search.casefold()
-        target_tid = browser.member.tid if browser.member is not None else user_tid
-        facts = [
-            fact
-            for fact in reversed(state.facts)
-            if (fact.speaker_tid == target_tid or target_tid in fact.subject_tids)
-            and (fact.fact_id in superseded) == (data.view == "history")
-            and query in " ".join(fact.text.split()).casefold()
-        ]
-        facts.sort(key=lambda fact: (fact.occurred_at, fact.recorded_at), reverse=True)
-        if not data.target:
-            return _memory_list(data, facts, browser, excluded)
-        fact = next((entry for entry in facts if entry.fact_id == data.target), None)
-        if fact is None:
-            document = Doc(_("This memory is no longer in this list."))
-        else:
-            document, buttons = _fact_details(
-                fact,
-                {source.message_id for source in state.sources} if browser.member is None else None,
-            )
-    return document, memory_back_markup(data, buttons)
-
-
-def memory_back_markup(
-    data: AIMemoryPageCallback, rows: Sequence[list[InlineKeyboardButton]] = ()
-) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            *rows,
-            [
-                InlineKeyboardButton(
-                    text=_("Back to list"),
-                    callback_data=data.model_copy(update={"target": "", "part": 0}).pack(),
-                )
-            ],
-        ]
-    )
+            return Doc(_("This source message expired or is unavailable.")), None
+        return _source_details(data, source)
+    facts = memory_facts(state, browser, data.view)
+    if not data.target:
+        return _memory_list(data, facts, browser, excluded)
+    fact = next((entry for entry in facts if entry.fact_id == data.target), None)
+    if fact is None:
+        return Doc(_("This memory is no longer in this list.")), None
+    available_ids = {source.message_id for source in state.sources} if browser.member is None else None
+    return _fact_details(fact, available_ids), None

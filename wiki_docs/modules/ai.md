@@ -29,8 +29,8 @@ icon: ✨
 
 | Commands | Arguments | Description | Remarks |
 | --- | --- | --- | --- |
-| `/ai_memory` | `<?@username or search text>` | Browse your memories, search by text, or view a member's memories by mention or reply. |  |
-| `/ai_memory_delete` | `<Memory IDs separated by spaces>` | Delete saved memories by fact ID. |  |
+| `/ai_memory` | `<?@username or search text>` | Browse your memories, search by text, or view a member's memories by mention or reply. Use --history, --sources, or --privacy to open those views. |  |
+| `/ai_memory_delete` | `<Memory IDs separated by spaces>` | Delete saved memories by fact ID. Open Details on a memory to find its ID. |  |
 {.card-view-on-mobile}
 
 ### PM-only
