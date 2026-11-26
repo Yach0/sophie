@@ -20,15 +20,18 @@ async def test_ussr_provider_persists_matches_and_returns_verdict(
     monkeypatch.setattr(ussr, "predict_message", predictor)
     monkeypatch.setattr(ussr, "SpamMatchModel", model)
 
-    verdict = await ussr.UssrProvider().scan_content("buy now", 123, chat_tid=-100123)
+    links = ("https://example.test/offer",)
+    verdict = await ussr.UssrProvider().scan_content("buy now", 123, chat_tid=-100123, links=links)
 
-    predictor.assert_called_once_with("buy now")
+    predictor.assert_called_once_with("buy now", links)
     assert verdict.source_id == "ussr"
     assert verdict.matched is expected_match
     assert verdict.risk_score == probability
     if expected_match:
         assert verdict.categories == (ThreatCategory.SPAM,)
-        model.assert_called_once_with(text="buy now", spam_probability=probability, nsfw_probability=0.0, chat_tid=-100123)
+        model.assert_called_once_with(
+            text="buy now", spam_probability=probability, nsfw_probability=0.0, chat_tid=-100123
+        )
         match_doc.insert.assert_awaited_once()
     else:
         assert verdict.categories == ()

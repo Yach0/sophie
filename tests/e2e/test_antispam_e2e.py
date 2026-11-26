@@ -91,7 +91,7 @@ class Upstreams:
         self.ofd_users.append(request.url.path)
         return httpx.Response(404, json={"message": "Unknown entity"})
 
-    def ussr_predict(self, text: str) -> dict[str, float]:
+    def ussr_predict(self, text: str, _links: tuple[str, ...] = ()) -> dict[str, float]:
         self.ussr_texts.append(text)
         return {
             "spam_probability": 0.92 if text in self.ussr_spam_texts else 0.05,

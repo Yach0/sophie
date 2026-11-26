@@ -32,9 +32,11 @@ class UssrProvider:
     async def check_user(self, user_tid: int) -> ProtectionVerdict:
         raise NotImplementedError
 
-    async def scan_content(self, text: str, user_tid: int, *, chat_tid: int) -> ProtectionVerdict:
+    async def scan_content(
+        self, text: str, user_tid: int, *, chat_tid: int, links: tuple[str, ...] = ()
+    ) -> ProtectionVerdict:
         try:
-            result = await asyncio.to_thread(predict_message, text)
+            result = await asyncio.to_thread(predict_message, text, links)
         except (OSError, ValueError) as error:
             log.debug("USSR classifier unavailable", error=str(error))
             raise ProtectionUnavailable from None
