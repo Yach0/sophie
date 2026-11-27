@@ -51,7 +51,7 @@ from sophie_bot.modules.ai.utils.memory_view import (
     memory_view,
 )
 from sophie_bot.modules.ai.utils.modern_context import ModernContext
-from sophie_bot.modules.utils_.admin import is_user_admin
+from sophie_bot.modules.utils_.admin import get_admin_record, is_user_admin
 from sophie_bot.modules.utils_.common_try import common_try
 from sophie_bot.modules.utils_.message import is_real_reply
 from sophie_bot.modules.utils_.reply_or_edit import reply_or_edit
@@ -226,17 +226,33 @@ class AIMemoryEditHandler(SophieCallbackQueryHandler):
             return
         redis = self.services.redis
         actor_tid = callback.from_user.id
-        raw = await redis.getdel(memory_edit_key(chat.tid, actor_tid, data.token))
+        key = memory_edit_key(chat.tid, data.token)
+        raw = await redis.get(key)
         if raw is None:
+            await callback.answer(_("This proposal expired or belongs to another user."), show_alert=True)
+            return
+        proposal = MemoryEditProposal.model_validate_json(raw)
+        is_caller = proposal.source.speaker_tid == actor_tid
+        # Other clickers must hold an admin record in this exact chat; operator
+        # and anonymous-admin shortcuts do not grant access to another caller's proposal.
+        admin = (
+            await is_user_admin(chat.tid, actor_tid)
+            if is_caller
+            else await get_admin_record(chat, actor_tid) is not None
+        )
+        if not is_caller and not admin:
+            await callback.answer(_("This proposal expired or belongs to another user."), show_alert=True)
+            return
+        if proposal.source.topic_id != callback.message.message_thread_id:
+            await callback.answer(_("Confirm this memory change in the original topic."), show_alert=True)
+            return
+        # Claim only after authorization and location checks, once for either action.
+        if await redis.getdel(key) is None:
             await callback.answer(_("This proposal expired or belongs to another user."), show_alert=True)
             return
         if data.action == "cancel":
             await common_try(self.answer_rich(Doc(_("Memory change canceled.")), reply_markup=None))
             await callback.answer()
-            return
-        proposal = MemoryEditProposal.model_validate_json(raw)
-        if proposal.source.speaker_tid != actor_tid or proposal.source.topic_id != callback.message.message_thread_id:
-            await callback.answer(_("Confirm this memory change in the original topic."), show_alert=True)
             return
         if (
             not await chatbot_memory_edits_enabled(chat.tid, redis=redis)
@@ -245,7 +261,7 @@ class AIMemoryEditHandler(SophieCallbackQueryHandler):
             await callback.answer(_("Chatbot memory edits are disabled in this chat."), show_alert=True)
             return
         try:
-            await apply_memory_edit(chat, proposal, admin=await is_user_admin(chat.tid, actor_tid), redis=redis)
+            await apply_memory_edit(chat, proposal, admin=admin, redis=redis)
         except MemoryContextChanged:
             await callback.answer(_("Memory changed after this proposal. Ask again."), show_alert=True)
             return
