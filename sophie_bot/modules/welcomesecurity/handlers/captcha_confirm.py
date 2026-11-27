@@ -60,6 +60,11 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
     async def handle(self) -> Any:
         data = await self.state.get_data()
 
+        if "captcha" not in data:
+            log.warning("Captcha callback with no captcha data in FSM state, likely expired")
+            await self.event.answer(_("Captcha expired. Please try again."))
+            return None
+
         # Try to get chat_iid from state, then from callback_data
         chat_iid = data.get("ws_chat_iid")
         if (
@@ -77,10 +82,6 @@ class CaptchaConfirmHandler(SophieCallbackQueryHandler):
 
         chat_db = await ChatModel.get_by_iid(PydanticObjectId(chat_iid))
         if not chat_db:
-            raise ValueError("No chat found in database")
-
-        if "captcha" not in data:
-            log.warning("Captcha callback with no captcha data in FSM state, likely expired")
             await self.event.answer(_("Captcha expired. Please try again."))
             return None
 
