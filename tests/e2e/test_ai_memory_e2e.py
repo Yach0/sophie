@@ -6,6 +6,7 @@ from collections.abc import AsyncIterator
 from contextlib import ExitStack
 from datetime import UTC, datetime, timedelta
 from html import unescape
+from typing import Literal
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -28,11 +29,13 @@ from sophie_bot.db.models.ai.ai_evidence_memory import (
 from sophie_bot.db.models.ai.ai_memory import AIMemoryModel
 from sophie_bot.db.models.ai.ai_mode import AIMode
 from sophie_bot.db.models.chat import ChatModel
-from sophie_bot.modules.ai.callbacks import AIMemoryPageCallback
+from sophie_bot.modules.ai.callbacks import AIMemoryEditCallback, AIMemoryPageCallback
+from sophie_bot.modules.ai.utils.ai_chatbot_reply import _send_memory_edit_confirmation
 from sophie_bot.modules.ai.utils.ai_mode import set_chat_mode
 from sophie_bot.modules.ai.utils.ai_model_plan import AIModelCandidate, build_model_plan
 from sophie_bot.modules.ai.utils.cache_messages import get_cached_messages, get_context_epoch_key, get_message_cache_key
 from sophie_bot.modules.ai.utils.evidence_memory import apply_actions, capture_source, mutate_memory, read_memory
+from sophie_bot.modules.ai.utils.memory_edits import MemoryEditProposal, MemoryEditRequest, preview_memory_edit
 from sophie_bot.modules.help.callbacks import PMHelpModule
 from sophie_bot.modules.help.utils.extract_info import gather_module_help
 from sophie_bot.services.application import ApplicationServices
@@ -723,3 +726,125 @@ async def test_memory_buttons_paginate_and_reject_other_users(
     assert "No memories match your search" in _message_text(requests)
     requests = await test_client.send_callback(fact_callback, from_user=user, message=message)
     assert "This memory is no longer in this list" in _message_text(requests)
+
+
+@pytest.mark.parametrize("action", ["confirm", "cancel"])
+@pytest.mark.parametrize(
+    "clicker",
+    [
+        "caller",
+        "admin",
+        "member",
+        "subject",
+        "revoked",
+        "other_chat_admin",
+        "operator",
+        "expired",
+        "missing",
+        "cross_chat",
+        "wrong_topic",
+        "forged",
+    ],
+)
+async def test_memory_proposal_callback_authorization_and_lifecycle(
+    test_client: TestClient,
+    test_services: ApplicationServices,
+    monkeypatch: pytest.MonkeyPatch,
+    action: Literal["confirm", "cancel"],
+    clicker: str,
+) -> None:
+    caller, group, _user_model = await create_test_user_and_group(test_client)
+    other, other_group, _other_model = await create_test_user_and_group(test_client)
+    chat = await ChatModel.get_by_tid(group.id)
+    assert chat is not None
+    await set_chat_mode(chat, AIMode.entertainment, redis=test_services.redis)
+    for feature in ("ai_memory_controls", "ai_memory_retrieval"):
+        await set_feature(test_client, feature, True, chat_tid=group.id)
+        await set_feature(test_client, feature, True, chat_tid=other_group.id)
+    # The caller proposes a fact about someone else: subject is not the owner.
+    await grant_admin(group.id, caller.id)
+    member = test_client.create_user(first_name="Member").user
+    await _feed(test_client, MessageFactory.create(text="Joined", from_user=member, chat=group))
+    await _feed(test_client, MessageFactory.create(text="Joined", from_user=other, chat=group))
+    request_message = MessageFactory.create(text="Remember this", from_user=caller, chat=group).as_(test_client.bot)
+    request = MemoryEditRequest.from_message(request_message, epoch=0)
+    assert request is not None
+    proposal = MemoryEditProposal(
+        source=request.source,
+        epoch=0,
+        action="add",
+        text="Likes tea",
+        event="drinks",
+        subject_tid=other.id,
+    )
+    subject_request = MemoryEditRequest.from_message(
+        MessageFactory.create(text="I like tea", from_user=other, chat=group), epoch=0
+    )
+    assert subject_request is not None
+    await mutate_memory(chat, lambda state: capture_source(state, subject_request.source), redis=test_services.redis)
+    preview = await preview_memory_edit(chat, proposal, admin=True, redis=test_services.redis)
+    with ExitStack() as stack:
+        _telegram_rich_response(test_client, stack, bind_bot=True)
+        test_client.capture.clear()
+        await _send_memory_edit_confirmation(request_message, None, preview, chat=chat, services=test_services)
+        requests = test_client.capture.all_requests
+        original = _callback(requests, "Confirm memory change")
+        cancel = _callback(requests, "Cancel")
+        callback = original if action == "confirm" else cancel
+        actor = caller if clicker == "caller" else member
+        message = _bot_message(group)
+        if clicker in {"admin", "revoked", "cross_chat", "wrong_topic", "forged", "expired", "missing"}:
+            record = await grant_admin(group.id, member.id)
+            if clicker == "revoked":
+                await record.delete()
+        if clicker == "subject":
+            actor = other
+        if clicker == "other_chat_admin":
+            await grant_admin(other_group.id, member.id)
+        if clicker == "operator":
+            monkeypatch.setattr("sophie_bot.modules.utils_.admin.CONFIG.operators", [member.id])
+        if clicker == "cross_chat":
+            await grant_admin(other_group.id, member.id)
+            message = _bot_message(other_group)
+        if clicker == "wrong_topic":
+            message = message.model_copy(update={"message_thread_id": 123})
+        if clicker == "forged":
+            callback = AIMemoryEditCallback(token="unknown-token", action=action).pack()
+        if clicker in {"expired", "missing"}:
+            keys = [key async for key in test_services.redis.scan_iter(match="ai:memory:edit:*")]
+            assert len(keys) == 1
+            if clicker == "expired":
+                await test_services.redis.pexpire(keys[0], 0)
+            else:
+                await test_services.redis.delete(keys[0])
+        cutoff = datetime.now(UTC) - timedelta(days=1)
+        before = await read_memory(chat, cutoff, redis=test_services.redis)
+        result = await test_client.send_callback(callback, from_user=actor, message=message)
+        authorized = clicker in {"caller", "admin"}
+        after = await read_memory(chat, cutoff, redis=test_services.redis)
+        if authorized and action == "confirm":
+            assert "I saved that memory" in _message_text(result)
+            (fact,) = after.facts
+            assert fact.speaker_tid == caller.id and fact.subject_tids == [other.id]
+            assert fact.text == "Likes tea"
+        else:
+            assert after == before
+            if authorized:
+                assert "Memory change canceled" in _message_text(result)
+            else:
+                assert any(item.params.get("show_alert") for item in result)
+        replay = await test_client.send_callback(original, from_user=caller, message=_bot_message(group))
+        if authorized or clicker in {"expired", "missing"}:
+            assert "expired" in _message_text(replay)
+            assert await read_memory(chat, cutoff, redis=test_services.redis) == after
+        else:
+            # Rejections must leave the original proposal available to its caller.
+            assert "I saved that memory" in _message_text(replay)
+            assert len((await read_memory(chat, cutoff, redis=test_services.redis)).facts) == 1
+        other_chat = await ChatModel.get_by_tid(other_group.id)
+        assert other_chat is not None
+        assert not (await read_memory(other_chat, cutoff, redis=test_services.redis)).facts
+        markup = next(InlineKeyboardMarkup.model_validate(item.reply_markup) for item in requests if item.reply_markup)
+        assert [len(row) for row in markup.inline_keyboard] == [1, 1]
+        assert [button.text for row in markup.inline_keyboard for button in row] == ["Confirm memory change", "Cancel"]
+        assert AIMemoryEditCallback.unpack(original).token == AIMemoryEditCallback.unpack(cancel).token

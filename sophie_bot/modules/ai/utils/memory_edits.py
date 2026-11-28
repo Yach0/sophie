@@ -114,8 +114,8 @@ def _validate_fact_ids(fact_ids: list[str]) -> None:
         raise MemoryEditRejected(_("Enter up to 20 valid memory fact IDs, separated by spaces."))
 
 
-def memory_edit_key(chat_tid: int, actor_tid: int, token: str) -> str:
-    return f"ai:memory:edit:{chat_tid}:{actor_tid}:{token}"
+def memory_edit_key(chat_tid: int, token: str) -> str:
+    return f"ai:memory:edit:{chat_tid}:{token}"
 
 
 def _delete(state: MemoryState, fact_ids: list[str], actor_tid: int, *, admin: bool) -> tuple[MemoryFact, ...]:

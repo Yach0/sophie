@@ -6,7 +6,8 @@ from secrets import token_urlsafe
 from typing import Any
 
 from aiogram.exceptions import TelegramAPIError
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
+from aiogram.types import Message
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from pydantic_ai.models import Model
 from redis.exceptions import RedisError, WatchError
 from sentry_sdk.ai import set_conversation_id
@@ -329,23 +330,14 @@ async def _send_memory_edit_confirmation(
 
     token = token_urlsafe(12)
     await services.redis.set(
-        memory_edit_key(message.chat.id, proposal.source.speaker_tid, token),
+        memory_edit_key(message.chat.id, token),
         proposal.model_dump_json(),
         ex=CONFIRM_MEMORY_EDIT_TTL,
     )
-    buttons = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text=_("Confirm memory change"),
-                    callback_data=AIMemoryEditCallback(token=token, action="confirm").pack(),
-                ),
-                InlineKeyboardButton(
-                    text=_("Cancel"), callback_data=AIMemoryEditCallback(token=token, action="cancel").pack()
-                ),
-            ]
-        ]
-    )
+    builder = InlineKeyboardBuilder()
+    builder.button(text=_("Confirm memory change"), callback_data=AIMemoryEditCallback(token=token, action="confirm"))
+    builder.button(text=_("Cancel"), callback_data=AIMemoryEditCallback(token=token, action="cancel"))
+    buttons = builder.adjust(1).as_markup()
     document = memory_edit_confirmation(preview)
     kwargs["reply_markup"] = buttons
     if streamer:
