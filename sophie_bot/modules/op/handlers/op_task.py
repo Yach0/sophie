@@ -39,13 +39,14 @@ async def _create_gitlab_issue(
     data: dict[str, str] = {"title": title, "description": description}
     if labels:
         data["labels"] = ",".join(labels)
-    with sentry_sdk.start_span(op="http.client", name="Create GitLab issue") as span:
+    with sentry_sdk.start_span(name="Create GitLab issue", attributes={"sentry.op": "http.client"}) as span:
         async with (
             timeout(300),
             httpx2.AsyncClient(timeout=httpx2.Timeout(None, connect=30), trust_env=False) as client,
             client.stream("POST", url, headers=headers, json=data, follow_redirects=False) as response,
         ):
-            span.set_http_status(response.status_code)
+            span.set_attribute("http.response.status_code", response.status_code)
+            span.status = "error" if response.status_code >= 400 else "ok"
             response.raise_for_status()
             await response.aread()
             return response.json()

@@ -136,7 +136,7 @@ async def store_tool_exchanges(
     """Persist the tool exchanges that produced the answer sent as ``message_id``."""
     if not exchanges:
         return
-    with sentry_sdk.start_span(op="ai.cache", name="Store tool history") as span:
+    with sentry_sdk.start_span(name="Store tool history", attributes={"sentry.op": "ai.cache"}) as span:
         key = tool_history_key(chat_tid)
         payload = ModelMessagesTypeAdapter.dump_json(list(exchanges))
         try:
@@ -155,20 +155,20 @@ async def store_tool_exchanges(
         except WatchError:
             return
         await _trim_tool_history(chat_tid, redis=redis)
-        span.set_data("ai.cache.exchange_count", len(exchanges))
+        span.set_attribute("ai.cache.exchange_count", len(exchanges))
 
 
 async def get_tool_exchanges(chat_tid: int, *, redis: Redis) -> dict[int, list[ToolExchange]]:
     """Stored tool exchanges of a chat, keyed by the bot message the answer was sent as."""
-    with sentry_sdk.start_span(op="ai.cache", name="Read tool history") as span:
+    with sentry_sdk.start_span(name="Read tool history", attributes={"sentry.op": "ai.cache"}) as span:
         key = tool_history_key(chat_tid)
         raw_exchanges = await redis.hgetall(key)  # type: ignore[misc]
         result = {
             int(_decode_field(raw_field)): list(ModelMessagesTypeAdapter.validate_json(raw_payload))
             for raw_field, raw_payload in raw_exchanges.items()
         }
-        span.set_data("ai.cache.hit", bool(result))
-        span.set_data("ai.cache.run_count", len(result))
+        span.set_attribute("ai.cache.hit", bool(result))
+        span.set_attribute("ai.cache.run_count", len(result))
         return result
 
 

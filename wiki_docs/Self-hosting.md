@@ -44,17 +44,18 @@ Copy `data/config.example.env` to `data/config.env` and fill in the required val
 ### AI telemetry with Sentry
 
 Set `SENTRY_URL` to a Sentry DSN to enable error reporting and performance traces. With
-a DSN, Sophie traces every transaction by default (`SENTRY_TRACES_SAMPLE_RATE=1.0`);
+a DSN, Sophie traces every Telegram update by default (`SENTRY_TRACES_SAMPLE_RATE=1.0`);
 lower this rate to reduce volume, or set it to `0` to disable traces while keeping
-error reporting. Sampling is at the parent transaction level, so the same rate also
-applies to non-AI requests. The Pydantic AI integration records agent/model/tool spans,
+error reporting. Sampling is at the root span level and
+applies to both AI and non-AI updates. The Pydantic AI integration records agent/model/tool spans,
 token usage, prompts, replies, and tool inputs/outputs in captured traces. These can
 contain personal data and produce high Sentry volume; set an appropriate retention policy.
 For Ansible deployments, set `SENTRY_TRACES_SAMPLE_RATE` in the operator environment to
 override the default in all bot, scheduler, and REST processes.
 
-Sophie also adds spans for its own AI caches and state transitions. AI request metrics
-still use the existing `METRICS_ENABLE` and `SENTRY_ENABLE_METRICS` settings.
+Sophie uses Sentry SDK 3 streamed spans, including spans for its own AI caches and state
+transitions. Check existing dashboards for legacy transaction or integration span filters
+when upgrading. AI request metrics still use the existing `METRICS_ENABLE` and `SENTRY_ENABLE_METRICS` settings.
 
 
 ### 2. Run the Playbook

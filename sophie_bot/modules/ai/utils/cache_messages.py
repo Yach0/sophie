@@ -251,7 +251,7 @@ async def get_cached_messages_between(
     redis: Redis,
 ) -> tuple[MessageType, ...]:
     """Retrieve cached messages in a given inclusive time window."""
-    with sentry_sdk.start_span(op="ai.cache", name="Read cached messages") as span:
+    with sentry_sdk.start_span(name="Read cached messages", attributes={"sentry.op": "ai.cache"}) as span:
         key = get_message_cache_key(chat_id)
         raw_messages = await redis.zrangebyscore(  # type: ignore[misc]
             key, start_at.timestamp(), end_at.timestamp()
@@ -261,8 +261,8 @@ async def get_cached_messages_between(
             message for message in messages if message.created_at and start_at <= message.created_at <= end_at
         ]
         result = tuple(sorted(valid_messages, key=lambda message: (message.created_at, message.message_id)))
-        span.set_data("ai.cache.hit", bool(result))
-        span.set_data("ai.cache.message_count", len(result))
+        span.set_attribute("ai.cache.hit", bool(result))
+        span.set_attribute("ai.cache.message_count", len(result))
         return result
 
 

@@ -15,14 +15,14 @@ from sophie_bot.modules.ai.utils.chatbot_tool_history import get_tool_exchanges
 
 
 class _TraceTransport(Transport):
-    def __init__(self, transactions: list[dict[str, Any]]) -> None:
+    def __init__(self, spans: list[dict[str, Any]]) -> None:
         super().__init__()
-        self.transactions = transactions
+        self.spans = spans
 
     def capture_envelope(self, envelope: Envelope) -> None:
         for item in envelope.items:
-            if item.headers.get("type") == "transaction" and item.payload.json is not None:
-                self.transactions.append(item.payload.json)
+            if item.headers.get("type") == "span" and item.payload.json is not None:
+                self.spans.extend(item.payload.json["items"])
 
     def flush(self, *_args: Any, **_kwargs: Any) -> None:
         """Flush pending events."""
@@ -48,15 +48,19 @@ class _CacheRedis:
 
 @pytest.fixture
 def trace_events() -> Iterator[list[dict[str, Any]]]:
-    transactions: list[dict[str, Any]] = []
+    spans: list[dict[str, Any]] = []
     sentry_sdk.init(
         dsn="https://public@sentry.invalid/1",
-        transport=_TraceTransport(transactions),
+        transport=_TraceTransport(spans),
         traces_sample_rate=1.0,
         default_integrations=False,
     )
-    yield transactions
-    sentry_sdk.get_global_scope().set_client(None)
+    client = sentry_sdk.get_client()
+    try:
+        yield spans
+    finally:
+        client.close()
+        sentry_sdk.get_global_scope().set_client(None)
 
 
 @pytest.fixture
@@ -72,7 +76,9 @@ def cache() -> _CacheRedis:
         ModelResponse(
             parts=[ToolCallPart(tool_name="research", args={"secret": "private search"}, tool_call_id="private-id")]
         ),
-        ModelRequest(parts=[ToolReturnPart(tool_name="research", content="sensitive tool result", tool_call_id="private-id")]),
+        ModelRequest(
+            parts=[ToolReturnPart(tool_name="research", content="sensitive tool result", tool_call_id="private-id")]
+        ),
     ]
     return _CacheRedis(message, ModelMessagesTypeAdapter.dump_json(exchange))
 
@@ -81,28 +87,35 @@ def cache() -> _CacheRedis:
 async def test_cache_spans_are_children_of_active_trace_with_private_payload_excluded(
     trace_events: list[dict[str, Any]], cache: _CacheRedis
 ) -> None:
-    with sentry_sdk.start_transaction(op="bot.update", name="ai request") as transaction:
+    with sentry_sdk.start_span(
+        name="ai request", attributes={"sentry.op": "bot.update"}, parent_span=None
+    ) as root_span:
         messages = await get_cached_messages_between(
-            123456, cache.message.created_at - timedelta(minutes=1), cache.message.created_at, redis=cache  # type: ignore[arg-type]
+            123456,
+            cache.message.created_at - timedelta(minutes=1),
+            cache.message.created_at,
+            redis=cache,  # type: ignore[arg-type]
         )
         exchanges = await get_tool_exchanges(123456, redis=cache)  # type: ignore[arg-type]
         assert messages == (cache.message,)
         assert len(exchanges[99]) == 2
 
-    assert len(trace_events) == 1
-    event = trace_events[0]
-    spans = {span["description"]: span for span in event["spans"]}
+    sentry_sdk.flush()
+    assert len(trace_events) == 3
+    spans = {span["name"]: span for span in trace_events if not span["is_segment"]}
     assert set(spans) == {"Read cached messages", "Read tool history"}
-    assert {span["parent_span_id"] for span in spans.values()} == {transaction.span_id}
-    assert {span["trace_id"] for span in spans.values()} == {transaction.trace_id}
-    assert spans["Read cached messages"]["data"]["ai.cache.hit"] is True
-    assert spans["Read cached messages"]["data"]["ai.cache.message_count"] == 1
-    assert spans["Read tool history"]["data"]["ai.cache.hit"] is True
-    assert spans["Read tool history"]["data"]["ai.cache.run_count"] == 1
-    assert spans["Read cached messages"]["op"] == spans["Read tool history"]["op"] == "ai.cache"
-    assert "sensitive" not in str(event)
-    assert "private-id" not in str(event)
-    assert "123456" not in str(event)
+    assert {span["parent_span_id"] for span in spans.values()} == {root_span.span_id}
+    assert {span["trace_id"] for span in spans.values()} == {root_span.trace_id}
+    message_attrs = spans["Read cached messages"]["attributes"]
+    history_attrs = spans["Read tool history"]["attributes"]
+    assert message_attrs["ai.cache.hit"]["value"] is True
+    assert message_attrs["ai.cache.message_count"]["value"] == 1
+    assert history_attrs["ai.cache.hit"]["value"] is True
+    assert history_attrs["ai.cache.run_count"]["value"] == 1
+    assert message_attrs["sentry.op"]["value"] == history_attrs["sentry.op"]["value"] == "ai.cache"
+    assert "sensitive" not in str(trace_events)
+    assert "private-id" not in str(trace_events)
+    assert "123456" not in str(trace_events)
 
 
 @pytest.mark.asyncio
@@ -111,32 +124,42 @@ async def test_failed_cache_read_retains_exception_and_marks_child_span_failed(
 ) -> None:
     cache.fail_reads = True
     with (
-        sentry_sdk.start_transaction(op="bot.update", name="ai request") as transaction,
+        sentry_sdk.start_span(name="ai request", attributes={"sentry.op": "bot.update"}, parent_span=None) as root_span,
         pytest.raises(RuntimeError, match="cache unavailable"),
     ):
         await get_cached_messages_between(
-            123456, cache.message.created_at - timedelta(minutes=1), cache.message.created_at, redis=cache  # type: ignore[arg-type]
+            123456,
+            cache.message.created_at - timedelta(minutes=1),
+            cache.message.created_at,
+            redis=cache,  # type: ignore[arg-type]
         )
 
-    assert trace_events[0]["spans"][0]["parent_span_id"] == transaction.span_id
-    assert trace_events[0]["spans"][0]["status"] == "internal_error"
+    sentry_sdk.flush()
+    (child,) = [span for span in trace_events if not span["is_segment"]]
+    assert child["parent_span_id"] == root_span.span_id
+    assert child["status"] == "error"
 
 
 @pytest.mark.asyncio
 async def test_unsampled_trace_keeps_cache_behavior_without_recording_spans(cache: _CacheRedis) -> None:
-    transactions: list[dict[str, Any]] = []
+    spans: list[dict[str, Any]] = []
     sentry_sdk.init(
         dsn="https://public@sentry.invalid/1",
-        transport=_TraceTransport(transactions),
+        transport=_TraceTransport(spans),
         traces_sample_rate=0.0,
         default_integrations=False,
     )
     try:
-        with sentry_sdk.start_transaction(op="bot.update", name="ai request"):
+        with sentry_sdk.start_span(name="ai request", attributes={"sentry.op": "bot.update"}, parent_span=None):
             messages = await get_cached_messages_between(
-                123456, cache.message.created_at - timedelta(minutes=1), cache.message.created_at, redis=cache  # type: ignore[arg-type]
+                123456,
+                cache.message.created_at - timedelta(minutes=1),
+                cache.message.created_at,
+                redis=cache,  # type: ignore[arg-type]
             )
             assert messages == (cache.message,)
-        assert transactions == []
+        sentry_sdk.flush()
+        assert spans == []
     finally:
+        sentry_sdk.get_client().close()
         sentry_sdk.get_global_scope().set_client(None)

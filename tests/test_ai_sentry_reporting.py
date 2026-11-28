@@ -398,8 +398,8 @@ def test_ai_provider_exceptions_include_tool_failed_error() -> None:
     assert UserError not in AI_PROVIDER_EXCEPTIONS
 
 
-@pytest.mark.asyncio
-async def test_sentry_agent_trace_includes_model_and_prompt(monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.fixture
+def runtime_trace_transport(monkeypatch: pytest.MonkeyPatch) -> Iterator[_TraceCaptureTransport]:
     transport = _TraceCaptureTransport()
     actual_init = sentry_sdk.init
 
@@ -411,20 +411,49 @@ async def test_sentry_agent_trace_includes_model_and_prompt(monkeypatch: pytest.
     monkeypatch.setattr(sentry.CONFIG, "sentry_traces_sample_rate", 1.0)
     sentry.init_sentry()
     try:
-        agent = Agent(TestModel(custom_output_text="telemetry reply"), name="sophie:chat")
-        with sentry_sdk.start_transaction(op="bot.update", name="chatbot test"):
-            result = await agent.run("telemetry prompt")
-        sentry_sdk.flush()
-
-        assert result.output == "telemetry reply"
-        payloads = transport.payloads
-        serialized = str(payloads)
-        assert any(kind in {"transaction", "span"} for kind, _ in payloads)
-        assert "sophie:chat" in serialized
-        assert "telemetry prompt" in serialized
-        assert "telemetry reply" in serialized
+        yield transport
     finally:
+        sentry_sdk.get_client().close()
         sentry_sdk.get_global_scope().set_client(None)
+
+
+@pytest.mark.asyncio
+async def test_sentry_agent_trace_includes_model_and_prompt(runtime_trace_transport: _TraceCaptureTransport) -> None:
+    agent = Agent(TestModel(custom_output_text="telemetry reply"), name="sophie:chat")
+    with sentry_sdk.start_span(name="chatbot test", attributes={"sentry.op": "bot.update"}, parent_span=None):
+        result = await agent.run("telemetry prompt")
+    sentry_sdk.flush()
+
+    assert result.output == "telemetry reply"
+    payloads = runtime_trace_transport.payloads
+    serialized = str(payloads)
+    assert any(kind == "span" for kind, _ in payloads)
+    assert "sophie:chat" in serialized
+    assert "telemetry prompt" in serialized
+    assert "telemetry reply" in serialized
+
+
+def test_runtime_sentry_redacts_telegram_token_in_streamed_spans(
+    runtime_trace_transport: _TraceCaptureTransport,
+) -> None:
+    token = "123456:fake-test-telegram-token"
+    path = f"/bot{token}/sendMessage"
+    url = f"https://api.telegram.org{path}"
+    with (
+        sentry_sdk.start_span(name="command:start", attributes={"sentry.op": "bot.update"}, parent_span=None) as root,
+        sentry_sdk.start_span(
+            name=f"POST {url}", attributes={"sentry.op": "http.client", "url.full": url, "url.path": path}
+        ),
+    ):
+        pass
+    sentry_sdk.flush()
+
+    spans = [span for kind, batch in runtime_trace_transport.payloads if kind == "span" for span in batch["items"]]
+    (child,) = [span for span in spans if not span["is_segment"]]
+    assert child["parent_span_id"] == root.span_id
+    assert child["name"] == "POST https://api.telegram.org/bot[REDACTED]/sendMessage"
+    assert child["attributes"]["url.path"]["value"] == "/bot[REDACTED]/sendMessage"
+    assert token not in str(spans)
 
 
 def test_capture_ai_error_includes_user_facing_message_in_context_and_tags(

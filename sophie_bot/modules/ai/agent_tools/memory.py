@@ -46,9 +46,9 @@ async def write_memory(ctx: RunContext[SophieAIToolContext], information_to_save
         )
 
     async with track_ai_tool("write_memory"):
-        with sentry_sdk.start_span(op="ai.state", name="Write chat memory") as span:
+        with sentry_sdk.start_span(name="Write chat memory", attributes={"sentry.op": "ai.state"}) as span:
             memory_count = len(await AIMemoryModel.get_lines(ctx.deps.chat_iid))
-            span.set_data("ai.memory.count_before", memory_count)
+            span.set_attribute("ai.memory.count_before", memory_count)
             if memory_count >= _MAX_MEMORY_LINES:
                 raise ModelRetry(
                     f"Memory is full ({_MAX_MEMORY_LINES} items maximum). "
@@ -76,9 +76,9 @@ async def forget_memory(ctx: RunContext[SophieAIToolContext], index: int) -> str
         raise ModelRetry("Memory indexes start at 1. Provide a valid memory index from the memory list.")
 
     async with track_ai_tool("forget_memory"):
-        with sentry_sdk.start_span(op="ai.state", name="Forget chat memory") as span:
+        with sentry_sdk.start_span(name="Forget chat memory", attributes={"sentry.op": "ai.state"}) as span:
             removed = await AIMemoryModel.remove_line_by_index(ctx.deps.chat_iid, index - 1)
-            span.set_data("ai.memory.removed", removed)
+            span.set_attribute("ai.memory.removed", removed)
             if not removed:
                 raise ModelRetry("No memory exists at that index. Use an index from the current memory list.")
 

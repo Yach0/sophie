@@ -1543,7 +1543,7 @@ _SYSTEM_PROMPT_FLAG_BY_MODE: Mapping[AIMode, FeatureType] = {AIMode.sophie_help:
 
 
 async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
-    with sentry_sdk.start_span(op="ai.context", name="Build chatbot instructions") as span:
+    with sentry_sdk.start_span(name="Build chatbot instructions", attributes={"sentry.op": "ai.context"}) as span:
         mode = context.mode
         prompt_flag = _SYSTEM_PROMPT_FLAG_BY_MODE.get(mode, "ai_chatbot_system_prompt")
         system_prompt = str(await get_value(prompt_flag, chat_tid=context.chat_tid, redis=context.services.redis))
@@ -1553,8 +1553,8 @@ async def build_chatbot_instructions(context: SophieAIToolContext) -> str:
                 "Represent people only with plain @Display Name text; Sophie resolves mentions to usernames afterward."
             )
         instruction_doc += await _build_chatbot_runtime_context(context, mode)
-        span.set_data("ai.mode", mode.value)
-        span.set_data("ai.has_user_text", bool(context.user_text))
+        span.set_attribute("ai.mode", mode.value)
+        span.set_attribute("ai.has_user_text", bool(context.user_text))
         return instruction_doc.to_md()
 
 

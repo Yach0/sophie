@@ -109,10 +109,10 @@ async def get_entertainment_boost_credits(chat_iid: PydanticObjectId, *, redis: 
 
 
 async def get_quota_state(chat_iid: PydanticObjectId, *, redis: Redis) -> AIQuotaState | None:
-    with sentry_sdk.start_span(op="ai.state", name="Read AI quota") as span:
+    with sentry_sdk.start_span(name="Read AI quota", attributes={"sentry.op": "ai.state"}) as span:
         quota = await get_or_create_quota_model(chat_iid)
         if not quota:
-            span.set_data("ai.quota.exists", False)
+            span.set_attribute("ai.quota.exists", False)
             return None
 
         usage = await AIUsageModel.find_one(AIUsageModel.chat.id == chat_iid)
@@ -122,9 +122,9 @@ async def get_quota_state(chat_iid: PydanticObjectId, *, redis: Redis) -> AIQuot
             month_key=quota.period_start.strftime("%Y-%m"),
             boost_credits=await get_entertainment_boost_credits(chat_iid, redis=redis),
         )
-        span.set_data("ai.quota.exists", True)
-        span.set_data("ai.quota.remaining_credits", state.remaining_credits)
-        span.set_data("ai.quota.boost_credits", state.boost_credits)
+        span.set_attribute("ai.quota.exists", True)
+        span.set_attribute("ai.quota.remaining_credits", state.remaining_credits)
+        span.set_attribute("ai.quota.boost_credits", state.boost_credits)
         return state
 
 

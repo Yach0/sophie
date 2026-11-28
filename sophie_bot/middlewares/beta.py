@@ -97,7 +97,7 @@ class BetaMiddleware(BaseMiddleware):
     async def send_request(self, json_request: str, instance_url: str) -> None:
         try:
             session = self.get_session()
-            with sentry_sdk.start_span(op="http.client", name="Forward beta update") as span:
+            with sentry_sdk.start_span(name="Forward beta update", attributes={"sentry.op": "http.client"}) as span:
                 async with (
                     timeout(300),
                     session.stream(
@@ -107,7 +107,8 @@ class BetaMiddleware(BaseMiddleware):
                         headers={"Content-Type": "text/plain; charset=utf-8"},
                     ) as response,
                 ):
-                    span.set_http_status(response.status_code)
+                    span.set_attribute("http.response.status_code", response.status_code)
+                    span.status = "error" if response.status_code >= 400 else "ok"
         except (httpx2.RequestError, httpx2.InvalidURL, TimeoutError) as error:
             log.error(
                 "Failed to send request to the second backend.",

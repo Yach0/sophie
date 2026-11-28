@@ -27,7 +27,7 @@ async def prepare_chatbot_history(
     request_context: str = "",
     on_activity: ActivityCallback | None = None,
 ) -> OldContext | ModernContext:
-    with sentry_sdk.start_span(op="ai.context", name="Prepare chatbot history") as span:
+    with sentry_sdk.start_span(name="Prepare chatbot history", attributes={"sentry.op": "ai.context"}) as span:
         history: OldContext | ModernContext
         if await is_enabled("ai_chatbot_modern_context", chat_tid=context.chat_tid, redis=context.services.redis):
             configured_budget = int(
@@ -76,9 +76,9 @@ async def prepare_chatbot_history(
                 request_context=request_context,
                 on_activity=on_activity,
             )
-            span.set_data("ai.mode", context.mode.value)
-            span.set_data("ai.history_messages", len(history.message_history))
-            span.set_data("ai.modern_context", True)
+            span.set_attribute("ai.mode", context.mode.value)
+            span.set_attribute("ai.history_messages", len(history.message_history))
+            span.set_attribute("ai.modern_context", True)
             return history
         history = OldContext(services=context.services)
         max_age_minutes = int(
@@ -101,8 +101,8 @@ async def prepare_chatbot_history(
 
         await history.add_from_message(message, custom_text=context.user_text, on_activity=on_activity)
         history.apply_context_block()
-        span.set_data("ai.mode", context.mode.value)
-        span.set_data("ai.history_messages", len(history.message_history))
-        span.set_data("ai.tool_history_runs", len(tool_exchanges))
-        span.set_data("ai.max_age_enabled", max_age is not None)
+        span.set_attribute("ai.mode", context.mode.value)
+        span.set_attribute("ai.history_messages", len(history.message_history))
+        span.set_attribute("ai.tool_history_runs", len(tool_exchanges))
+        span.set_attribute("ai.max_age_enabled", max_age is not None)
         return history

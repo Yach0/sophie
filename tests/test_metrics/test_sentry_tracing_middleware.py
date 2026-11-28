@@ -19,44 +19,44 @@ def mock_update() -> Update:
 
 
 @pytest.mark.asyncio
-async def test_starts_transaction_for_update(mock_update: Update) -> None:
+async def test_starts_span_for_update(mock_update: Update) -> None:
     middleware = SentryTracingMiddleware()
     handler = AsyncMock(return_value="ok")
-    transaction = MagicMock()
-    transaction.__enter__.return_value = transaction
-    transaction.__exit__.return_value = False
+    span = MagicMock()
+    span.__enter__.return_value = span
+    span.__exit__.return_value = False
     data = {"services": SimpleNamespace(redis=object())}
 
     with (
-        patch(
-            "sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction
-        ) as start_transaction,
+        patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_span", return_value=span) as start_span,
     ):
         result = await middleware(handler, mock_update, data)
 
     assert result == "ok"
     handler.assert_awaited_once_with(mock_update, data)
-    start_transaction.assert_called_once()
-    assert start_transaction.call_args.kwargs["op"] == "bot.update"
-    assert start_transaction.call_args.kwargs["name"] == "command:start"
-    transaction.set_tag.assert_any_call("update_type", "message")
-    transaction.set_tag.assert_any_call("command", "start")
+    start_span.assert_called_once()
+    assert start_span.call_args.kwargs["name"] == "command:start"
+    assert start_span.call_args.kwargs["parent_span"] is None
+    attributes = start_span.call_args.kwargs["attributes"]
+    assert attributes["sentry.op"] == "bot.update"
+    assert attributes["update_type"] == "message"
+    assert attributes["command"] == "start"
 
 
 @pytest.mark.asyncio
-async def test_transaction_wraps_handler_exception(mock_update: Update) -> None:
-    """The transaction context must exit (via __exit__) even when the handler raises."""
+async def test_span_wraps_handler_exception(mock_update: Update) -> None:
+    """The span context must exit (via __exit__) even when the handler raises."""
     middleware = SentryTracingMiddleware()
     handler = AsyncMock(side_effect=ValueError("boom"))
-    transaction = MagicMock()
-    transaction.__enter__.return_value = transaction
-    transaction.__exit__.return_value = False
+    span = MagicMock()
+    span.__enter__.return_value = span
+    span.__exit__.return_value = False
     data = {"services": SimpleNamespace(redis=object())}
 
     with (
-        patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_transaction", return_value=transaction),
+        patch("sophie_bot.middlewares.sentry_tracing.sentry_sdk.start_span", return_value=span),
         pytest.raises(ValueError, match="boom"),
     ):
         await middleware(handler, mock_update, data)
 
-    transaction.__exit__.assert_called_once()
+    span.__exit__.assert_called_once()

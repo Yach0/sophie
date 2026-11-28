@@ -18,7 +18,7 @@
 
 import logging
 import re
-from typing import Any, cast
+from typing import Any
 
 import sentry_sdk
 from sentry_sdk.integrations import Integration
@@ -27,7 +27,7 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-from sentry_sdk.types import Event
+from sentry_sdk.types import Event, SpanJSON
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import SOPHIE_MODE
@@ -50,18 +50,14 @@ def _scrub_bot_token(url: str) -> str:
     return _BOT_TOKEN_RE.sub(r"\1[REDACTED]\2", url)
 
 
-def _before_send_transaction(event: Event, _hint: dict[str, Any]) -> Event | None:
-    """Redact Telegram bot token from outbound request URLs in trace spans."""
-    ev = cast(dict[str, Any], event)
-    for span in ev.get("spans", []):
-        data = span.get("data", {})
-        for key in ("url", "http.url", "db.statement"):
-            if isinstance(data.get(key), str):
-                data[key] = _scrub_bot_token(data[key])
-    request = ev.get("request", {})
-    if isinstance(request.get("url"), str):
-        request["url"] = _scrub_bot_token(request["url"])
-    return event
+def _before_send_span(span: SpanJSON, _hint: dict[str, Any]) -> SpanJSON:
+    """Redact Telegram bot tokens before Sentry serializes streamed spans."""
+    span["name"] = _scrub_bot_token(span["name"])
+    attributes = span.get("attributes") or {}
+    for key, value in attributes.items():
+        if isinstance(value, str):
+            attributes[key] = _scrub_bot_token(value)
+    return span
 
 
 def _before_send(event: Event, hint: dict[str, Any]) -> Event | None:
@@ -71,6 +67,9 @@ def _before_send(event: Event, hint: dict[str, Any]) -> Event | None:
     attempt before retries/failovers occur. Sophie's ai_run candidate loop handles retries with
     exponential backoff and reports terminal failures with full AI context and fingerprinting.
     """
+    request = event.get("request")
+    if request is not None and isinstance(url := request.get("url"), str):
+        request["url"] = _scrub_bot_token(url)
     exc_values = event.get("exception", {}).get("values", [])
     exc_info = hint.get("exc_info")
     error = exc_info[1] if exc_info else None
@@ -121,7 +120,7 @@ def init_sentry() -> None:
         RedisIntegration(),
         AioHttpIntegration(),
         PyMongoIntegration(),
-        PydanticAIIntegration(include_prompts=True, handled_tool_call_exceptions=False),
+        PydanticAIIntegration(handled_tool_call_exceptions=False),
     ]
 
     if CONFIG.sentry_enable_logs:
@@ -139,12 +138,15 @@ def init_sentry() -> None:
         release=build_release(),
         ignore_errors=SENTRY_IGNORED_EXCEPTIONS,
         default_integrations=False,
-        enable_logs=CONFIG.sentry_enable_logs,
+        # Preserve the sanitized message-only AI failure events.
+        attach_stacktrace=False,
         traces_sample_rate=CONFIG.sentry_traces_sample_rate,
         profile_session_sample_rate=CONFIG.sentry_profile_session_sample_rate,
         profile_lifecycle="trace",
-        stream_gen_ai_spans=True,
-        send_default_pii=True,
-        before_send_transaction=_before_send_transaction,
+        data_collection={
+            "gen_ai": {"inputs": True, "outputs": True},
+            "stack_frame_variables": {"mode": "denylist", "terms": ["api_key"]},
+        },
+        before_send_span=_before_send_span,
         before_send=_before_send,
     )

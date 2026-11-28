@@ -245,12 +245,12 @@ async def load_catalog(*, redis: Redis) -> AICatalog:
 
 
 async def get_catalog(*, redis: Redis) -> AICatalog:
-    with sentry_sdk.start_span(op="ai.cache", name="Look up AI catalog") as span:
+    with sentry_sdk.start_span(name="Look up AI catalog", attributes={"sentry.op": "ai.cache"}) as span:
         changed = _catalog.version != await _current_version(redis=redis)
-        span.set_data("ai.cache.hit", not changed)
+        span.set_attribute("ai.cache.hit", not changed)
         current_catalog = await load_catalog(redis=redis) if changed else _catalog
-        span.set_data("ai.catalog.provider_count", len(current_catalog.providers))
-        span.set_data("ai.catalog.model_count", len(current_catalog.models))
+        span.set_attribute("ai.catalog.provider_count", len(current_catalog.providers))
+        span.set_attribute("ai.catalog.model_count", len(current_catalog.models))
         return current_catalog
 
 
