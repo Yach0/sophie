@@ -140,11 +140,7 @@ def extract_update_info(event: TelegramObject) -> UpdateInfo:
 
 
 def _get_command_prefix(text: str) -> str | None:
-    prefixes: list[str] = [str(prefix) for prefix in CONFIG.commands_prefix]
-    if not prefixes:
-        return None
-
-    ordered_prefixes = sorted(prefixes, key=len, reverse=True)
+    ordered_prefixes = sorted((str(prefix) for prefix in CONFIG.commands_prefix), key=len, reverse=True)
     for prefix in ordered_prefixes:
         if text.startswith(prefix):
             return prefix
