@@ -11,6 +11,8 @@ import pytest
 import sentry_sdk
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.methods import SendMessage
+from aiohttp import ClientSession, web
+from aiohttp.test_utils import TestServer
 from beanie import PydanticObjectId
 from mistralai.client.errors import SDKError
 from pydantic_ai import Agent
@@ -454,6 +456,35 @@ def test_runtime_sentry_redacts_telegram_token_in_streamed_spans(
     assert child["name"] == "POST https://api.telegram.org/bot[REDACTED]/sendMessage"
     assert child["attributes"]["url.path"]["value"] == "/bot[REDACTED]/sendMessage"
     assert token not in str(spans)
+
+
+async def _respond_to_synthetic_telegram_request(_request: web.Request) -> web.Response:
+    return web.Response(text="OK")
+
+
+async def test_runtime_sentry_redacts_telegram_token_in_http_breadcrumbs(
+    runtime_trace_transport: _TraceCaptureTransport,
+) -> None:
+    token = "123456:fake-test-telegram-token"
+    app = web.Application()
+    app.router.add_get("/{tail:.*}", _respond_to_synthetic_telegram_request)
+    with sentry_sdk.isolation_scope() as scope:
+        scope.clear_breadcrumbs()
+        async with (
+            TestServer(app) as server,
+            ClientSession() as session,
+            session.get(server.make_url(f"/bot{token}/sendMessage")) as response,
+        ):
+            assert response.status == 200
+        sentry_sdk.capture_exception(RuntimeError("synthetic error after HTTP request"))
+        sentry_sdk.flush()
+
+    (event,) = [event for kind, event in runtime_trace_transport.payloads if kind == "event"]
+    (breadcrumb,) = [crumb for crumb in event["breadcrumbs"]["values"] if crumb["category"] == "httplib"]
+    assert breadcrumb["data"]["url"].endswith("/bot[REDACTED]/sendMessage")
+    assert breadcrumb["data"]["http.method"] == "GET"
+    assert breadcrumb["data"]["http.response.status_code"] == 200
+    assert token not in json.dumps(runtime_trace_transport.payloads)
 
 
 def test_capture_ai_error_includes_user_facing_message_in_context_and_tags(

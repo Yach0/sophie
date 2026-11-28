@@ -27,7 +27,7 @@ from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.pydantic_ai import PydanticAIIntegration
 from sentry_sdk.integrations.pymongo import PyMongoIntegration
 from sentry_sdk.integrations.redis import RedisIntegration
-from sentry_sdk.types import Event, SpanJSON
+from sentry_sdk.types import Breadcrumb, BreadcrumbHint, Event, SpanJSON
 
 from sophie_bot.config import CONFIG
 from sophie_bot.modes import SOPHIE_MODE
@@ -58,6 +58,14 @@ def _before_send_span(span: SpanJSON, _hint: dict[str, Any]) -> SpanJSON:
         if isinstance(value, str):
             attributes[key] = _scrub_bot_token(value)
     return span
+
+
+def _before_breadcrumb(crumb: Breadcrumb, _hint: BreadcrumbHint) -> Breadcrumb:
+    """Redact token-bearing URLs in HTTP breadcrumbs copied to error events."""
+    data = crumb.get("data")
+    if isinstance(data, dict) and isinstance(url := data.get("url"), str):
+        crumb["data"] = {**data, "url": _scrub_bot_token(url)}
+    return crumb
 
 
 def _before_send(event: Event, hint: dict[str, Any]) -> Event | None:
@@ -147,6 +155,7 @@ def init_sentry() -> None:
             "gen_ai": {"inputs": True, "outputs": True},
             "stack_frame_variables": {"mode": "denylist", "terms": ["api_key"]},
         },
+        before_breadcrumb=_before_breadcrumb,
         before_send_span=_before_send_span,
         before_send=_before_send,
     )
